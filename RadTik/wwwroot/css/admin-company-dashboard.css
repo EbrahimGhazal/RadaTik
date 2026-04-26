@@ -1,0 +1,450 @@
+/* ============================================
+   لوحة تحكم مدير الشركة - تصميم رسومي سريع القراءة
+   ============================================ */
+
+.company-dashboard-wrap {
+    background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 40%, #1e293b 100%);
+    min-height: 60vh;
+    margin-right: calc(-1 * (var(--spacing-lg, 1.5rem) + 0px));
+    margin-left: calc(-1 * (var(--spacing-lg, 1.5rem) + 0px));
+    margin-top: calc(-1 * var(--spacing-xl, 2rem));
+    margin-bottom: 2rem;
+    padding: var(--spacing-xl, 2rem) var(--spacing-lg, 1.5rem);
+    border-radius: 0 0 24px 24px;
+}
+
+.company-dashboard-wrap .company-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.company-dashboard-wrap .company-header h1 {
+    color: #fff !important;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 !important;
+}
+
+.company-dashboard-wrap .company-header .network-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.company-dashboard-wrap .company-header .network-selector select {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 0.5rem 1rem;
+    color: #fff;
+    font-weight: 500;
+}
+
+.company-dashboard-wrap .company-header .network-selector select option {
+    background: #1e3a8a;
+    color: #fff;
+}
+
+/* بطاقة الملخص الكبيرة */
+.company-summary-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.company-summary-card .summary-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+}
+
+.company-summary-card .summary-content .summary-label {
+    color: #64748b;
+    font-size: 0.95rem;
+    margin-bottom: 0.35rem;
+}
+
+.company-summary-card .summary-content .summary-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #1e2a4a;
+    line-height: 1.1;
+}
+
+.company-summary-card .summary-content .summary-sublabel {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+/* نقاط التبديل */
+.company-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.company-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    transition: all 0.25s ease;
+}
+
+.company-dots span.active {
+    width: 24px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+/* شبكة البطاقات */
+.company-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 1200px) {
+    .company-cards-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 992px) {
+    .company-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .company-cards-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.company-grid-card {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.company-grid-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    background: #fff;
+}
+
+.company-grid-card .card-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    color: #fff;
+    margin-bottom: 1rem;
+}
+
+.company-grid-card .card-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e2a4a;
+}
+
+.company-grid-card .card-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #334155;
+    margin-top: 0.25rem;
+}
+
+.company-grid-card .card-subvalue {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-top: 0.25rem;
+}
+
+/* ألوان الدوائر */
+.company-icon-1 { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important; }
+.company-icon-2 { background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; }
+.company-icon-3 { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important; }
+.company-icon-4 { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; }
+.company-icon-5 { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important; }
+.company-icon-6 { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important; }
+.company-icon-7 { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%) !important; }
+
+/* بطاقات الإجراءات السريعة */
+.company-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.company-quick-action {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    text-decoration: none;
+    color: #1e2a4a;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.company-quick-action:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    color: #1e2a4a;
+    text-decoration: none;
+}
+
+.company-quick-action .action-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    color: #fff;
+    margin: 0 auto 0.75rem;
+}
+
+.company-quick-action .action-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e2a4a;
+}
+
+/* أقسام المعلومات */
+.company-info-section {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+}
+
+.company-info-section .section-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1e2a4a;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.company-info-section .section-title .title-text {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.company-info-section .section-title .title-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: #fff;
+}
+
+/* تعديل الـ Header لمدير الشركة */
+body.company-dashboard-page .header {
+    background: linear-gradient(180deg, rgba(30, 64, 175, 0.95) 0%, rgba(30, 58, 138, 0.95) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+body.company-dashboard-page .header .header-search {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body.company-dashboard-page .header .header-search input {
+    color: #fff;
+}
+
+body.company-dashboard-page .header .header-search input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+body.company-dashboard-page .header .header-search i {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+body.company-dashboard-page .header .header-btn {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+}
+
+body.company-dashboard-page .header .header-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+body.company-dashboard-page .header .header-user-name,
+body.company-dashboard-page .header .header-user-role {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+body.company-dashboard-page .header .header-user-avatar {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+body.company-dashboard-page .header .header-user {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0.5rem 0.75rem;
+}
+
+body.company-dashboard-page .header .header-user:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+body.company-dashboard-page .header .badge {
+    background: rgba(239, 68, 68, 0.9) !important;
+    color: #fff;
+}
+
+body.company-dashboard-page .header .dropdown-menu {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+body.company-dashboard-page .header .dropdown-item {
+    color: #1e2a4a;
+}
+
+body.company-dashboard-page .header .dropdown-item:hover {
+    background: rgba(30, 64, 175, 0.1);
+    color: #1e2a4a;
+}
+
+/* تحسين الجداول */
+.company-info-section .table {
+    margin-bottom: 0;
+}
+
+.company-info-section .table thead th {
+    background: var(--table-head-bg);
+    color: var(--text-contrast);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-strong);
+    padding: 0.58rem 0.7rem;
+}
+
+.company-info-section .table tbody td {
+    padding: 0.48rem 0.7rem;
+    vertical-align: middle;
+}
+
+/* تحسين البطاقات */
+.company-dashboard-wrap .card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+.company-dashboard-wrap .card-header {
+    border-radius: 20px 20px 0 0;
+    border: none;
+    font-weight: 600;
+    background: rgba(248, 250, 252, 0.8);
+}
+
+.company-dashboard-wrap .card-body {
+    border-radius: 0 0 20px 20px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.company-dashboard-wrap .tab-pane,
+.company-dashboard-wrap .card,
+.company-dashboard-wrap .company-grid-card {
+    animation: fadeIn 0.3s ease;
+}
+
+/* ============================================
+   Launch Polish - Dark Mode Contrast
+   ============================================ */
+[data-theme="dark"] .company-dashboard-wrap {
+    background: linear-gradient(180deg, #172445 0%, #12223e 45%, #0a1323 100%);
+}
+
+[data-theme="dark"] .company-summary-card,
+[data-theme="dark"] .company-grid-card,
+[data-theme="dark"] .company-quick-action,
+[data-theme="dark"] .company-info-section,
+[data-theme="dark"] .company-dashboard-wrap .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-card);
+}
+
+[data-theme="dark"] .company-summary-card .summary-content .summary-label,
+[data-theme="dark"] .company-summary-card .summary-content .summary-sublabel,
+[data-theme="dark"] .company-grid-card .card-subvalue {
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] .company-summary-card .summary-content .summary-value,
+[data-theme="dark"] .company-grid-card .card-label,
+[data-theme="dark"] .company-grid-card .card-value,
+[data-theme="dark"] .company-quick-action .action-label,
+[data-theme="dark"] .company-info-section .section-title,
+[data-theme="dark"] .company-info-section .table tbody td {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .company-info-section .table tbody tr:hover {
+    background: var(--table-row-hover);
+}

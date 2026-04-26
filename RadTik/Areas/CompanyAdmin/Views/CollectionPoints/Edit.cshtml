@@ -1,0 +1,52 @@
+@model RadTik.ViewModels.CollectionPoints.EditCollectionPointViewModel
+
+@{
+    ViewData["Title"] = "تعديل رصيد نقطة التحصيل";
+}
+
+<div class="page-header">
+    <h1>
+        <i class="fas fa-edit"></i>
+        @ViewData["Title"]
+    </h1>
+    <p class="text-muted">يمكن تعديل رصيد نقطة التحصيل فقط. لا يمكن تعديل بيانات المستخدم من هذه الصفحة.</p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <div class="mb-3">
+                <label class="form-label">اسم نقطة التحصيل</label>
+                <input class="form-control" value="@Model.UserName" readonly />
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="CurrentBalance" class="form-label"></label>
+                <input asp-for="CurrentBalance" class="form-control" readonly />
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="NewBalance" class="form-label"></label>
+                <input asp-for="NewBalance" class="form-control" min="0" step="0.01" />
+                <span class="form-text text-muted">أدخل الرصيد الجديد (صفر أو قيمة موجبة فقط).</span>
+                <span asp-validation-for="NewBalance" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> حفظ التعديلات
+            </button>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> رجوع للقائمة
+            </a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+

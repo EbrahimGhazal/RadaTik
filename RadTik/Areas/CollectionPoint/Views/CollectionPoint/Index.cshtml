@@ -1,0 +1,279 @@
+@model RadTik.ViewModels.CollectionPoint.CollectionPointDashboardViewModel
+@{
+    ViewData["Title"] = "نقطة مبيع (تحصيل مالي)";
+}
+
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1><i class="fas fa-cash-register"></i> @ViewData["Title"]</h1>
+        <p class="text-muted mb-0">اختر شبكة للبحث عن المشتركين وتسديد الفواتير</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <div class="text-end">
+            <small class="text-muted d-block">رصيد نقطة التحصيل</small>
+            <strong class="text-success fs-4">@Model.AccountBalance.ToString("N0") ل.س</strong>
+        </div>
+        <a asp-action="History" class="btn btn-outline-primary">
+            <i class="fas fa-list"></i> سجل التحصيل
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="row g-3 mb-4">
+    @if (Model.Networks != null && Model.Networks.Any())
+    {
+        @foreach (var net in Model.Networks)
+        {
+            <div class="col-sm-6 col-md-4 col-lg-3">
+                <div class="card h-100 network-card" style="cursor:pointer" data-network-id="@net.Id" data-network-name="@net.Name">
+                    <div class="card-body text-center">
+                        @if (!string.IsNullOrEmpty(net.LogoPath))
+                        {
+                            <img src="@net.LogoPath" alt="@net.Name" class="mb-2" style="max-height: 60px; max-width: 100%;" />
+                        }
+                        else
+                        {
+                            <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-2" style="width: 60px; height: 60px;">
+                                <i class="fas fa-network-wired fa-2x"></i>
+                            </div>
+                        }
+                        <h5 class="card-title mb-1">@net.Name</h5>
+                        @if (!string.IsNullOrEmpty(net.Phone))
+                        {
+                            <p class="card-text text-muted small mb-0">
+                                <i class="fas fa-phone"></i> @net.Phone
+                            </p>
+                        }
+                        <span class="badge bg-primary mt-2">انقر للبحث</span>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="col-12">
+            <div class="alert alert-info">لا توجد شبكات متاحة. يرجى التواصل مع مدير النظام.</div>
+        </div>
+    }
+</div>
+
+<!-- Modal البحث عن المشتركين -->
+<div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">
+                    <i class="fas fa-search"></i> البحث عن مشترك — <span id="modalNetworkName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <input type="text" id="searchQuery" class="form-control" placeholder="اسم المستخدم، الاسم الثلاثي، رقم المشترك أو رقم الجوال" />
+                            <button type="button" id="btnSearch" class="btn btn-primary">
+                                <i class="fas fa-search"></i> بحث
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>اسم المستخدم</th>
+                                <th>الاسم الثلاثي</th>
+                                <th>رقم المشترك</th>
+                                <th>رقم الجوال</th>
+                                <th>اسم البروفايل</th>
+                                <th>السعر الأساسي</th>
+                                <th>الضريبة</th>
+                                <th>الإجمالي</th>
+                                <th style="width: 240px;">الإجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody id="searchResultsBody">
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">أدخل كلمة البحث وانقر على بحث</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal تأكيد تسديد الفاتورة -->
+<div class="modal fade" id="confirmPayModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-check-circle"></i> تأكيد تسديد الفاتورة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmPayMessage"></p>
+                <p class="text-muted small mb-0">سيتم حسم المبلغ من رصيد نقطة التحصيل وتجديد اشتراك المشترك لمدة شهر كامل.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <form id="confirmPayForm" method="post" asp-area="CollectionPoint" asp-controller="CollectionPoint" asp-action="PayBill" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="clientId" id="confirmPayClientId" />
+                    <button type="submit" class="btn btn-success">تأكيد وتسديد</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0"><i class="fas fa-history"></i> آخر عمليات التحصيل</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>نوع العملية</th>
+                        <th>العميل</th>
+                        <th>المبلغ</th>
+                        <th>رصيد العميل بعد</th>
+                        <th>رقم المرجع</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.RecentTransactions != null && Model.RecentTransactions.Any())
+                    {
+                        foreach (var t in Model.RecentTransactions)
+                        {
+                            <tr>
+                                <td>@t.PaymentDate.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td>
+                                    @if (t.OperationType == "Renewal")
+                                    {
+                                        <span class="badge bg-success">تجديد</span>
+                                    }
+                                    else if (t.OperationType == "ClientTopUp")
+                                    {
+                                        <span class="badge bg-info">تغذية رصيد</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary">تحصيل</span>
+                                    }
+                                </td>
+                                <td>@(t.Client?.Name ?? t.Client?.UserName ?? t.ClientId.ToString())</td>
+                                <td>@t.Amount.ToString("N0") ل.س</td>
+                                <td>@t.NewClientBalance.ToString("N0")</td>
+                                <td class="small text-muted">@(string.IsNullOrWhiteSpace(t.ReferenceNumber) ? "—" : t.ReferenceNumber)</td>
+                                <td class="text-muted">@t.Notes</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="7" class="text-center text-muted">لا توجد عمليات بعد</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var currentNetworkId = null;
+        var searchModal = new bootstrap.Modal(document.getElementById('searchModal'));
+        var confirmPayModal = new bootstrap.Modal(document.getElementById('confirmPayModal'));
+
+        document.querySelectorAll('.network-card').forEach(function(card) {
+            card.addEventListener('click', function() {
+                currentNetworkId = parseInt(this.dataset.networkId, 10);
+                var networkName = this.dataset.networkName || '';
+                document.getElementById('modalNetworkName').textContent = networkName;
+                document.getElementById('searchQuery').value = '';
+                document.getElementById('searchResultsBody').innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">أدخل كلمة البحث وانقر على بحث</td></tr>';
+                searchModal.show();
+            });
+        });
+
+        function doSearch() {
+            if (!currentNetworkId) return;
+            var q = document.getElementById('searchQuery').value.trim();
+            var tbody = document.getElementById('searchResultsBody');
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> جاري البحث...</td></tr>';
+
+            var url = '@Url.Action("SearchClients")' + '?networkId=' + currentNetworkId + (q ? '&q=' + encodeURIComponent(q) : '');
+            fetch(url)
+                .then(function(r) { return r.json(); })
+                .then(function(items) {
+                    if (items.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">لا توجد نتائج</td></tr>';
+                    } else {
+                        tbody.innerHTML = items.map(function(c) {
+                            var basePrice = parseFloat(c.basePrice || 0);
+                            var commissionAmount = parseFloat(c.commissionAmount || 0);
+                            var totalPrice = parseFloat(c.totalPrice || 0);
+                            var months = parseInt(c.pendingMonths || 1, 10);
+                            var totalDue = parseFloat(c.totalAmountDue || totalPrice);
+                            var dueLabel = months > 1
+                                ? ('متأخر ' + months + ' أشهر (الإجمالي: ' + totalDue.toLocaleString('ar-SY') + ' ل.س)')
+                                : ('إجمالي الدفع: ' + totalDue.toLocaleString('ar-SY') + ' ل.س');
+                            return '<tr>' +
+                                '<td>' + (c.userName || '—') + '</td>' +
+                                '<td>' + (c.fullName || '—') + '</td>' +
+                                '<td>' + (c.subscriberNumber || '—') + '</td>' +
+                                '<td>' + (c.phoneNumber || '—') + '</td>' +
+                                '<td>' + (c.profileName || '—') + '</td>' +
+                                '<td>' + basePrice.toLocaleString('ar-SY') + ' ل.س</td>' +
+                                '<td>' + commissionAmount.toLocaleString('ar-SY') + ' ل.س</td>' +
+                                '<td><div>' + totalPrice.toLocaleString('ar-SY') + ' ل.س</div><small class="text-muted">' + dueLabel + '</small></td>' +
+                                '<td class="d-flex gap-2">' +
+                                    '<button type="button" class="btn btn-success btn-sm btn-pay" data-client-id="' + c.id + '" data-user-name="' + (c.userName || '') + '" data-total-due="' + totalDue.toLocaleString('ar-SY') + '" data-months="' + months + '">تسديد فاتورة</button>' +
+                                    '<a class="btn btn-outline-primary btn-sm" href="@Url.Action("ClientDetails", "CollectionPoint", new { area = "CollectionPoint" })/' + c.id + '">عرض تفاصيل</a>' +
+                                '</td>' +
+                                '</tr>';
+                        }).join('');
+                        document.querySelectorAll('.btn-pay').forEach(function(btn) {
+                            btn.addEventListener('click', function() {
+                                var clientId = this.dataset.clientId;
+                                var userName = this.dataset.userName;
+                                var amount = this.dataset.totalDue;
+                                var months = parseInt(this.dataset.months || '1', 10);
+                                document.getElementById('confirmPayClientId').value = clientId;
+                                var suffix = months > 1 ? (' (يشمل ' + months + ' أشهر متأخرة)') : '';
+                                document.getElementById('confirmPayMessage').textContent = 'تسديد فاتورة المشترك ' + userName + ' بمبلغ ' + amount + ' ل.س (الإجمالي = الأساسي + الضريبة)؟' + suffix;
+                                confirmPayModal.show();
+                            });
+                        });
+                    }
+                })
+                .catch(function() {
+                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">حدث خطأ أثناء البحث</td></tr>';
+                });
+        }
+
+        document.getElementById('btnSearch').addEventListener('click', doSearch);
+        document.getElementById('searchQuery').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+        });
+    });
+</script>
+}

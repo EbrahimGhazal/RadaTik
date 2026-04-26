@@ -1,0 +1,436 @@
+/* ============================================
+   RadTik — استجابة شاملة + هوية /app/admin
+   (موبايل، تابلت، لابتوب) — جداول، نماذج، خرائط، نصوص
+   ============================================ */
+
+/* --- رموز SPA (Tailwind في radtik-web) --- */
+:root {
+    --rt-primary: #2563eb;
+    --rt-primary-dark: #1e3a8a;
+    --rt-secondary: #06b6d4;
+    --rt-page: #f3f4f6;
+    --rt-surface: #ffffff;
+    --rt-border: #e5e7eb;
+    --rt-text: #374151;
+    --rt-muted: #9ca3af;
+
+    --primary: #2563eb;
+    --primary-dark: #1e3a8a;
+    --primary-light: #60a5fa;
+    --accent: #06b6d4;
+    --accent-dark: #0891b2;
+    --accent-light: #22d3ee;
+    --info: #06b6d4;
+    --info-dark: #0891b2;
+    --primary-gradient: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
+    --border-focus: #2563eb;
+
+    --bg-body: var(--rt-page);
+    --bg-card: var(--rt-surface);
+    --bg-header: #ffffff;
+    --bg-hover: #f3f4f6;
+    --border-color: var(--rt-border);
+    --text-primary: var(--rt-text);
+    --text-secondary: #4b5563;
+    --text-muted: var(--rt-muted);
+
+    --bs-primary: #2563eb;
+    --bs-primary-rgb: 37, 99, 235;
+    --bs-info: #06b6d4;
+    --bs-link-color: #2563eb;
+    --bs-link-hover-color: #1d4ed8;
+    --bs-body-bg: var(--rt-page);
+    --bs-body-color: var(--rt-text);
+    --bs-border-color: var(--rt-border);
+    --bs-border-radius: 0.75rem;
+}
+
+[data-theme="dark"] {
+    --rt-primary: #3b82f6;
+    --rt-primary-dark: #2563eb;
+    --rt-secondary: #22d3ee;
+    --rt-page: #0f172a;
+    --rt-surface: #1e293b;
+    --rt-border: #334155;
+    --rt-text: #cbd5e1;
+    --rt-muted: #64748b;
+
+    --primary: #60a5fa;
+    --primary-dark: #3b82f6;
+    --primary-light: #93c5fd;
+    --accent: #22d3ee;
+    --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    --border-focus: #60a5fa;
+
+    --bg-body: var(--rt-page);
+    --bg-card: var(--rt-surface);
+    --bg-header: #1e293b;
+    --bg-hover: rgba(51, 65, 85, 0.55);
+    --border-color: var(--rt-border);
+    --text-primary: var(--rt-text);
+    --text-secondary: #e2e8f0;
+    --text-muted: var(--rt-muted);
+
+    --bs-primary: #3b82f6;
+    --bs-primary-rgb: 59, 130, 246;
+    --bs-info: #22d3ee;
+    --bs-link-color: #60a5fa;
+    --bs-link-hover-color: #93c5fd;
+    --bs-body-bg: var(--rt-page);
+    --bs-body-color: var(--rt-text);
+    --bs-border-color: var(--rt-border);
+}
+
+/* خط مثل SPA: Cairo / Tajawal للعربية + Poppins */
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+}
+
+@media (max-width: 360px) {
+    html {
+        font-size: 15px;
+    }
+}
+
+body {
+    font-family: "Cairo", "Tajawal", "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+    line-height: 1.65;
+}
+
+.page-content,
+.main-content .page-content {
+    font-family: inherit;
+}
+
+/* عناوين مرنة داخل المحتوى */
+.page-content h1,
+.page-content .h1 {
+    font-size: clamp(1.35rem, 1.05rem + 1.15vw, 2rem);
+    line-height: 1.25;
+    font-weight: 700;
+}
+
+.page-content h2,
+.page-content .h2 {
+    font-size: clamp(1.2rem, 1rem + 0.75vw, 1.65rem);
+    line-height: 1.3;
+}
+
+.page-content h3,
+.page-content .h3 {
+    font-size: clamp(1.08rem, 0.98rem + 0.5vw, 1.35rem);
+    line-height: 1.35;
+}
+
+.page-content h4,
+.page-content .h4,
+.page-content h5,
+.page-content h6 {
+    font-size: clamp(1rem, 0.94rem + 0.25vw, 1.15rem);
+    line-height: 1.4;
+}
+
+.page-content .form-label,
+.page-content label.col-form-label {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: clamp(0.875rem, 0.82rem + 0.15vw, 0.9375rem);
+}
+
+.page-content .text-muted,
+.page-content .form-text {
+    color: var(--text-muted) !important;
+}
+
+.page-content a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link) {
+    color: var(--primary);
+}
+
+.page-content a:not(.btn):not(.nav-link):not(.dropdown-item):not(.page-link):hover {
+    color: var(--primary-dark);
+}
+
+/* تركيز لوحة مفاتيح — لون SPA */
+:where(a, button, input, select, textarea, .btn, .dropdown-item):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+[data-theme="dark"] :where(a, button, input, select, textarea, .btn, .dropdown-item):focus-visible {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.28);
+}
+
+/* --- حاويات عامة --- */
+.app-container {
+    max-width: 100vw;
+    overflow-x: hidden;
+}
+
+.page-content {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.container,
+.container-fluid {
+    max-width: 100%;
+}
+
+@media (max-width: 575.98px) {
+    .container,
+    .container-fluid {
+        padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+        padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+    }
+
+    .page-content {
+        padding-left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
+        padding-right: max(0.75rem, env(safe-area-inset-right, 0px)) !important;
+    }
+}
+
+/* --- صفوف وبطاقات Bootstrap --- */
+.row {
+    --bs-gutter-x: 1rem;
+    --bs-gutter-y: 0;
+}
+
+@media (max-width: 767.98px) {
+    .row {
+        --bs-gutter-x: 0.75rem;
+    }
+
+    .row > [class*="col-"] {
+        min-width: 0;
+    }
+
+    .card {
+        margin-bottom: var(--spacing-md, 1rem);
+    }
+}
+
+/* --- جداول: تمرير سلس + عدم كسر التخطيط --- */
+.table-responsive,
+div.dataTables_wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-color: rgba(37, 99, 235, 0.45) rgba(148, 163, 184, 0.15);
+}
+
+[data-theme="dark"] .table-responsive,
+[data-theme="dark"] div.dataTables_wrapper {
+    scrollbar-color: rgba(96, 165, 250, 0.5) rgba(30, 41, 59, 0.8);
+}
+
+.table {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+@media (max-width: 767.98px) {
+    .page-content .table th,
+    .page-content .table td {
+        padding: 0.5rem 0.55rem;
+        font-size: 0.8125rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .page-content .table th,
+    .page-content .table td {
+        padding: 0.4rem 0.45rem;
+        font-size: 0.78rem;
+    }
+}
+
+/* DataTables: تكدس عناصر التحكم على الشاشات الضيقة */
+@media (max-width: 767.98px) {
+    .dataTables_wrapper .row {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        width: 100%;
+        text-align: center !important;
+        justify-content: center;
+        float: none !important;
+        margin-bottom: 0.5rem;
+    }
+
+    .dataTables_wrapper .dataTables_filter input,
+    .dataTables_wrapper .dataTables_length select {
+        max-width: 100%;
+        margin: 0.25rem 0 0;
+        display: inline-block;
+    }
+}
+
+/* --- نماذج --- */
+.form-control,
+.form-select {
+    max-width: 100%;
+    border-radius: var(--bs-border-radius, 0.75rem);
+}
+
+@media (max-width: 575.98px) {
+    .input-group {
+        flex-wrap: wrap;
+    }
+
+    .input-group > .form-control,
+    .input-group > .form-select {
+        min-width: 0;
+    }
+
+    .btn-group-vertical.d-sm-flex,
+    .d-flex.flex-wrap.gap-2 {
+        gap: 0.5rem !important;
+    }
+}
+
+/* لمس: إجراءات أوضح على الموبايل (بدون تضخيم سطح المكتب) */
+@media (max-width: 767.98px) and (hover: none) {
+    .page-content .btn:not(.btn-sm) {
+        min-height: 44px;
+        padding-top: 0.55rem;
+        padding-bottom: 0.55rem;
+    }
+}
+
+/* --- خرائط Leaflet --- */
+.leaflet-container,
+.page-content .leaflet-container,
+[id*="map"].leaflet-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 220px;
+    z-index: 1;
+}
+
+@media (min-width: 576px) {
+    .leaflet-container,
+    .page-content .leaflet-container {
+        min-height: 280px;
+    }
+}
+
+@media (min-width: 768px) {
+    .leaflet-container,
+    .page-content .leaflet-container {
+        min-height: 320px;
+    }
+}
+
+@media (min-width: 992px) {
+    .leaflet-container,
+    .page-content .leaflet-container {
+        min-height: 380px;
+    }
+}
+
+.leaflet-popup-content {
+    font-family: "Cairo", "Tajawal", "Poppins", sans-serif;
+    font-size: 0.875rem;
+    max-width: min(280px, 85vw);
+}
+
+/* --- نوافذ منبثقة --- */
+@media (max-width: 575.98px) {
+    .modal-dialog {
+        margin: 0.5rem auto;
+        max-width: calc(100vw - 1rem);
+    }
+
+    .modal-content {
+        border-radius: 0.75rem;
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+/* --- وسائط وكود --- */
+img,
+svg,
+video,
+iframe {
+    max-width: 100%;
+}
+
+.page-content pre,
+.page-content code {
+    max-width: 100%;
+    overflow-x: auto;
+    word-break: normal;
+}
+
+/* --- تنبيهات وشارات Bootstrap --- */
+.alert {
+    border-radius: var(--bs-border-radius, 0.75rem);
+}
+
+.badge {
+    font-weight: 600;
+    border-radius: 999px;
+}
+
+/* --- قوائم ثانوية / تبويبات أفقية --- */
+@media (max-width: 767.98px) {
+    .nav-tabs,
+    .nav-pills {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        gap: 0.35rem;
+        padding-bottom: 0.25rem;
+    }
+
+    .nav-tabs .nav-link,
+    .nav-pills .nav-link {
+        white-space: nowrap;
+        flex: 0 0 auto;
+    }
+}
+
+/* --- رأس الصفحة العلوي --- */
+@media (max-width: 575.98px) {
+    .header {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+}
+
+/* --- طباعة --- */
+@media print {
+    .sidebar,
+    .header .header-actions,
+    #sidebarToggle {
+        display: none !important;
+    }
+
+    .main-content,
+    .page-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .table-responsive {
+        overflow: visible !important;
+    }
+}

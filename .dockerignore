@@ -1,0 +1,12 @@
+**/.git
+**/.vs
+**/bin
+**/obj
+**/node_modules
+**/TestResults
+**/*.user
+**/*.rsuser
+RadTik.Tests
+**/.env
+**/.env.*
+!**/.env.example

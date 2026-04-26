@@ -1,0 +1,542 @@
+@model RadTik.Models.Sector
+
+@{
+    ViewData["Title"] = "تفاصيل القطاع";
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-content">
+        <h1 class="page-title">
+            <i class="fas fa-info-circle"></i>
+            @ViewData["Title"]: @Model.Name
+        </h1>
+        <div class="page-actions">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">
+                <i class="fas fa-edit"></i> تعديل
+            </a>
+            <a asp-action="Receivers" asp-route-id="@Model.Id" class="btn btn-info btn-sm">
+                <i class="fas fa-wifi"></i> المستقبلات
+            </a>
+            <a asp-action="Users" asp-route-id="@Model.Id" class="btn btn-primary btn-sm">
+                <i class="fas fa-users"></i> المستخدمين
+            </a>
+            <a asp-action="Index" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-right"></i> رجوع
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Bar -->
+<div class="stats-bar">
+    <div class="stat-item stat-primary">
+        <div class="stat-icon-mini"><i class="fas fa-broadcast-tower"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@(Model.IsActive ? "نشط" : "متوقف")</span>
+            <span class="stat-label">الحالة</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-info">
+        <div class="stat-icon-mini"><i class="fas fa-satellite-dish"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@Model.ReceiverCount</span>
+            <span class="stat-label">مستقبلات</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-warning">
+        <div class="stat-icon-mini"><i class="fas fa-users"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@Model.UserCount</span>
+            <span class="stat-label">مستخدمين</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-success">
+        <div class="stat-icon-mini"><i class="fas fa-compass"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@Model.Direction°</span>
+            <span class="stat-label">الاتجاه</span>
+        </div>
+    </div>
+
+    <div class="stat-item stat-danger">
+        <div class="stat-icon-mini"><i class="fas fa-signal"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@Model.CoverageRange كم</span>
+            <span class="stat-label">مدى التغطية</span>
+        </div>
+    </div>
+</div>
+
+<div class="details-grid">
+    <!-- Map Card -->
+    <div class="card map-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-map-marked-alt"></i>
+                موقع القطاع والتغطية
+            </h3>
+            <div class="card-actions">
+                <div class="map-type-controls">
+                    <button type="button" class="map-type-btn active" data-map-type="streets">شوارع</button>
+                    <button type="button" class="map-type-btn" data-map-type="satellite">قمر صناعي</button>
+                    <button type="button" class="map-type-btn" data-map-type="terrain">تضاريس</button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body" style="padding: 0; position: relative;">
+            <div id="detailsMap"></div>
+            <div class="coverage-legend">
+                <div class="legend-title">مفتاح التغطية</div>
+                <div class="legend-item"><span class="legend-color" style="background: #00ff00;"></span> ممتازة</div>
+                <div class="legend-item"><span class="legend-color" style="background: #ffff00;"></span> جيدة</div>
+                <div class="legend-item"><span class="legend-color" style="background: #ff0000;"></span> ضعيفة</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="card info-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-info-circle"></i>
+                معلومات القطاع
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="info-list">
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-tag"></i> اسم القطاع</span>
+                    <span class="info-value"><strong>@Model.Name</strong></span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-server"></i> خادم MikroTik</span>
+                    <span class="info-value">
+                        @if (Model.MikroTikServer != null)
+                        {
+                            <span class="badge badge-primary">@Model.MikroTikServer.Host:@Model.MikroTikServer.Port</span>
+                            <small class="text-muted d-block">@Model.MikroTikServer.User</small>
+                        }
+                        else
+                        {
+                            <span class="text-muted">غير مرتبط</span>
+                        }
+                    </span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-network-wired"></i> عنوان IP</span>
+                    <span class="info-value"><code>@Model.IPAddress</code></span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-mask"></i> قناع الشبكة</span>
+                    <span class="info-value">@Model.NetworkMask</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-map-marker-alt"></i> الموقع</span>
+                    <span class="info-value">@Model.Latitude.ToString("F6"), @Model.Longitude.ToString("F6")</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-compass"></i> الاتجاه</span>
+                    <span class="info-value">@Model.Direction°</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-angle-double-right"></i> زاوية الانتشار</span>
+                    <span class="info-value">@Model.CoverageAngle°</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-ruler-horizontal"></i> مدى الانتشار</span>
+                    <span class="info-value">@Model.CoverageRange كم</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-ruler-vertical"></i> الارتفاع عن سطح الأرض</span>
+                    <span class="info-value">
+                        @if (!Model.AntennaHeightAglMeters.HasValue)
+                        {
+                            <span class="badge badge-secondary">-</span>
+                        }
+                        else if (Model.AntennaHeightAglMeters.Value >= 20)
+                        {
+                            <span class="badge badge-warning" title="ارتفاع مرتفع (20م فأكثر)">
+                                <i class="fas fa-arrow-up"></i> @Model.AntennaHeightAglMeters.Value.ToString("F2") م
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-info">@Model.AntennaHeightAglMeters.Value.ToString("F2") م</span>
+                        }
+                    </span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-database"></i> البروفايلات</span>
+                    <span class="info-value">
+                        @if (!string.IsNullOrEmpty(Model.ProfileNames))
+                        {
+                            <span class="badge badge-info">@Model.ProfileNames</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">لا يوجد بروفايلات</span>
+                        }
+                    </span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-toggle-on"></i> الحالة</span>
+                    <span class="info-value">
+                        @if (Model.IsActive)
+                        {
+                            <span class="status-badge status-active">
+                                <i class="fas fa-check-circle"></i> نشط
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="status-badge status-inactive">
+                                <i class="fas fa-times-circle"></i> غير نشط
+                            </span>
+                        }
+                    </span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-calendar-plus"></i> تاريخ الإضافة</span>
+                    <span class="info-value">@Model.CreatedDate.ToString("yyyy-MM-dd hh:mm tt")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-header {
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .page-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--spacing-md);
+    }
+    
+    .page-title {
+        font-size: var(--font-2xl);
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .page-title i {
+        color: var(--info);
+    }
+    
+    .page-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+    }
+
+    .stats-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-md);
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-sm);
+        background: var(--bg-hover);
+        min-width: 100px;
+    }
+    
+    .stat-icon-mini {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: white;
+    }
+    
+    .stat-data {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+    }
+    
+    .stat-number {
+        font-size: var(--font-lg);
+        font-weight: 700;
+    }
+    
+    .stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+    
+    .stat-primary .stat-icon-mini { background: var(--primary); }
+    .stat-primary .stat-number { color: var(--primary); }
+    .stat-success .stat-icon-mini { background: var(--success); }
+    .stat-success .stat-number { color: var(--success); }
+    .stat-info .stat-icon-mini { background: var(--info); }
+    .stat-info .stat-number { color: var(--info); }
+    .stat-warning .stat-icon-mini { background: var(--warning); }
+    .stat-warning .stat-number { color: var(--warning); }
+    .stat-danger .stat-icon-mini { background: var(--danger); }
+    .stat-danger .stat-number { color: var(--danger); }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-lg);
+    }
+
+    .map-card {
+        height: fit-content;
+    }
+
+    #detailsMap {
+        width: 100%;
+        height: 400px;
+        border-radius: 0 0 var(--radius) var(--radius);
+    }
+
+    .map-type-controls {
+        display: flex;
+        gap: 2px;
+        background: var(--bg-hover);
+        border-radius: var(--radius-sm);
+        padding: 2px;
+    }
+
+    .map-type-btn {
+        padding: 4px 10px;
+        border: none;
+        background: transparent;
+        border-radius: var(--radius-sm);
+        font-size: var(--font-xs);
+        cursor: pointer;
+        transition: all 0.2s;
+        color: var(--text-secondary);
+    }
+
+    .map-type-btn:hover {
+        background: var(--bg-card);
+    }
+
+    .map-type-btn.active {
+        background: var(--primary);
+        color: white;
+    }
+
+    .coverage-legend {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: var(--bg-card);
+        padding: var(--spacing-sm);
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow-md);
+        z-index: 1000;
+        font-size: var(--font-xs);
+    }
+
+    .legend-title {
+        font-weight: 600;
+        margin-bottom: 6px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 4px;
+    }
+
+    .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+    }
+
+    .info-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: var(--spacing-sm);
+        background: var(--bg-hover);
+        border-radius: var(--radius-sm);
+    }
+
+    .info-label {
+        font-size: var(--font-sm);
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+    }
+
+    .info-label i {
+        width: 16px;
+        text-align: center;
+        color: var(--primary);
+    }
+
+    .info-value {
+        font-size: var(--font-sm);
+        text-align: left;
+    }
+
+    @@media (max-width: 992px) {
+        .details-grid {
+            grid-template-columns: 1fr;
+        }
+
+        #detailsMap {
+            height: 300px;
+        }
+    }
+</style>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                var lat = @Model.Latitude;
+                var lng = @Model.Longitude;
+
+                var map = L.map('detailsMap').setView([lat, lng], 14);
+
+                var streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap'
+                });
+
+                var satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                    maxZoom: 20,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+                });
+
+                var terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 17
+                });
+
+                streetLayer.addTo(map);
+
+                var wifiIcon = L.AwesomeMarkers.icon({
+                    icon: 'wifi',
+                    markerColor: '@(Model.IsActive ? "green" : "red")',
+                    prefix: 'fa',
+                    iconColor: 'white'
+                });
+
+                L.marker([lat, lng], {icon: wifiIcon}).addTo(map)
+                    .bindPopup('<strong>@Model.Name</strong><br>IP: @Model.IPAddress')
+                    .openPopup();
+
+                // Draw coverage
+                drawCoverageArea(lat, lng);
+
+                document.querySelectorAll('.map-type-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        document.querySelectorAll('.map-type-btn').forEach(btn => btn.classList.remove('active'));
+                        this.classList.add('active');
+                        changeMapType(this.getAttribute('data-map-type'));
+                    });
+                });
+
+                function changeMapType(type) {
+                    map.removeLayer(streetLayer);
+                    map.removeLayer(satelliteLayer);
+                    map.removeLayer(terrainLayer);
+
+                    switch(type) {
+                        case 'satellite': satelliteLayer.addTo(map); break;
+                        case 'terrain': terrainLayer.addTo(map); break;
+                        default: streetLayer.addTo(map);
+                    }
+                }
+
+                function drawCoverageArea(lat, lng) {
+                    var direction = @Model.Direction;
+                    var angle = @Model.CoverageAngle;
+                    var range = @Model.CoverageRange;
+
+                    var layersCount = 10;
+                    var startAngleRad = (direction - angle/2) * Math.PI / 180;
+                    var endAngleRad = (direction + angle/2) * Math.PI / 180;
+
+                    for (var i = 0; i < layersCount; i++) {
+                        var innerRadius = (i / layersCount) * range * 1000;
+                        var outerRadius = ((i + 1) / layersCount) * range * 1000;
+
+                        var colorRatio = i / (layersCount - 1);
+                        var color = 'rgb(' + Math.floor(255 * colorRatio) + ',' + Math.floor(255 * (1 - colorRatio)) + ',0)';
+
+                        var sector = createSector([lat, lng], innerRadius, outerRadius, startAngleRad, endAngleRad, color);
+                        sector.addTo(map);
+                    }
+                }
+
+                function createSector(center, innerRadius, outerRadius, startAngle, endAngle, color) {
+                    var points = [];
+                    for (var i = 0; i <= 20; i++) {
+                        var angle = startAngle + (endAngle - startAngle) * i / 20;
+                        points.push(calculatePoint(center, innerRadius, angle));
+                    }
+                    for (var i = 20; i >= 0; i--) {
+                        var angle = startAngle + (endAngle - startAngle) * i / 20;
+                        points.push(calculatePoint(center, outerRadius, angle));
+                    }
+                    points.push(points[0]);
+                    return L.polygon(points, { color: color, fillColor: color, fillOpacity: 0.3, weight: 1 });
+                }
+
+                /** 0 = الشمال، باتجاه عقارب الساعة — يطابق خريطة لوحة التحكم */
+                function calculatePoint(center, radius, bearingRad) {
+                    var lat = center[0] + (radius / 111320) * Math.cos(bearingRad);
+                    var lng = center[1] + (radius / (111320 * Math.cos(center[0] * Math.PI / 180))) * Math.sin(bearingRad);
+                    return [lat, lng];
+                }
+
+            } catch (error) {
+                console.error('Map error:', error);
+                document.getElementById('detailsMap').innerHTML =
+                    '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);">' +
+                    '<i class="fas fa-exclamation-triangle" style="margin-left:10px;"></i> خطأ في تحميل الخريطة</div>';
+            }
+        });
+    </script>
+}

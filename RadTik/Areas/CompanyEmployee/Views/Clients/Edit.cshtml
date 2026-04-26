@@ -1,0 +1,1168 @@
+@model RadTik.Models.Client
+
+@{
+    ViewData["Title"] = "تعديل بيانات العميل";
+    bool isEmployee = ViewBag.IsEmployee ?? false;
+    bool isAdmin = User.IsInRole("SystemAdministrator") || User.IsInRole("NetworkAdministrator");
+}
+
+<style>
+    .btn {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    .btn i {
+        width: 1rem;
+        font-size: .9rem;
+        line-height: 1;
+        text-align: center;
+    }
+
+    .btn.btn-sm {
+        min-height: 32px;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-edit text-warning"></i>
+        @ViewData["Title"]
+    </h2>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-arrow-right"></i> العودة للقائمة
+    </a>
+</div>
+
+@if (isEmployee)
+{
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-info-circle"></i>
+        <strong>ملاحظة:</strong> يمكنك تعديل البيانات الإدارية للمشترك. إعدادات MikroTik الحساسة ضمن صلاحيات المدير.
+    </div>
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-user-check"></i>
+        <strong>آلية الاعتماد:</strong> تعديل العميل من حساب الموظف يُرسل كطلب موافقة لمدير الشركة، ولن يُنفذ قبل الاعتماد.
+        <span class="d-block mt-1">لا يوجد حسم مالي فوري عند إرسال طلب التعديل.</span>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-warning text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-edit"></i> تعديل البيانات
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="CreatedDate" />
+
+                    <div class="alert alert-primary mb-3">
+                        <i class="fas fa-network-wired"></i>
+                        <strong>بيانات MikroTik:</strong> التعديلات هنا تنفذ مباشرة على المايكروتك.
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="UserName" class="form-label">اسم المستخدم (MikroTik)</label>
+                        <input asp-for="UserName" class="form-control" placeholder="اسم المستخدم على MikroTik" />
+                        <span asp-validation-for="UserName" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Password" class="form-label">كلمة المرور (MikroTik)</label>
+                        <input asp-for="Password" type="password" class="form-control" placeholder="كلمة المرور على MikroTik" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <!-- خادم المايكروتك - فقط للمدير -->
+                    @if (isAdmin)
+                    {
+                        <div class="form-group mb-3">
+                            <label asp-for="MikroTikServerId" class="form-label">السيرفر (MikroTik)</label>
+                            <select asp-for="MikroTikServerId" class="form-select" asp-items="ViewBag.MikroTikServerId" id="mikrotikServerSelect">
+                                <option value="">اختر خادم المايكروتك</option>
+                            </select>
+                            <span asp-validation-for="MikroTikServerId" class="text-danger"></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="MikroTikServerId" />
+                    }
+
+                    <!-- البروفايل/السرعة - فقط للمدير -->
+                    @if (isAdmin)
+                    {
+                        <div class="form-group mb-3">
+                            <label asp-for="ProfileId" class="form-label">السرعة / البروفايل (MikroTik)</label>
+                            <select asp-for="ProfileId" class="form-select" asp-items="ViewBag.ProfileId" id="profileSelect">
+                                <option value="">اختر البروفايل</option>
+                            </select>
+                            <span asp-validation-for="ProfileId" class="text-danger"></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="ProfileId" />
+                        <div class="form-group mb-3">
+                            <label class="form-label">السرعة / البروفايل</label>
+                            <input type="text" class="form-control" value="@Model.Profile?.Name" disabled />
+                            <small class="form-text text-muted">لا يمكنك تغيير البروفايل</small>
+                        </div>
+                    }
+
+                    <hr />
+                    <div class="alert alert-secondary mb-3">
+                        <i class="fas fa-database"></i>
+                        <strong>بيانات قاعدة البيانات (تنظيم إداري):</strong> لا تؤثر مباشرة على إعدادات الإنترنت في المايكروتك.
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" placeholder="أدخل الاسم الثلاثي" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="SID" class="form-label"></label>
+                        <input asp-for="SID" class="form-control" placeholder="أدخل الرقم الوطني" />
+                        <span asp-validation-for="SID" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">اسم المستخدم (قاعدة البيانات)</label>
+                        <input type="text" name="dbUserName" class="form-control" value="@ViewBag.DbUserName" placeholder="اسم الدخول للنظام" />
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">كلمة المرور (قاعدة البيانات)</label>
+                        <input type="password" name="dbPassword" class="form-control" placeholder="اتركها فارغة إذا لا تريد التعديل" />
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="PhoneNumber" class="form-label"></label>
+                        <input asp-for="PhoneNumber" class="form-control" placeholder="أدخل رقم الهاتف" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="ReceiverId" class="form-label">المستقبل</label>
+                        <select asp-for="ReceiverId" class="form-select" asp-items="ViewBag.ReceiverId" id="receiverSelect">
+                            <option value="">اختر المستقبل (اختياري)</option>
+                        </select>
+                        <span asp-validation-for="ReceiverId" class="text-danger"></span>
+                        <small class="form-text text-muted">عند تغيير السيرفر سيتم تحديث قائمة المستقبلات تلقائياً.</small>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">المرسل المرتبط</label>
+                        <input type="text" id="senderInfo" class="form-control" value="@(Model.Receiver?.Sector?.Name ?? "-")" readonly />
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="ResidenceAddress" class="form-label"></label>
+                        <input asp-for="ResidenceAddress" class="form-control" placeholder="مكان السكن" />
+                        <span asp-validation-for="ResidenceAddress" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Latitude" class="form-label"></label>
+                                <input asp-for="Latitude" class="form-control" placeholder="خط العرض" />
+                                <span asp-validation-for="Latitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Longitude" class="form-label"></label>
+                                <input asp-for="Longitude" class="form-control" placeholder="خط الطول" />
+                                <span asp-validation-for="Longitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- باقي الحقول - فقط للمدير -->
+                    @if (isAdmin)
+                    {
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Service" class="form-label"></label>
+                                    <select asp-for="Service" class="form-select">
+                                        <option value="pppoe">PPPoE</option>
+                                        <option value="pptp">PPTP</option>
+                                        <option value="l2tp">L2TP</option>
+                                    </select>
+                                    <span asp-validation-for="Service" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Address" class="form-label"></label>
+                                    <input asp-for="Address" class="form-control" placeholder="عنوان IP ثابت (اختياري)" />
+                                    <span asp-validation-for="Address" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- حالة التنشيط - فقط للمدير -->
+                        <div class="form-group form-check mb-3">
+                            <input class="form-check-input" asp-for="IsActive" />
+                            <label class="form-check-label" asp-for="IsActive"></label>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="Service" />
+                        <input type="hidden" asp-for="Address" />
+                        <input type="hidden" asp-for="IsActive" />
+                    }
+
+                    <!-- أزرار الحفظ والإلغاء -->
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save"></i> حفظ التعديلات
+                        </button>
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> معلومات النظام
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> معلومات العميل:</h6>
+                    <dl class="mb-0">
+                        <dt>تاريخ الإنشاء:</dt>
+                        <dd>@Model.CreatedDate.ToString("yyyy/MM/dd HH:mm")</dd>
+
+                        <dt>آخر تحديث:</dt>
+                        <dd>@Model.LastUpdated.ToString("yyyy/MM/dd HH:mm")</dd>
+                        
+                        @if (Model.AccountExpirationDate.HasValue)
+                        {
+                            <dt>انتهاء الاشتراك:</dt>
+                            <dd class="@(Model.AccountExpirationDate < DateTime.Now ? "text-danger" : "")">
+                                @Model.AccountExpirationDate?.ToString("yyyy/MM/dd")
+                            </dd>
+                        }
+                    </dl>
+                </div>
+
+                @if (isEmployee)
+                {
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="fas fa-exclamation-triangle"></i> صلاحيات الموظف:</h6>
+                        <ul class="mb-0 small">
+                            <li>يمكنك تعديل البيانات الإدارية الخاصة بالمشترك</li>
+                            <li class="text-danger">لا يمكنك تغيير: البروفايل، الخادم، الحالة</li>
+                            <li class="text-danger">لا يمكنك تمديد الاشتراك</li>
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="fas fa-exclamation-triangle"></i> ملاحظة:</h6>
+                        <p class="mb-0">سيتم تحديث وقت التعديل تلقائياً عند حفظ التغييرات.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(function() {
+            var receiverSelect = $('#receiverSelect');
+            var senderInfo = $('#senderInfo');
+            if (!receiverSelect.length || !senderInfo.length) {
+                return;
+            }
+
+            function updateSenderInfoSimple() {
+                var selected = receiverSelect.find('option:selected');
+                var sectorName = selected.data('sector');
+                if (typeof sectorName !== 'undefined' && sectorName !== null && sectorName !== '') {
+                    senderInfo.val(sectorName);
+                }
+            }
+
+            receiverSelect.on('change', updateSenderInfoSimple);
+            updateSenderInfoSimple();
+        });
+    </script>
+    @if (isAdmin)
+    {
+        <script>
+            $(document).ready(function() {
+                var receiverSelect = $('#receiverSelect');
+                var senderInfo = $('#senderInfo');
+
+                function updateSenderInfo() {
+                    var selected = receiverSelect.find('option:selected');
+                    var sectorName = selected.data('sector') || '-';
+                    senderInfo.val(sectorName);
+                }
+
+                // عند تغيير خادم المايكروتك - تصفية البروفايلات والمستقبلات حسب الخادم
+                $('#mikrotikServerSelect').change(function() {
+                    var serverId = $(this).val();
+                    var profileSelect = $('#profileSelect');
+                    var currentProfileId = '@Model.ProfileId';
+                    var currentReceiverId = '@(Model.ReceiverId?.ToString() ?? "")';
+
+                    if (serverId) {
+                        profileSelect.html('<option value="">جاري تحميل البروفايلات...</option>');
+                        receiverSelect.html('<option value="">جاري تحميل المستقبلات...</option>');
+
+                        $.ajax({
+                            url: '@Url.Action("GetProfilesByServer", "Clients")',
+                            type: 'GET',
+                            data: { serverId: serverId },
+                            success: function(data) {
+                                if (data && data.length > 0) {
+                                    profileSelect.empty();
+                                    profileSelect.append('<option value="">اختر البروفايل</option>');
+                                    $.each(data, function(index, profile) {
+                                        var selected = (profile.id == currentProfileId) ? 'selected' : '';
+                                        profileSelect.append('<option value="' + profile.id + '" ' + selected + '>' + profile.name + '</option>');
+                                    });
+                                } else {
+                                    profileSelect.html('<option value="">لا توجد بروفايلات في هذا الخادم</option>');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('خطأ في جلب البروفايلات:', error);
+                                profileSelect.html('<option value="">خطأ في جلب البروفايلات</option>');
+                            }
+                        });
+
+                        $.ajax({
+                            url: '@Url.Action("GetReceiversByServer", "Clients")',
+                            type: 'GET',
+                            data: { serverId: serverId },
+                            success: function(data) {
+                                receiverSelect.empty();
+                                receiverSelect.append('<option value="">اختر المستقبل (اختياري)</option>');
+                                if (data && data.length > 0) {
+                                    $.each(data, function(index, receiver) {
+                                        var selected = (receiver.id.toString() === currentReceiverId) ? 'selected' : '';
+                                        receiverSelect.append('<option value="' + receiver.id + '" data-sector="' + (receiver.sectorName || '-') + '" ' + selected + '>' + receiver.name + '</option>');
+                                    });
+                                }
+                                updateSenderInfo();
+                            },
+                            error: function() {
+                                receiverSelect.html('<option value="">خطأ في جلب المستقبلات</option>');
+                                senderInfo.val('-');
+                            }
+                        });
+                    } else {
+                        profileSelect.html('<option value="">اختر البروفايل</option>');
+                        receiverSelect.html('<option value="">اختر المستقبل (اختياري)</option>');
+                        senderInfo.val('-');
+                    }
+                });
+
+                receiverSelect.on('change', updateSenderInfo);
+
+                // تحميل القوائم تلقائياً إذا كان هناك خادم محدد مسبقاً
+                var initialServerId = $('#mikrotikServerSelect').val();
+                if (initialServerId) {
+                    $('#mikrotikServerSelect').trigger('change');
+                }
+                updateSenderInfo();
+            });
+        </script>
+    }
+}
+@*
+@model RadTik.Models.Client
+
+@{
+    ViewData["Title"] = "تعديل بيانات العميل";
+    bool isEmployee = ViewBag.IsEmployee ?? false;
+    bool isAdmin = User.IsInRole("SystemAdministrator") || User.IsInRole("NetworkAdministrator");
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-edit text-warning"></i>
+        @ViewData["Title"]
+    </h2>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-arrow-right"></i> العودة للقائمة
+    </a>
+</div>
+
+@if (isEmployee)
+{
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-info-circle"></i>
+        <strong>ملاحظة:</strong> يمكنك تعديل البيانات الإدارية للمشترك. إعدادات MikroTik الحساسة ضمن صلاحيات المدير.
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-warning text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-edit"></i> تعديل البيانات
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="CreatedDate" />
+
+                    <div class="alert alert-primary mb-3">
+                        <i class="fas fa-network-wired"></i>
+                        <strong>بيانات MikroTik:</strong> التعديلات هنا تنفذ مباشرة على المايكروتك.
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="UserName" class="form-label">اسم المستخدم (MikroTik)</label>
+                        <input asp-for="UserName" class="form-control" placeholder="اسم المستخدم على MikroTik" />
+                        <span asp-validation-for="UserName" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Password" class="form-label">كلمة المرور (MikroTik)</label>
+                        <input asp-for="Password" type="password" class="form-control" placeholder="كلمة المرور على MikroTik" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <!-- خادم المايكروتك - فقط للمدير -->
+                    @if (isAdmin)
+                    {
+                        <div class="form-group mb-3">
+                            <label asp-for="MikroTikServerId" class="form-label">السيرفر (MikroTik)</label>
+                            <select asp-for="MikroTikServerId" class="form-select" asp-items="ViewBag.MikroTikServerId" id="mikrotikServerSelect">
+                                <option value="">اختر خادم المايكروتك</option>
+                            </select>
+                            <span asp-validation-for="MikroTikServerId" class="text-danger"></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="MikroTikServerId" />
+                    }
+
+                    <!-- البروفايل/السرعة - فقط للمدير -->
+                    @if (isAdmin)
+                    {
+                        <div class="form-group mb-3">
+                            <label asp-for="ProfileId" class="form-label">السرعة / البروفايل (MikroTik)</label>
+                            <select asp-for="ProfileId" class="form-select" asp-items="ViewBag.ProfileId" id="profileSelect">
+                                <option value="">اختر البروفايل</option>
+                            </select>
+                            <span asp-validation-for="ProfileId" class="text-danger"></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="ProfileId" />
+                        <div class="form-group mb-3">
+                            <label class="form-label">السرعة / البروفايل</label>
+                            <input type="text" class="form-control" value="@Model.Profile?.Name" disabled />
+                            <small class="form-text text-muted">لا يمكنك تغيير البروفايل</small>
+                        </div>
+                    }
+
+                    <hr />
+                    <div class="alert alert-secondary mb-3">
+                        <i class="fas fa-database"></i>
+                        <strong>بيانات قاعدة البيانات (تنظيم إداري):</strong> لا تؤثر مباشرة على إعدادات الإنترنت في المايكروتك.
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" placeholder="أدخل الاسم الثلاثي" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="SID" class="form-label"></label>
+                        <input asp-for="SID" class="form-control" placeholder="أدخل الرقم الوطني" />
+                        <span asp-validation-for="SID" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">اسم المستخدم (قاعدة البيانات)</label>
+                        <input type="text" name="dbUserName" class="form-control" value="@ViewBag.DbUserName" placeholder="اسم الدخول للنظام" />
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">كلمة المرور (قاعدة البيانات)</label>
+                        <input type="password" name="dbPassword" class="form-control" placeholder="اتركها فارغة إذا لا تريد التعديل" />
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="PhoneNumber" class="form-label"></label>
+                        <input asp-for="PhoneNumber" class="form-control" placeholder="أدخل رقم الهاتف" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="ReceiverId" class="form-label">المستقبل</label>
+                        <select asp-for="ReceiverId" class="form-select" asp-items="ViewBag.ReceiverId" id="receiverSelect">
+                            <option value="">اختر المستقبل (اختياري)</option>
+                        </select>
+                        <span asp-validation-for="ReceiverId" class="text-danger"></span>
+                        <small class="form-text text-muted">عند تغيير السيرفر سيتم تحديث قائمة المستقبلات تلقائياً.</small>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">المرسل المرتبط</label>
+                        <input type="text" id="senderInfo" class="form-control" value="@(Model.Receiver?.Sector?.Name ?? "-")" readonly />
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="ResidenceAddress" class="form-label"></label>
+                        <input asp-for="ResidenceAddress" class="form-control" placeholder="مكان السكن" />
+                        <span asp-validation-for="ResidenceAddress" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Latitude" class="form-label"></label>
+                                <input asp-for="Latitude" class="form-control" placeholder="خط العرض" />
+                                <span asp-validation-for="Latitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Longitude" class="form-label"></label>
+                                <input asp-for="Longitude" class="form-control" placeholder="خط الطول" />
+                                <span asp-validation-for="Longitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- باقي الحقول - فقط للمدير -->
+                    @if (isAdmin)
+                    {
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Service" class="form-label"></label>
+                                    <select asp-for="Service" class="form-select">
+                                        <option value="pppoe">PPPoE</option>
+                                        <option value="pptp">PPTP</option>
+                                        <option value="l2tp">L2TP</option>
+                                    </select>
+                                    <span asp-validation-for="Service" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Address" class="form-label"></label>
+                                    <input asp-for="Address" class="form-control" placeholder="عنوان IP ثابت (اختياري)" />
+                                    <span asp-validation-for="Address" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- حالة التنشيط - فقط للمدير -->
+                        <div class="form-group form-check mb-3">
+                            <input class="form-check-input" asp-for="IsActive" />
+                            <label class="form-check-label" asp-for="IsActive"></label>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="Service" />
+                        <input type="hidden" asp-for="Address" />
+                        <input type="hidden" asp-for="IsActive" />
+                    }
+
+                    <!-- أزرار الحفظ والإلغاء -->
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save"></i> حفظ التعديلات
+                        </button>
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> معلومات النظام
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> معلومات العميل:</h6>
+                    <dl class="mb-0">
+                        <dt>تاريخ الإنشاء:</dt>
+                        <dd>@Model.CreatedDate.ToString("yyyy/MM/dd HH:mm")</dd>
+
+                        <dt>آخر تحديث:</dt>
+                        <dd>@Model.LastUpdated.ToString("yyyy/MM/dd HH:mm")</dd>
+                        
+                        @if (Model.AccountExpirationDate.HasValue)
+                        {
+                            <dt>انتهاء الاشتراك:</dt>
+                            <dd class="@(Model.AccountExpirationDate < DateTime.Now ? "text-danger" : "")">
+                                @Model.AccountExpirationDate?.ToString("yyyy/MM/dd")
+                            </dd>
+                        }
+                    </dl>
+                </div>
+
+                @if (isEmployee)
+                {
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="fas fa-exclamation-triangle"></i> صلاحيات الموظف:</h6>
+                        <ul class="mb-0 small">
+                            <li>يمكنك تعديل البيانات الإدارية الخاصة بالمشترك</li>
+                            <li class="text-danger">لا يمكنك تغيير: البروفايل، الخادم، الحالة</li>
+                            <li class="text-danger">لا يمكنك تمديد الاشتراك</li>
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="fas fa-exclamation-triangle"></i> ملاحظة:</h6>
+                        <p class="mb-0">سيتم تحديث وقت التعديل تلقائياً عند حفظ التغييرات.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(function() {
+            var receiverSelect = $('#receiverSelect');
+            var senderInfo = $('#senderInfo');
+            if (!receiverSelect.length || !senderInfo.length) {
+                return;
+            }
+
+            function updateSenderInfoSimple() {
+                var selected = receiverSelect.find('option:selected');
+                var sectorName = selected.data('sector');
+                if (typeof sectorName !== 'undefined' && sectorName !== null && sectorName !== '') {
+                    senderInfo.val(sectorName);
+                }
+            }
+
+            receiverSelect.on('change', updateSenderInfoSimple);
+            updateSenderInfoSimple();
+        });
+    </script>
+    @if (isAdmin)
+    {
+        <script>
+            $(document).ready(function() {
+                var receiverSelect = $('#receiverSelect');
+                var senderInfo = $('#senderInfo');
+
+                function updateSenderInfo() {
+                    var selected = receiverSelect.find('option:selected');
+                    var sectorName = selected.data('sector') || '-';
+                    senderInfo.val(sectorName);
+                }
+
+                // عند تغيير خادم المايكروتك - تصفية البروفايلات والمستقبلات حسب الخادم
+                $('#mikrotikServerSelect').change(function() {
+                    var serverId = $(this).val();
+                    var profileSelect = $('#profileSelect');
+                    var currentProfileId = '@Model.ProfileId';
+                    var currentReceiverId = '@(Model.ReceiverId?.ToString() ?? "")';
+
+                    if (serverId) {
+                        profileSelect.html('<option value="">جاري تحميل البروفايلات...</option>');
+                        receiverSelect.html('<option value="">جاري تحميل المستقبلات...</option>');
+
+                        $.ajax({
+                            url: '@Url.Action("GetProfilesByServer", "Clients")',
+                            type: 'GET',
+                            data: { serverId: serverId },
+                            success: function(data) {
+                                if (data && data.length > 0) {
+                                    profileSelect.empty();
+                                    profileSelect.append('<option value="">اختر البروفايل</option>');
+                                    $.each(data, function(index, profile) {
+                                        var selected = (profile.id == currentProfileId) ? 'selected' : '';
+                                        profileSelect.append('<option value="' + profile.id + '" ' + selected + '>' + profile.name + '</option>');
+                                    });
+                                } else {
+                                    profileSelect.html('<option value="">لا توجد بروفايلات في هذا الخادم</option>');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('خطأ في جلب البروفايلات:', error);
+                                profileSelect.html('<option value="">خطأ في جلب البروفايلات</option>');
+                            }
+                        });
+
+                        $.ajax({
+                            url: '@Url.Action("GetReceiversByServer", "Clients")',
+                            type: 'GET',
+                            data: { serverId: serverId },
+                            success: function(data) {
+                                receiverSelect.empty();
+                                receiverSelect.append('<option value="">اختر المستقبل (اختياري)</option>');
+                                if (data && data.length > 0) {
+                                    $.each(data, function(index, receiver) {
+                                        var selected = (receiver.id.toString() === currentReceiverId) ? 'selected' : '';
+                                        receiverSelect.append('<option value="' + receiver.id + '" data-sector="' + (receiver.sectorName || '-') + '" ' + selected + '>' + receiver.name + '</option>');
+                                    });
+                                }
+                                updateSenderInfo();
+                            },
+                            error: function() {
+                                receiverSelect.html('<option value="">خطأ في جلب المستقبلات</option>');
+                                senderInfo.val('-');
+                            }
+                        });
+                    } else {
+                        profileSelect.html('<option value="">اختر البروفايل</option>');
+                        receiverSelect.html('<option value="">اختر المستقبل (اختياري)</option>');
+                        senderInfo.val('-');
+                    }
+                });
+
+                receiverSelect.on('change', updateSenderInfo);
+
+                // تحميل القوائم تلقائياً إذا كان هناك خادم محدد مسبقاً
+                var initialServerId = $('#mikrotikServerSelect').val();
+                if (initialServerId) {
+                    $('#mikrotikServerSelect').trigger('change');
+                }
+                updateSenderInfo();
+            });
+        </script>
+    }
+}
+@model RadTik.Models.Client
+
+@{
+    ViewData["Title"] = "تعديل بيانات العميل";
+    bool isEmployee = ViewBag.IsEmployee ?? false;
+    bool isAdmin = User.IsInRole("SystemAdministrator") || User.IsInRole("NetworkAdministrator");
+}
+
+<div class="employee-client-hero card border-0 shadow-sm mb-3">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h2 class="mb-1 hero-title">
+                <i class="fas fa-edit"></i>
+                @ViewData["Title"]
+            </h2>
+            <p class="text-muted mb-0">تعديل بيانات العميل بواجهة موحدة مع نمط التطبيق.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary action-btn">
+            <i class="fas fa-arrow-right"></i> العودة للقائمة
+        </a>
+    </div>
+</div>
+
+@if (isEmployee)
+{
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-info-circle"></i>
+        <strong>ملاحظة:</strong> يمكنك تعديل بيانات المشترك الإدارية، بينما إعدادات MikroTik الحساسة تبقى حسب الصلاحية.
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm form-card">
+            <div class="card-header form-card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-edit"></i> تعديل البيانات
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="CreatedDate" />
+
+                    <div class="alert alert-primary mb-3">
+                        <i class="fas fa-network-wired"></i>
+                        <strong>بيانات MikroTik:</strong> التعديلات هنا تنفذ مباشرة على المايكروتك.
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="UserName" class="form-label">اسم المستخدم (MikroTik)</label>
+                        <input asp-for="UserName" class="form-control elegant-input" placeholder="اسم المستخدم على MikroTik" />
+                        <span asp-validation-for="UserName" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Password" class="form-label">كلمة المرور (MikroTik)</label>
+                        <input asp-for="Password" type="password" class="form-control elegant-input" placeholder="كلمة المرور على MikroTik" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <!-- خادم المايكروتك - فقط للمدير -->
+                    @if (isAdmin)
+                    {
+                        <div class="form-group mb-3">
+                            <label asp-for="MikroTikServerId" class="form-label">السيرفر (MikroTik)</label>
+                            <select asp-for="MikroTikServerId" class="form-select elegant-input" asp-items="ViewBag.MikroTikServerId" id="mikrotikServerSelect">
+                                <option value="">اختر خادم المايكروتك</option>
+                            </select>
+                            <span asp-validation-for="MikroTikServerId" class="text-danger"></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="MikroTikServerId" />
+                    }
+
+                    <!-- البروفايل/السرعة - فقط للمدير -->
+                    @if (isAdmin)
+                    {
+                        <div class="form-group mb-3">
+                            <label asp-for="ProfileId" class="form-label">السرعة / البروفايل (MikroTik)</label>
+                            <select asp-for="ProfileId" class="form-select elegant-input" asp-items="ViewBag.ProfileId" id="profileSelect">
+                                <option value="">اختر البروفايل</option>
+                            </select>
+                            <span asp-validation-for="ProfileId" class="text-danger"></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="ProfileId" />
+                        <div class="form-group mb-3">
+                            <label class="form-label">السرعة / البروفايل</label>
+                            <input type="text" class="form-control elegant-input" value="@Model.Profile?.Name" disabled />
+                            <small class="form-text text-muted">لا يمكنك تغيير البروفايل</small>
+                        </div>
+                    }
+
+                    <hr />
+                    <div class="alert alert-secondary mb-3">
+                        <i class="fas fa-database"></i>
+                        <strong>بيانات قاعدة البيانات (تنظيم إداري):</strong> لا تؤثر مباشرة على إعدادات الإنترنت في المايكروتك.
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control elegant-input" placeholder="أدخل الاسم الثلاثي" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="SID" class="form-label"></label>
+                        <input asp-for="SID" class="form-control elegant-input" placeholder="أدخل الرقم الوطني" />
+                        <span asp-validation-for="SID" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">اسم المستخدم (قاعدة البيانات)</label>
+                        <input type="text" name="dbUserName" class="form-control elegant-input" value="@ViewBag.DbUserName" placeholder="اسم الدخول للنظام" />
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">كلمة المرور (قاعدة البيانات)</label>
+                        <input type="password" name="dbPassword" class="form-control elegant-input" placeholder="اتركها فارغة إذا لا تريد التعديل" />
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="PhoneNumber" class="form-label"></label>
+                        <input asp-for="PhoneNumber" class="form-control elegant-input" placeholder="أدخل رقم الهاتف" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="ReceiverId" class="form-label">المستقبل</label>
+                        <select asp-for="ReceiverId" class="form-select elegant-input" asp-items="ViewBag.ReceiverId" id="receiverSelect">
+                            <option value="">اختر المستقبل (اختياري)</option>
+                        </select>
+                        <span asp-validation-for="ReceiverId" class="text-danger"></span>
+                        <small class="form-text text-muted">عند تغيير السيرفر سيتم تحديث قائمة المستقبلات تلقائياً.</small>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="form-label">المرسل المرتبط</label>
+                        <input type="text" id="senderInfo" class="form-control elegant-input" value="@(Model.Receiver?.Sector?.Name ?? "-")" readonly />
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="ResidenceAddress" class="form-label"></label>
+                        <input asp-for="ResidenceAddress" class="form-control elegant-input" placeholder="مكان السكن" />
+                        <span asp-validation-for="ResidenceAddress" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Latitude" class="form-label"></label>
+                                <input asp-for="Latitude" class="form-control elegant-input" placeholder="خط العرض" />
+                                <span asp-validation-for="Latitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Longitude" class="form-label"></label>
+                                <input asp-for="Longitude" class="form-control elegant-input" placeholder="خط الطول" />
+                                <span asp-validation-for="Longitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- باقي الحقول - فقط للمدير -->
+                    @if (isAdmin)
+                    {
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Service" class="form-label"></label>
+                                    <select asp-for="Service" class="form-select elegant-input">
+                                        <option value="pppoe">PPPoE</option>
+                                        <option value="pptp">PPTP</option>
+                                        <option value="l2tp">L2TP</option>
+                                    </select>
+                                    <span asp-validation-for="Service" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Address" class="form-label"></label>
+                                    <input asp-for="Address" class="form-control elegant-input" placeholder="عنوان IP ثابت (اختياري)" />
+                                    <span asp-validation-for="Address" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- حالة التنشيط - فقط للمدير -->
+                        <div class="form-group form-check mb-3">
+                            <input class="form-check-input" asp-for="IsActive" />
+                            <label class="form-check-label" asp-for="IsActive"></label>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="Service" />
+                        <input type="hidden" asp-for="Address" />
+                        <input type="hidden" asp-for="IsActive" />
+                    }
+
+                    <!-- أزرار الحفظ والإلغاء -->
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-warning action-btn">
+                            <i class="fas fa-save"></i> حفظ التعديلات
+                        </button>
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary action-btn">
+                            <i class="fas fa-times"></i> إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm form-card">
+            <div class="card-header form-card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> معلومات النظام
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> معلومات العميل:</h6>
+                    <dl class="mb-0">
+                        <dt>تاريخ الإنشاء:</dt>
+                        <dd>@Model.CreatedDate.ToString("yyyy/MM/dd HH:mm")</dd>
+
+                        <dt>آخر تحديث:</dt>
+                        <dd>@Model.LastUpdated.ToString("yyyy/MM/dd HH:mm")</dd>
+                        
+                        @if (Model.AccountExpirationDate.HasValue)
+                        {
+                            <dt>انتهاء الاشتراك:</dt>
+                            <dd class="@(Model.AccountExpirationDate < DateTime.Now ? "text-danger" : "")">
+                                @Model.AccountExpirationDate?.ToString("yyyy/MM/dd")
+                            </dd>
+                        }
+                    </dl>
+                </div>
+
+                @if (isEmployee)
+                {
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="fas fa-exclamation-triangle"></i> صلاحيات الموظف:</h6>
+                        <ul class="mb-0 small">
+                            <li>يمكنك تعديل البيانات الإدارية الخاصة بالمشترك</li>
+                            <li class="text-danger">لا يمكنك تغيير: البروفايل، الخادم، الحالة</li>
+                            <li class="text-danger">لا يمكنك تمديد الاشتراك</li>
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning mt-3">
+                        <h6><i class="fas fa-exclamation-triangle"></i> ملاحظة:</h6>
+                        <p class="mb-0">سيتم تحديث وقت التعديل تلقائياً عند حفظ التغييرات.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .employee-client-hero { background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%); }
+    .hero-title { color: #1b2a4b; font-weight: 700; }
+    .action-btn { border-radius: 0.65rem; font-weight: 600; }
+    .form-card { border-radius: 0.95rem; overflow: hidden; }
+    .form-card-header { background: #f8fafc; color: #344054; border-bottom: 1px solid #dbe4f0; }
+    .elegant-input { border-radius: 0.7rem; border-color: #dbe4f0; }
+    .elegant-input:focus { border-color: #93c5fd; box-shadow: 0 0 0 .2rem rgba(37,99,235,.12); }
+</style>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(function() {
+            var receiverSelect = $('#receiverSelect');
+            var senderInfo = $('#senderInfo');
+            if (!receiverSelect.length || !senderInfo.length) {
+                return;
+            }
+
+            function updateSenderInfoSimple() {
+                var selected = receiverSelect.find('option:selected');
+                var sectorName = selected.data('sector');
+                if (typeof sectorName !== 'undefined' && sectorName !== null && sectorName !== '') {
+                    senderInfo.val(sectorName);
+                }
+            }
+
+            receiverSelect.on('change', updateSenderInfoSimple);
+            updateSenderInfoSimple();
+        });
+    </script>
+    @if (isAdmin)
+    {
+        <script>
+            $(document).ready(function() {
+                var receiverSelect = $('#receiverSelect');
+                var senderInfo = $('#senderInfo');
+
+                function updateSenderInfo() {
+                    var selected = receiverSelect.find('option:selected');
+                    var sectorName = selected.data('sector') || '-';
+                    senderInfo.val(sectorName);
+                }
+
+                // عند تغيير خادم المايكروتك - تصفية البروفايلات والمستقبلات حسب الخادم
+                $('#mikrotikServerSelect').change(function() {
+                    var serverId = $(this).val();
+                    var profileSelect = $('#profileSelect');
+                    var currentProfileId = '@Model.ProfileId';
+                    var currentReceiverId = '@(Model.ReceiverId?.ToString() ?? "")';
+
+                    if (serverId) {
+                        profileSelect.html('<option value="">جاري تحميل البروفايلات...</option>');
+                        receiverSelect.html('<option value="">جاري تحميل المستقبلات...</option>');
+
+                        $.ajax({
+                            url: '@Url.Action("GetProfilesByServer", "Clients")',
+                            type: 'GET',
+                            data: { serverId: serverId },
+                            success: function(data) {
+                                if (data && data.length > 0) {
+                                    profileSelect.empty();
+                                    profileSelect.append('<option value="">اختر البروفايل</option>');
+                                    $.each(data, function(index, profile) {
+                                        var selected = (profile.id == currentProfileId) ? 'selected' : '';
+                                        profileSelect.append('<option value="' + profile.id + '" ' + selected + '>' + profile.name + '</option>');
+                                    });
+                                } else {
+                                    profileSelect.html('<option value="">لا توجد بروفايلات في هذا الخادم</option>');
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('خطأ في جلب البروفايلات:', error);
+                                profileSelect.html('<option value="">خطأ في جلب البروفايلات</option>');
+                            }
+                        });
+
+                        $.ajax({
+                            url: '@Url.Action("GetReceiversByServer", "Clients")',
+                            type: 'GET',
+                            data: { serverId: serverId },
+                            success: function(data) {
+                                receiverSelect.empty();
+                                receiverSelect.append('<option value="">اختر المستقبل (اختياري)</option>');
+                                if (data && data.length > 0) {
+                                    $.each(data, function(index, receiver) {
+                                        var selected = (receiver.id.toString() === currentReceiverId) ? 'selected' : '';
+                                        receiverSelect.append('<option value="' + receiver.id + '" data-sector="' + (receiver.sectorName || '-') + '" ' + selected + '>' + receiver.name + '</option>');
+                                    });
+                                }
+                                updateSenderInfo();
+                            },
+                            error: function() {
+                                receiverSelect.html('<option value="">خطأ في جلب المستقبلات</option>');
+                                senderInfo.val('-');
+                            }
+                        });
+                    } else {
+                        profileSelect.html('<option value="">اختر البروفايل</option>');
+                        receiverSelect.html('<option value="">اختر المستقبل (اختياري)</option>');
+                        senderInfo.val('-');
+                    }
+                });
+
+                receiverSelect.on('change', updateSenderInfo);
+
+                // تحميل القوائم تلقائياً إذا كان هناك خادم محدد مسبقاً
+                var initialServerId = $('#mikrotikServerSelect').val();
+                if (initialServerId) {
+                    $('#mikrotikServerSelect').trigger('change');
+                }
+                updateSenderInfo();
+            });
+        </script>
+    }
+}
+*@
+

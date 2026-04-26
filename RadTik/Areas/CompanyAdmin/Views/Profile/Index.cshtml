@@ -1,0 +1,1021 @@
+@model IEnumerable<RadTik.Models.Profile>
+@{
+    ViewData["Title"] = "إدارة البروفايلات";
+    
+    var totalProfiles = Model.Count();
+    var activeProfiles = Model.Count(p => p.IsActive);
+    var syncedProfiles = Model.Count(p => p.IsSyncedWithMikroTik);
+    var inactiveProfiles = totalProfiles - activeProfiles;
+    var profileImportUnitPrice = (decimal?)(ViewBag.ProfileImportUnitPrice) ?? 0m;
+}
+
+<link rel="stylesheet" href="~/css/radtik-theme.css" asp-append-version="true" />
+
+<style>
+    /* Page Header */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-lg);
+        flex-wrap: wrap;
+        gap: var(--spacing-md);
+    }
+    
+    .page-header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0;
+    }
+    
+    .page-header h1 i {
+        color: var(--primary);
+    }
+    
+    .page-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+    }
+
+    /* Stats Bar */
+    .stats-bar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .stat-item {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        padding: var(--spacing-lg);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-light);
+        transition: all 0.2s;
+    }
+    
+    .stat-item:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+    
+    .stat-icon.total { background: rgba(0, 102, 204, 0.15); color: var(--primary); }
+    .stat-icon.active { background: rgba(0, 200, 83, 0.15); color: var(--success); }
+    .stat-icon.synced { background: rgba(33, 150, 243, 0.15); color: var(--info); }
+    .stat-icon.inactive { background: rgba(255, 152, 0, 0.15); color: var(--warning); }
+    
+    .stat-info h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+    }
+    
+    .stat-info span {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    /* Sync Card */
+    .sync-card {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        padding: var(--spacing-lg);
+        margin-bottom: var(--spacing-lg);
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .sync-card-header {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+        padding-bottom: var(--spacing-md);
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .sync-card-header h5 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--primary);
+    }
+    
+    .sync-controls {
+        display: flex;
+        gap: var(--spacing-md);
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .sync-controls select {
+        padding: 10px 15px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        background: var(--bg-body);
+        color: var(--text-primary);
+        font-family: 'Tajawal', sans-serif;
+        min-width: 250px;
+    }
+    
+    .sync-buttons {
+        display: flex;
+        gap: var(--spacing-xs);
+        flex-wrap: wrap;
+    }
+    
+    .sync-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 16px;
+        border-radius: var(--radius);
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        font-family: 'Tajawal', sans-serif;
+    }
+    
+    .sync-btn.view { background: rgba(33, 150, 243, 0.1); color: var(--info); }
+    .sync-btn.view:hover { background: var(--info); color: white; }
+    
+    .sync-btn.import { background: rgba(0, 200, 83, 0.1); color: var(--success); }
+    .sync-btn.import:hover { background: var(--success); color: white; }
+    
+    .sync-btn.export { background: rgba(255, 152, 0, 0.1); color: var(--warning); }
+    .sync-btn.export:hover { background: var(--warning); color: white; }
+    
+    .sync-btn.bidirectional { background: rgba(0, 102, 204, 0.1); color: var(--primary); }
+    .sync-btn.bidirectional:hover { background: var(--primary); color: white; }
+
+    /* Table Card */
+    .table-card {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-light);
+        overflow: hidden;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 16px 18px;
+        text-align: right;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+    }
+    
+    .data-table th {
+        background: linear-gradient(180deg, var(--bg-hover) 0%, var(--bg-card) 100%);
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+    
+    .data-table tbody tr {
+        transition: all 0.2s ease;
+    }
+    
+    .data-table tbody tr:hover {
+        background: var(--bg-hover);
+        box-shadow: inset 0 0 0 2px rgba(0, 102, 204, 0.08);
+    }
+    
+    .data-table tbody tr:nth-child(even) {
+        background: rgba(0, 0, 0, 0.02);
+    }
+    
+    .data-table tbody tr:nth-child(even):hover {
+        background: var(--bg-hover);
+    }
+    
+    .data-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Profile Info */
+    .profile-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .profile-desc {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+    
+    .type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: rgba(33, 150, 243, 0.1);
+        color: var(--info);
+    }
+    
+    .cycle-text {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+    
+    .price-main {
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .price-vat {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .speed-value {
+        color: var(--text-primary);
+    }
+    
+    .speed-upload {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .server-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: var(--bg-hover);
+        color: var(--text-secondary);
+    }
+    
+    .sync-badge {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .sync-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .sync-status.synced { background: rgba(0, 200, 83, 0.1); color: var(--success); }
+    .sync-status.not-synced { background: rgba(255, 152, 0, 0.1); color: var(--warning); }
+    
+    .sync-date {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+    
+    .clients-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        background: rgba(0, 102, 204, 0.1);
+        color: var(--primary);
+    }
+    
+    .devices-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background: rgba(103, 58, 183, 0.1);
+        color: #673ab7;
+        white-space: nowrap;
+    }
+    
+    .devices-badge i {
+        font-size: 0.75rem;
+        opacity: 0.9;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 4px;
+    }
+    
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+    
+    .action-btn.view { background: rgba(33, 150, 243, 0.1); color: var(--info); }
+    .action-btn.view:hover { background: var(--info); color: white; }
+    
+    .action-btn.edit { background: rgba(255, 152, 0, 0.1); color: var(--warning); }
+    .action-btn.edit:hover { background: var(--warning); color: white; }
+    
+    .action-btn.delete { background: rgba(244, 67, 54, 0.1); color: var(--danger); }
+    .action-btn.delete:hover { background: var(--danger); color: white; }
+    
+    .action-btn.sync { background: var(--bg-hover); color: var(--text-secondary); }
+    .action-btn.sync:hover { background: var(--primary); color: white; }
+
+    /* Empty State */
+    .empty-state {
+        padding: 60px;
+        text-align: center;
+        color: var(--text-muted);
+    }
+    
+    .empty-state i {
+        font-size: 50px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+
+    /* Card Footer */
+    .card-footer {
+        padding: var(--spacing-md) var(--spacing-lg);
+        background: var(--bg-hover);
+        border-top: 1px solid var(--border-light);
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    /* Alerts */
+    .alert {
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--radius);
+        margin-bottom: var(--spacing-md);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+    }
+    
+    .alert-success {
+        background: rgba(0, 200, 83, 0.1);
+        border-right: 4px solid var(--success);
+        color: var(--success);
+    }
+    
+    .alert-danger {
+        background: rgba(244, 67, 54, 0.1);
+        border-right: 4px solid var(--danger);
+        color: var(--danger);
+    }
+    
+    .alert-warning {
+        background: rgba(255, 152, 0, 0.1);
+        border-right: 4px solid var(--warning);
+        color: var(--warning);
+    }
+    
+    .alert-info {
+        background: rgba(33, 150, 243, 0.1);
+        border-right: 4px solid var(--info);
+        color: var(--info);
+    }
+    
+    .alert-close {
+        margin-right: auto;
+        background: none;
+        border: none;
+        cursor: pointer;
+        opacity: 0.5;
+    }
+    
+    .alert-close:hover {
+        opacity: 1;
+    }
+
+    /* Responsive */
+    @@media (max-width: 1024px) {
+        .sync-controls {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .sync-controls select {
+            min-width: 100%;
+        }
+        
+        .sync-buttons {
+            justify-content: flex-start;
+        }
+    }
+    
+    @@media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .stats-bar {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .data-table {
+            display: block;
+            overflow-x: auto;
+        }
+        
+        .sync-buttons {
+            flex-wrap: wrap;
+        }
+        
+        .sync-btn {
+            flex: 1;
+            min-width: 120px;
+            justify-content: center;
+        }
+    }
+    
+    @@media (max-width: 480px) {
+        .stats-bar {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-buttons {
+            flex-wrap: wrap;
+        }
+    }
+</style>
+
+<!-- Page Header -->
+<div class="page-header">
+    <h1>
+        <i class="fas fa-tags"></i>
+        إدارة البروفايلات
+    </h1>
+    <div class="page-actions">
+        <a asp-action="Create" class="btn btn-success">
+            <i class="fas fa-plus-circle"></i>
+            إضافة بروفايل جديد
+        </a>
+    </div>
+</div>
+
+<!-- Alert Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i>
+        <span>@TempData["SuccessMessage"]</span>
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>@TempData["ErrorMessage"]</span>
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+}
+@if (TempData["WarningMessage"] != null)
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>@TempData["WarningMessage"]</span>
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+}
+@if (TempData["InfoMessage"] != null)
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        <span>@TempData["InfoMessage"]</span>
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+}
+
+<!-- Server Filter -->
+<div class="filter-card" style="background: var(--bg-card); border-radius: var(--radius); padding: var(--spacing-lg); margin-bottom: var(--spacing-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--border-light);">
+    <div style="display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap;">
+        <label style="font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-filter"></i>
+            تصفية حسب الخادم:
+        </label>
+        <select class="form-select" id="serverFilter" style="max-width: 300px;">
+            <option value="">جميع الخوادم</option>
+            @if (ViewBag.MikroTikServers != null)
+            {
+                @foreach (var server in ViewBag.MikroTikServers)
+                {
+                    var isSelected = ViewBag.SelectedServerId != null && ViewBag.SelectedServerId.ToString() == server.Id.ToString();
+                    <option value="@server.Id" selected="@isSelected">@server.Name (@server.Host)</option>
+                }
+            }
+        </select>
+        @if (ViewBag.SelectedServerId != null)
+        {
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-times"></i> إزالة التصفية
+            </a>
+        }
+    </div>
+</div>
+
+<!-- Statistics Bar -->
+<div class="stats-bar">
+    <div class="stat-item">
+        <div class="stat-icon total">
+            <i class="fas fa-layer-group"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@totalProfiles</h3>
+            <span>إجمالي البروفايلات</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon active">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@activeProfiles</h3>
+            <span>المفعلة</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon synced">
+            <i class="fas fa-sync-alt"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@syncedProfiles</h3>
+            <span>المتزامنة</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon inactive">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@(totalProfiles - syncedProfiles)</h3>
+            <span>غير المتزامنة</span>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3 border-start border-4 border-success">
+    <div class="card-body py-2">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="rounded-circle bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center" style="width:34px;height:34px;">
+                    <i class="fas fa-layer-group"></i>
+                </span>
+                <div>
+                    <div class="small text-muted mb-1">التسعير الفعّال قبل اختيار السيرفر</div>
+                    <div class="fw-semibold">سعر الوحدة المعتمد لاستيراد كل بروفايل</div>
+                </div>
+            </div>
+            <div class="fw-bold text-success">@profileImportUnitPrice.ToString("N2") ل.س.ج</div>
+        </div>
+    </div>
+</div>
+
+<!-- Sync Card -->
+<div class="sync-card">
+    <div class="sync-card-header">
+        <i class="fas fa-sync-alt"></i>
+        <h5>مزامنة مع MikroTik</h5>
+    </div>
+    <div class="sync-controls">
+        <select class="form-select" id="serverSelect">
+            <option value="">-- اختر خادم MikroTik --</option>
+            @foreach (RadTik.Models.MikroTikServer server in ViewBag.MikroTikServers)
+            {
+                <option value="@server.Id"
+                        data-server-name="@server.Name">
+                    @server.Name (@server.Host)
+                </option>
+            }
+        </select>
+        <div class="small text-muted" title="سعر المستورد الجديد يتم تطبيقه تلقائياً من إعدادات النظام">
+            <i class="fas fa-circle-info"></i>
+            سعر المستورد الجديد (ل.س): ملاحظة فقط — يتم تطبيق القيمة الافتراضية تلقائياً من النظام ولا يمكن تعديلها من هذه الشاشة.
+            <span class="fw-semibold text-success">القيمة الحالية: @profileImportUnitPrice.ToString("N2") ل.س.ج</span>
+        </div>
+        <div class="sync-buttons">
+            <button type="button" class="sync-btn view" onclick="viewMikroTikProfiles()">
+                <i class="fas fa-eye"></i>
+                عرض من MikroTik
+            </button>
+            <button type="button" class="sync-btn import" onclick="syncFromMikroTik()">
+                <i class="fas fa-download"></i>
+                استيراد
+            </button>
+            <button type="button" class="sync-btn export" onclick="syncToMikroTik()">
+                <i class="fas fa-upload"></i>
+                تصدير
+            </button>
+            <button type="button" class="sync-btn bidirectional" onclick="twoWaySync()">
+                <i class="fas fa-exchange-alt"></i>
+                مزامنة ثنائية
+            </button>
+        </div>
+    </div>
+    <div id="importPreviewHint" class="small text-muted mt-3">
+        اختر خادمًا لتحميل معاينة الاستيراد والتكلفة.
+    </div>
+</div>
+
+<!-- Profiles Table -->
+<div class="table-card">
+    @if (Model.Any())
+    {
+        <table class="data-table" id="profilesTable">
+            <thead>
+                <tr>
+                    <th>الاسم</th>
+                    <th>النوع</th>
+                    <th>السعر</th>
+                    <th>السرعة</th>
+                    <th>الأجهزة</th>
+                    <th>الخادم</th>
+                    <th>الحالة</th>
+                    <th>المزامنة</th>
+                    <th>العملاء</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="profile-name">@item.Name</div>
+                            @if (!string.IsNullOrEmpty(item.Description))
+                            {
+                                <div class="profile-desc">@item.Description</div>
+                            }
+                        </td>
+                        <td>
+                            <span class="type-badge">@item.Type</span>
+                            <div class="cycle-text">@item.BillingCycle</div>
+                        </td>
+                        <td>
+                            <div class="price-main">
+                                @item.Price.ToString("N2") ل.س جديد
+                            </div>
+                            <div class="price-vat">
+                                شامل: @item.PriceWithVAT.ToString("N2") ل.س جديد
+                            </div>
+                            <div class="price-old-hint" style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px;">
+                                <i class="fas fa-coins"></i>
+                                قديم: @((item.Price * 100).ToString("N0")) ل.س
+                            </div>
+                        </td>
+                        <td>
+                            <div class="speed-value">@item.DownloadSpeedDisplay</div>
+                            @if (item.UploadSpeed.HasValue)
+                            {
+                                <div class="speed-upload">رفع: @item.UploadSpeedDisplay</div>
+                            }
+                        </td>
+                        <td>
+                            <span class="devices-badge" title="عدد الأجهزة الأدنى - الأقصى">
+                                <i class="fas fa-mobile-alt"></i>
+                                @item.MinDevices - @item.MaxDevices
+                            </span>
+                        </td>
+                        <td>
+                            @if (item.MikroTikServer != null)
+                            {
+                                <span class="server-badge">
+                                    <i class="fas fa-server"></i>
+                                    @item.MikroTikServer.Name
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">غير مرتبط</span>
+                            }
+                        </td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="status-badge active">
+                                    <i class="fas fa-check"></i>
+                                    مفعل
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="status-badge inactive">
+                                    <i class="fas fa-times"></i>
+                                    معطل
+                                </span>
+                            }
+                        </td>
+                        <td>
+                            <div class="sync-badge">
+                                @if (item.IsSyncedWithMikroTik)
+                                {
+                                    <span class="sync-status synced">
+                                        <i class="fas fa-check-circle"></i>
+                                        مزامن
+                                    </span>
+                                    <span class="sync-date">@item.LastSyncDate?.ToString("yyyy-MM-dd")</span>
+                                }
+                                else
+                                {
+                                    <span class="sync-status not-synced">
+                                        <i class="fas fa-times-circle"></i>
+                                        غير مزامن
+                                    </span>
+                                }
+                            </div>
+                        </td>
+                        <td>
+                            <span class="clients-badge">@item.Clients.Count</span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a asp-action="Details" asp-route-id="@item.Id" class="action-btn view" title="تفاصيل">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@item.Id" asp-route-serverId="@ViewBag.SelectedServerId" class="action-btn edit" title="تعديل">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="action-btn delete" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                                @if (item.MikroTikServerId > 0)
+                                {
+                                    <button type="button" class="action-btn sync" onclick="testSync(@item.MikroTikServerId, @item.Id)" title="فحص المزامنة">
+                                        <i class="fas fa-sync"></i>
+                                    </button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fas fa-tags"></i>
+            <h3>لا توجد بروفايلات</h3>
+            <p>لم يتم إنشاء أي بروفايلات حتى الآن</p>
+            <a asp-action="Create" class="btn btn-primary mt-3">
+                <i class="fas fa-plus-circle"></i>
+                إضافة بروفايل جديد
+            </a>
+        </div>
+    }
+</div>
+
+@if (Model.Any())
+{
+    <div class="card-footer">
+        <small>تم التحديث في: @DateTime.Now.ToString("yyyy-MM-dd HH:mm")</small>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            if ($('#profilesTable').length) {
+                $('#profilesTable').DataTable({
+                    language: {
+                        url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+                    },
+                    order: [[0, 'asc']],
+                    pageLength: 25,
+                    responsive: true
+                });
+            }
+        });
+
+        function viewMikroTikProfiles() {
+            var serverId = $('#serverSelect').val();
+            if (!serverId) {
+                alert('الرجاء اختيار خادم MikroTik أولاً');
+                return;
+            }
+            window.location.href = '@Url.Action("ViewMikroTikProfiles")' + '?serverId=' + serverId;
+        }
+
+        const importPreviewCache = {};
+        let loadingImportPreview = false;
+
+        async function loadImportPreview(serverId, forceRefresh = false) {
+            if (!serverId) return null;
+            if (!forceRefresh && importPreviewCache[serverId]) {
+                updateImportPreviewHint(importPreviewCache[serverId]);
+                return importPreviewCache[serverId];
+            }
+
+            if (loadingImportPreview) return null;
+            loadingImportPreview = true;
+            updateImportPreviewHint(null, 'جاري تحميل معاينة الاستيراد...');
+
+            try {
+                const response = await fetch('@Url.Action("GetImportPreviewData")' + '?serverId=' + encodeURIComponent(serverId), {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const result = await response.json();
+                if (!result || !result.success) {
+                    updateImportPreviewHint(null, result?.message || 'تعذر جلب معاينة الاستيراد.');
+                    return null;
+                }
+
+                importPreviewCache[serverId] = result;
+                updateImportPreviewHint(result);
+                return result;
+            } catch {
+                updateImportPreviewHint(null, 'تعذر جلب معاينة الاستيراد حالياً.');
+                return null;
+            } finally {
+                loadingImportPreview = false;
+            }
+        }
+
+        function updateImportPreviewHint(data, fallbackMessage) {
+            const hint = document.getElementById('importPreviewHint');
+            if (!hint) return;
+
+            if (fallbackMessage) {
+                hint.textContent = fallbackMessage;
+                return;
+            }
+
+            if (!data) {
+                hint.textContent = 'اختر خادمًا لتحميل معاينة الاستيراد والتكلفة.';
+                return;
+            }
+
+            hint.textContent =
+                `البروفايلات على السيرفر: ${data.totalProfiles} | القابلة للاستيراد: ${data.importableProfiles} | ` +
+                `التكلفة الكلية: ${Number(data.totalCharge || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج`;
+        }
+
+        async function syncFromMikroTik() {
+            var serverId = $('#serverSelect').val();
+            if (!serverId) {
+                alert('الرجاء اختيار خادم MikroTik أولاً');
+                return;
+            }
+
+            const selected = document.getElementById('serverSelect').selectedOptions[0];
+            const serverName = selected?.getAttribute('data-server-name') || 'غير معروف';
+            const previewData = await loadImportPreview(serverId);
+            if (!previewData) {
+                alert('تعذر جلب معاينة الاستيراد حالياً. حاول مرة أخرى.');
+                return;
+            }
+            const totalProfiles = Number(previewData.totalProfiles || 0);
+            const importableProfiles = Number(previewData.importableProfiles || 0);
+            const unitPrice = Number(previewData.unitPrice || 0);
+            const totalCharge = Number(previewData.totalCharge || 0);
+            const walletBalance = Number(previewData.walletBalance || 0);
+
+            if (importableProfiles <= 0) {
+                if (confirm('لا يوجد بروفايلات جديدة للاستيراد من هذا السيرفر حالياً.\n\nهل تريد تشغيل «المزامنة الثنائية» لتحديث البروفايلات الحالية؟')) {
+                    window.location.href = '@Url.Action("TwoWaySync")' + '?serverId=' + encodeURIComponent(serverId);
+                }
+                return;
+            }
+
+            const message =
+                `تنبيه واضح قبل الاستيراد:\n\n` +
+                `السيرفر: ${serverName}\n` +
+                `عدد البروفايلات على السيرفر: ${totalProfiles}\n` +
+                `البروفايلات القابلة للاستيراد: ${importableProfiles}\n` +
+                `سعر استيراد كل بروفايل: ${unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n` +
+                `إجمالي مبلغ الاستيراد: ${totalCharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n` +
+                `رصيد المحفظة الحالي: ${walletBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n\n` +
+                `سيتم التحقق من الرصيد قبل التنفيذ الفعلي، وفي حال عدم الكفاية سيتم إلغاء العملية مع توضيح السبب.\n\n` +
+                `هل تريد المتابعة؟`;
+
+            if (confirm(message)) {
+                window.location.href = '@Url.Action("SyncFromMikroTik")' + '?serverId=' + encodeURIComponent(serverId);
+            }
+        }
+
+        function syncToMikroTik() {
+            var serverId = $('#serverSelect').val();
+            if (!serverId) {
+                alert('الرجاء اختيار خادم MikroTik أولاً');
+                return;
+            }
+            if (confirm('هل تريد تصدير البروفايلات من قاعدة البيانات إلى MikroTik؟')) {
+                window.location.href = '@Url.Action("SyncToMikroTik")' + '?serverId=' + serverId;
+            }
+        }
+
+        function twoWaySync() {
+            var serverId = $('#serverSelect').val();
+            if (!serverId) {
+                alert('الرجاء اختيار خادم MikroTik أولاً');
+                return;
+            }
+            if (confirm('هل تريد مزامنة البروفايلات ثنائية الاتجاه؟')) {
+                window.location.href = '@Url.Action("TwoWaySync")' + '?serverId=' + encodeURIComponent(serverId);
+            }
+        }
+
+        function testSync(serverId, profileId) {
+            $.ajax({
+                url: '@Url.Action("TestSync")',
+                type: 'GET',
+                data: { serverId: serverId, profileId: profileId },
+                success: function (result) {
+                    if (result.success) {
+                        if (result.exists) {
+                            alert('✅ ' + result.message);
+                        } else {
+                            alert('⚠️ ' + result.message);
+                        }
+                    } else {
+                        alert('❌ ' + result.message);
+                    }
+                },
+                error: function () {
+                    alert('❌ حدث خطأ أثناء فحص المزامنة');
+                }
+            });
+        }
+
+        // Server Filter
+        $(document).ready(function() {
+            $('#serverFilter').on('change', function() {
+                var serverId = $(this).val();
+                var url = '@Url.Action("Index")';
+                if (serverId) {
+                    url += '?serverId=' + serverId;
+                }
+                window.location.href = url;
+            });
+
+            $('#serverSelect').on('change', function() {
+                const serverId = $(this).val();
+                if (!serverId) {
+                    updateImportPreviewHint(null);
+                    return;
+                }
+                loadImportPreview(serverId);
+            });
+        });
+    </script>
+}

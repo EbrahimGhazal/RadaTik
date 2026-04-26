@@ -1,0 +1,377 @@
+@model IEnumerable<RadTik.Models.Receiver>
+
+@{
+    ViewData["Title"] = "المستقبلات التابعة للقطاع";
+    var totalReceivers = Model.Count();
+    var activeReceivers = Model.Count(r => r.IsActive);
+    var totalUsers = Model.Sum(r => r.UserCount);
+    int totalDataSize = 0;
+    foreach (var receiver in Model)
+    {
+        if (receiver.Clients != null)
+        {
+            foreach (var client in receiver.Clients)
+            {
+                if (!string.IsNullOrEmpty(client.ProfileName))
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(client.ProfileName, @"\d+");
+                    if (match.Success && int.TryParse(match.Value, out int size))
+                    {
+                        totalDataSize += size;
+                    }
+                }
+            }
+        }
+    }
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-content">
+        <h1 class="page-title">
+            <i class="fas fa-wifi"></i>
+            مستقبلات القطاع: @ViewBag.SectorName
+        </h1>
+        <div class="page-actions">
+            <a asp-action="Index" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-right"></i> العودة للقطاعات
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Compact Statistics Bar -->
+<div class="stats-bar">
+    <div class="stat-item stat-primary">
+        <div class="stat-icon-mini"><i class="fas fa-wifi"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalReceivers</span>
+            <span class="stat-label">إجمالي</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-success">
+        <div class="stat-icon-mini"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@activeReceivers</span>
+            <span class="stat-label">نشط</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-info">
+        <div class="stat-icon-mini"><i class="fas fa-database"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalDataSize</span>
+            <span class="stat-label">ميجا</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-warning">
+        <div class="stat-icon-mini"><i class="fas fa-users"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalUsers</span>
+            <span class="stat-label">مستخدمين</span>
+        </div>
+    </div>
+</div>
+
+<!-- Receivers Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            قائمة المستقبلات
+        </h3>
+        <span class="badge badge-info">@totalReceivers مستقبل</span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        @if (Model.Any())
+        {
+            <div class="table-container">
+                <table class="table" id="receiversTable">
+                    <thead>
+                        <tr>
+                            <th>المستقبل</th>
+                            <th>IP</th>
+                            <th>الموقع</th>
+                            <th>المستخدمين</th>
+                            <th>البروفايلات</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الإضافة</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="receiver-info">
+                                        <div class="receiver-icon @(item.IsActive ? "active" : "inactive")">
+                                            <i class="fas fa-wifi"></i>
+                                        </div>
+                                        <div>
+                                            <div class="receiver-name">@item.Name</div>
+                                            <div class="receiver-mask">@item.NetworkMask</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><code>@item.IPAddress</code></td>
+                                <td>
+                                    <div class="location-info">
+                                        <span><i class="fas fa-map-marker-alt text-danger"></i> @item.Latitude.ToString("F4")</span>
+                                        <span>@item.Longitude.ToString("F4")</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="count-badge count-warning">
+                                        <i class="fas fa-users"></i>
+                                        <span>@item.UserCount</span>
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.ProfileNames))
+                                    {
+                                        <span class="badge badge-success" title="@item.ProfileNames">
+                                            <i class="fas fa-database"></i> @item.ProfileNames
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-secondary">لا يوجد</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="status-badge status-active">
+                                            <i class="fas fa-check-circle"></i> نشط
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-inactive">
+                                            <i class="fas fa-times-circle"></i> متوقف
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="date-info">
+                                        <span>@item.CreatedDate.ToString("yyyy-MM-dd")</span>
+                                        <small class="text-muted">@item.CreatedDate.ToString("hh:mm tt")</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a asp-controller="Receiver" asp-action="Details" asp-route-id="@item.Id"
+                                           class="btn btn-sm btn-icon btn-info" title="تفاصيل">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a asp-controller="Receiver" asp-action="Edit" asp-route-id="@item.Id"
+                                           class="btn btn-sm btn-icon btn-warning" title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-wifi"></i>
+                <h4>لا توجد مستقبلات</h4>
+                <p>لم يتم إضافة أي مستقبلات لهذا القطاع بعد</p>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .page-header {
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .page-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--spacing-md);
+    }
+    
+    .page-title {
+        font-size: var(--font-2xl);
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .page-title i {
+        color: var(--info);
+    }
+
+    .stats-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-md);
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-sm);
+        background: var(--bg-hover);
+        min-width: 100px;
+    }
+    
+    .stat-icon-mini {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: white;
+    }
+    
+    .stat-data {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+    }
+    
+    .stat-number {
+        font-size: var(--font-xl);
+        font-weight: 700;
+    }
+    
+    .stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+    
+    .stat-primary .stat-icon-mini { background: var(--primary); }
+    .stat-primary .stat-number { color: var(--primary); }
+    .stat-success .stat-icon-mini { background: var(--success); }
+    .stat-success .stat-number { color: var(--success); }
+    .stat-info .stat-icon-mini { background: var(--info); }
+    .stat-info .stat-number { color: var(--info); }
+    .stat-warning .stat-icon-mini { background: var(--warning); }
+    .stat-warning .stat-number { color: var(--warning); }
+
+    .receiver-info {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .receiver-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+
+    .receiver-icon.active { background: var(--success); }
+    .receiver-icon.inactive { background: var(--text-muted); }
+
+    .receiver-name {
+        font-weight: 600;
+        font-size: var(--font-sm);
+    }
+
+    .receiver-mask {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    .location-info {
+        display: flex;
+        flex-direction: column;
+        font-size: var(--font-xs);
+        color: var(--text-muted);
+    }
+
+    .count-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .count-warning {
+        background: rgba(255, 152, 0, 0.15);
+        color: var(--warning);
+    }
+
+    .date-info {
+        display: flex;
+        flex-direction: column;
+        font-size: var(--font-xs);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 4px;
+    }
+
+    .btn-icon {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: var(--spacing-3xl);
+        color: var(--text-muted);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: var(--spacing-md);
+        opacity: 0.5;
+    }
+
+    .empty-state h4 {
+        margin-bottom: var(--spacing-sm);
+    }
+</style>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#receiversTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+                },
+                order: [[0, 'asc']],
+                pageLength: 15,
+                responsive: true
+            });
+        });
+    </script>
+}

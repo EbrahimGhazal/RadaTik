@@ -1,0 +1,319 @@
+/* JoinRequests page styling using the Network page design language */
+
+.join-requests-page .network-page-header-icon {
+    background: linear-gradient(135deg, #7C3AED 0%, #2563EB 100%);
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.25);
+}
+
+/* Stats variants */
+.network-stat-pending .network-stat-icon { background: rgba(255, 152, 0, 0.12); color: var(--warning); }
+.network-stat-client .network-stat-icon { background: rgba(0, 102, 204, 0.12); color: var(--primary); }
+.network-stat-employee .network-stat-icon { background: rgba(0, 200, 83, 0.12); color: var(--success); }
+.network-stat-networkadmin .network-stat-icon { background: rgba(124, 58, 237, 0.12); color: #7C3AED; }
+
+/* Filter bar */
+.join-requests-filters {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-sm);
+}
+
+.join-requests-filters .filter-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: var(--font-sm);
+    margin-left: var(--spacing-sm);
+}
+
+.join-requests-filters .form-select {
+    min-width: 200px;
+    background-color: var(--bg-body);
+}
+
+/* --- Select2 (filters) : Dark mode + RTL clear button position --- */
+/* Note: layout.js initializes Select2 with width: '100%'. We override that here. */
+.join-requests-filters .select2-container {
+    width: 220px !important;
+    flex: 0 0 auto;
+    direction: rtl;
+}
+
+.join-requests-filters .select2-container--bootstrap-5 .select2-selection {
+    min-height: 42px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-fast);
+}
+
+.join-requests-filters .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+.join-requests-filters .select2-container--bootstrap-5.select2-container--open .select2-selection {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.15), var(--shadow-sm);
+}
+
+/* Ensure we have room for clear (left) and arrow (right) */
+.join-requests-filters .select2-container--bootstrap-5 .select2-selection--single {
+    position: relative;
+    padding-left: 44px;
+    padding-right: 44px;
+}
+
+.join-requests-filters .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    color: var(--text-primary);
+    line-height: 42px;
+    padding: 0;
+    text-align: right;
+}
+
+.join-requests-filters .select2-container--bootstrap-5 .select2-selection--single .select2-selection__placeholder {
+    color: var(--text-muted);
+}
+
+/* Move arrow to the RIGHT (RTL safe; avoids overlap with clear X) */
+.join-requests-filters .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+    position: absolute;
+    right: 12px;
+    left: auto;
+    height: 40px;
+    width: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Make arrow color match theme */
+.join-requests-filters .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow b {
+    border-color: var(--text-muted) transparent transparent transparent;
+}
+
+/* Force clear (X) to the LEFT */
+.join-requests-filters .select2-container--bootstrap-5 .select2-selection--single .select2-selection__clear {
+    position: absolute;
+    left: 10px !important;
+    right: auto !important;
+    top: 50%;
+    transform: translateY(-50%);
+    margin: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--bg-hover);
+    color: var(--text-muted);
+    transition: all var(--transition-fast);
+    z-index: 2;
+}
+
+.join-requests-filters .select2-container--bootstrap-5 .select2-selection__clear:hover {
+    background: rgba(244, 67, 54, 0.12);
+    color: var(--danger);
+    transform: translateY(-50%) scale(1.05);
+}
+
+/* Dropdown */
+.join-requests-page .select2-dropdown {
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-card);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+}
+
+.join-requests-page .select2-results {
+    max-height: 320px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.join-requests-page .select2-results::-webkit-scrollbar {
+    width: 8px;
+}
+
+.join-requests-page .select2-results::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+.join-requests-page .select2-results::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.join-requests-page .select2-results::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+    background-clip: content-box;
+}
+
+.join-requests-page .select2-container--bootstrap-5 .select2-search--dropdown {
+    padding: 10px;
+    background: var(--bg-hover);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.join-requests-page .select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field {
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.join-requests-page .select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.15);
+}
+
+.join-requests-page .select2-container--bootstrap-5 .select2-results__option {
+    padding: 12px 16px;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.join-requests-page .select2-container--bootstrap-5 .select2-results__option:last-child {
+    border-bottom: none;
+}
+
+.join-requests-page .select2-container--bootstrap-5 .select2-results__option:hover {
+    background: var(--bg-hover);
+}
+
+.join-requests-page .select2-container--bootstrap-5 .select2-results__option[aria-selected="true"] {
+    background: var(--bg-selected);
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.join-requests-page .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background: var(--primary-gradient);
+    color: white;
+    font-weight: 700;
+}
+
+/* Explicit dark-mode tweaks (in case select2 styles aren't global) */
+[data-theme="dark"] .join-requests-filters .select2-container--bootstrap-5 .select2-selection {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .join-requests-filters .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .join-requests-filters .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow b {
+    border-color: var(--text-muted) transparent transparent transparent;
+}
+
+[data-theme="dark"] .join-requests-filters .select2-container--bootstrap-5 .select2-selection__clear {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] .join-requests-page .select2-dropdown {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .join-requests-page .select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .join-requests-page .select2-container--bootstrap-5 .select2-results__option:hover {
+    background: var(--bg-hover);
+}
+
+[data-theme="dark"] .join-requests-page .select2-container--bootstrap-5 .select2-results__option[aria-selected="true"] {
+    background: var(--bg-selected);
+    color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+    .join-requests-filters .select2-container {
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .join-requests-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .join-requests-filters .form-select {
+        width: 100%;
+        min-width: unset;
+    }
+}
+
+/* Card type icon */
+.joinrequest-type-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.4rem;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.joinrequest-type-client { background: linear-gradient(135deg, #2563EB 0%, #06B6D4 100%); }
+.joinrequest-type-employee { background: linear-gradient(135deg, #16A34A 0%, #22C55E 100%); }
+.joinrequest-type-networkadmin { background: linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%); }
+
+/* Status accents + badges */
+.joinrequest-card-pending .network-company-card-accent { background: var(--warning); }
+.joinrequest-card-underreview .network-company-card-accent { background: var(--info); }
+.joinrequest-card-approved .network-company-card-accent { background: var(--success); }
+.joinrequest-card-rejected .network-company-card-accent { background: var(--danger); }
+
+.joinrequest-status-badge-pending { background: var(--warning-bg); color: var(--warning-dark); }
+.joinrequest-status-badge-underreview { background: var(--info-bg); color: var(--info-dark); }
+.joinrequest-status-badge-approved { background: var(--success-bg); color: var(--success-dark); }
+.joinrequest-status-badge-rejected { background: var(--danger-bg); color: var(--danger-dark); }
+
+.joinrequest-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.joinrequest-meta .joinrequest-type-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-xs);
+    font-weight: 700;
+    border: 1px solid var(--border-color);
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+}
+
+.joinrequest-meta .joinrequest-type-chip strong {
+    color: var(--text-primary);
+}
+

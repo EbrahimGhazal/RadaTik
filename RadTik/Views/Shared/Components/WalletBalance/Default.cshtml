@@ -1,0 +1,13 @@
+@model decimal?
+@{
+    // عرض الرصيد في الهيدر بجانب اسم المستخدم
+    // null = لا يوجد رصيد لعرضه (مثل مدير النظام أو زائر)
+}
+@if (Model.HasValue)
+{
+    <div class="header-wallet-balance" title="الرصيد الحالي">
+        <i class="fas fa-wallet"></i>
+        <span class="header-wallet-amount">@Model.Value.ToString("N0")</span>
+        <span class="header-wallet-currency">ل.س</span>
+    </div>
+}

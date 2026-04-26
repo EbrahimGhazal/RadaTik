@@ -1,0 +1,984 @@
+@using System.Dynamic
+@{
+    ViewData["Title"] = "لوحة تحكم مدير الشركة";
+
+    int totalClients = ViewBag.TotalClients ?? 0;
+    int activeClients = ViewBag.ActiveClients ?? 0;
+    int inactiveClients = ViewBag.InactiveClients ?? 0;
+
+    int totalSectors = ViewBag.TotalSectors ?? 0;
+    int activeSectors = ViewBag.ActiveSectors ?? 0;
+
+    int totalReceivers = ViewBag.TotalReceivers ?? 0;
+    int activeReceivers = ViewBag.ActiveReceivers ?? 0;
+
+    int totalServers = ViewBag.TotalServers ?? 0;
+    int activeServers = ViewBag.ActiveServers ?? 0;
+
+    int expiredSubscriptions = ViewBag.ExpiredSubscriptions ?? 0;
+    int expiringInWeek = ViewBag.ExpiringInWeek ?? 0;
+
+    var recentClients = ViewBag.RecentClients as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var profileStats = ViewBag.ProfileStats as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    int newClientsThisMonth = ViewBag.NewClientsThisMonth ?? 0;
+    double clientsChangePercent = ViewBag.ClientsChangePercent ?? 0.0;
+}
+
+<div class="page-header">
+    <h1>
+        <i class="fas fa-tachometer-alt"></i>
+        @ViewData["Title"]
+    </h1>
+    <p class="text-muted">نظرة عامة على حالة الشبكة، الخوادم، القطاعات، المستقبلات والعملاء التابعة لمدير الشركة.</p>
+</div>
+
+<!-- شريط إحصائيات رئيسية -->
+<div class="stats-bar">
+    <div class="stat-item">
+        <div class="stat-icon tone-primary">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@totalClients</h3>
+            <span>إجمالي العملاء (@activeClients نشط / @inactiveClients غير نشط)</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon tone-success">
+            <i class="fas fa-server"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@totalServers</h3>
+            <span>الخوادم (@activeServers نشطة)</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon tone-accent">
+            <i class="fas fa-broadcast-tower"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@totalSectors</h3>
+            <span>المرسلات (@activeSectors نشطة)</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon tone-violet">
+            <i class="fas fa-satellite-dish"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@totalReceivers</h3>
+            <span>المستقبلات (@activeReceivers نشطة)</span>
+        </div>
+    </div>
+</div>
+
+<!-- شريط إحصائيات الاشتراكات -->
+<div class="stats-bar stats-sub">
+    <div class="stat-item">
+        <div class="stat-icon tone-danger">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@expiredSubscriptions</h3>
+            <span>اشتراكات منتهية</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon tone-warning">
+            <i class="fas fa-hourglass-half"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@expiringInWeek</h3>
+            <span>تنتهي خلال 7 أيام</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon tone-cyan">
+            <i class="fas fa-user-plus"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@newClientsThisMonth</h3>
+            <span>عملاء جدد هذا الشهر (@clientsChangePercent% مقارنة بالشهر السابق)</span>
+        </div>
+    </div>
+</div>
+
+<!-- مخططات بيانية + خريطة (بيانات حية من قاعدة البيانات — مثل تجربة /app/admin) -->
+<div class="dashboard-viz-grid mb-4">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-chart-line" style="color: var(--rtk-primary);"></i>
+                إضافات العملاء اليومية
+            </h3>
+            <span class="badge rounded-pill" style="background: rgba(37, 99, 235, 0.15); color: var(--rtk-primary);">آخر 30 يومًا</span>
+        </div>
+        <div class="card-body">
+            <p class="small text-muted mb-2">عدد العملاء المسجّلين في الشبكة الحالية لكل يوم (تفاعلي).</p>
+            <div class="nm-dash-chart-wrap">
+                <canvas id="nmChartDaily" aria-label="مخطط يومي"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-chart-bar" style="color: var(--rtk-secondary);"></i>
+                نمو العملاء الشهري
+            </h3>
+            <span class="badge rounded-pill" style="background: rgba(6, 182, 212, 0.15); color: var(--rtk-secondary);">12 شهرًا</span>
+        </div>
+        <div class="card-body">
+            <p class="small text-muted mb-2">إجمالي عملاء جدد مسجّلين كل شهر في الشبكة الحالية.</p>
+            <div class="nm-dash-chart-wrap">
+                <canvas id="nmChartMonthly" aria-label="مخطط شهري"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-map-row mb-4">
+    <div class="card nm-map-card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-map-marked-alt" style="color: var(--rtk-success);"></i>
+                خريطة التغطية
+            </h3>
+            <span class="small text-muted" id="nmMapLegend">المرسلات (زاوية التغطية ومدى الانتشار والاتجاه)، المستقبلات، العملاء</span>
+        </div>
+        <div class="card-body p-0">
+            <div id="nmCoverageMap" class="nm-dash-map" role="region" aria-label="خريطة الشبكة"></div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-bolt" style="color: var(--rtk-accent-orange);"></i>
+                النشاط الأخير
+            </h3>
+        </div>
+        <div class="card-body">
+            <ul class="nm-activity-feed list-unstyled mb-0" id="nmActivityFeed">
+                <li class="text-muted small">جاري التحميل…</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="content-grid">
+    <!-- آخر العملاء المضافين -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-user-clock text-primary"></i>
+                آخر العملاء المضافين
+            </h3>
+        </div>
+        <div class="card-body">
+            @if (recentClients.Any())
+            {
+                <div class="requests-list">
+                    @foreach (var c in recentClients)
+                    {
+                        <div class="request-item">
+                            <div class="request-avatar">
+                                @((c.Name as string)?.Substring(0, 1).ToUpper() ?? "?")
+                            </div>
+                            <div class="request-info">
+                                <div class="request-client">@c.Name (@c.UserName)</div>
+                                <div class="request-type text-muted">
+                                    أضيف في @c.CreatedDate.ToString("yyyy/MM/dd HH:mm")
+                                </div>
+                            </div>
+                            <div class="request-time">
+                                @( (c.IsActive ?? false) ? "نشط" : "غير نشط" )
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-mini">
+                    <i class="fas fa-info-circle text-muted"></i>
+                    <span>لا يوجد عملاء مضافون مؤخراً</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- أشهر الباقات (حسب عدد العملاء) -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-tags text-success"></i>
+                أكثر الباقات استخداماً
+            </h3>
+        </div>
+        <div class="card-body">
+            @if (profileStats.Any())
+            {
+                <div class="requests-list">
+                    @foreach (var p in profileStats)
+                    {
+                        <div class="request-item">
+                            <div class="request-avatar speed">
+                                <i class="fas fa-tachometer-alt"></i>
+                            </div>
+                            <div class="request-info">
+                                <div class="request-client">@p.Name</div>
+                                <div class="request-type text-muted">
+                                    عدد العملاء: @p.ClientCount
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-mini">
+                    <i class="fas fa-info-circle text-muted"></i>
+                    <span>لا توجد بيانات للباقات حالياً</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --rtk-primary: #2563eb;
+        --rtk-primary-deep: #1e3a8a;
+        --rtk-secondary: #06b6d4;
+        --rtk-success: #10b981;
+        --rtk-bg-soft: #f3f4f6;
+        --rtk-neutral-mid: #9ca3af;
+        --rtk-neutral-text: #374151;
+        --rtk-accent-orange: #f97316;
+        --rtk-accent-violet: #7c3aed;
+        --rtk-card: #ffffff;
+        --rtk-card-border: rgba(148, 163, 184, 0.28);
+        --rtk-card-shadow: 0 12px 24px rgba(15, 23, 42, 0.07);
+        --rtk-card-shadow-hover: 0 16px 28px rgba(15, 23, 42, 0.11);
+    }
+
+    [data-theme="dark"] {
+        --rtk-primary: #3b82f6;
+        --rtk-primary-deep: #60a5fa;
+        --rtk-secondary: #22d3ee;
+        --rtk-success: #34d399;
+        --rtk-bg-soft: #0f172a;
+        --rtk-neutral-mid: #64748b;
+        --rtk-neutral-text: #cbd5e1;
+        --rtk-accent-orange: #fb923c;
+        --rtk-accent-violet: #a78bfa;
+        --rtk-card: #1e293b;
+        --rtk-card-border: rgba(148, 163, 184, 0.3);
+        --rtk-card-shadow: 0 14px 30px rgba(2, 6, 23, 0.45);
+        --rtk-card-shadow-hover: 0 18px 34px rgba(2, 6, 23, 0.58);
+    }
+
+    .page-header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .page-header h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0;
+    }
+
+    .stats-bar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .stats-sub {
+        margin-top: -0.35rem;
+    }
+
+    .stat-item {
+        background:
+            linear-gradient(140deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.8) 100%);
+        border-radius: 14px;
+        padding: var(--spacing-lg);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        box-shadow: var(--rtk-card-shadow);
+        border: 1px solid var(--rtk-card-border);
+        transition: all 0.2s ease;
+    }
+
+    .stat-item:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--rtk-card-shadow-hover);
+        border-color: rgba(37, 99, 235, 0.34);
+    }
+
+    [data-theme="dark"] .stat-item {
+        background: linear-gradient(140deg, rgba(30, 41, 59, 0.95) 0%, rgba(30, 41, 59, 0.82) 100%);
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        border: 1px solid transparent;
+    }
+
+    .stat-icon.tone-primary {
+        background: rgba(37, 99, 235, 0.14);
+        color: var(--rtk-primary);
+        border-color: rgba(37, 99, 235, 0.28);
+    }
+
+    .stat-icon.tone-success {
+        background: rgba(16, 185, 129, 0.14);
+        color: var(--rtk-success);
+        border-color: rgba(16, 185, 129, 0.25);
+    }
+
+    .stat-icon.tone-accent {
+        background: rgba(249, 115, 22, 0.14);
+        color: var(--rtk-accent-orange);
+        border-color: rgba(249, 115, 22, 0.26);
+    }
+
+    .stat-icon.tone-violet {
+        background: rgba(124, 58, 237, 0.14);
+        color: var(--rtk-accent-violet);
+        border-color: rgba(124, 58, 237, 0.26);
+    }
+
+    .stat-icon.tone-danger {
+        background: rgba(239, 68, 68, 0.14);
+        color: #ef4444;
+        border-color: rgba(239, 68, 68, 0.24);
+    }
+
+    .stat-icon.tone-warning {
+        background: rgba(251, 146, 60, 0.14);
+        color: var(--rtk-accent-orange);
+        border-color: rgba(251, 146, 60, 0.24);
+    }
+
+    .stat-icon.tone-cyan {
+        background: rgba(6, 182, 212, 0.14);
+        color: var(--rtk-secondary);
+        border-color: rgba(6, 182, 212, 0.25);
+    }
+
+    .stat-info h3 {
+        font-size: 1.55rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--rtk-neutral-text);
+    }
+
+    .stat-info span {
+        font-size: 0.85rem;
+        color: var(--rtk-neutral-mid);
+    }
+
+    .dashboard-viz-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+        gap: var(--spacing-lg);
+    }
+
+    .dashboard-map-row {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+        gap: var(--spacing-lg);
+        align-items: stretch;
+    }
+
+    .nm-map-card .card-body {
+        min-height: 0;
+    }
+
+    .nm-dash-chart-wrap {
+        position: relative;
+        height: 260px;
+        width: 100%;
+    }
+
+    .nm-dash-map {
+        height: 380px;
+        width: 100%;
+        min-height: 280px;
+        border-radius: 0 0 14px 14px;
+    }
+
+    [data-theme="dark"] .nm-dash-map {
+        filter: saturate(0.95);
+    }
+
+    .nm-activity-feed li {
+        border: 1px solid var(--rtk-card-border);
+        border-radius: 10px;
+        padding: 0.55rem 0.65rem;
+        margin-bottom: 0.5rem;
+        background: var(--rtk-bg-soft);
+        font-size: 0.88rem;
+        color: var(--rtk-neutral-text);
+    }
+
+    .nm-activity-feed li:last-child {
+        margin-bottom: 0;
+    }
+
+    .nm-activity-feed .nm-act-time {
+        font-size: 0.72rem;
+        color: var(--rtk-neutral-mid);
+        margin-top: 0.2rem;
+    }
+
+    .content-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: var(--spacing-lg);
+    }
+
+    .card {
+        background: var(--rtk-card);
+        border-radius: 14px;
+        box-shadow: var(--rtk-card-shadow);
+        border: 1px solid var(--rtk-card-border);
+        overflow: hidden;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-md) var(--spacing-lg);
+        background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.02));
+        border-bottom: 1px solid var(--rtk-card-border);
+    }
+
+    .card-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--rtk-neutral-text);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-body {
+        padding: var(--spacing-md);
+    }
+
+    .requests-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .request-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--radius-sm);
+        text-decoration: none;
+        color: inherit;
+        transition: background 0.2s;
+    }
+
+    .request-item:hover {
+        background: rgba(37, 99, 235, 0.06);
+    }
+
+    .request-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--rtk-primary) 0%, var(--rtk-secondary) 100%);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+    }
+
+    .request-avatar.speed {
+        background: linear-gradient(135deg, var(--rtk-accent-violet) 0%, var(--rtk-primary) 100%);
+    }
+
+    .request-info {
+        flex: 1;
+    }
+
+    .request-client {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--rtk-neutral-text);
+    }
+
+    .request-type {
+        font-size: 0.8rem;
+        color: var(--rtk-neutral-mid);
+    }
+
+    .request-time {
+        font-size: 0.8rem;
+        color: var(--rtk-neutral-mid);
+    }
+
+    .empty-mini {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: var(--spacing-lg);
+        color: var(--rtk-neutral-mid);
+    }
+
+    .empty-mini i {
+        font-size: 1.4rem;
+    }
+
+    .nm-sector-marker-wrap {
+        background: transparent !important;
+        border: none !important;
+    }
+
+    .nm-sector-marker-dot {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: linear-gradient(145deg, #fb923c 0%, #ea580c 100%);
+        border: 2px solid #fff;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
+    }
+
+    .leaflet-tooltip.nm-sector-tooltip {
+        background: var(--rtk-card);
+        color: var(--rtk-neutral-text);
+        border: 1px solid var(--rtk-card-border);
+        border-radius: 10px;
+        box-shadow: var(--rtk-card-shadow);
+        padding: 0.5rem 0.65rem;
+        max-width: 280px;
+        white-space: normal;
+        line-height: 1.45;
+    }
+
+    .leaflet-tooltip.nm-sector-tooltip::before {
+        border-top-color: var(--rtk-card);
+    }
+
+    @@media (max-width: 768px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard-map-row {
+            grid-template-columns: 1fr;
+        }
+
+        .nm-dash-map {
+            height: 300px;
+        }
+    }
+</style>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+    <script>
+        (function () {
+            var insightsUrl = @Html.Raw(Json.Serialize(Url.Action("InsightsData", "Dashboard", new { area = "CompanyAdmin" })));
+            var nmMap = null;
+            var nmTileLayer = null;
+            var nmSectorFansLayer = null;
+            var nmMarkersLayer = null;
+            var lineChart = null;
+            var barChart = null;
+            var lastPayload = null;
+
+            function chartColors() {
+                var st = getComputedStyle(document.documentElement);
+                return {
+                    text: (st.getPropertyValue('--rtk-neutral-mid').trim() || '#64748b'),
+                    textStrong: (st.getPropertyValue('--rtk-neutral-text').trim() || '#334155'),
+                    grid: (st.getPropertyValue('--rtk-card-border').trim() || 'rgba(148, 163, 184, 0.35)'),
+                    primary: (st.getPropertyValue('--rtk-primary').trim() || '#2563eb'),
+                    secondary: (st.getPropertyValue('--rtk-secondary').trim() || '#06b6d4'),
+                    surface: (st.getPropertyValue('--rtk-card').trim() || '#ffffff')
+                };
+            }
+
+            function cssColorToRgba(color, alpha) {
+                if (!color) return 'rgba(59, 130, 246,' + alpha + ')';
+                color = String(color).trim();
+                if (color.charAt(0) === '#') {
+                    var h = color.slice(1);
+                    if (h.length === 3) {
+                        h = h.split('').map(function (ch) { return ch + ch; }).join('');
+                    }
+                    if (h.length !== 6) return 'rgba(59, 130, 246,' + alpha + ')';
+                    var r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+                    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+                }
+                var m = color.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                if (m) return 'rgba(' + m[1] + ',' + m[2] + ',' + m[3] + ',' + alpha + ')';
+                return color;
+            }
+
+            function commonScaleOpts(c) {
+                return {
+                    ticks: { color: c.text, maxRotation: 0, autoSkip: true },
+                    grid: { color: c.grid }
+                };
+            }
+
+            function buildCharts(payload) {
+                if (typeof Chart === 'undefined') return;
+                var c = chartColors();
+                var daily = payload.dailySignups || [];
+                var monthly = payload.monthlySignups || [];
+
+                if (lineChart) { lineChart.destroy(); lineChart = null; }
+                if (barChart) { barChart.destroy(); barChart = null; }
+
+                var ctxL = document.getElementById('nmChartDaily');
+                var ctxB = document.getElementById('nmChartMonthly');
+                if (!ctxL || !ctxB) return;
+
+                lineChart = new Chart(ctxL, {
+                    type: 'line',
+                    data: {
+                        labels: daily.map(function (x) { return x.t; }),
+                        datasets: [{
+                            label: 'عملاء جدد',
+                            data: daily.map(function (x) { return x.count; }),
+                            borderColor: c.primary,
+                            backgroundColor: cssColorToRgba(c.primary, 0.15),
+                            fill: true,
+                            tension: 0.25,
+                            pointRadius: 0,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: c.surface,
+                                titleColor: c.textStrong,
+                                bodyColor: c.textStrong,
+                                borderColor: c.grid,
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            x: commonScaleOpts(c),
+                            y: { beginAtZero: true, ticks: { color: c.text, precision: 0 }, grid: { color: c.grid } }
+                        }
+                    }
+                });
+
+                barChart = new Chart(ctxB, {
+                    type: 'bar',
+                    data: {
+                        labels: monthly.map(function (x) { return x.m; }),
+                        datasets: [{
+                            label: 'عملاء جدد',
+                            data: monthly.map(function (x) { return x.users; }),
+                            backgroundColor: cssColorToRgba(c.secondary, 0.85),
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: c.surface,
+                                titleColor: c.textStrong,
+                                bodyColor: c.textStrong,
+                                borderColor: c.grid,
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            x: commonScaleOpts(c),
+                            y: { beginAtZero: true, ticks: { color: c.text, precision: 0 }, grid: { color: c.grid } }
+                        }
+                    }
+                });
+            }
+
+            function tileLayerForTheme() {
+                var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+                if (dark) {
+                    return L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                        attribution: '&copy; OSM &copy; CARTO',
+                        subdomains: 'abcd',
+                        maxZoom: 20
+                    });
+                }
+                return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap'
+                });
+            }
+
+            /** نقطة على مسافة واتجاه (درجات، 0 = الشمال) من (lat,lng) — dist كم */
+            function nmDestinationLatLng(lat, lng, bearingDeg, distanceKm) {
+                var R = 6371;
+                var brng = bearingDeg * Math.PI / 180;
+                var d = distanceKm / R;
+                var φ1 = lat * Math.PI / 180;
+                var λ1 = lng * Math.PI / 180;
+                var φ2 = Math.asin(Math.sin(φ1) * Math.cos(d) + Math.cos(φ1) * Math.sin(d) * Math.cos(brng));
+                var λ2 = λ1 + Math.atan2(Math.sin(brng) * Math.sin(d) * Math.cos(φ1), Math.cos(d) - Math.sin(φ1) * Math.sin(φ2));
+                var lat2 = φ2 * 180 / Math.PI;
+                var lng2 = λ2 * 180 / Math.PI;
+                if (lng2 > 180) lng2 -= 360;
+                if (lng2 < -180) lng2 += 360;
+                return [lat2, lng2];
+            }
+
+            /** حلقة مضلع قطاع التغطية (مركز + قوس) */
+            function nmSectorRingLatLngs(lat, lng, directionDeg, spanDeg, rangeKm) {
+                var steps = 36;
+                if (!rangeKm || rangeKm <= 0 || !spanDeg || spanDeg <= 0) return null;
+                if (spanDeg >= 359.5) {
+                    return null;
+                }
+                var start = (directionDeg - spanDeg / 2 + 360) % 360;
+                var ring = [[lat, lng]];
+                for (var i = 0; i <= steps; i++) {
+                    var b = (start + (spanDeg * i / steps) + 360) % 360;
+                    ring.push(nmDestinationLatLng(lat, lng, b, rangeKm));
+                }
+                ring.push([lat, lng]);
+                return ring;
+            }
+
+            function nmSectorTooltipHtml(s) {
+                var name = (s.name || 'مرسل').replace(/</g, '&lt;');
+                var pr = (s.packagesTotal != null) ? Number(s.packagesTotal) : 0;
+                var dir = (s.direction != null) ? Math.round(Number(s.direction) * 10) / 10 : '—';
+                var ang = (s.coverageAngle != null) ? Math.round(Number(s.coverageAngle) * 10) / 10 : '—';
+                var rng = (s.coverageRange != null) ? Math.round(Number(s.coverageRange) * 100) / 100 : '—';
+                return '<div class="nm-map-tip text-end" dir="rtl">' +
+                    '<strong>' + name + '</strong><br/>' +
+                    'الاتجاه: ' + dir + '° — زاوية التغطية: ' + ang + '° — مدى الانتشار: ' + rng + ' كم<br/>' +
+                    'المستقبلات: ' + (s.receiverCount || 0) + ' — المشتركون: ' + (s.subscriberCount || 0) + '<br/>' +
+                    'مجموع قيمة الباقات (مع الضريبة): ' + pr.toLocaleString('ar-SY', { maximumFractionDigits: 0 }) + ' ل.س' +
+                    '</div>';
+            }
+
+            function nmBindSectorNavigate(layer, url) {
+                if (!url) return;
+                layer.on('click', function (e) {
+                    if (e.originalEvent) {
+                        L.DomEvent.stopPropagation(e.originalEvent);
+                    }
+                    window.location.href = url;
+                });
+            }
+
+            function buildMap(payload) {
+                var sectors = payload.sectors || [];
+                var receivers = payload.receivers || [];
+                var clients = payload.clients || [];
+                var wrap = document.getElementById('nmCoverageMap');
+                if (!wrap || typeof L === 'undefined') return;
+
+                var latlngs = [];
+                sectors.forEach(function (s) {
+                    latlngs.push([s.lat, s.lng]);
+                });
+                receivers.forEach(function (r) {
+                    latlngs.push([r.latitude, r.longitude]);
+                });
+                clients.forEach(function (c) {
+                    latlngs.push([c.lat, c.lng]);
+                });
+
+                var center = [33.5138, 36.2765];
+                var zoom = 10;
+                if (latlngs.length) {
+                    center = latlngs[0];
+                    zoom = 12;
+                }
+
+                if (!nmMap) {
+                    nmMap = L.map('nmCoverageMap', { scrollWheelZoom: true });
+                    nmTileLayer = tileLayerForTheme();
+                    nmTileLayer.addTo(nmMap);
+                    nmSectorFansLayer = L.layerGroup().addTo(nmMap);
+                    nmMarkersLayer = L.layerGroup().addTo(nmMap);
+                } else {
+                    if (nmTileLayer) { nmMap.removeLayer(nmTileLayer); }
+                    nmTileLayer = tileLayerForTheme();
+                    nmTileLayer.addTo(nmMap);
+                    nmSectorFansLayer.clearLayers();
+                    nmMarkersLayer.clearLayers();
+                }
+
+                nmMap.setView(center, zoom);
+
+                var sectorOrange = '#f97316';
+                var cc = chartColors();
+
+                sectors.forEach(function (s) {
+                    var url = s.detailsUrl || '';
+                    var span = s.coverageAngle;
+                    var rangeKm = s.coverageRange;
+                    if (span >= 359.5 && rangeKm > 0) {
+                        var radiusM = Math.max(80, rangeKm * 1000);
+                        var circle = L.circle([s.lat, s.lng], {
+                            radius: radiusM,
+                            color: sectorOrange,
+                            weight: 1,
+                            fillColor: sectorOrange,
+                            fillOpacity: 0.12
+                        });
+                        nmBindSectorNavigate(circle, url);
+                        circle.bindTooltip(nmSectorTooltipHtml(s), { sticky: true, direction: 'top', opacity: 0.98, className: 'nm-sector-tooltip' });
+                        nmSectorFansLayer.addLayer(circle);
+                    } else {
+                        var ring = nmSectorRingLatLngs(s.lat, s.lng, s.direction, span, rangeKm);
+                        if (ring) {
+                            var poly = L.polygon(ring, {
+                                color: sectorOrange,
+                                weight: 1,
+                                fillColor: sectorOrange,
+                                fillOpacity: 0.14
+                            });
+                            nmBindSectorNavigate(poly, url);
+                            poly.bindTooltip(nmSectorTooltipHtml(s), { sticky: true, direction: 'top', opacity: 0.98, className: 'nm-sector-tooltip' });
+                            nmSectorFansLayer.addLayer(poly);
+                        }
+                    }
+                });
+
+                receivers.forEach(function (r) {
+                    var marker = L.marker([r.latitude, r.longitude], {
+                        title: r.name
+                    });
+                    marker.bindPopup('<strong>مستقبل</strong><br>' + (r.name || '') + '<br>العملاء: ' + (r.clients || 0));
+                    nmMarkersLayer.addLayer(marker);
+                });
+
+                clients.forEach(function (c) {
+                    var marker = L.circleMarker([c.lat, c.lng], {
+                        radius: 5,
+                        color: cc.primary,
+                        fillColor: cc.secondary,
+                        fillOpacity: 0.65,
+                        weight: 1
+                    });
+                    marker.bindPopup((c.name || '') + '');
+                    nmMarkersLayer.addLayer(marker);
+                });
+
+                sectors.forEach(function (s) {
+                    var url = s.detailsUrl || '';
+                    var divIcon = L.divIcon({
+                        className: 'nm-sector-marker-wrap',
+                        html: '<div class="nm-sector-marker-dot"></div>',
+                        iconSize: [26, 26],
+                        iconAnchor: [13, 13]
+                    });
+                    var marker = L.marker([s.lat, s.lng], { icon: divIcon, title: s.name || '', zIndexOffset: 600 });
+                    marker.bindTooltip(nmSectorTooltipHtml(s), { sticky: true, direction: 'top', opacity: 0.98, className: 'nm-sector-tooltip' });
+                    nmBindSectorNavigate(marker, url);
+                    nmMarkersLayer.addLayer(marker);
+                });
+
+                if (latlngs.length > 1) {
+                    try {
+                        nmMap.fitBounds(L.latLngBounds(latlngs), { padding: [28, 28], maxZoom: 14 });
+                    } catch (e) { /* ignore */ }
+                }
+
+                setTimeout(function () { nmMap.invalidateSize(); }, 200);
+            }
+
+            function renderActivity(payload) {
+                var ul = document.getElementById('nmActivityFeed');
+                if (!ul) return;
+                var items = payload.activity || [];
+                if (!items.length) {
+                    ul.innerHTML = '<li class="text-muted small border-0 bg-transparent">لا يوجد نشاط مسجّل حديثًا.</li>';
+                    return;
+                }
+                ul.innerHTML = '';
+                items.forEach(function (a) {
+                    var li = document.createElement('li');
+                    li.textContent = a.title;
+                    var time = document.createElement('div');
+                    time.className = 'nm-act-time';
+                    time.textContent = new Date(a.at).toLocaleString('ar-SY');
+                    li.appendChild(time);
+                    ul.appendChild(li);
+                });
+            }
+
+            function refreshFromTheme() {
+                if (lastPayload) {
+                    buildCharts(lastPayload);
+                    buildMap(lastPayload);
+                }
+            }
+
+            function loadInsights() {
+                fetch(insightsUrl, { headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.error) return;
+                        lastPayload = data;
+                        buildCharts(data);
+                        buildMap(data);
+                        renderActivity(data);
+                        var leg = document.getElementById('nmMapLegend');
+                        if (leg) {
+                            var ns = (data.sectors && data.sectors.length) ? data.sectors.length : 0;
+                            var nr = (data.receivers && data.receivers.length) ? data.receivers.length : 0;
+                            var nc = (data.clients && data.clients.length) ? data.clients.length : 0;
+                            leg.textContent = 'على الخريطة: ' + ns + ' مرسل، ' + nr + ' مستقبل، ' + nc + ' عميل';
+                        }
+                    })
+                    .catch(function () {
+                        var ul = document.getElementById('nmActivityFeed');
+                        if (ul) ul.innerHTML = '<li class="text-danger small">تعذر تحميل بيانات اللوحة.</li>';
+                    });
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                loadInsights();
+                var obs = new MutationObserver(function () {
+                    refreshFromTheme();
+                });
+                obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+            });
+        })();
+    </script>
+}
+

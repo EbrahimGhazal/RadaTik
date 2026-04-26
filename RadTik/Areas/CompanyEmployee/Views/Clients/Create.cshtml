@@ -1,0 +1,1210 @@
+@model RadTik.Models.Client
+
+@{
+    ViewData["Title"] = "إضافة مشترك جديد";
+    var hasClientCreatePricing = (bool?)(ViewBag.ClientCreateChargeHasPricing) == true;
+    var clientCreateChargeAmount = (decimal?)(ViewBag.ClientCreateChargeAmount) ?? 0m;
+    var clientCreateWalletBalance = (decimal?)(ViewBag.ClientCreateChargeWalletBalance) ?? 0m;
+}
+
+<style>
+    .btn {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    .btn i {
+        width: 1rem;
+        font-size: .9rem;
+        line-height: 1;
+        text-align: center;
+    }
+
+    .btn.btn-sm {
+        min-height: 32px;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-user-plus text-success"></i>
+        @ViewData["Title"]
+    </h2>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-arrow-right"></i> العودة للقائمة
+    </a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="alert alert-info">
+    <i class="fas fa-user-check me-1"></i>
+    سيتم إرسال إضافة العميل كطلب موافقة إلى مدير الشركة.
+    @if (hasClientCreatePricing)
+    {
+        <text>الحسم المتوقع بعد الاعتماد: <strong>@clientCreateChargeAmount.ToString("N2") ل.س.ج</strong> (الرصيد الحالي: @clientCreateWalletBalance.ToString("N2") ل.س.ج).</text>
+    }
+    else
+    {
+        <text>لا توجد تسعيرة فعّالة حالياً لإضافة العميل، لذلك لا يوجد حسم متوقع.</text>
+    }
+    <span class="d-block mt-1">لن يتم أي حسم الآن، وإنما بعد اعتماد مدير الشركة فقط.</span>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-plus-circle"></i> بيانات المشترك الجديد
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <!-- الاسم الثلاثي -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="Name" class="form-label">الاسم الثلاثي</label>
+                                <input asp-for="Name" class="form-control" placeholder="أدخل الاسم الثلاثي" />
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- الرقم الوطني -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="SID" class="form-label">الرقم الوطني</label>
+                                <input asp-for="SID" class="form-control" placeholder="أدخل الرقم الوطني" />
+                                <span asp-validation-for="SID" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- اسم المستخدم -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="UserName" class="form-label">اسم المستخدم</label>
+                                <input asp-for="UserName" class="form-control" placeholder="أدخل اسم المستخدم" />
+                                <span asp-validation-for="UserName" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label">الحساب في قاعدة البيانات</label>
+                                <input type="text" name="dbUserName" class="form-control" placeholder="اختياري - اسم دخول النظام" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label">كلمة مرور قاعدة البيانات</label>
+                                <input type="password" name="dbPassword" class="form-control" placeholder="اختياري - إن لم تدخلها تُستخدم كلمة مرور السيرفر" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- كلمة المرور -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="Password" class="form-label">كلمة المرور</label>
+                                <input asp-for="Password" type="password" class="form-control" placeholder="أدخل كلمة المرور" />
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- رقم الهاتف -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="PhoneNumber" class="form-label">رقم الهاتف</label>
+                                <input asp-for="PhoneNumber" class="form-control" placeholder="أدخل رقم الهاتف" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- خادم المايكروتك -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="MikroTikServerId" class="form-label">
+                                    <i class="fas fa-server me-1"></i>
+                                    خادم المايكروتك
+                                </label>
+                                <select asp-for="MikroTikServerId" class="form-select" asp-items="ViewBag.MikroTikServerId" id="mikrotikServerSelect">
+                                    <option value="">اختر خادم المايكروتك</option>
+                                </select>
+                                <span asp-validation-for="MikroTikServerId" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- البروفايل -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="ProfileId" class="form-label">
+                                    <i class="fas fa-tags me-1"></i>
+                                    البروفايل
+                                </label>
+                                <select asp-for="ProfileId" class="form-select" asp-items="ViewBag.ProfileId" id="profileSelect">
+                                    <option value="">اختر البروفايل</option>
+                                </select>
+                                <span asp-validation-for="ProfileId" class="text-danger"></span>
+                                <small class="form-text text-muted">اختر البروفايل المناسب للعميل</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- المستقبل -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="ReceiverId" class="form-label">
+                                    <i class="fas fa-satellite-dish me-1"></i>
+                                    المستقبل
+                                </label>
+                                <select asp-for="ReceiverId" class="form-select" asp-items="ViewBag.ReceiverId" id="receiverSelect">
+                                    <option value="">اختر المستقبل</option>
+                                </select>
+                                <span asp-validation-for="ReceiverId" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="ServiceStartDate" class="form-label">تاريخ بدء صلاحية الاشتراك</label>
+                                <input asp-for="ServiceStartDate" type="date" class="form-control" />
+                                <span asp-validation-for="ServiceStartDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="AccountExpirationDate" class="form-label">تاريخ انتهاء صلاحية الاشتراك</label>
+                                <input asp-for="AccountExpirationDate" type="date" class="form-control" />
+                                <span asp-validation-for="AccountExpirationDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label class="form-label">تاريخ آخر تجديد</label>
+                                <input type="text" class="form-control" value="@DateTime.Now.ToString("yyyy/MM/dd")" readonly />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="PowerSource" class="form-label">مصدر الكهرباء</label>
+                                <input asp-for="PowerSource" class="form-control" placeholder="مثال: كهرباء عامة / مولدة / طاقة شمسية" />
+                                <span asp-validation-for="PowerSource" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="Building" class="form-label">البناء</label>
+                                <input asp-for="Building" class="form-control" placeholder="اسم أو رقم البناء" />
+                                <span asp-validation-for="Building" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="Floor" class="form-label">الطابق</label>
+                                <input asp-for="Floor" class="form-control" placeholder="رقم/اسم الطابق" />
+                                <span asp-validation-for="Floor" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="ResidenceAddress" class="form-label">الموقع</label>
+                                <input asp-for="ResidenceAddress" class="form-control" placeholder="العنوان أو الوصف المكاني" />
+                                <span asp-validation-for="ResidenceAddress" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Latitude" class="form-label">خط العرض</label>
+                                <input asp-for="Latitude" class="form-control" type="number" step="0.000001" />
+                                <span asp-validation-for="Latitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Longitude" class="form-label">خط الطول</label>
+                                <input asp-for="Longitude" class="form-control" type="number" step="0.000001" />
+                                <span asp-validation-for="Longitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- باقي الحقول (الخدمة، العنوان، الحالة) -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Service" class="form-label">نوع الخدمة</label>
+                                <select asp-for="Service" class="form-select">
+                                    <option value="pppoe">PPPoE</option>
+                                    <option value="pptp">PPTP</option>
+                                    <option value="l2tp">L2TP</option>
+                                </select>
+                                <span asp-validation-for="Service" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Address" class="form-label">العنوان</label>
+                                <input asp-for="Address" class="form-control" placeholder="عنوان IP ثابت (اختياري)" />
+                                <span asp-validation-for="Address" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- حالة التنشيط -->
+                    <div class="form-group form-check mb-3">
+                        <input class="form-check-input" asp-for="IsActive" checked />
+                        <label class="form-check-label" asp-for="IsActive">تفعيل العميل تلقائياً</label>
+                    </div>
+
+                    <!-- أزرار الحفظ والإلغاء -->
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> حفظ المشترك
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> نصائح مهمة
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> معلومات هامة:</h6>
+                    <ul class="mb-0">
+                        <li>سيتم إضافة المستخدم تلقائياً في المايكروتك</li>
+                        <li>البروفايلات يتم جلبها تلقائياً من المايكروتك</li>
+                        <li>تأكد من صحة بيانات الاتصال بالمايكروتك</li>
+                        <li>اختر البروفايل المناسب من القائمة</li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-warning mt-3">
+                    <h6><i class="fas fa-exclamation-triangle"></i> تنبيه</h6>
+                    <p class="mb-0">إذا فشلت الإضافة في المايكروتك، لن يتم حفظ العميل في قاعدة البيانات.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function() {
+                // عند تغيير خادم المايكروتك - تصفية البروفايلات والمستقبلات حسب الخادم
+            $('#mikrotikServerSelect').change(function() {
+                var serverId = $(this).val();
+                var profileSelect = $('#profileSelect');
+                    var receiverSelect = $('#receiverSelect');
+
+                if (serverId) {
+                    // إظهار رسالة تحميل
+                    profileSelect.html('<option value="">جاري تحميل البروفايلات...</option>');
+                        receiverSelect.html('<option value="">جاري تحميل المستقبلات...</option>');
+
+                    $.ajax({
+                        url: '@Url.Action("GetProfilesByServer", "Clients")',
+                        type: 'GET',
+                        data: { serverId: serverId },
+                        success: function(data) {
+                            if (data && data.length > 0) {
+                                profileSelect.empty();
+                                profileSelect.append('<option value="">اختر البروفايل</option>');
+                                $.each(data, function(index, profile) {
+                                    profileSelect.append('<option value="' + profile.id + '">' + profile.name + '</option>');
+                                });
+                            } else {
+                                profileSelect.empty();
+                                profileSelect.append('<option value="">لا توجد بروفايلات في هذا الخادم</option>');
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('خطأ في جلب البروفايلات:', error);
+                            profileSelect.empty();
+                            profileSelect.append('<option value="">خطأ في جلب البروفايلات</option>');
+                        }
+                    });
+
+                    $.ajax({
+                        url: '@Url.Action("GetReceiversByServer", "Clients")',
+                        type: 'GET',
+                        data: { serverId: serverId },
+                        success: function(data) {
+                            receiverSelect.empty();
+                            receiverSelect.append('<option value="">اختر المستقبل</option>');
+                            if (data && data.length > 0) {
+                                $.each(data, function(index, receiver) {
+                                    receiverSelect.append('<option value="' + receiver.id + '">' + receiver.name + ' - ' + (receiver.sectorName || '-') + '</option>');
+                                });
+                            }
+                        },
+                        error: function() {
+                            receiverSelect.empty();
+                            receiverSelect.append('<option value="">خطأ في جلب المستقبلات</option>');
+                        }
+                    });
+                } else {
+                    // إعادة تحميل جميع البروفايلات من ViewBag
+                    profileSelect.empty();
+                    profileSelect.append('<option value="">اختر البروفايل</option>');
+                    $('#receiverSelect').empty().append('<option value="">اختر المستقبل</option>');
+                    @if (ViewBag.ProfileId != null)
+                    {
+                        <text>
+                        var allProfiles = @Html.Raw(Json.Serialize((ViewBag.ProfileId as SelectList)?.Select(x => new { id = x.Value, name = x.Text })));
+                        if (allProfiles) {
+                            $.each(allProfiles, function(index, profile) {
+                                profileSelect.append('<option value="' + profile.id + '">' + profile.name + '</option>');
+                            });
+                        }
+                        </text>
+                    }
+                }
+            });
+        });
+    </script>
+}
+@*
+@model RadTik.Models.Client
+
+@{
+    ViewData["Title"] = "إضافة مشترك جديد";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-user-plus text-success"></i>
+        @ViewData["Title"]
+    </h2>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-arrow-right"></i> العودة للقائمة
+    </a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-plus-circle"></i> بيانات المشترك الجديد
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <!-- الاسم الثلاثي -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="Name" class="form-label">الاسم الثلاثي</label>
+                                <input asp-for="Name" class="form-control" placeholder="أدخل الاسم الثلاثي" />
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- الرقم الوطني -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="SID" class="form-label">الرقم الوطني</label>
+                                <input asp-for="SID" class="form-control" placeholder="أدخل الرقم الوطني" />
+                                <span asp-validation-for="SID" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- اسم المستخدم -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="UserName" class="form-label">اسم المستخدم</label>
+                                <input asp-for="UserName" class="form-control" placeholder="أدخل اسم المستخدم" />
+                                <span asp-validation-for="UserName" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label">الحساب في قاعدة البيانات</label>
+                                <input type="text" name="dbUserName" class="form-control" placeholder="اختياري - اسم دخول النظام" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label">كلمة مرور قاعدة البيانات</label>
+                                <input type="password" name="dbPassword" class="form-control" placeholder="اختياري - إن لم تدخلها تُستخدم كلمة مرور السيرفر" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- كلمة المرور -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="Password" class="form-label">كلمة المرور</label>
+                                <input asp-for="Password" type="password" class="form-control" placeholder="أدخل كلمة المرور" />
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- رقم الهاتف -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="PhoneNumber" class="form-label">رقم الهاتف</label>
+                                <input asp-for="PhoneNumber" class="form-control" placeholder="أدخل رقم الهاتف" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- خادم المايكروتك -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="MikroTikServerId" class="form-label">
+                                    <i class="fas fa-server me-1"></i>
+                                    خادم المايكروتك
+                                </label>
+                                <select asp-for="MikroTikServerId" class="form-select" asp-items="ViewBag.MikroTikServerId" id="mikrotikServerSelect">
+                                    <option value="">اختر خادم المايكروتك</option>
+                                </select>
+                                <span asp-validation-for="MikroTikServerId" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- البروفايل -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="ProfileId" class="form-label">
+                                    <i class="fas fa-tags me-1"></i>
+                                    البروفايل
+                                </label>
+                                <select asp-for="ProfileId" class="form-select" asp-items="ViewBag.ProfileId" id="profileSelect">
+                                    <option value="">اختر البروفايل</option>
+                                </select>
+                                <span asp-validation-for="ProfileId" class="text-danger"></span>
+                                <small class="form-text text-muted">اختر البروفايل المناسب للعميل</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- المستقبل -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="ReceiverId" class="form-label">
+                                    <i class="fas fa-satellite-dish me-1"></i>
+                                    المستقبل
+                                </label>
+                                <select asp-for="ReceiverId" class="form-select" asp-items="ViewBag.ReceiverId" id="receiverSelect">
+                                    <option value="">اختر المستقبل</option>
+                                </select>
+                                <span asp-validation-for="ReceiverId" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="ServiceStartDate" class="form-label">تاريخ بدء صلاحية الاشتراك</label>
+                                <input asp-for="ServiceStartDate" type="date" class="form-control" />
+                                <span asp-validation-for="ServiceStartDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="AccountExpirationDate" class="form-label">تاريخ انتهاء صلاحية الاشتراك</label>
+                                <input asp-for="AccountExpirationDate" type="date" class="form-control" />
+                                <span asp-validation-for="AccountExpirationDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label class="form-label">تاريخ آخر تجديد</label>
+                                <input type="text" class="form-control" value="@DateTime.Now.ToString("yyyy/MM/dd")" readonly />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="PowerSource" class="form-label">مصدر الكهرباء</label>
+                                <input asp-for="PowerSource" class="form-control" placeholder="مثال: كهرباء عامة / مولدة / طاقة شمسية" />
+                                <span asp-validation-for="PowerSource" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="Building" class="form-label">البناء</label>
+                                <input asp-for="Building" class="form-control" placeholder="اسم أو رقم البناء" />
+                                <span asp-validation-for="Building" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="Floor" class="form-label">الطابق</label>
+                                <input asp-for="Floor" class="form-control" placeholder="رقم/اسم الطابق" />
+                                <span asp-validation-for="Floor" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="ResidenceAddress" class="form-label">الموقع</label>
+                                <input asp-for="ResidenceAddress" class="form-control" placeholder="العنوان أو الوصف المكاني" />
+                                <span asp-validation-for="ResidenceAddress" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Latitude" class="form-label">خط العرض</label>
+                                <input asp-for="Latitude" class="form-control" type="number" step="0.000001" />
+                                <span asp-validation-for="Latitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Longitude" class="form-label">خط الطول</label>
+                                <input asp-for="Longitude" class="form-control" type="number" step="0.000001" />
+                                <span asp-validation-for="Longitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- باقي الحقول (الخدمة، العنوان، الحالة) -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Service" class="form-label">نوع الخدمة</label>
+                                <select asp-for="Service" class="form-select">
+                                    <option value="pppoe">PPPoE</option>
+                                    <option value="pptp">PPTP</option>
+                                    <option value="l2tp">L2TP</option>
+                                </select>
+                                <span asp-validation-for="Service" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Address" class="form-label">العنوان</label>
+                                <input asp-for="Address" class="form-control" placeholder="عنوان IP ثابت (اختياري)" />
+                                <span asp-validation-for="Address" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- حالة التنشيط -->
+                    <div class="form-group form-check mb-3">
+                        <input class="form-check-input" asp-for="IsActive" checked />
+                        <label class="form-check-label" asp-for="IsActive">تفعيل العميل تلقائياً</label>
+                    </div>
+
+                    <!-- أزرار الحفظ والإلغاء -->
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> حفظ المشترك
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> نصائح مهمة
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> معلومات هامة:</h6>
+                    <ul class="mb-0">
+                        <li>سيتم إضافة المستخدم تلقائياً في المايكروتك</li>
+                        <li>البروفايلات يتم جلبها تلقائياً من المايكروتك</li>
+                        <li>تأكد من صحة بيانات الاتصال بالمايكروتك</li>
+                        <li>اختر البروفايل المناسب من القائمة</li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-warning mt-3">
+                    <h6><i class="fas fa-exclamation-triangle"></i> تنبيه</h6>
+                    <p class="mb-0">إذا فشلت الإضافة في المايكروتك، لن يتم حفظ العميل في قاعدة البيانات.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function() {
+                // عند تغيير خادم المايكروتك - تصفية البروفايلات والمستقبلات حسب الخادم
+            $('#mikrotikServerSelect').change(function() {
+                var serverId = $(this).val();
+                var profileSelect = $('#profileSelect');
+                    var receiverSelect = $('#receiverSelect');
+
+                if (serverId) {
+                    // إظهار رسالة تحميل
+                    profileSelect.html('<option value="">جاري تحميل البروفايلات...</option>');
+                        receiverSelect.html('<option value="">جاري تحميل المستقبلات...</option>');
+
+                    $.ajax({
+                        url: '@Url.Action("GetProfilesByServer", "Clients")',
+                        type: 'GET',
+                        data: { serverId: serverId },
+                        success: function(data) {
+                            if (data && data.length > 0) {
+                                profileSelect.empty();
+                                profileSelect.append('<option value="">اختر البروفايل</option>');
+                                $.each(data, function(index, profile) {
+                                    profileSelect.append('<option value="' + profile.id + '">' + profile.name + '</option>');
+                                });
+                            } else {
+                                profileSelect.empty();
+                                profileSelect.append('<option value="">لا توجد بروفايلات في هذا الخادم</option>');
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('خطأ في جلب البروفايلات:', error);
+                            profileSelect.empty();
+                            profileSelect.append('<option value="">خطأ في جلب البروفايلات</option>');
+                        }
+                    });
+
+                    $.ajax({
+                        url: '@Url.Action("GetReceiversByServer", "Clients")',
+                        type: 'GET',
+                        data: { serverId: serverId },
+                        success: function(data) {
+                            receiverSelect.empty();
+                            receiverSelect.append('<option value="">اختر المستقبل</option>');
+                            if (data && data.length > 0) {
+                                $.each(data, function(index, receiver) {
+                                    receiverSelect.append('<option value="' + receiver.id + '">' + receiver.name + ' - ' + (receiver.sectorName || '-') + '</option>');
+                                });
+                            }
+                        },
+                        error: function() {
+                            receiverSelect.empty();
+                            receiverSelect.append('<option value="">خطأ في جلب المستقبلات</option>');
+                        }
+                    });
+                } else {
+                    // إعادة تحميل جميع البروفايلات من ViewBag
+                    profileSelect.empty();
+                    profileSelect.append('<option value="">اختر البروفايل</option>');
+                    $('#receiverSelect').empty().append('<option value="">اختر المستقبل</option>');
+                    @if (ViewBag.ProfileId != null)
+                    {
+                        <text>
+                        var allProfiles = @Html.Raw(Json.Serialize((ViewBag.ProfileId as SelectList)?.Select(x => new { id = x.Value, name = x.Text })));
+                        if (allProfiles) {
+                            $.each(allProfiles, function(index, profile) {
+                                profileSelect.append('<option value="' + profile.id + '">' + profile.name + '</option>');
+                            });
+                        }
+                        </text>
+                    }
+                }
+            });
+        });
+    </script>
+}
+@model RadTik.Models.Client
+
+@{
+    ViewData["Title"] = "إضافة عميل جديد";
+}
+
+<div class="employee-client-hero card border-0 shadow-sm mb-3">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h2 class="mb-1 hero-title">
+                <i class="fas fa-user-plus"></i>
+                @ViewData["Title"]
+            </h2>
+            <p class="text-muted mb-0">إضافة عميل جديد بواجهة متناسقة مع هوية التطبيق.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary action-btn">
+            <i class="fas fa-arrow-right"></i> العودة للقائمة
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm form-card">
+            <div class="card-header form-card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-plus-circle"></i> بيانات العميل الجديد
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <!-- الاسم الثلاثي -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="Name" class="form-label">الاسم الثلاثي</label>
+                                <input asp-for="Name" class="form-control elegant-input" placeholder="أدخل الاسم الثلاثي" />
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- الرقم الوطني -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="SID" class="form-label">الرقم الوطني</label>
+                                <input asp-for="SID" class="form-control elegant-input" placeholder="أدخل الرقم الوطني" />
+                                <span asp-validation-for="SID" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- اسم المستخدم -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="UserName" class="form-label">اسم المستخدم</label>
+                                <input asp-for="UserName" class="form-control elegant-input" placeholder="أدخل اسم المستخدم" />
+                                <span asp-validation-for="UserName" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label">الحساب في قاعدة البيانات</label>
+                                <input type="text" name="dbUserName" class="form-control elegant-input" placeholder="اختياري - اسم دخول النظام" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label class="form-label">كلمة مرور قاعدة البيانات</label>
+                                <input type="password" name="dbPassword" class="form-control elegant-input" placeholder="اختياري - إن لم تدخلها تُستخدم كلمة مرور السيرفر" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- كلمة المرور -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="Password" class="form-label">كلمة المرور</label>
+                                <input asp-for="Password" type="password" class="form-control elegant-input" placeholder="أدخل كلمة المرور" />
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- رقم الهاتف -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="PhoneNumber" class="form-label">رقم الهاتف</label>
+                                <input asp-for="PhoneNumber" class="form-control elegant-input" placeholder="أدخل رقم الهاتف" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- خادم المايكروتك -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="MikroTikServerId" class="form-label">
+                                    <i class="fas fa-server me-1"></i>
+                                    خادم المايكروتك
+                                </label>
+                                <select asp-for="MikroTikServerId" class="form-select elegant-input" asp-items="ViewBag.MikroTikServerId" id="mikrotikServerSelect">
+                                    <option value="">اختر خادم المايكروتك</option>
+                                </select>
+                                <span asp-validation-for="MikroTikServerId" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- البروفايل -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="ProfileId" class="form-label">
+                                    <i class="fas fa-tags me-1"></i>
+                                    البروفايل
+                                </label>
+                                <select asp-for="ProfileId" class="form-select elegant-input" asp-items="ViewBag.ProfileId" id="profileSelect">
+                                    <option value="">اختر البروفايل</option>
+                                </select>
+                                <span asp-validation-for="ProfileId" class="text-danger"></span>
+                                <small class="form-text text-muted">اختر البروفايل المناسب للعميل</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- المستقبل -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="ReceiverId" class="form-label">
+                                    <i class="fas fa-satellite-dish me-1"></i>
+                                    المستقبل
+                                </label>
+                                <select asp-for="ReceiverId" class="form-select elegant-input" asp-items="ViewBag.ReceiverId" id="receiverSelect">
+                                    <option value="">اختر المستقبل</option>
+                                </select>
+                                <span asp-validation-for="ReceiverId" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="ServiceStartDate" class="form-label">تاريخ بدء صلاحية الاشتراك</label>
+                                <input asp-for="ServiceStartDate" type="date" class="form-control elegant-input" />
+                                <span asp-validation-for="ServiceStartDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="AccountExpirationDate" class="form-label">تاريخ انتهاء صلاحية الاشتراك</label>
+                                <input asp-for="AccountExpirationDate" type="date" class="form-control elegant-input" />
+                                <span asp-validation-for="AccountExpirationDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label class="form-label">تاريخ آخر تجديد</label>
+                                <input type="text" class="form-control elegant-input" value="@DateTime.Now.ToString("yyyy/MM/dd")" readonly />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="PowerSource" class="form-label">مصدر الكهرباء</label>
+                                <input asp-for="PowerSource" class="form-control elegant-input" placeholder="مثال: كهرباء عامة / مولدة / طاقة شمسية" />
+                                <span asp-validation-for="PowerSource" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="Building" class="form-label">البناء</label>
+                                <input asp-for="Building" class="form-control elegant-input" placeholder="اسم أو رقم البناء" />
+                                <span asp-validation-for="Building" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="Floor" class="form-label">الطابق</label>
+                                <input asp-for="Floor" class="form-control elegant-input" placeholder="رقم/اسم الطابق" />
+                                <span asp-validation-for="Floor" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="ResidenceAddress" class="form-label">الموقع</label>
+                                <input asp-for="ResidenceAddress" class="form-control elegant-input" placeholder="العنوان أو الوصف المكاني" />
+                                <span asp-validation-for="ResidenceAddress" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Latitude" class="form-label">خط العرض</label>
+                                <input asp-for="Latitude" class="form-control elegant-input" type="number" step="0.000001" />
+                                <span asp-validation-for="Latitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Longitude" class="form-label">خط الطول</label>
+                                <input asp-for="Longitude" class="form-control elegant-input" type="number" step="0.000001" />
+                                <span asp-validation-for="Longitude" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- باقي الحقول (الخدمة، العنوان، الحالة) -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Service" class="form-label">نوع الخدمة</label>
+                                <select asp-for="Service" class="form-select elegant-input">
+                                    <option value="pppoe">PPPoE</option>
+                                    <option value="pptp">PPTP</option>
+                                    <option value="l2tp">L2TP</option>
+                                </select>
+                                <span asp-validation-for="Service" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Address" class="form-label">العنوان</label>
+                                <input asp-for="Address" class="form-control elegant-input" placeholder="عنوان IP ثابت (اختياري)" />
+                                <span asp-validation-for="Address" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- حالة التنشيط -->
+                    <div class="form-group form-check mb-3">
+                        <input class="form-check-input" asp-for="IsActive" checked />
+                        <label class="form-check-label" asp-for="IsActive">تفعيل العميل تلقائياً</label>
+                    </div>
+
+                    <!-- أزرار الحفظ والإلغاء -->
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-success action-btn">
+                            <i class="fas fa-save"></i> حفظ العميل
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary action-btn">
+                            <i class="fas fa-times"></i> إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm form-card">
+            <div class="card-header form-card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> نصائح مهمة
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> معلومات هامة:</h6>
+                    <ul class="mb-0">
+                        <li>سيتم إضافة المستخدم تلقائياً في المايكروتك</li>
+                        <li>البروفايلات يتم جلبها تلقائياً من المايكروتك</li>
+                        <li>تأكد من صحة بيانات الاتصال بالمايكروتك</li>
+                        <li>اختر البروفايل المناسب من القائمة</li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-warning mt-3">
+                    <h6><i class="fas fa-exclamation-triangle"></i> تنبيه</h6>
+                    <p class="mb-0">إذا فشلت الإضافة في المايكروتك، لن يتم حفظ العميل في قاعدة البيانات.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .employee-client-hero { background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%); }
+    .hero-title { color: #1b2a4b; font-weight: 700; }
+    .action-btn { border-radius: 0.65rem; font-weight: 600; }
+    .form-card { border-radius: 0.95rem; overflow: hidden; }
+    .form-card-header { background: #f8fafc; color: #344054; border-bottom: 1px solid #dbe4f0; }
+    .elegant-input { border-radius: 0.7rem; border-color: #dbe4f0; }
+    .elegant-input:focus { border-color: #93c5fd; box-shadow: 0 0 0 .2rem rgba(37,99,235,.12); }
+</style>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function() {
+            // عند تغيير خادم المايكروتك - تصفية البروفايلات والمستقبلات حسب الخادم
+            $('#mikrotikServerSelect').change(function() {
+                var serverId = $(this).val();
+                var profileSelect = $('#profileSelect');
+                var receiverSelect = $('#receiverSelect');
+
+                if (serverId) {
+                    // إظهار رسالة تحميل
+                    profileSelect.html('<option value="">جاري تحميل البروفايلات...</option>');
+                    receiverSelect.html('<option value="">جاري تحميل المستقبلات...</option>');
+
+                    $.ajax({
+                        url: '@Url.Action("GetProfilesByServer", "Clients")',
+                        type: 'GET',
+                        data: { serverId: serverId },
+                        success: function(data) {
+                            if (data && data.length > 0) {
+                                profileSelect.empty();
+                                profileSelect.append('<option value="">اختر البروفايل</option>');
+                                $.each(data, function(index, profile) {
+                                    profileSelect.append('<option value="' + profile.id + '">' + profile.name + '</option>');
+                                });
+                            } else {
+                                profileSelect.empty();
+                                profileSelect.append('<option value="">لا توجد بروفايلات في هذا الخادم</option>');
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('خطأ في جلب البروفايلات:', error);
+                            profileSelect.empty();
+                            profileSelect.append('<option value="">خطأ في جلب البروفايلات</option>');
+                        }
+                    });
+
+                    $.ajax({
+                        url: '@Url.Action("GetReceiversByServer", "Clients")',
+                        type: 'GET',
+                        data: { serverId: serverId },
+                        success: function(data) {
+                            receiverSelect.empty();
+                            receiverSelect.append('<option value="">اختر المستقبل</option>');
+                            if (data && data.length > 0) {
+                                $.each(data, function(index, receiver) {
+                                    receiverSelect.append('<option value="' + receiver.id + '">' + receiver.name + ' - ' + (receiver.sectorName || '-') + '</option>');
+                                });
+                            }
+                        },
+                        error: function() {
+                            receiverSelect.empty();
+                            receiverSelect.append('<option value="">خطأ في جلب المستقبلات</option>');
+                        }
+                    });
+                } else {
+                    // إعادة تحميل جميع البروفايلات من ViewBag
+                    profileSelect.empty();
+                    profileSelect.append('<option value="">اختر البروفايل</option>');
+                    $('#receiverSelect').empty().append('<option value="">اختر المستقبل</option>');
+                    @if (ViewBag.ProfileId != null)
+                    {
+                        <text>
+                        var allProfiles = @Html.Raw(Json.Serialize((ViewBag.ProfileId as SelectList)?.Select(x => new { id = x.Value, name = x.Text })));
+                        if (allProfiles) {
+                            $.each(allProfiles, function(index, profile) {
+                                profileSelect.append('<option value="' + profile.id + '">' + profile.name + '</option>');
+                            });
+                        }
+                        </text>
+                    }
+                }
+            });
+        });
+    </script>
+}
+*@
+

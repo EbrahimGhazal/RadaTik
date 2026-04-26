@@ -1,0 +1,119 @@
+@model RadTik.Models.Client
+
+@{
+    ViewData["Title"] = "حذف العميل";
+}
+
+<style>
+    .btn {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    .btn i {
+        width: 1rem;
+        font-size: .9rem;
+        line-height: 1;
+        text-align: center;
+    }
+
+    .btn.btn-sm {
+        min-height: 32px;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-trash text-danger"></i>
+        @ViewData["Title"]
+    </h2>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-arrow-right"></i> العودة للقائمة
+    </a>
+</div>
+
+<div class="alert alert-danger">
+    <h4><i class="fas fa-exclamation-triangle"></i> تنبيه مهم</h4>
+    <p class="mb-1">هل أنت متأكد من أنك تريد حذف هذا العميل؟ هذا الإجراء لا يمكن التراجع عنه.</p>
+    @if (ViewBag.ExistsOnMikroTik == true)
+    {
+        <p class="mb-0">
+            سيتم كذلك <strong>حذف حساب PPPoE من خادم المايكروتك</strong> المرتبط به.
+            في حال لم ترغب بحذفه من المايكروتك، قم بإلغاء العملية.
+        </p>
+    }
+    else
+    {
+        <p class="mb-0">
+            لا يوجد حساب مطابق لهذا المشترك على المايكروتك، سيتم الحذف من قاعدة البيانات فقط.
+        </p>
+    }
+</div>
+
+<div class="card">
+    <div class="card-header bg-danger text-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-user"></i> بيانات العميل
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl>
+                    <dt>@Html.DisplayNameFor(model => model.Name)</dt>
+                    <dd>@Html.DisplayFor(model => model.Name)</dd>
+
+                    <dt>@Html.DisplayNameFor(model => model.SID)</dt>
+                    <dd>@Html.DisplayFor(model => model.SID)</dd>
+
+                    <dt>@Html.DisplayNameFor(model => model.PhoneNumber)</dt>
+                    <dd>@Html.DisplayFor(model => model.PhoneNumber)</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl>
+                    <dt>@Html.DisplayNameFor(model => model.UserName)</dt>
+                    <dd>@Html.DisplayFor(model => model.UserName)</dd>
+
+                    <dt>@Html.DisplayNameFor(model => model.ProfileName)</dt>
+                    <dd>@Html.DisplayFor(model => model.ProfileName) ميجا</dd>
+
+                    <dt>الحالة</dt>
+                    <dd>
+                        @if (Model.IsActive)
+                        {
+                            <span class="badge bg-success">مفعل</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">معطل</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (Model.Receiver != null)
+        {
+            <div class="row mt-3">
+                <div class="col-12">
+                    <dl>
+                        <dt>المستقبل:</dt>
+                        <dd>@Model.Receiver.Name</dd>
+                    </dl>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="card-footer">
+        <form asp-action="Delete">
+            <input type="hidden" asp-for="Id" />
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i> تأكيد الحذف
+            </button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a>
+        </form>
+    </div>
+</div>

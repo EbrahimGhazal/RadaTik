@@ -1,0 +1,619 @@
+@{
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+}
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="SkyBeam - مزود خدمة الإنترنت الأسرع والأكثر موثوقية" />
+    <title>@ViewData["Title"] - SkyBeam</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #0066cc;
+            --primary-light: #3399ff;
+            --primary-dark: #004d99;
+            --secondary: #00c853;
+            --accent: #ff6b35;
+            --dark: #1a1a2e;
+            --darker: #16213e;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --white: #ffffff;
+            --gradient-primary: linear-gradient(135deg, #0066cc 0%, #004d99 100%);
+            --gradient-hero: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.2);
+            --radius: 12px;
+            --radius-lg: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: var(--light);
+            color: var(--dark);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 15px 0;
+            transition: all 0.3s ease;
+        }
+
+        .navbar.scrolled {
+            background: rgba(255,255,255,0.98);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-md);
+            padding: 10px 0;
+        }
+
+        .navbar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--white);
+            transition: color 0.3s;
+        }
+
+        .navbar.scrolled .navbar-brand {
+            color: var(--primary);
+        }
+
+        .navbar-brand-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .navbar-brand-text {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .navbar-brand-text small {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+
+        .navbar-nav {
+            display: flex;
+            list-style: none;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 15px;
+        }
+
+        .navbar.scrolled .nav-link {
+            color: var(--dark);
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .navbar.scrolled .nav-link:hover,
+        .navbar.scrolled .nav-link.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-btn {
+            background: var(--secondary);
+            color: white !important;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .nav-btn:hover {
+            background: #00a843 !important;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn-outline {
+            border: 2px solid rgba(255,255,255,0.5);
+            background: transparent;
+        }
+
+        .navbar.scrolled .nav-btn-outline {
+            border-color: var(--primary);
+            color: var(--primary) !important;
+        }
+
+        .navbar.scrolled .nav-btn-outline:hover {
+            background: var(--primary) !important;
+            color: white !important;
+        }
+
+        .navbar-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .navbar.scrolled .navbar-toggle {
+            color: var(--dark);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--darker);
+            color: white;
+            padding: 80px 0 30px;
+        }
+
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 30px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1.5fr;
+            gap: 60px;
+            margin-bottom: 60px;
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .footer-brand-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .footer-brand-text {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .footer-desc {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 25px;
+            line-height: 1.8;
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 12px;
+        }
+
+        .footer-social a {
+            width: 44px;
+            height: 44px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .footer-social a:hover {
+            background: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        .footer-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 25px;
+            color: white;
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 12px;
+        }
+
+        .footer-links a {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary-light);
+            padding-right: 8px;
+        }
+
+        .footer-contact-item {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: flex-start;
+        }
+
+        .footer-contact-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-light);
+            flex-shrink: 0;
+        }
+
+        .footer-contact-text {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .footer-contact-text small {
+            display: block;
+            color: rgba(255,255,255,0.5);
+            font-size: 13px;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .footer-copyright {
+            color: rgba(255,255,255,0.6);
+        }
+
+        .footer-bottom-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .footer-bottom-links a {
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-bottom-links a:hover {
+            color: white;
+        }
+
+        /* Mobile Menu */
+        @@media (max-width: 992px) {
+            .navbar-toggle {
+                display: block;
+            }
+
+            .navbar-nav {
+                position: fixed;
+                top: 0;
+                left: -100%;
+                width: 300px;
+                height: 100vh;
+                background: var(--darker);
+                flex-direction: column;
+                padding: 100px 30px 30px;
+                gap: 12px;
+                transition: all 0.3s ease;
+            }
+
+            .navbar-nav.open {
+                left: 0;
+            }
+
+            .nav-link {
+                color: white;
+                padding: 16px 22px;
+            }
+
+            .nav-btn {
+                margin-top: 20px;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 40px;
+            }
+        }
+
+        @@media (max-width: 576px) {
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        /* Alert */
+        .public-alert {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 20px 40px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            animation: slideDown 0.5s ease;
+        }
+
+        .public-alert.success {
+            border-right: 4px solid var(--secondary);
+        }
+
+        .public-alert.error {
+            border-right: 4px solid #dc3545;
+        }
+
+        .public-alert i {
+            font-size: 24px;
+        }
+
+        .public-alert.success i {
+            color: var(--secondary);
+        }
+
+        .public-alert.error i {
+            color: #dc3545;
+        }
+
+        @@keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -20px);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+        <div class="navbar-container">
+            <a href="@Url.Action("Index", "Public")" class="navbar-brand">
+                <div class="navbar-brand-icon">
+                    <i class="fas fa-wifi"></i>
+                </div>
+                <div class="navbar-brand-text">
+                    SkyBeam
+                    <small>إنترنت بلا حدود</small>
+                </div>
+            </a>
+
+            <button class="navbar-toggle" id="navbarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <ul class="navbar-nav" id="navbarNav">
+                <li><a href="@Url.Action("Index", "Public")" class="nav-link @(currentAction == "Index" ? "active" : "")">الرئيسية</a></li>
+                <li><a href="@Url.Action("About", "Public")" class="nav-link @(currentAction == "About" ? "active" : "")">من نحن</a></li>
+                <li><a href="@Url.Action("Services", "Public")" class="nav-link @(currentAction == "Services" ? "active" : "")">خدماتنا</a></li>
+                <li><a href="@Url.Action("Packages", "Public")" class="nav-link @(currentAction == "Packages" ? "active" : "")">الباقات</a></li>
+                <li><a href="@Url.Action("Contact", "Public")" class="nav-link @(currentAction == "Contact" ? "active" : "")">اتصل بنا</a></li>
+                <li><a href="@Url.Action("Login", "Account")" class="nav-link nav-btn-outline">تسجيل الدخول</a></li>
+                <li><a href="@Url.Action("JoinAsClient", "Public")" class="nav-link nav-btn">انضم إلينا</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Alerts -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="public-alert success" id="alertBox">
+            <i class="fas fa-check-circle"></i>
+            <span>@TempData["Success"]</span>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="public-alert error" id="alertBox">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>@TempData["Error"]</span>
+        </div>
+    }
+
+    <!-- Main Content -->
+    <main>
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-brand">
+                        <div class="footer-brand-icon">
+                            <i class="fas fa-wifi"></i>
+                        </div>
+                        <div class="footer-brand-text">SkyBeam</div>
+                    </div>
+                    <p class="footer-desc">
+                        نحن شركة رائدة في تقديم خدمات الإنترنت عالية السرعة والجودة. نسعى دائماً لتوفير أفضل تجربة إنترنت لعملائنا مع دعم فني متميز على مدار الساعة.
+                    </p>
+                    <div class="footer-social">
+                        <a href="https://www.facebook.com/share/1Dhy17asAP/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" title="Facebook — SkyBeam"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" title="X — أضف الرابط لاحقاً"><i class="fab fa-x-twitter"></i></a>
+                        <a href="https://www.instagram.com/skybeam3?igsh=aGVyZnJlZDkxM2Vs&amp;utm_source=qr" target="_blank" rel="noopener noreferrer" title="Instagram — SkyBeam"><i class="fab fa-instagram"></i></a>
+                        <a href="https://wa.me/963966284236" target="_blank" rel="noopener noreferrer" title="واتساب"><i class="fab fa-whatsapp"></i></a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="footer-title">روابط سريعة</h4>
+                    <ul class="footer-links">
+                        <li><a href="@Url.Action("Index", "Public")"><i class="fas fa-chevron-left"></i> الرئيسية</a></li>
+                        <li><a href="@Url.Action("About", "Public")"><i class="fas fa-chevron-left"></i> من نحن</a></li>
+                        <li><a href="@Url.Action("Packages", "Public")"><i class="fas fa-chevron-left"></i> الباقات والأسعار</a></li>
+                        <li><a href="@Url.Action("Services", "Public")"><i class="fas fa-chevron-left"></i> خدماتنا</a></li>
+                        <li><a href="@Url.Action("Contact", "Public")"><i class="fas fa-chevron-left"></i> اتصل بنا</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="footer-title">انضم إلينا</h4>
+                    <ul class="footer-links">
+                        <li><a href="@Url.Action("JoinAsClient", "Public")"><i class="fas fa-chevron-left"></i> اشترك كعميل</a></li>
+                        <li><a href="@Url.Action("JoinAsEmployee", "Public")"><i class="fas fa-chevron-left"></i> انضم كموظف</a></li>
+                        <li><a href="@Url.Action("Login", "Account")"><i class="fas fa-chevron-left"></i> تسجيل الدخول</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="footer-title">تواصل معنا</h4>
+                    <div class="footer-contact-item">
+                        <div class="footer-contact-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="footer-contact-text">
+                            اللاذقية - سوريا
+                            <small>فرع 1 - خلف بناء الهجرة والجوازات</small>
+                            <small>فرع 2 - المشروع الخامس - دخلة معهد تقنيات الحاسوب</small>
+                        </div>
+                    </div>
+                    <div class="footer-contact-item">
+                        <div class="footer-contact-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div class="footer-contact-text">
+                            +963 966284236
+                            <small>+90 5050888882 · متاح 24/7</small>
+                        </div>
+                    </div>
+                    <div class="footer-contact-item">
+                        <div class="footer-contact-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="footer-contact-text">
+                            EbrahimGhazal@Gmail.com
+                            <small>info@skybeam.sy — راسلنا في أي وقت</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p class="footer-copyright">
+                    © @DateTime.Now.Year SkyBeam. جميع الحقوق محفوظة
+                </p>
+                <div class="footer-bottom-links">
+                    <a href="#">سياسة الخصوصية</a>
+                    <a href="#">شروط الاستخدام</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Mobile menu toggle
+        document.getElementById('navbarToggle').addEventListener('click', function() {
+            document.getElementById('navbarNav').classList.toggle('open');
+        });
+
+        // Auto-hide alerts
+        const alertBox = document.getElementById('alertBox');
+        if (alertBox) {
+            setTimeout(() => {
+                alertBox.style.opacity = '0';
+                alertBox.style.transform = 'translate(-50%, -20px)';
+                alertBox.style.transition = 'all 0.3s ease';
+                setTimeout(() => alertBox.remove(), 300);
+            }, 5000);
+        }
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

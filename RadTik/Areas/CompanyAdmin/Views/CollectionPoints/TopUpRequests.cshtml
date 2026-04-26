@@ -1,0 +1,136 @@
+@using RadTik.Models
+@using RadTik.Helpers
+@{
+    ViewData["Title"] = "طلبات تغذية رصيد نقاط التحصيل";
+    var items = ViewBag.Items as IEnumerable<CollectionPointTopUpRequest> ?? Enumerable.Empty<CollectionPointTopUpRequest>();
+    var selectedStatus = ViewBag.SelectedStatus as CollectionPointTopUpStatus?;
+    var pendingCount = ViewBag.PendingCount as int? ?? 0;
+}
+
+<div class="financial-page financial-topup-requests-page">
+    <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h1><i class="fas fa-wallet"></i> طلبات تغذية رصيد نقاط التحصيل</h1>
+        @if (pendingCount > 0)
+        {
+            <span class="badge bg-warning text-dark">@pendingCount @PricingDisplay.CollectionPointTopUpStatusLabel(CollectionPointTopUpStatus.Pending)</span>
+        }
+    </div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+    <div class="mb-3">
+        <a asp-route="networkManager-collectionpoints" asp-route-action="TopUpRequests" asp-route-status="@((int?)null)" class="btn btn-outline-secondary btn-sm micro-btn @(selectedStatus == null ? "active" : "")">الكل</a>
+        <a asp-route="networkManager-collectionpoints" asp-route-action="TopUpRequests" asp-route-status="@CollectionPointTopUpStatus.Pending" class="btn btn-outline-warning btn-sm micro-btn @(selectedStatus == CollectionPointTopUpStatus.Pending ? "active" : "")">@PricingDisplay.CollectionPointTopUpStatusLabel(CollectionPointTopUpStatus.Pending)</a>
+        <a asp-route="networkManager-collectionpoints" asp-route-action="TopUpRequests" asp-route-status="@CollectionPointTopUpStatus.Approved" class="btn btn-outline-success btn-sm micro-btn @(selectedStatus == CollectionPointTopUpStatus.Approved ? "active" : "")">@PricingDisplay.CollectionPointTopUpStatusLabel(CollectionPointTopUpStatus.Approved)</a>
+        <a asp-route="networkManager-collectionpoints" asp-route-action="TopUpRequests" asp-route-status="@CollectionPointTopUpStatus.Rejected" class="btn btn-outline-danger btn-sm micro-btn @(selectedStatus == CollectionPointTopUpStatus.Rejected ? "active" : "")">@PricingDisplay.CollectionPointTopUpStatusLabel(CollectionPointTopUpStatus.Rejected)</a>
+    </div>
+
+    <div class="card financial-table-card">
+        <div class="card-body p-0">
+            <div class="table-responsive sys-requests-shell">
+                <table class="table table-hover align-middle mb-0 sys-requests-table financial-table">
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>نقطة التحصيل</th>
+                        <th>جهة الطلب</th>
+                        <th>طريقة الدفع</th>
+                        <th>الإيصال</th>
+                        <th>المبلغ</th>
+                        <th>ملاحظات</th>
+                        <th>الحالة</th>
+                        <th style="width: 200px;">إجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (items.Any())
+                    {
+                        foreach (var r in items)
+                        {
+                            <tr>
+                                <td data-label="التاريخ">@r.RequestedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td data-label="نقطة التحصيل">@(r.CollectionPointAccount?.User?.UserName ?? r.RequestedByUser?.UserName ?? "—")</td>
+                                <td data-label="جهة الطلب">
+                                    @PricingDisplay.CollectionPointTopUpTargetLabel(r.RequestTargetType)
+                                    @if (r.RequestTargetType == CollectionPointTopUpTarget.CompanyManager && r.TargetNetwork != null)
+                                    {
+                                        <small class="text-muted d-block">@r.TargetNetwork.Name</small>
+                                    }
+                                </td>
+                                <td data-label="طريقة الدفع">
+                                    <div>@(r.PaymentMethod?.Name ?? r.Method ?? "—")</div>
+                                    @if (!string.IsNullOrWhiteSpace(r.ReferenceNumber))
+                                    {
+                                        <small class="text-muted">مرجع: @r.ReferenceNumber</small>
+                                    }
+                                </td>
+                                <td data-label="الإيصال">
+                                    @if (!string.IsNullOrWhiteSpace(r.ReceiptImagePath))
+                                    {
+                                        <a class="btn btn-sm btn-outline-secondary micro-btn" href="@r.ReceiptImagePath" target="_blank">
+                                            <i class="fas fa-image"></i> عرض
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">—</span>
+                                    }
+                                </td>
+                                <td data-label="المبلغ">@r.Amount.ToString("N0") ل.س</td>
+                                <td data-label="ملاحظات">@(r.Notes ?? "—")</td>
+                                <td data-label="الحالة">
+                                    @switch (r.Status)
+                                    {
+                                        case CollectionPointTopUpStatus.Pending:
+                                            <span class="badge bg-warning text-dark">@PricingDisplay.CollectionPointTopUpStatusLabel(r.Status)</span>
+                                            break;
+                                        case CollectionPointTopUpStatus.Approved:
+                                            <span class="badge bg-success">@PricingDisplay.CollectionPointTopUpStatusLabel(r.Status)</span>
+                                            break;
+                                        case CollectionPointTopUpStatus.Rejected:
+                                            <span class="badge bg-danger">@PricingDisplay.CollectionPointTopUpStatusLabel(r.Status)</span>
+                                            break;
+                                        case CollectionPointTopUpStatus.Cancelled:
+                                            <span class="badge bg-secondary">@PricingDisplay.CollectionPointTopUpStatusLabel(r.Status)</span>
+                                            break;
+                                    }
+                                </td>
+                                <td data-label="إجراء">
+                                    @if (r.Status == CollectionPointTopUpStatus.Pending)
+                                    {
+                                        <div class="sys-requests-actions">
+                                            <form asp-action="ApproveTopUpRequest" method="post" class="d-inline" onsubmit="return confirm('قبول الطلب؟ سيتم خصم المبلغ من رصيد الشبكة وإضافته إلى نقطة التحصيل.');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@r.Id" />
+                                                <button type="submit" class="btn btn-success btn-sm">قبول</button>
+                                            </form>
+                                            <form asp-action="RejectTopUpRequest" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@r.Id" />
+                                                <button type="submit" class="btn btn-danger btn-sm">رفض</button>
+                                            </form>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">لا توجد طلبات</td>
+                        </tr>
+                    }
+                </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

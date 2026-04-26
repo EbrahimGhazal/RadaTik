@@ -1,0 +1,836 @@
+/* ============================================
+   لوحة تحكم مدير النظام - تطابق التصميم المرجعي
+   ============================================ */
+
+.admin-dashboard-wrap {
+    background: linear-gradient(180deg, #2d3a6e 0%, #1e2a4a 40%, #0f1729 100%);
+    min-height: 60vh;
+    margin-right: calc(-1 * (var(--spacing-lg, 1.5rem) + 0px));
+    margin-left: calc(-1 * (var(--spacing-lg, 1.5rem) + 0px));
+    margin-top: calc(-1 * var(--spacing-xl, 2rem));
+    margin-bottom: 2rem;
+    padding: var(--spacing-xl, 2rem) var(--spacing-lg, 1.5rem);
+    border-radius: 0 0 24px 24px;
+}
+
+.admin-dashboard-wrap .admin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.admin-dashboard-wrap .admin-header h1 {
+    color: #fff !important;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 !important;
+}
+
+.admin-dashboard-wrap .admin-header .btn-refresh {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s ease;
+}
+
+.admin-dashboard-wrap .admin-header .btn-refresh:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: #fff;
+}
+
+/* التبويبات كبطاقات أنيقة */
+.admin-dashboard-wrap .admin-tabs {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.admin-dashboard-wrap .admin-tabs .nav-link {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: none !important;
+    border-radius: 14px !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    padding: 0.65rem 1.25rem !important;
+    font-weight: 500;
+    transition: all 0.25s ease;
+}
+
+.admin-dashboard-wrap .admin-tabs .nav-link:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: #fff !important;
+}
+
+.admin-dashboard-wrap .admin-tabs .nav-link.active {
+    background: rgba(255, 255, 255, 0.95) !important;
+    color: #1e2a4a !important;
+}
+
+/* بطاقة الملخص الكبيرة */
+.admin-summary-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.admin-summary-card .summary-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+}
+
+.admin-summary-card .summary-content .summary-label {
+    color: #64748b;
+    font-size: 0.95rem;
+    margin-bottom: 0.35rem;
+}
+
+.admin-summary-card .summary-content .summary-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #1e2a4a;
+    line-height: 1.1;
+}
+
+.admin-summary-card .summary-content .summary-sublabel {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+/* نقاط التبديل (مثل الكاروسيل) */
+.admin-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.admin-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    transition: all 0.25s ease;
+}
+
+.admin-dots span.active {
+    width: 24px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+/* شبكة البطاقات 2x3 */
+.admin-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 992px) {
+    .admin-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .admin-cards-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.admin-grid-card {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.admin-grid-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    background: #fff;
+}
+
+.admin-grid-card .card-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    color: #fff;
+    margin-bottom: 1rem;
+}
+
+.admin-grid-card .card-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e2a4a;
+}
+
+.admin-grid-card .card-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #334155;
+    margin-top: 0.25rem;
+}
+
+/* ألوان الدوائر */
+.admin-icon-1 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important; }
+.admin-icon-2 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%) !important; }
+.admin-icon-3 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; }
+.admin-icon-4 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important; }
+.admin-icon-5 { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%) !important; }
+.admin-icon-6 { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%) !important; }
+
+/* أقسام الجداول - زجاجية */
+.admin-info-section {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+}
+
+.admin-info-section .section-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1e2a4a;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-info-section .section-title .title-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: #fff;
+}
+
+/* زر تصفير القاعدة */
+.admin-dashboard-wrap .db-reset-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    margin-top: 2rem;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.admin-dashboard-wrap .db-reset-card .text-danger {
+    color: #dc2626 !important;
+}
+
+/* Tab content */
+.admin-dashboard-wrap .tab-content {
+    padding-top: 0;
+}
+
+.admin-dashboard-wrap .tab-pane {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* تعديل الـ Header ليتناسب مع الواجهة */
+body.admin-dashboard-page .header {
+    background: linear-gradient(180deg, rgba(45, 58, 110, 0.95) 0%, rgba(30, 42, 74, 0.95) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+body.admin-dashboard-page .header .header-search {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body.admin-dashboard-page .header .header-search input {
+    color: #fff;
+}
+
+body.admin-dashboard-page .header .header-search input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+body.admin-dashboard-page .header .header-search i {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+body.admin-dashboard-page .header .header-btn {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+}
+
+body.admin-dashboard-page .header .header-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+body.admin-dashboard-page .header .header-user-name,
+body.admin-dashboard-page .header .header-user-role {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+body.admin-dashboard-page .header .header-user-avatar {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+body.admin-dashboard-page .header .header-user {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0.5rem 0.75rem;
+}
+
+body.admin-dashboard-page .header .header-user:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+body.admin-dashboard-page .header .badge {
+    background: rgba(239, 68, 68, 0.9) !important;
+    color: #fff;
+}
+
+body.admin-dashboard-page .header .dropdown-menu {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+body.admin-dashboard-page .header .dropdown-item {
+    color: #1e2a4a;
+}
+
+body.admin-dashboard-page .header .dropdown-item:hover {
+    background: rgba(45, 58, 110, 0.1);
+    color: #1e2a4a;
+}
+
+/* تطبيق نمط البطاقات على تبويبات طلبات مديري الشبكة والشركات */
+.admin-dashboard-wrap .card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+    border: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-dashboard-wrap .card:hover {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
+}
+
+.admin-dashboard-wrap .card-header {
+    border-radius: 20px 20px 0 0;
+    border: none;
+    font-weight: 600;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, rgba(45, 58, 110, 0.95) 0%, rgba(30, 42, 74, 0.95) 100%);
+}
+
+.admin-dashboard-wrap .card-body {
+    border-radius: 0 0 20px 20px;
+    padding: 1.5rem;
+}
+
+.admin-dashboard-wrap .btn-group .btn,
+.admin-dashboard-wrap .btn-outline-primary,
+.admin-dashboard-wrap .btn-outline-warning,
+.admin-dashboard-wrap .btn-outline-success,
+.admin-dashboard-wrap .btn-outline-danger {
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+.admin-dashboard-wrap .btn-group .btn:hover,
+.admin-dashboard-wrap .btn-outline-primary:hover,
+.admin-dashboard-wrap .btn-outline-warning:hover,
+.admin-dashboard-wrap .btn-outline-success:hover,
+.admin-dashboard-wrap .btn-outline-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.admin-dashboard-wrap .modal-content {
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================
+   تحسينات UI/UX للمكونات
+   ============================================ */
+
+/* 1. تحسين Textboxes - حقول الإدخال */
+.admin-dashboard-wrap .form-control,
+.admin-dashboard-wrap .form-select {
+    background: rgba(255, 255, 255, 0.98);
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    color: #1e2a4a;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.admin-dashboard-wrap .form-control:focus,
+.admin-dashboard-wrap .form-select:focus {
+    outline: none;
+    border-color: #4facfe;
+    box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1);
+    background: #fff;
+    transform: translateY(-1px);
+}
+
+.admin-dashboard-wrap .form-control::placeholder {
+    color: rgba(30, 42, 74, 0.5);
+    font-weight: 400;
+}
+
+.admin-dashboard-wrap .form-label {
+    font-weight: 600;
+    color: #1e2a4a;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-dashboard-wrap .form-label i {
+    color: #4facfe;
+    font-size: 0.9rem;
+}
+
+/* Input wrapper with icons */
+.admin-dashboard-wrap .input-wrapper {
+    position: relative;
+}
+
+.admin-dashboard-wrap .input-wrapper .form-control {
+    padding-right: 2.75rem;
+}
+
+.admin-dashboard-wrap .input-wrapper i {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(30, 42, 74, 0.5);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.admin-dashboard-wrap .input-wrapper .form-control:focus + i,
+.admin-dashboard-wrap .input-wrapper .form-control:not(:placeholder-shown) + i {
+    color: #4facfe;
+    transform: translateY(-50%) scale(1.1);
+}
+
+/* Textarea styling */
+.admin-dashboard-wrap textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+/* 2. تحسين Icons - الأيقونات */
+.admin-dashboard-wrap i {
+    transition: all 0.3s ease;
+}
+
+.admin-dashboard-wrap .card-header i,
+.admin-dashboard-wrap .section-title i,
+.admin-dashboard-wrap .title-icon i {
+    transition: all 0.3s ease;
+}
+
+.admin-dashboard-wrap .card:hover .card-header i,
+.admin-dashboard-wrap .card:hover .section-title i {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.admin-dashboard-wrap .btn i {
+    transition: transform 0.3s ease;
+}
+
+.admin-dashboard-wrap .btn:hover i {
+    transform: scale(1.15);
+}
+
+.admin-dashboard-wrap .admin-grid-card .card-icon i {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-dashboard-wrap .admin-grid-card:hover .card-icon i {
+    transform: scale(1.2) rotate(10deg);
+}
+
+/* Icon colors and effects */
+.admin-dashboard-wrap .text-primary i {
+    color: #4facfe;
+}
+
+.admin-dashboard-wrap .text-success i {
+    color: #43e97b;
+}
+
+.admin-dashboard-wrap .text-danger i {
+    color: #fa709a;
+}
+
+.admin-dashboard-wrap .text-warning i {
+    color: #fee140;
+}
+
+/* 3. تحسين Cards - البطاقات */
+.admin-dashboard-wrap .card {
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-dashboard-wrap .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-dashboard-wrap .card:hover::before {
+    transform: scaleX(1);
+    transform-origin: left;
+}
+
+.admin-dashboard-wrap .card.border-primary::before {
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.admin-dashboard-wrap .card.border-success::before {
+    background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.admin-dashboard-wrap .card.border-danger::before {
+    background: linear-gradient(90deg, #fa709a 0%, #fee140 100%);
+}
+
+.admin-dashboard-wrap .card.border-warning::before {
+    background: linear-gradient(90deg, #fee140 0%, #fa709a 100%);
+}
+
+/* Card header improvements */
+.admin-dashboard-wrap .card-header {
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-dashboard-wrap .card-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+    transform: translate(30px, -30px);
+    transition: transform 0.4s ease;
+}
+
+.admin-dashboard-wrap .card:hover .card-header::after {
+    transform: translate(0, 0);
+}
+
+/* 4. تحسين Listbox/Tables - الجداول */
+.admin-dashboard-wrap .table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+.admin-dashboard-wrap .table thead th {
+    background: linear-gradient(135deg, rgba(45, 58, 110, 0.1) 0%, rgba(30, 42, 74, 0.05) 100%);
+    color: #1e2a4a;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 1rem;
+    border: none;
+    border-bottom: 2px solid rgba(79, 172, 254, 0.2);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.admin-dashboard-wrap .table tbody tr {
+    transition: all 0.3s ease;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.admin-dashboard-wrap .table tbody tr:hover {
+    background: linear-gradient(90deg, rgba(79, 172, 254, 0.05) 0%, rgba(0, 242, 254, 0.05) 100%);
+    transform: scale(1.01);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.admin-dashboard-wrap .table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    color: #334155;
+    font-size: 0.95rem;
+}
+
+.admin-dashboard-wrap .table tbody td strong {
+    color: #1e2a4a;
+    font-weight: 600;
+}
+
+/* Badge improvements in tables */
+.admin-dashboard-wrap .table .badge {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.admin-dashboard-wrap .table .badge:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 5. تحسين Combobox/Dropdown - القوائم المنسدلة */
+.admin-dashboard-wrap .form-select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%234facfe' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: left 12px center;
+    background-size: 16px;
+    padding-left: 2.5rem;
+    appearance: none;
+}
+
+.admin-dashboard-wrap .form-select:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%230066cc' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+/* Select2 enhancements */
+.admin-dashboard-wrap .select2-container--bootstrap-5 .select2-selection {
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    min-height: 42px;
+    background: rgba(255, 255, 255, 0.98);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.admin-dashboard-wrap .select2-container--bootstrap-5.select2-container--focus .select2-selection,
+.admin-dashboard-wrap .select2-container--bootstrap-5.select2-container--open .select2-selection {
+    border-color: #4facfe;
+    box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1);
+    background: #fff;
+    transform: translateY(-1px);
+}
+
+.admin-dashboard-wrap .select2-dropdown {
+    border: 2px solid rgba(79, 172, 254, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.admin-dashboard-wrap .select2-container--bootstrap-5 .select2-results__option {
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.admin-dashboard-wrap .select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background: linear-gradient(90deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
+    color: #1e2a4a;
+    font-weight: 600;
+}
+
+.admin-dashboard-wrap .select2-container--bootstrap-5 .select2-results__option[aria-selected="true"] {
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+    color: #fff;
+    font-weight: 600;
+}
+
+/* Additional improvements */
+.admin-dashboard-wrap .alert {
+    border-radius: 12px;
+    border-right-width: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 1rem 1.25rem;
+}
+
+.admin-dashboard-wrap .badge {
+    padding: 0.4rem 0.75rem;
+    font-weight: 600;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.admin-dashboard-wrap .badge:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Button improvements */
+.admin-dashboard-wrap .btn {
+    border-radius: 12px;
+    font-weight: 600;
+    padding: 0.65rem 1.25rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.admin-dashboard-wrap .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.admin-dashboard-wrap .btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Modal improvements */
+.admin-dashboard-wrap .modal-body .form-control,
+.admin-dashboard-wrap .modal-body .form-select {
+    margin-bottom: 1rem;
+}
+
+.admin-dashboard-wrap .modal-body .form-label {
+    margin-bottom: 0.5rem;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .admin-dashboard-wrap .form-control,
+    .admin-dashboard-wrap .form-select {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .admin-dashboard-wrap .table {
+        font-size: 0.85rem;
+    }
+    
+    .admin-dashboard-wrap .table thead th,
+    .admin-dashboard-wrap .table tbody td {
+        padding: 0.75rem 0.5rem;
+    }
+}
+
+/* ============================================
+   Launch Polish - Dark Mode Contrast
+   ============================================ */
+[data-theme="dark"] .admin-dashboard-wrap {
+    background: linear-gradient(180deg, #1a2540 0%, #111b2f 45%, #0a1220 100%);
+}
+
+[data-theme="dark"] .admin-summary-card,
+[data-theme="dark"] .admin-grid-card,
+[data-theme="dark"] .admin-info-section,
+[data-theme="dark"] .admin-dashboard-wrap .db-reset-card,
+[data-theme="dark"] .admin-dashboard-wrap .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-card);
+}
+
+[data-theme="dark"] .admin-summary-card .summary-content .summary-label,
+[data-theme="dark"] .admin-summary-card .summary-content .summary-sublabel,
+[data-theme="dark"] .admin-dashboard-wrap .table tbody td,
+[data-theme="dark"] .admin-dashboard-wrap .form-control::placeholder {
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] .admin-summary-card .summary-content .summary-value,
+[data-theme="dark"] .admin-grid-card .card-label,
+[data-theme="dark"] .admin-grid-card .card-value,
+[data-theme="dark"] .admin-info-section .section-title,
+[data-theme="dark"] .admin-dashboard-wrap .table thead th,
+[data-theme="dark"] .admin-dashboard-wrap .table tbody td strong,
+[data-theme="dark"] .admin-dashboard-wrap .form-label {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .admin-dashboard-wrap .table thead th {
+    background: var(--table-head-bg);
+    border-bottom-color: var(--border-strong);
+}
+
+[data-theme="dark"] .admin-dashboard-wrap .table tbody tr:hover {
+    background: var(--table-row-hover);
+    transform: none;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .admin-dashboard-wrap .form-control,
+[data-theme="dark"] .admin-dashboard-wrap .form-select,
+[data-theme="dark"] .admin-dashboard-wrap .select2-container--bootstrap-5 .select2-selection {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}

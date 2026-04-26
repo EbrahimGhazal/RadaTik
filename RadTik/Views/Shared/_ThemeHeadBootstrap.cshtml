@@ -1,0 +1,14 @@
+@* تطبيق الوضع الليلي/النهاري قبل أول رسمة (تفادي FOUC عند التنقل بين الصفحات). يُوضع مباشرة بعد &lt;meta charset&gt;. *@
+<script>
+(function () {
+    try {
+        var t = localStorage.getItem('theme');
+        if (t !== 'dark' && t !== 'light') {
+            t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+})();
+</script>

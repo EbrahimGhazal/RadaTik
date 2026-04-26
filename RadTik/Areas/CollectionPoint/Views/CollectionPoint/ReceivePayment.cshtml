@@ -1,0 +1,66 @@
+@model RadTik.ViewModels.CollectionPoint.ReceivePaymentViewModel
+
+@{
+    ViewData["Title"] = "تسجيل تحصيل";
+}
+
+<div class="page-header">
+    <h1>
+        <i class="fas fa-hand-holding-usd"></i>
+        @ViewData["Title"]
+    </h1>
+    <p class="text-muted">العميل: <strong>@Model.ClientName</strong> (@Model.ClientUserName)</p>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-receipt"></i>
+                    بيانات التحصيل
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="ReceivePayment" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="All" class="alert alert-danger"></div>
+                    <input asp-for="ClientId" type="hidden" />
+
+                    <div class="mb-3">
+                        <label class="form-label">رصيد العميل الحالي</label>
+                        <input class="form-control" value="@Model.CurrentClientBalance.ToString("0.##")" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Amount" class="form-label"></label>
+                        <input asp-for="Amount" class="form-control" placeholder="أدخل المبلغ المستلم" />
+                        <span asp-validation-for="Amount" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Notes" class="form-label"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="3" placeholder="ملاحظات (اختياري)"></textarea>
+                        <span asp-validation-for="Notes" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i>
+                            حفظ
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right"></i>
+                            رجوع
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+

@@ -1,0 +1,103 @@
+@model RadTik.Models.Receiver
+
+@{
+    ViewData["Title"] = "تعديل مستقبل";
+}
+
+<div class="employee-receiver-hero card border-0 shadow-sm mb-3">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h2 class="mb-1 hero-title">
+                <i class="fas fa-edit"></i>
+                @ViewData["Title"]: @Model.Name
+            </h2>
+            <p class="text-muted mb-0">تحديث بيانات المستقبل مع الحفاظ على الارتباطات الحالية.</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info action-btn">
+            <i class="fas fa-eye"></i> تفاصيل
+        </a>
+            <a asp-action="Index" class="btn btn-outline-secondary action-btn">
+            <i class="fas fa-arrow-right"></i> رجوع
+        </a>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm receiver-form-card">
+    <div class="card-body">
+        <div class="alert alert-info mb-3">
+            <i class="fas fa-user-check me-1"></i>
+            تعديل بيانات المستقبل من حساب الموظف يُرسل كطلب موافقة لمدير الشركة.
+            <span class="d-block mt-1">لا يتم تنفيذ التعديل ولا أي حسم مالي قبل اعتماد مدير الشركة.</span>
+        </div>
+
+        <form asp-action="Edit" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Name" class="form-label">اسم المستقبل</label>
+                    <input asp-for="Name" class="form-control elegant-input" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="SectorId" class="form-label">القطاع</label>
+                    <select asp-for="SectorId" class="form-select elegant-input" asp-items="@(ViewData["SectorId"] as SelectList)">
+                        <option value="">-- اختر قطاع --</option>
+                    </select>
+                    <span asp-validation-for="SectorId" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="IPAddress" class="form-label">IP</label>
+                    <input asp-for="IPAddress" class="form-control elegant-input" />
+                    <span asp-validation-for="IPAddress" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="NetworkMask" class="form-label">قناع الشبكة</label>
+                    <input asp-for="NetworkMask" class="form-control elegant-input" />
+                    <span asp-validation-for="NetworkMask" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Latitude" class="form-label">Latitude</label>
+                    <input asp-for="Latitude" class="form-control elegant-input" type="number" step="0.000001" />
+                    <span asp-validation-for="Latitude" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Longitude" class="form-label">Longitude</label>
+                    <input asp-for="Longitude" class="form-control elegant-input" type="number" step="0.000001" />
+                    <span asp-validation-for="Longitude" class="text-danger"></span>
+                </div>
+
+                <input asp-for="IsActive" type="hidden" />
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-warning action-btn">
+                    <i class="fas fa-save"></i> حفظ
+                </button>
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info action-btn">تفاصيل</a>
+                <a asp-action="Index" class="btn btn-outline-secondary action-btn">إلغاء</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .employee-receiver-hero { background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%); }
+    .hero-title { color: #1b2a4b; font-weight: 700; }
+    .action-btn { border-radius: 0.65rem; font-weight: 600; }
+    .receiver-form-card { border-radius: 0.95rem; }
+    .elegant-input { border-radius: 0.7rem; border-color: #dbe4f0; }
+    .elegant-input:focus { border-color: #93c5fd; box-shadow: 0 0 0 .2rem rgba(37,99,235,.12); }
+</style>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+

@@ -1,0 +1,110 @@
+﻿@model RadTik.Models.MikroTikServer
+
+@{
+    ViewData["Title"] = "حذف خادم مايكروتك";
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h3 class="mb-0">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    @ViewData["Title"]
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-exclamation-circle"></i>
+                        تحذير!
+                    </h5>
+                    <p>هل أنت متأكد من أنك تريد حذف هذا الخادم؟</p>
+                    <hr>
+                    <p class="mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        لا يمكن التراجع عن هذا الإجراء بعد التنفيذ.
+                    </p>
+                </div>
+
+                <h5>معلومات الخادم المراد حذفه:</h5>
+                <table class="table table-bordered">
+                    <tr>
+                        <th width="40%">اسم الخادم:</th>
+                        <td>@Model.Name</td>
+                    </tr>
+                    <tr>
+                        <th>المضيف:</th>
+                        <td>@Model.Host</td>
+                    </tr>
+                    <tr>
+                        <th>المنفذ:</th>
+                        <td>@Model.Port</td>
+                    </tr>
+                    <tr>
+                        <th>اسم المستخدم:</th>
+                        <td>@Model.User</td>
+                    </tr>
+                    <tr>
+                        <th>حالة الخادم:</th>
+                        <td>
+                            @if (Model.IsActive)
+                            {
+                                <span class="badge bg-success">نشط</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">غير نشط</span>
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>تاريخ الإنشاء:</th>
+                        <td>@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                    </tr>
+                </table>
+
+                @if (Model.Sectors?.Any() == true)
+                {
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-ban"></i> تحذير هام:</h6>
+                        <p>هذا الخادم مرتبط بـ @Model.Sectors.Count() قطاع. لا يمكن حذفه إلا بعد إزالة جميع القطاعات المرتبطة به.</p>
+                    </div>
+                }
+            </div>
+            <div class="card-footer">
+                <form asp-action="Delete" method="post">
+                    <input type="hidden" asp-for="Id" />
+
+                    @if (Model.Sectors?.Any() == true)
+                    {
+                        <div class="d-grid gap-2">
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-right"></i> العودة للقائمة
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="btn-group" role="group">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> نعم، احذف
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                        </div>
+                    }
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

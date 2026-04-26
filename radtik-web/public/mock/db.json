@@ -1,0 +1,223 @@
+{
+  "stats": {
+    "admin": {
+      "totalUsers": 12840,
+      "activeNetworks": 312,
+      "pendingPayments": 47
+    }
+  },
+  "trafficSeries": [
+    { "t": "Mon", "gb": 420, "sessions": 1200 },
+    { "t": "Tue", "gb": 510, "sessions": 1320 },
+    { "t": "Wed", "gb": 480, "sessions": 1180 },
+    { "t": "Thu", "gb": 620, "sessions": 1505 },
+    { "t": "Fri", "gb": 710, "sessions": 1680 },
+    { "t": "Sat", "gb": 540, "sessions": 1290 },
+    { "t": "Sun", "gb": 460, "sessions": 1105 }
+  ],
+  "userGrowth": [
+    { "m": "Jan", "users": 820 },
+    { "m": "Feb", "users": 940 },
+    { "m": "Mar", "users": 1100 },
+    { "m": "Apr", "users": 1250 },
+    { "m": "May", "users": 1420 },
+    { "m": "Jun", "users": 1680 }
+  ],
+  "accessPoints": [
+    { "id": "ap1", "name": "North Tower", "lat": 33.5138, "lng": 36.2765 },
+    { "id": "ap2", "name": "City Core", "lat": 33.525, "lng": 36.292 },
+    { "id": "ap3", "name": "East Hub", "lat": 33.508, "lng": 36.31 }
+  ],
+  "coverageZones": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": { "name": "Zone A" },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [36.265, 33.52],
+              [36.29, 33.52],
+              [36.29, 33.505],
+              [36.265, 33.505],
+              [36.265, 33.52]
+            ]
+          ]
+        }
+      }
+    ]
+  },
+  "activity": [
+    {
+      "id": "1",
+      "type": "payment",
+      "title": "Invoice #4821 marked paid",
+      "at": "2026-03-26T10:12:00Z"
+    },
+    {
+      "id": "2",
+      "type": "user",
+      "title": "New client onboarded — Horizon LLC",
+      "at": "2026-03-26T09:40:00Z"
+    },
+    {
+      "id": "3",
+      "type": "network",
+      "title": "AP \"East Hub\" latency recovered",
+      "at": "2026-03-26T08:55:00Z"
+    }
+  ],
+  "financialRows": [
+    {
+      "id": "f1",
+      "customer": "Nasma ISP",
+      "amount": 18420.5,
+      "date": "2026-03-24",
+      "status": "paid"
+    },
+    {
+      "id": "f2",
+      "customer": "BlueNet Retail",
+      "amount": 9210,
+      "date": "2026-03-23",
+      "status": "pending"
+    },
+    {
+      "id": "f3",
+      "customer": "Atlas Schools",
+      "amount": 5600,
+      "date": "2026-03-22",
+      "status": "paid"
+    }
+  ],
+  "employeeTasks": [
+    {
+      "id": "tk1",
+      "title": "ONT swap — client #8831",
+      "type": "installation",
+      "status": "pending"
+    },
+    {
+      "id": "tk2",
+      "title": "Fiber splice follow-up",
+      "type": "ticket",
+      "status": "in_progress"
+    },
+    {
+      "id": "tk3",
+      "title": "Speed test validation",
+      "type": "ticket",
+      "status": "done"
+    }
+  ],
+  "supportInteractions": [
+    {
+      "id": "s1",
+      "customer": "Layan Co.",
+      "channel": "phone",
+      "summary": "Billing question — proration",
+      "at": "2026-03-25T16:10:00Z"
+    }
+  ],
+  "managerTeam": [
+    { "id": "u1", "name": "Omar Khalil", "role": "Field Lead" },
+    { "id": "u2", "name": "Rana Saeed", "role": "NOC" }
+  ],
+  "revenueSeries": [
+    { "p": "W1", "rev": 42000, "exp": 12000 },
+    { "p": "W2", "rev": 46500, "exp": 13200 },
+    { "p": "W3", "rev": 50200, "exp": 14100 },
+    { "p": "W4", "rev": 53800, "exp": 14850 }
+  ],
+  "clientPlan": {
+    "name": "Business Fiber 500",
+    "downloadMbps": 500,
+    "uploadMbps": 200,
+    "priceMonthly": 129
+  },
+  "clientInvoices": [
+    {
+      "id": "inv1",
+      "number": "INV-2091",
+      "amount": 129,
+      "date": "2026-03-01",
+      "status": "paid"
+    },
+    {
+      "id": "inv2",
+      "number": "INV-2144",
+      "amount": 129,
+      "date": "2026-02-01",
+      "status": "paid"
+    }
+  ],
+  "collectionPayments": [
+    {
+      "id": "c1",
+      "customer": "Hadi Markets",
+      "amount": 85,
+      "date": "2026-03-26",
+      "status": "paid"
+    },
+    {
+      "id": "c2",
+      "customer": "Noor Pharmacy",
+      "amount": 40,
+      "date": "2026-03-25",
+      "status": "pending"
+    }
+  ],
+  "collectionsChart": [
+    { "d": "Mon", "amt": 420 },
+    { "d": "Tue", "amt": 510 },
+    { "d": "Wed", "amt": 380 },
+    { "d": "Thu", "amt": 620 },
+    { "d": "Fri", "amt": 705 },
+    { "d": "Sat", "amt": 330 },
+    { "d": "Sun", "amt": 260 }
+  ],
+  "users": [
+    {
+      "id": "usr1",
+      "fullName": "Aisha Nasser",
+      "email": "aisha.nasser@example.com",
+      "role": "client",
+      "status": "active",
+      "lastActive": "2026-03-25T14:22:00Z"
+    },
+    {
+      "id": "usr2",
+      "fullName": "Karim Haddad",
+      "email": "karim.haddad@example.com",
+      "role": "company_manager",
+      "status": "active",
+      "lastActive": "2026-03-26T08:10:00Z"
+    },
+    {
+      "id": "usr3",
+      "fullName": "Layla Mourad",
+      "email": "layla.mourad@example.com",
+      "role": "employee",
+      "status": "active",
+      "lastActive": "2026-03-24T19:40:00Z"
+    },
+    {
+      "id": "usr4",
+      "fullName": "Horizon LLC — Billing",
+      "email": "billing@horizon.example.com",
+      "role": "client",
+      "status": "suspended",
+      "lastActive": "2026-03-10T11:05:00Z"
+    },
+    {
+      "id": "usr5",
+      "fullName": "Yousef Tamer",
+      "email": "yousef.t@example.com",
+      "role": "collection_point",
+      "status": "active",
+      "lastActive": "2026-03-26T06:55:00Z"
+    }
+  ]
+}

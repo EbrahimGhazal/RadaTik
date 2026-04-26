@@ -1,0 +1,1076 @@
+@model IEnumerable<RadTik.Models.Client>
+
+@{
+    ViewData["Title"] = "قائمة العملاء";
+
+    var canView = await PermissionService.HasPermissionAsync(User, "Clients.View");
+    var canCreate = await PermissionService.HasPermissionAsync(User, "Clients.Create");
+    var canEdit = await PermissionService.HasPermissionAsync(User, "Clients.Edit");
+    var canImportFromServer = await PermissionService.HasPermissionAsync(User, "Clients.ImportFromServer");
+    var canFreeze = canEdit;
+    var canRenew = canEdit;
+    var canDetails = canView;
+
+    // حساب الإحصائيات
+    var totalClients = Model.Count();
+    var activeClients = Model.Count(c => c.IsActive);
+    var inactiveClients = Model.Count(c => !c.IsActive);
+
+    // حساب مجموع السرعات (بالميجابت)
+    var totalSpeed = 0m;
+    var activeSpeed = 0m;
+    var inactiveSpeed = 0m;
+    var connectedSpeed = 0m;
+    var disconnectedSpeed = 0m;
+
+    var connectedClients = new List<int>();
+    Random rnd = new Random();
+    var tempConnectedCount = rnd.Next(1, Math.Max(3, activeClients));
+
+    foreach (var item in Model.Where(c => c.IsActive))
+    {
+        if (tempConnectedCount > 0 && rnd.Next(0, 2) == 1)
+        {
+            connectedClients.Add(item.Id);
+            tempConnectedCount--;
+        }
+    }
+    foreach (var item in Model)
+    {
+        decimal speed = 0;
+        if (item.Profile != null)
+        {
+            speed = item.Profile.DownloadSpeedMbps;
+        }
+        else if (!string.IsNullOrEmpty(item.ProfileName))
+        {
+            var numbers = System.Text.RegularExpressions.Regex.Match(item.ProfileName, @"\d+");
+            if (numbers.Success && int.TryParse(numbers.Value, out var parsedSpeed))
+            {
+                speed = parsedSpeed;
+            }
+        }
+
+        if (speed > 0)
+        {
+            totalSpeed += speed;
+            if (item.IsActive)
+            {
+                activeSpeed += speed;
+                if (connectedClients.Contains(item.Id))
+                {
+                    connectedSpeed += speed;
+                }
+                else
+                {
+                    disconnectedSpeed += speed;
+                }
+            }
+            else
+            {
+                inactiveSpeed += speed;
+            }
+        }
+    }
+
+    var disconnectedActiveClients = activeClients - connectedClients.Count;
+    var averageTotalSpeed = totalClients > 0 ? Math.Round((double)totalSpeed / totalClients, 1) : 0;
+    var activePercent = totalClients > 0 ? Math.Round((double)activeClients / totalClients * 100, 0) : 0;
+    var connectedPercent = activeClients > 0 ? Math.Round((double)connectedClients.Count / activeClients * 100, 0) : 0;
+    var dbAccountMap = ViewBag.DbAccountMap as IDictionary<int, string> ?? new Dictionary<int, string>();
+    var pendingClientIds = ViewBag.PendingClientIds as ISet<int> ?? new HashSet<int>();
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-content">
+        <h1 class="page-title">
+            <i class="fas fa-users"></i>
+            @ViewData["Title"]
+        </h1>
+        <div class="page-actions">
+            @if (canView)
+            {
+                <a asp-action="ExpiringIn3Days" class="btn btn-sm" style="background: var(--warning); color: white;">
+                    <i class="fas fa-clock"></i> تنتهي قريباً
+                </a>
+                <a asp-action="ExpiredAccounts" class="btn btn-danger btn-sm">
+                    <i class="fas fa-exclamation-triangle"></i> المنتهية
+                </a>
+            }
+            @if (canImportFromServer)
+            {
+                <a asp-action="ImportFromServer" class="btn btn-warning btn-sm">
+                    <i class="fas fa-download"></i> استيراد من سيرفر
+                </a>
+            }
+            @if (canCreate)
+            {
+                <a asp-action="Create" class="btn btn-success btn-sm">
+                    <i class="fas fa-user-plus"></i> إضافة مشترك جديد
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Success"]</div>
+        <button class="alert-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+    </div>
+}
+
+@if (TempData["ImportFailedUsersDetails"] is string failedUsersJson && !string.IsNullOrWhiteSpace(failedUsersJson))
+{
+    var failedUsers = System.Text.Json.JsonSerializer.Deserialize<List<string>>(failedUsersJson) ?? new List<string>();
+    if (failedUsers.Any())
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-circle alert-icon"></i>
+            <div class="alert-content">
+                <div class="fw-semibold mb-1">تعذر إنشاء حسابات لبعض المستخدمين:</div>
+                <ul class="mb-0 ps-3">
+                    @foreach (var failedItem in failedUsers)
+                    {
+                        <li>@failedItem</li>
+                    }
+                </ul>
+            </div>
+            <button class="alert-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+        </div>
+    }
+}
+
+<div class="alert alert-info mb-3">
+    <i class="fas fa-info-circle me-1"></i>
+    <strong>ملاحظة:</strong> إجراء <strong>تجميد</strong> يجمّد الإنترنت على MikroTik فقط ولا يعطّل حساب المشترك داخل النظام.
+    وتجديد الاشتراك يتم لمدة شهر من <strong>تاريخ انتهاء الاشتراك الحالي</strong>.
+</div>
+
+<!-- Compact Statistics Bar -->
+<div class="stats-bar">
+    <div class="stat-item stat-primary">
+        <div class="stat-icon-mini"><i class="fas fa-users"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalClients</span>
+            <span class="stat-label">إجمالي</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-success">
+        <div class="stat-icon-mini"><i class="fas fa-user-check"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@activeClients</span>
+            <span class="stat-label">نشط (@activePercent%)</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-info">
+        <div class="stat-icon-mini"><i class="fas fa-wifi"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@connectedClients.Count</span>
+            <span class="stat-label">متصل (@connectedPercent%)</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-warning">
+        <div class="stat-icon-mini"><i class="fas fa-user-clock"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@disconnectedActiveClients</span>
+            <span class="stat-label">غير متصل</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-danger">
+        <div class="stat-icon-mini"><i class="fas fa-user-times"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@inactiveClients</span>
+            <span class="stat-label">معطل</span>
+        </div>
+    </div>
+    
+    <div class="stat-divider"></div>
+    
+    <div class="stat-item stat-speed">
+        <div class="stat-icon-mini"><i class="fas fa-bolt"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalSpeed</span>
+            <span class="stat-label">Mbps كلي</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-speed-active">
+        <div class="stat-icon-mini"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@connectedSpeed</span>
+            <span class="stat-label">Mbps متصل</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-avg">
+        <div class="stat-icon-mini"><i class="fas fa-chart-line"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@averageTotalSpeed</span>
+            <span class="stat-label">Mbps متوسط</span>
+        </div>
+    </div>
+</div>
+
+<!-- Clients Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            قائمة العملاء
+        </h3>
+        <div class="card-actions">
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="filterByStatus('all')" data-filter="all">
+                    الكل <span class="filter-count">@totalClients</span>
+                </button>
+                <button class="filter-btn" onclick="filterByStatus('active')" data-filter="active">
+                    نشط <span class="filter-count">@activeClients</span>
+                </button>
+                <button class="filter-btn" onclick="filterByStatus('connected')" data-filter="connected">
+                    متصل <span class="filter-count">@connectedClients.Count</span>
+                </button>
+                <button class="filter-btn" onclick="filterByStatus('disconnected')" data-filter="disconnected">
+                    غير متصل <span class="filter-count">@disconnectedActiveClients</span>
+                </button>
+                <button class="filter-btn" onclick="filterByStatus('inactive')" data-filter="inactive">
+                    معطل <span class="filter-count">@inactiveClients</span>
+                </button>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-columns"></i> الحقول
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-2 column-picker-menu">
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="fullName" checked /> الاسم الكامل</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="phone" checked /> الجوال</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="receiver" checked /> المستقبل</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="sender" checked /> المرسل</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="speed" checked /> السرعة</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="server" checked /> السيرفر</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="serverAccount" checked /> الحساب في السيرفر</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="dbAccount" checked /> الحساب في قاعدة البيانات</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="startDate" checked /> تاريخ بدء الصلاحية</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="endDate" checked /> تاريخ انتهاء الصلاحية</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="remainingDays" checked /> الأيام المتبقية</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="lastRenewal" checked /> آخر تجديد</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="location" checked /> الموقع</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="powerSource" checked /> مصدر الكهرباء</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="building" checked /> البناء</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="floor" checked /> الطابق</label>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-icon" onclick="refreshConnections()" title="تحديث">
+                <i class="fas fa-sync"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body clients-table-wrap">
+        <div class="table-container table-responsive">
+            <table class="table table-sm table-compact" id="clientsTable">
+                <thead>
+                    <tr>
+                        <th data-col="fullName">الاسم الكامل</th>
+                        <th data-col="phone">الجوال</th>
+                        <th data-col="receiver">المستقبل</th>
+                        <th data-col="sender">المرسل</th>
+                        <th data-col="speed">السرعة</th>
+                        <th data-col="server">السيرفر</th>
+                        <th data-col="serverAccount">الحساب في السيرفر</th>
+                        <th data-col="dbAccount">الحساب في قاعدة البيانات</th>
+                        <th data-col="startDate">تاريخ بدء الصلاحية</th>
+                        <th data-col="endDate">تاريخ انتهاء الصلاحية</th>
+                        <th data-col="remainingDays">عدد الأيام المتبقية</th>
+                        <th data-col="lastRenewal">تاريخ آخر تجديد</th>
+                        <th data-col="location">الموقع</th>
+                        <th data-col="powerSource">مصدر الكهرباء</th>
+                        <th data-col="building">البناء</th>
+                        <th data-col="floor">الطابق</th>
+                        <th>الحالة</th>
+                        <th>الاتصال</th>
+                        <th>تاريخ الإضافة</th>
+                        <th class="no-sort">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        var speed = 0;
+                        var profileName = item.Profile?.Name ?? item.ProfileName;
+                        if (item.Profile != null)
+                        {
+                            speed = (int)item.Profile.DownloadSpeed;
+                        }
+                        else if (!string.IsNullOrEmpty(item.ProfileName))
+                        {
+                            var numbers = System.Text.RegularExpressions.Regex.Match(item.ProfileName, @"\d+");
+                            if (numbers.Success)
+                            {
+                                int.TryParse(numbers.Value, out speed);
+                            }
+                        }
+
+                        var isConnected = connectedClients.Contains(item.Id);
+                        var isPendingApproval = pendingClientIds.Contains(item.Id) ||
+                            string.Equals(item.ConnectionStatus, "معلق بانتظار موافقة مدير الشركة", StringComparison.OrdinalIgnoreCase);
+                        var senderName = item.Receiver?.Sector?.Name ?? "-";
+                        var dbAccount = dbAccountMap.TryGetValue(item.Id, out var dbUser) ? dbUser : "-";
+                        var remainingDays = item.AccountExpirationDate.HasValue
+                            ? (item.AccountExpirationDate.Value.Date - DateTime.Now.Date).Days
+                            : (int?)null;
+
+                        <tr class="client-row"
+                            data-active="@item.IsActive.ToString().ToLower()"
+                            data-connected="@isConnected.ToString().ToLower()"
+                            data-speed="@speed"
+                            data-speed-display="@(item.Profile?.DownloadSpeedDisplay ?? speed.ToString())">
+                            <td data-col="fullName">
+                                <div class="client-info">
+                                    <div class="client-avatar @(item.IsActive ? (isConnected ? "online" : "away") : "offline")">
+                                        @(item.Name?.Substring(0, 1).ToUpper() ?? "?")
+                                    </div>
+                                    <div>
+                                        <div class="client-name">@item.Name</div>
+                                        @if (!string.IsNullOrEmpty(item.SID))
+                                        {
+                                            <div class="client-sid">#@item.SID</div>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                            <td data-col="phone">
+                                <span class="text-muted">
+                                    <i class="fas fa-phone"></i> @item.PhoneNumber
+                                </span>
+                            </td>
+                            <td data-col="receiver">
+                                @if (item.Receiver != null)
+                                {
+                                    <span class="badge badge-info">@item.Receiver.Name</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td data-col="sender">
+                                <span class="badge badge-light">@senderName</span>
+                            </td>
+                            <td data-col="speed">
+                                <div class="profile-info">
+                                    <span class="badge @(item.IsActive ? "badge-success" : "badge-secondary")">
+                                        @(profileName ?? "غير محدد")
+                                    </span>
+                                    <small class="speed-value">@speed Mbps</small>
+                                </div>
+                            </td>
+                            <td data-col="server">
+                                @if (item.MikroTikServer != null)
+                                {
+                                    <span class="badge badge-primary" title="@item.MikroTikServer.Host">
+                                        <i class="fas fa-server"></i> @item.MikroTikServer.Name
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td data-col="serverAccount"><code class="text-nowrap">@item.UserName</code></td>
+                            <td data-col="dbAccount"><code class="text-nowrap">@dbAccount</code></td>
+                            <td data-col="startDate">
+                                @(item.ServiceStartDate?.ToString("yyyy/MM/dd") ?? "-")
+                            </td>
+                            <td data-col="endDate">
+                                @(item.AccountExpirationDate?.ToString("yyyy/MM/dd") ?? "-")
+                            </td>
+                            <td data-col="remainingDays">
+                                @if (remainingDays.HasValue)
+                                {
+                                    <span class="badge @(remainingDays.Value < 0 ? "badge-danger" : remainingDays.Value <= 3 ? "badge-warning" : "badge-success")">
+                                        @remainingDays يوم
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td data-col="lastRenewal">@(item.LastRenewalDate?.ToString("yyyy/MM/dd") ?? "-")</td>
+                            <td data-col="location">
+                                <span title="@item.ResidenceAddress">@(string.IsNullOrWhiteSpace(item.ResidenceAddress) ? "-" : item.ResidenceAddress)</span>
+                                @if (item.Latitude.HasValue && item.Longitude.HasValue)
+                                {
+                                    <small class="text-muted d-block">@item.Latitude.Value.ToString("F4"), @item.Longitude.Value.ToString("F4")</small>
+                                }
+                            </td>
+                            <td data-col="powerSource">@(string.IsNullOrWhiteSpace(item.PowerSource) ? "-" : item.PowerSource)</td>
+                            <td data-col="building">@(string.IsNullOrWhiteSpace(item.Building) ? "-" : item.Building)</td>
+                            <td data-col="floor">@(string.IsNullOrWhiteSpace(item.Floor) ? "-" : item.Floor)</td>
+                            <td>
+                                @if (item.IsActive)
+                                {
+                                    <span class="status-badge status-active">
+                                        <i class="fas fa-check-circle"></i> مفعل
+                                    </span>
+                                }
+                                else if (isPendingApproval)
+                                {
+                                    <span class="status-badge status-awaiting">
+                                        <i class="fas fa-hourglass-half"></i> بانتظار موافقة المدير
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-inactive">
+                                        <i class="fas fa-times-circle"></i> معطل
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                @if (isPendingApproval)
+                                {
+                                    <span class="status-badge status-awaiting">
+                                        <i class="fas fa-user-clock"></i> قيد الاعتماد
+                                    </span>
+                                }
+                                else if (item.IsActive)
+                                {
+                                    if (isConnected)
+                                    {
+                                        <span class="status-badge status-online">
+                                            <i class="fas fa-wifi"></i> متصل
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-away">
+                                            <i class="fas fa-wifi-slash"></i> غير متصل
+                                        </span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="text-muted text-sm">@item.CreatedDate.ToString("yyyy/MM/dd")</span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    @if (canDetails)
+                                    {
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-icon btn-info" title="تفاصيل">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    }
+                                    @if (canEdit)
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-icon btn-warning" title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    }
+                                    @if (canFreeze)
+                                    {
+                                        <form asp-action="Freeze" method="post" style="display:inline;">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-icon btn-secondary"
+                                                    title="تجميد الإنترنت في MikroTik"
+                                                    onclick="return confirm('سيتم تجميد الإنترنت لهذا المشترك على المايكروتك فقط، هل تريد المتابعة؟');">
+                                                <i class="fas fa-pause"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    @if (canRenew)
+                                    {
+                                        <form asp-action="RenewOneMonth" method="post" style="display:inline;">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-icon btn-success"
+                                                    title="تجديد اشتراك شهر"
+                                                    onclick="return confirm('سيتم تجديد الاشتراك لمدة شهر من تاريخ الانتهاء الحالي، متابعة؟');">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    @if (!canDetails && !canEdit && !canFreeze && !canRenew)
+                                    {
+                                        <span class="text-muted small">لا توجد صلاحيات</span>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="footer-stats">
+            <span class="footer-stat">
+                <i class="fas fa-bolt text-warning"></i>
+                <span id="currentSpeedLabel">المجموع:</span>
+                <strong id="currentSpeedValue">@totalSpeed Mbps</strong>
+            </span>
+            <span class="footer-stat">
+                <i class="fas fa-wifi text-success"></i>
+                <span id="currentConnectedCount">@connectedClients.Count متصل</span>
+            </span>
+            <span class="footer-stat">
+                <i class="fas fa-clock text-muted"></i>
+                @DateTime.Now.ToString("HH:mm:ss")
+            </span>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Page Header */
+    .page-header {
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .page-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--spacing-md);
+    }
+    
+    .page-title {
+        font-size: var(--font-2xl);
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .page-title i {
+        color: var(--primary);
+    }
+    
+    .btn {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    .btn i {
+        width: 1rem;
+        font-size: .9rem;
+        line-height: 1;
+        text-align: center;
+    }
+
+    .btn.btn-sm {
+        min-height: 32px;
+    }
+
+    .page-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+    }
+
+    /* Compact Statistics Bar */
+    .stats-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-md);
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: var(--spacing-lg);
+        align-items: center;
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-sm);
+        background: var(--bg-hover);
+        min-width: 90px;
+    }
+    
+    .stat-icon-mini {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: white;
+    }
+    
+    .stat-data {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+    }
+    
+    .stat-number {
+        font-size: var(--font-lg);
+        font-weight: 700;
+    }
+    
+    .stat-label {
+        font-size: 10px;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+    
+    .stat-divider {
+        width: 1px;
+        height: 36px;
+        background: var(--border-color);
+        margin: 0 var(--spacing-xs);
+    }
+    
+    /* Stat Colors */
+    .stat-primary .stat-icon-mini { background: var(--primary); }
+    .stat-primary .stat-number { color: var(--primary); }
+    
+    .stat-success .stat-icon-mini { background: var(--success); }
+    .stat-success .stat-number { color: var(--success); }
+    
+    .stat-info .stat-icon-mini { background: var(--info); }
+    .stat-info .stat-number { color: var(--info); }
+    
+    .stat-warning .stat-icon-mini { background: var(--warning); }
+    .stat-warning .stat-number { color: var(--warning); }
+    
+    .stat-danger .stat-icon-mini { background: var(--danger); }
+    .stat-danger .stat-number { color: var(--danger); }
+    
+    .stat-speed .stat-icon-mini { background: linear-gradient(135deg, #FFD700, #FFA500); }
+    .stat-speed .stat-number { color: #E69500; }
+    
+    .stat-speed-active .stat-icon-mini { background: linear-gradient(135deg, #00C853, #00BFA5); }
+    .stat-speed-active .stat-number { color: #00C853; }
+    
+    .stat-avg .stat-icon-mini { background: linear-gradient(135deg, #7C4DFF, #536DFE); }
+    .stat-avg .stat-number { color: #7C4DFF; }
+
+    /* Filter Buttons */
+    .filter-buttons {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+    
+    .filter-btn {
+        padding: 6px 12px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-card);
+        border-radius: var(--radius-sm);
+        font-size: var(--font-sm);
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .filter-btn:hover {
+        background: var(--bg-hover);
+    }
+    
+    .filter-btn.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    
+    .filter-count {
+        background: rgba(0,0,0,0.1);
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    
+    .filter-btn.active .filter-count {
+        background: rgba(255,255,255,0.2);
+    }
+
+    /* Client Info */
+    .client-info {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .client-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: white;
+        font-size: 11px;
+        position: relative;
+        flex-shrink: 0;
+    }
+    
+    .client-avatar.online {
+        background: var(--success);
+    }
+    
+    .client-avatar.away {
+        background: var(--warning);
+    }
+    
+    .client-avatar.offline {
+        background: var(--text-muted);
+    }
+    
+    .client-avatar::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid var(--bg-card);
+    }
+    
+    .client-avatar.online::after {
+        background: var(--success);
+    }
+    
+    .client-avatar.away::after {
+        background: var(--warning);
+    }
+    
+    .client-avatar.offline::after {
+        background: var(--text-muted);
+    }
+    
+    .client-name {
+        font-weight: 600;
+        font-size: 12px;
+        line-height: 1.2;
+    }
+    
+    .client-sid {
+        font-size: 10px;
+        color: var(--text-muted);
+    }
+
+    /* جدول مضغوط - تقليل المسافة بين الأسطر */
+    .clients-table-wrap .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .table-compact thead th,
+    .table-compact tbody td {
+        padding: 0.25rem 0.4rem;
+        font-size: 12px;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    
+    .table-compact thead th {
+        font-size: 11px;
+        font-weight: 600;
+        border-bottom-width: 1px;
+    }
+    
+    .table-compact .client-info {
+        gap: 6px;
+    }
+    
+    .table-compact .profile-info .badge,
+    .table-compact .speed-value {
+        font-size: 10px;
+    }
+    
+    .table-compact .badge {
+        font-size: 10px;
+    }
+    
+    .table-compact .btn-icon {
+        width: 24px;
+        height: 24px;
+        font-size: 11px;
+    }
+    
+    .table-compact .action-buttons {
+        gap: 2px;
+    }
+    
+    .table-compact code {
+        font-size: 11px;
+    }
+    
+    /* السماح بلف النص في عمود الاسم فقط لتوفير المساحة */
+    .table-compact td:first-child .client-name {
+        white-space: normal;
+        word-break: break-word;
+        max-width: 90px;
+    }
+    
+    /* جعل الجدول يلائم الشاشة دون تمرير جانبي */
+    .clients-table-wrap {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+    
+    #clientsTable {
+        table-layout: auto;
+        width: 100%;
+        min-width: 0;
+        margin-bottom: 0;
+    }
+    
+    .table-compact .profile-info {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 2px;
+    }
+    
+    .table-compact .profile-info .badge {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Profile Info */
+    .profile-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .speed-value {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 4px;
+    }
+    .status-awaiting {
+        background: rgba(255, 193, 7, 0.22);
+        color: #8a6700;
+        border: 1px solid rgba(255, 193, 7, 0.4);
+    }
+    
+    .btn-icon {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Footer Stats */
+    .footer-stats {
+        display: flex;
+        gap: var(--spacing-lg);
+        flex-wrap: wrap;
+    }
+    
+    .footer-stat {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        font-size: var(--font-sm);
+    }
+
+    /* Card Actions */
+    .card-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+    }
+
+    .column-picker-menu {
+        max-height: 320px;
+        overflow-y: auto;
+        min-width: 230px;
+    }
+
+    .column-picker-menu .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.86rem;
+    }
+
+    /* Text Utilities */
+    .text-sm {
+        font-size: var(--font-sm);
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .stats-bar {
+            justify-content: center;
+        }
+        
+        .stat-divider {
+            display: none;
+        }
+        
+        .page-header-content {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .filter-buttons {
+            width: 100%;
+            overflow-x: auto;
+            padding-bottom: var(--spacing-xs);
+        }
+        
+        .card-actions {
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+        }
+    }
+</style>
+
+@section Scripts {
+    <script>
+        let currentFilter = 'all';
+
+        function filterByStatus(filterType) {
+            const rows = document.querySelectorAll('.client-row');
+            let visibleTotalSpeed = 0;
+            let visibleConnectedCount = 0;
+
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-filter') === filterType) {
+                    btn.classList.add('active');
+                }
+            });
+
+            rows.forEach(row => {
+                const isActive = row.getAttribute('data-active') === 'true';
+                const isConnected = row.getAttribute('data-connected') === 'true';
+                const speed = parseInt(row.getAttribute('data-speed')) || 0;
+
+                let shouldShow = false;
+
+                switch(filterType) {
+                    case 'active':
+                        shouldShow = isActive;
+                        break;
+                    case 'inactive':
+                        shouldShow = !isActive;
+                        break;
+                    case 'connected':
+                        shouldShow = isActive && isConnected;
+                        break;
+                    case 'disconnected':
+                        shouldShow = isActive && !isConnected;
+                        break;
+                    default:
+                        shouldShow = true;
+                }
+
+                if (shouldShow) {
+                    row.style.display = '';
+                    visibleTotalSpeed += speed;
+                    if (isActive && isConnected) {
+                        visibleConnectedCount++;
+                    }
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Update footer stats
+            document.getElementById('currentSpeedValue').textContent = visibleTotalSpeed + ' Mbps';
+            document.getElementById('currentConnectedCount').textContent = visibleConnectedCount + ' متصل';
+            
+            const labels = {
+                'all': 'المجموع:',
+                'active': 'النشطين:',
+                'inactive': 'المعطلين:',
+                'connected': 'المتصلين:',
+                'disconnected': 'غير المتصلين:'
+            };
+            document.getElementById('currentSpeedLabel').textContent = labels[filterType];
+            
+            currentFilter = filterType;
+        }
+
+        function refreshConnections() {
+            location.reload();
+        }
+
+        function applyColumnVisibility() {
+            const selected = JSON.parse(localStorage.getItem('clients.employee.columns.visible') || '{}');
+            document.querySelectorAll('.column-toggle').forEach(chk => {
+                const key = chk.getAttribute('data-col');
+                const visible = Object.prototype.hasOwnProperty.call(selected, key) ? !!selected[key] : true;
+                chk.checked = visible;
+                document.querySelectorAll('[data-col="' + key + '"]').forEach(el => {
+                    el.style.display = visible ? '' : 'none';
+                });
+            });
+        }
+
+        function persistColumnVisibility() {
+            const data = {};
+            document.querySelectorAll('.column-toggle').forEach(chk => {
+                data[chk.getAttribute('data-col')] = chk.checked;
+            });
+            localStorage.setItem('clients.employee.columns.visible', JSON.stringify(data));
+        }
+
+        $(document).ready(function () {
+            applyColumnVisibility();
+            document.querySelectorAll('.column-toggle').forEach(chk => {
+                chk.addEventListener('change', function () {
+                    const key = this.getAttribute('data-col');
+                    document.querySelectorAll('[data-col="' + key + '"]').forEach(el => {
+                        el.style.display = this.checked ? '' : 'none';
+                    });
+                    persistColumnVisibility();
+                });
+            });
+
+            $('#clientsTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+                },
+                order: [[18, 'desc']],
+                responsive: true,
+                pageLength: 25,
+                columnDefs: [
+                    { orderable: false, targets: 19 }
+                ]
+            });
+        });
+    </script>
+}
+

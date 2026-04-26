@@ -1,0 +1,589 @@
+@model IEnumerable<RadTik.Models.Sector>
+
+@{
+    ViewData["Title"] = "القطاعات";
+
+    var canCreate = await PermissionService.HasPermissionAsync(User, "Sectors.Create");
+    var canEdit = await PermissionService.HasPermissionAsync(User, "Sectors.Edit");
+    var canDelete = await PermissionService.HasPermissionAsync(User, "Sectors.Delete");
+
+    var totalSectors = Model.Count();
+    var activeSectors = Model.Count(s => s.IsActive);
+    var totalReceivers = Model.Sum(s => s.ReceiverCount);
+    var userCountBySectorId = ViewBag.UserCountBySectorId as Dictionary<int, int> ?? new Dictionary<int, int>();
+    var totalUsers = userCountBySectorId.Count > 0 ? userCountBySectorId.Values.Sum() : Model.Sum(s => s.UserCount);
+    var importServers = ViewBag.SectorImportServers as List<RadTik.Models.MikroTikServer> ?? new List<RadTik.Models.MikroTikServer>();
+    var importPreviewByServer = ViewBag.ImportPreviewByServer as Dictionary<int, RadTik.Services.ImportSectorsPreviewResult>;
+    var importChargeByServer = ViewBag.ImportChargeByServer as Dictionary<int, RadTik.Services.UsageImportChargeEstimate>;
+    var sectorImportUnitPrice = (decimal?)(ViewBag.SectorImportUnitPrice) ?? 0m;
+}
+
+<div class="page-header employee-sector-hero card border-0 shadow-sm">
+    <div class="page-header-content">
+        <h1 class="page-title">
+            <i class="fas fa-broadcast-tower"></i>
+            @ViewData["Title"]
+        </h1>
+        <div class="page-actions">
+            @if (canCreate)
+            {
+                @if (importServers.Any())
+                {
+                    <form asp-action="ImportFromMikroTik" method="post" class="d-inline-flex align-items-center gap-1">
+                        @Html.AntiForgeryToken()
+                        <select class="form-select form-select-sm sector-select" name="mikroTikServerId" id="employeeSectorImportServerSelect" style="min-width: 170px;">
+                            @foreach (var srv in importServers)
+                            {
+                                RadTik.Services.ImportSectorsPreviewResult p;
+                                if (importPreviewByServer != null && importPreviewByServer.TryGetValue(srv.Id, out var pItem)) { p = pItem; } else { p = new RadTik.Services.ImportSectorsPreviewResult(); }
+                                RadTik.Services.UsageImportChargeEstimate c;
+                                if (importChargeByServer != null && importChargeByServer.TryGetValue(srv.Id, out var cItem)) { c = cItem; } else { c = new RadTik.Services.UsageImportChargeEstimate(); }
+                                <option value="@srv.Id"
+                                        data-server-name="@srv.Name"
+                                        data-total-interfaces="@p.TotalInterfacesOnServer"
+                                        data-importable="@p.ImportableSectorsCount"
+                                        data-existing="@p.ExistingSectorsCount"
+                                        data-missing-ip="@p.MissingIpCount"
+                                        data-unsupported="@(p.IsRadioInterfaceCommandUnsupported ? "1" : "0")"
+                                        data-preview-note="@p.PreviewNote"
+                                        data-unit-price="@c.UnitPriceSyp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                        data-total-charge="@c.RequiredAmountSyp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                        data-wallet="@c.WalletBalance.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)">
+                                    @srv.Name
+                                </option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn-outline-success btn-sm sector-action-btn"
+                                id="employeeSectorImportSubmitBtn"
+                                onclick="return confirmEmployeeSectorImportPreview();">
+                            <i class="fas fa-download"></i> استيراد
+                        </button>
+                    </form>
+                }
+                <a asp-action="Create" class="btn btn-success btn-sm sector-action-btn">
+                    <i class="fas fa-plus"></i> إضافة قطاع
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Success"]</div>
+    </div>
+}
+
+<div class="small text-muted mb-2 sector-price-note">
+    سعر الوحدة الفعال لاستيراد كل قطاع: <strong>@sectorImportUnitPrice.ToString("N2")</strong> ل.س.ج
+</div>
+
+@if (importServers.Any())
+{
+    <div class="card border-0 shadow-sm mb-3 border-start border-4 border-success sector-import-preview" id="employeeSectorImportPreviewCard">
+        <div class="card-body py-2">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <div class="fw-semibold" id="esipServerName">—</div>
+                    <div class="small text-muted mt-1">
+                        إجمالي الواجهات: <strong id="esipTotal">0</strong> |
+                        قابل للاستيراد: <strong id="esipImportable">0</strong> |
+                        موجود مسبقاً: <strong id="esipExisting">0</strong> |
+                        بدون IP: <strong id="esipMissingIp">0</strong>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="small text-muted">سعر الوحدة / الإجمالي / الرصيد</div>
+                    <div class="fw-bold text-success">
+                        <span id="esipUnitPrice">0.00</span> / <span id="esipTotalCharge">0.00</span> / <span id="esipWallet">0.00</span> ل.س.ج
+                    </div>
+                    <div class="small text-danger mt-1 d-none" id="esipWarningText">
+                        <span id="esipWarningMessage"></span>
+                        <a href="#" class="ms-1" onclick="return showEmployeeSectorImportHelpModal();">تفاصيل الحل</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Error"]</div>
+    </div>
+}
+
+@if (TempData["ImportSectorWarnings"] is string importWarnings && !string.IsNullOrWhiteSpace(importWarnings))
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle alert-icon"></i>
+        <div class="alert-content">@importWarnings</div>
+    </div>
+}
+
+@if (importServers.Any())
+{
+    <div class="modal fade" id="employeeSectorImportHelpModal" tabindex="-1" aria-labelledby="employeeSectorImportHelpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="employeeSectorImportHelpModalLabel">
+                        <i class="fas fa-circle-info text-primary me-1"></i> تفاصيل حل دعم واجهات الراديو
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">السيرفر الحالي لا يدعم أوامر الواجهات التالية:</p>
+                    <ul class="mb-3">
+                        <li><code>/interface/wireless/print</code></li>
+                        <li><code>/interface/wifi/print</code></li>
+                        <li><code>/interface/wifiwave2/print</code></li>
+                    </ul>
+                    <p class="mb-1">الحل المقترح على RouterOS:</p>
+                    <ol class="mb-0">
+                        <li>التحقق من نوع الجهاز وإصدار RouterOS.</li>
+                        <li>تفعيل/تثبيت حزمة الراديو المناسبة (wireless أو wifi).</li>
+                        <li>إعادة تشغيل الراوتر بعد التفعيل عند الحاجة.</li>
+                        <li>التحقق من ظهور الواجهات في Terminal ثم إعادة المحاولة.</li>
+                    </ol>
+                    <hr />
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong class="small">أوامر CLI مقترحة:</strong>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyEmployeeSectorImportCliSnippets()">
+                            <i class="fas fa-copy"></i> نسخ الأوامر
+                        </button>
+                    </div>
+                    <ul class="nav nav-tabs nav-sm mb-2" id="employeeSectorImportCliTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="employee-sector-cli-v6-tab" data-bs-toggle="tab" data-bs-target="#employee-sector-cli-v6" type="button" role="tab">RouterOS v6</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="employee-sector-cli-v7-tab" data-bs-toggle="tab" data-bs-target="#employee-sector-cli-v7" type="button" role="tab">RouterOS v7</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="employee-sector-cli-v6" role="tabpanel">
+                            <pre class="small p-2 bg-light rounded border mb-1"># RouterOS v6
+# 1) التحقق من الحزم المثبتة
+/system/package/print
+
+# 2) التحقق من وجود الواجهات
+/interface/wireless/print
+
+# 3) بعد التفعيل/التثبيت (عند الحاجة) أعد التشغيل
+/system/reboot</pre>
+                        </div>
+                        <div class="tab-pane fade" id="employee-sector-cli-v7" role="tabpanel">
+                            <pre class="small p-2 bg-light rounded border mb-1"># RouterOS v7
+# 1) التحقق من الحزم/الوحدات
+/system/package/print
+
+# 2) التحقق من الواجهات (wifi أو wifiwave2 حسب الجهاز)
+/interface/wifi/print
+/interface/wifiwave2/print
+
+# 3) تحقق إضافي لبعض الأجهزة
+/interface/wireless/print
+
+# 4) بعد أي تغيير على الحزم أعد التشغيل
+/system/reboot</pre>
+                        </div>
+                    </div>
+                    <div id="employeeSectorImportCliCopyOk" class="small text-success d-none">تم نسخ الأوامر.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row g-2 mb-3">
+    <div class="col-md-3 col-6">
+        <div class="card sector-stat-card total h-100">
+            <div class="card-body">
+                <div class="sector-stat-label">إجمالي القطاعات</div>
+                <div class="sector-stat-value">@totalSectors</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card sector-stat-card active h-100">
+            <div class="card-body">
+                <div class="sector-stat-label">نشط</div>
+                <div class="sector-stat-value">@activeSectors</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card sector-stat-card receivers h-100">
+            <div class="card-body">
+                <div class="sector-stat-label">المستقبلات</div>
+                <div class="sector-stat-value">@totalReceivers</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card sector-stat-card users h-100">
+            <div class="card-body">
+                <div class="sector-stat-label">المستخدمون</div>
+                <div class="sector-stat-value">@totalUsers</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .employee-sector-hero {
+        background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%);
+        margin-bottom: 1rem;
+    }
+
+    .employee-sector-hero .page-header-content {
+        padding: 1rem 1.2rem;
+    }
+
+    .employee-sector-hero .page-title {
+        margin: 0;
+        font-weight: 700;
+        color: #1b2a4b;
+    }
+
+    .sector-action-btn {
+        border-radius: 0.65rem;
+        font-weight: 600;
+    }
+
+    .sector-select {
+        border-radius: 0.6rem;
+        border-color: #dbe4f0;
+    }
+
+    .sector-price-note {
+        background: #f8fbff;
+        border: 1px solid #e5edf8;
+        border-radius: 0.7rem;
+        padding: 0.45rem 0.7rem;
+        display: inline-block;
+    }
+
+    .sector-import-preview {
+        border-radius: 0.9rem;
+    }
+
+    .sector-stat-card {
+        border: 1px solid #e9ecef;
+        border-radius: 0.9rem;
+    }
+
+    .sector-stat-label {
+        color: #6c757d;
+        font-size: 0.88rem;
+    }
+
+    .sector-stat-value {
+        margin-top: 0.2rem;
+        font-weight: 700;
+        font-size: 1.4rem;
+    }
+
+    .sector-stat-card.total .sector-stat-value { color: #0d6efd; }
+    .sector-stat-card.active .sector-stat-value { color: #198754; }
+    .sector-stat-card.receivers .sector-stat-value { color: #0dcaf0; }
+    .sector-stat-card.users .sector-stat-value { color: #fd7e14; }
+
+    .sector-table-card {
+        border-radius: 0.95rem;
+    }
+
+    .sector-table-wrap {
+        border: 1px solid #e6edf6;
+        border-radius: 0.9rem;
+    }
+
+    .sector-table thead th {
+        background: #f8fafc;
+        color: #344054;
+        border-bottom: 1px solid #dbe4f0;
+        font-weight: 700;
+    }
+
+    .sector-table td, .sector-table th {
+        padding: 0.68rem 0.8rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .sector-table tbody tr:hover {
+        background: #f7fbff;
+    }
+
+    /* Import Help Modal Tabs */
+    #employeeSectorImportHelpModal .nav-tabs {
+        border-bottom-color: #dee2e6;
+    }
+
+    #employeeSectorImportHelpModal .nav-tabs .nav-link {
+        border: 1px solid transparent;
+        color: #6c757d;
+        font-weight: 600;
+        border-radius: 8px 8px 0 0;
+        transition: all 0.2s ease;
+    }
+
+    #employeeSectorImportHelpModal .nav-tabs .nav-link:hover {
+        color: #0d6efd;
+        border-color: rgba(13, 110, 253, 0.25);
+        background: rgba(13, 110, 253, 0.06);
+    }
+
+    #employeeSectorImportHelpModal .nav-tabs .nav-link.active {
+        color: #fff;
+        background: linear-gradient(135deg, #0d6efd, #2b7de9);
+        border-color: transparent;
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+    }
+
+    @@media (prefers-color-scheme: dark) {
+        #employeeSectorImportHelpModal .nav-tabs {
+            border-bottom-color: #334155;
+        }
+
+        #employeeSectorImportHelpModal .nav-tabs .nav-link {
+            color: #cbd5e1;
+        }
+
+        #employeeSectorImportHelpModal .nav-tabs .nav-link:hover {
+            color: #e2e8f0;
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.15);
+        }
+
+        #employeeSectorImportHelpModal .nav-tabs .nav-link.active {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #f8fafc;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+        }
+    }
+</style>
+
+<script>
+    function showEmployeeSectorImportHelpModal() {
+        const modalEl = document.getElementById('employeeSectorImportHelpModal');
+        if (!modalEl || typeof bootstrap === 'undefined') {
+            return false;
+        }
+
+        const instance = bootstrap.Modal.getOrCreateInstance(modalEl);
+        instance.show();
+        return false;
+    }
+
+    function copyEmployeeSectorImportCliSnippets() {
+        const activePane = document.querySelector('#employeeSectorImportHelpModal .tab-pane.active');
+        const text = activePane?.querySelector('pre')?.textContent || '';
+        if (!text) return;
+
+        const ok = document.getElementById('employeeSectorImportCliCopyOk');
+        const showOk = () => {
+            if (!ok) return;
+            ok.classList.remove('d-none');
+            setTimeout(() => ok.classList.add('d-none'), 1800);
+        };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(showOk);
+            return;
+        }
+
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showOk();
+    }
+
+    function updateEmployeeSectorImportPreviewCard() {
+        const selected = document.getElementById('employeeSectorImportServerSelect')?.selectedOptions?.[0];
+        if (!selected) return;
+
+        const serverName = selected.getAttribute('data-server-name') || '—';
+        const total = Number(selected.getAttribute('data-total-interfaces') || 0);
+        const importable = Number(selected.getAttribute('data-importable') || 0);
+        const existing = Number(selected.getAttribute('data-existing') || 0);
+        const missingIp = Number(selected.getAttribute('data-missing-ip') || 0);
+        const unitPrice = Number(selected.getAttribute('data-unit-price') || 0);
+        const totalCharge = Number(selected.getAttribute('data-total-charge') || 0);
+        const wallet = Number(selected.getAttribute('data-wallet') || 0);
+        const unsupported = selected.getAttribute('data-unsupported') === '1';
+        const previewNote = selected.getAttribute('data-preview-note') || '';
+
+        const setText = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+
+        setText('esipServerName', serverName);
+        setText('esipTotal', total);
+        setText('esipImportable', importable);
+        setText('esipExisting', existing);
+        setText('esipMissingIp', missingIp);
+        setText('esipUnitPrice', unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+        setText('esipTotalCharge', totalCharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+        setText('esipWallet', wallet.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+        const warningEl = document.getElementById('esipWarningText');
+        const warningMsgEl = document.getElementById('esipWarningMessage');
+        if (warningEl) {
+            if (unsupported) {
+                if (warningMsgEl) {
+                    warningMsgEl.textContent = previewNote || 'السيرفر لا يدعم أوامر واجهات الراديو المعروفة.';
+                }
+                warningEl.classList.remove('d-none');
+            } else {
+                if (warningMsgEl) {
+                    warningMsgEl.textContent = '';
+                }
+                warningEl.classList.add('d-none');
+            }
+        }
+
+        const submitBtn = document.getElementById('employeeSectorImportSubmitBtn');
+        if (submitBtn) {
+            const shouldDisable = unsupported || importable <= 0;
+            submitBtn.disabled = shouldDisable;
+            submitBtn.classList.toggle('btn-outline-success', !shouldDisable);
+            submitBtn.classList.toggle('btn-secondary', shouldDisable);
+            submitBtn.title = unsupported
+                ? 'السيرفر غير مدعوم حالياً'
+                : importable <= 0
+                    ? 'لا يوجد عناصر قابلة للاستيراد'
+                    : 'استيراد القطاعات من السيرفر المحدد';
+        }
+    }
+
+    function confirmEmployeeSectorImportPreview() {
+        const selected = document.getElementById('employeeSectorImportServerSelect')?.selectedOptions?.[0];
+        if (!selected) return confirm('متابعة الاستيراد؟');
+
+        const serverName = selected.getAttribute('data-server-name') || 'غير معروف';
+        const total = Number(selected.getAttribute('data-total-interfaces') || 0);
+        const importable = Number(selected.getAttribute('data-importable') || 0);
+        const existing = Number(selected.getAttribute('data-existing') || 0);
+        const missingIp = Number(selected.getAttribute('data-missing-ip') || 0);
+        const unitPrice = Number(selected.getAttribute('data-unit-price') || 0);
+        const totalCharge = Number(selected.getAttribute('data-total-charge') || 0);
+        const wallet = Number(selected.getAttribute('data-wallet') || 0);
+        const unsupported = selected.getAttribute('data-unsupported') === '1';
+        const previewNote = selected.getAttribute('data-preview-note') || '';
+
+        if (unsupported) {
+            alert(previewNote || 'هذا السيرفر لا يدعم أوامر واجهات الراديو المعروفة.');
+            return false;
+        }
+
+        if (importable <= 0) {
+            alert('لا توجد قطاعات جديدة قابلة للاستيراد من هذا السيرفر حالياً.');
+            return false;
+        }
+
+        return confirm(
+            `السيرفر: ${serverName}\n` +
+            `إجمالي الواجهات: ${total}\n` +
+            `قابل للاستيراد: ${importable}\n` +
+            `موجود مسبقاً: ${existing}\n` +
+            `بدون IP: ${missingIp}\n` +
+            `سعر الوحدة: ${unitPrice.toFixed(2)} ل.س.ج\n` +
+            `الإجمالي المتوقع: ${totalCharge.toFixed(2)} ل.س.ج\n` +
+            `الرصيد الحالي: ${wallet.toFixed(2)} ل.س.ج\n\n` +
+            `متابعة؟`
+        );
+    }
+
+    document.getElementById('employeeSectorImportServerSelect')?.addEventListener('change', updateEmployeeSectorImportPreviewCard);
+    updateEmployeeSectorImportPreviewCard();
+</script>
+
+<div class="card border-0 shadow-sm sector-table-card">
+    <div class="card-body">
+        <div class="table-responsive sector-table-wrap">
+            <table class="table table-hover align-middle sector-table">
+                <thead>
+                    <tr>
+                        <th>القطاع</th>
+                        <th>IP</th>
+                        <th>الخادم</th>
+                        <th>المستقبلات</th>
+                        <th>المستخدمين</th>
+                        <th>الحالة</th>
+                        <th style="width:220px;">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@item.Name</strong>
+                                <div class="text-muted small">@item.NetworkMask</div>
+                            </td>
+                            <td><code>@item.IPAddress</code></td>
+                            <td>
+                                @if (item.MikroTikServer != null)
+                                {
+                                    <span class="badge bg-secondary">@item.MikroTikServer.Host</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                <a asp-action="Receivers" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-satellite-dish"></i> @item.ReceiverCount
+                                </a>
+                            </td>
+                            <td>
+                                <a asp-action="Users" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-users"></i> @(userCountBySectorId.TryGetValue(item.Id, out var usersCount) ? usersCount : item.UserCount)
+                                </a>
+                            </td>
+                            <td>
+                                @if (item.IsActive)
+                                {
+                                    <span class="badge bg-success">نشط</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">متوقف</span>
+                                }
+                            </td>
+                            <td>
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-eye"></i> تفاصيل
+                                </a>
+                                @if (canEdit)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i> تعديل
+                                    </a>
+                                }
+                                @if (canDelete)
+                                {
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-trash"></i> حذف
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+

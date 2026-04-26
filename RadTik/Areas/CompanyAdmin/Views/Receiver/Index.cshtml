@@ -1,0 +1,565 @@
+@model IEnumerable<RadTik.Models.Receiver>
+
+@{
+    ViewData["Title"] = "المستقبلات";
+    var receivers = Model ?? Enumerable.Empty<RadTik.Models.Receiver>();
+    var pendingReceiverIds = ViewBag.PendingReceiverIds as ISet<int> ?? new HashSet<int>();
+    var totalReceivers = receivers.Count();
+    var activeReceivers = receivers.Count(r => r.IsActive);
+    var totalUsers = receivers.Sum(r => r.UserCount);
+    var mikrotikServers = receivers
+        .Where(r => r.Sector != null && r.Sector.MikroTikServer != null)
+        .Select(r => r.Sector!.MikroTikServer!.Name ?? string.Empty)
+        .Distinct()
+        .OrderBy(name => name)
+        .ToList();
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-content">
+        <h1 class="page-title">
+            <i class="fas fa-wifi"></i>
+            @ViewData["Title"]
+        </h1>
+        <div class="page-actions">
+            <button type="button" class="btn btn-sm btn-icon" id="btnRefresh" title="تحديث">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-icon" id="btnFilter" title="تصفية">
+                <i class="fas fa-filter"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-icon" id="btnExport" title="تصدير">
+                <i class="fas fa-download"></i>
+            </button>
+            <a asp-action="Create" class="btn btn-success btn-sm">
+                <i class="fas fa-plus"></i> إضافة مستقبل
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Compact Statistics Bar -->
+<div class="stats-bar">
+    <div class="stat-item stat-primary">
+        <div class="stat-icon-mini"><i class="fas fa-wifi"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalReceivers</span>
+            <span class="stat-label">إجمالي</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-success">
+        <div class="stat-icon-mini"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@activeReceivers</span>
+            <span class="stat-label">نشط</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-warning">
+        <div class="stat-icon-mini"><i class="fas fa-users"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalUsers</span>
+            <span class="stat-label">مستخدمين</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-info">
+        <div class="stat-icon-mini"><i class="fas fa-server"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@mikrotikServers.Count</span>
+            <span class="stat-label">خوادم</span>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card filter-card" id="filterCard" style="display: none;">
+    <div class="card-body">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label class="filter-label"><i class="fas fa-server"></i> خادم MikroTik</label>
+                <select class="form-control" id="mikrotikFilter">
+                    <option value="">جميع الخوادم</option>
+                    @foreach (var serverName in mikrotikServers)
+                    {
+                        <option value="@serverName">@serverName</option>
+                    }
+                </select>
+            </div>
+            <button type="button" class="btn btn-secondary" id="btnClearFilter">
+                <i class="fas fa-times"></i> إلغاء التصفية
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- خريطة تفاعلية لجميع المرسلات والمستقبلات (لمدير الشركة فقط) -->
+@if (User.IsInRole("NetworkAdministrator"))
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-map-marked-alt"></i>
+                خريطة المرسلات (القطاعات) والمستقبلات
+            </h3>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div id="receiversMap" style="width: 100%; height: 480px; border-radius: var(--radius); overflow: hidden;"></div>
+        </div>
+    </div>
+}
+
+<!-- Receivers Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            قائمة المستقبلات
+        </h3>
+        <span class="badge badge-primary">@totalReceivers مستقبل</span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div class="table-container">
+            <table class="table" id="receiversTable">
+                <thead>
+                    <tr>
+                        <th>المستقبل</th>
+                        <th>القطاع</th>
+                        <th>السيرفر</th>
+                        <th>IP</th>
+                        <th>الموقع</th>
+                        <th>المستخدمين</th>
+                        <th>البروفايلات</th>
+                        <th>الحالة</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in receivers)
+                    {
+                        var isPendingApproval = pendingReceiverIds.Contains(item.Id);
+                        <tr data-mikrotik="@(item.Sector?.MikroTikServer?.Name ?? "غير محدد")">
+                            <td>
+                                <div class="receiver-info">
+                                    <div class="receiver-icon @(item.IsActive ? "active" : "inactive")">
+                                        <i class="fas fa-wifi"></i>
+                                    </div>
+                                    <div>
+                                        <div class="receiver-name">@item.Name</div>
+                                        <div class="receiver-mask">@item.NetworkMask</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                @if (item.Sector != null)
+                                {
+                                    <div class="sector-link">
+                                        <a asp-controller="Sector" asp-action="Details" asp-route-id="@item.Sector.Id" class="sector-name-link">
+                                            <i class="fas fa-broadcast-tower text-info"></i>
+                                            @item.Sector.Name
+                                        </a>
+                                        <small class="text-muted">@item.Sector.IPAddress</small>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">غير مرتبط</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.Sector?.MikroTikServer != null)
+                                {
+                                    <span class="badge badge-primary" title="@item.Sector.MikroTikServer.Host">
+                                        <i class="fas fa-server"></i> @item.Sector.MikroTikServer.Name
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-secondary">غير محدد</span>
+                                }
+                            </td>
+                            <td><code>@item.IPAddress</code></td>
+                            <td>
+                                <div class="location-info">
+                                    <span><i class="fas fa-map-marker-alt text-danger"></i> @item.Latitude.ToString("F4")</span>
+                                    <span>@item.Longitude.ToString("F4")</span>
+                                </div>
+                            </td>
+                            <td>
+                                <a href="@Url.Action("Index", "Clients", new { receiverId = item.Id })" class="count-badge count-warning" title="عرض المستخدمين">
+                                    <i class="fas fa-users"></i>
+                                    <span>@item.UserCount</span>
+                                </a>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.ProfileNames))
+                                {
+                                    var profileCount = item.ProfileNames.Split(',').Length;
+                                    <span class="badge badge-info" title="@item.ProfileNames">
+                                        <i class="fas fa-list"></i> @profileCount نوع
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-secondary">لا يوجد</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.IsActive)
+                                {
+                                    <span class="status-badge status-active">
+                                        <i class="fas fa-check-circle"></i> نشط
+                                    </span>
+                                }
+                                else if (isPendingApproval)
+                                {
+                                    <span class="status-badge status-awaiting">
+                                        <i class="fas fa-hourglass-half"></i> بانتظار موافقة المدير
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-inactive">
+                                        <i class="fas fa-times-circle"></i> متوقف
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-icon btn-info" title="تفاصيل">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-icon btn-warning" title="تعديل">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-icon btn-danger" title="حذف">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    @if (item.Sector?.MikroTikServer != null)
+                                    {
+                                        <a href="@Url.Action("Index", "MikroTik", new { id = item.Sector.MikroTikServer.Id })"
+                                           class="btn btn-sm btn-icon btn-secondary" title="عرض الخادم">
+                                            <i class="fas fa-server"></i>
+                                        </a>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-header {
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .page-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--spacing-md);
+    }
+    
+    .page-title {
+        font-size: var(--font-2xl);
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .page-title i {
+        color: var(--primary);
+    }
+    
+    .page-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+    }
+
+    .stats-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-md);
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-sm);
+        background: var(--bg-hover);
+        min-width: 100px;
+    }
+    
+    .stat-icon-mini {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: white;
+    }
+    
+    .stat-data {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+    }
+    
+    .stat-number {
+        font-size: var(--font-xl);
+        font-weight: 700;
+    }
+    
+    .stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+    
+    .stat-primary .stat-icon-mini { background: var(--primary); }
+    .stat-primary .stat-number { color: var(--primary); }
+    .stat-success .stat-icon-mini { background: var(--success); }
+    .stat-success .stat-number { color: var(--success); }
+    .stat-info .stat-icon-mini { background: var(--info); }
+    .stat-info .stat-number { color: var(--info); }
+    .stat-warning .stat-icon-mini { background: var(--warning); }
+    .stat-warning .stat-number { color: var(--warning); }
+
+    .filter-card {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .filter-row {
+        display: flex;
+        align-items: flex-end;
+        gap: var(--spacing-md);
+    }
+
+    .filter-group {
+        flex: 1;
+        max-width: 300px;
+    }
+
+    .filter-label {
+        display: block;
+        font-size: var(--font-sm);
+        color: var(--text-muted);
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .receiver-info {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .receiver-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+
+    .receiver-icon.active { background: var(--success); }
+    .receiver-icon.inactive { background: var(--text-muted); }
+    .status-awaiting {
+        background: rgba(255, 193, 7, 0.22);
+        color: #8a6700;
+        border: 1px solid rgba(255, 193, 7, 0.4);
+    }
+
+    .receiver-name {
+        font-weight: 600;
+        font-size: var(--font-sm);
+    }
+
+    .receiver-mask {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    .sector-link {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .sector-name-link {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 600;
+        text-decoration: none;
+        color: var(--text-primary);
+    }
+
+    .sector-name-link:hover {
+        color: var(--primary);
+    }
+
+    .location-info {
+        display: flex;
+        flex-direction: column;
+        font-size: var(--font-xs);
+        color: var(--text-muted);
+    }
+
+    .count-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .count-badge:hover {
+        transform: scale(1.05);
+    }
+
+    .count-warning {
+        background: rgba(255, 152, 0, 0.15);
+        color: var(--warning);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 4px;
+    }
+
+    .btn-icon {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    @@media (max-width: 768px) {
+        .filter-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group {
+            max-width: none;
+        }
+    }
+</style>
+
+@section Scripts {
+    <script src="~/js/receiver-map.js" asp-append-version="true"></script>
+    <script>
+        $(document).ready(function () {
+            var mapDataJson = '@Html.Raw(ViewBag.MapDataJson ?? "[]")';
+            if (typeof initReceiverMap === 'function') {
+                initReceiverMap('receiversMap', mapDataJson);
+            }
+
+            var table = $('#receiversTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+                },
+                columnDefs: [{ orderable: false, targets: [8] }],
+                order: [[0, 'asc']],
+                pageLength: 25,
+                responsive: true
+            });
+
+            // Toggle filter
+            $('#btnFilter').click(function () {
+                $('#filterCard').slideToggle();
+            });
+
+            // Filter by MikroTik
+            $('#mikrotikFilter').change(function () {
+                var selectedServer = $(this).val();
+                if (selectedServer === "") {
+                    table.columns().search('').draw();
+                } else {
+                    $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                        var row = table.row(dataIndex).node();
+                        return $(row).data('mikrotik') === selectedServer;
+                    });
+                    table.draw();
+                    $.fn.dataTable.ext.search.pop();
+                }
+            });
+
+            // Clear filter
+            $('#btnClearFilter').click(function () {
+                $('#mikrotikFilter').val('');
+                table.columns().search('').draw();
+                $('#filterCard').slideUp();
+            });
+
+            // Refresh
+            $('#btnRefresh').click(function () {
+                $(this).find('i').addClass('fa-spin');
+                setTimeout(function() { location.reload(); }, 500);
+            });
+
+            // Export
+            $('#btnExport').click(function () {
+                var $icon = $(this).find('i');
+                $icon.removeClass('fa-download').addClass('fa-spinner fa-spin');
+
+                setTimeout(function() {
+                    $icon.removeClass('fa-spinner fa-spin').addClass('fa-download');
+                    exportToCSV();
+                }, 1000);
+            });
+
+            function exportToCSV() {
+                var data = [];
+                var headers = ['المستقبل', 'القطاع', 'السيرفر', 'IP', 'الموقع', 'المستخدمين', 'الحالة'];
+                
+                $('#receiversTable tbody tr').each(function() {
+                    var rowData = [];
+                    $(this).find('td').each(function(index) {
+                        if (index < 8) {
+                            rowData.push($(this).text().trim().replace(/\s+/g, ' '));
+                        }
+                    });
+                    if (rowData.length > 0) data.push(rowData);
+                });
+
+                var csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+                csvContent += headers.join(",") + "\n";
+                data.forEach(function(row) {
+                    csvContent += row.map(c => '"' + c.replace(/"/g, '""') + '"').join(",") + "\n";
+                });
+
+                var link = document.createElement("a");
+                link.setAttribute("href", encodeURI(csvContent));
+                link.setAttribute("download", "المستقبلات_" + new Date().toISOString().split('T')[0] + ".csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        });
+    </script>
+}

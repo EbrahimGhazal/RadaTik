@@ -1,0 +1,439 @@
+@model RadTik.ViewModels.MikroTikServers.EditMikroTikUserViewModel
+
+@{
+    ViewData["Title"] = "تعديل بيانات المستخدم";
+    var serverName = ViewBag.ServerName as string;
+    var serverId = ViewBag.ServerId as int?;
+    var receivers = ViewBag.Receivers as SelectList;
+    var profiles = ViewBag.Profiles as IEnumerable<SelectListItem>;
+    var currentProfile = Model.ProfileName;
+}
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4>
+                            <i class="fas fa-user-edit me-2"></i>
+                            @ViewData["Title"]
+                            <small class="text-muted">- @serverName</small>
+                        </h4>
+                        <a asp-action="AllUsers" asp-route-id="@serverId"
+                           class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-right me-1"></i> العودة للقائمة
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- عرض رسائل التحقق من النموذج -->
+                    <div asp-validation-summary="All" class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>أخطاء التحقق:</h6>
+                        <ul class="mb-0">
+                            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                            {
+                                <li>@error.ErrorMessage</li>
+                            }
+                        </ul>
+                    </div>
+
+                    @if (!Model.IsInDatabase)
+                    {
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>ملاحظة:</strong> هذا المستخدم غير موجود في قاعدة البيانات المحلية. سيتم إنشاء سجل جديد له.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    @if (TempData["Success"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            @TempData["Success"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-times-circle me-2"></i>
+                            @TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <form asp-action="EditUser" method="post" id="editUserForm">
+                        <input type="hidden" asp-for="MikroTikServerId" />
+                        <input type="hidden" asp-for="UserName" />
+                        <input type="hidden" asp-for="IsInDatabase" />
+                        <input type="hidden" asp-for="ClientId" />
+                        <input type="hidden" id="originalProfile" value="@currentProfile" />
+
+                        <!-- معلومات الأساسية -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">المعلومات الأساسية</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label asp-for="UserName" class="form-label">اسم المستخدم</label>
+                                            <input asp-for="UserName" class="form-control bg-light" readonly />
+                                            <span asp-validation-for="UserName" class="text-danger small"></span>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label asp-for="Name" class="form-label">اسم العميل <span class="text-danger">*</span></label>
+                                            <input asp-for="Name" class="form-control" required />
+                                            <span asp-validation-for="Name" class="text-danger small"></span>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label asp-for="PhoneNumber" class="form-label">رقم الهاتف</label>
+                                            <input asp-for="PhoneNumber" class="form-control" dir="ltr" />
+                                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">الإعدادات والإضافات</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label asp-for="ProfileName" class="form-label">
+                                                <i class="fas fa-tachometer-alt me-1"></i>
+                                                باقة السرعة <span class="text-danger">*</span>
+                                            </label>
+                                            <select asp-for="ProfileName" class="form-select" id="profileSelect" required>
+                                                @if (profiles != null)
+                                                {
+                                                    @foreach (var item in profiles)
+                                                    {
+                                                        if (item.Value == currentProfile)
+                                                        {
+                                                            <option value="@item.Value" selected>@item.Text</option>
+                                                        }
+                                                        else
+                                                        {
+                                                            <option value="@item.Value">@item.Text</option>
+                                                        }
+                                                    }
+                                                }
+                                            </select>
+                                            <div class="mt-1">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-info-circle"></i>
+                                                    البروفايلات المتاحة في السيرفر:
+                                                    <span id="profileCount">
+                                                        @(profiles?.Count() ?? 0)
+                                                    </span>
+                                                </small>
+                                            </div>
+                                            <span asp-validation-for="ProfileName" class="text-danger small"></span>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label asp-for="ReceiverId" class="form-label">
+                                                <i class="fas fa-satellite-dish me-1"></i>
+                                                المستلم المسؤول
+                                            </label>
+                                            <select asp-for="ReceiverId" class="form-select">
+                                                <option value="">-- اختر المستلم --</option>
+                                                @if (receivers != null)
+                                                {
+                                                    @foreach (var item in receivers)
+                                                    {
+                                                        if (item.Value == Model.ReceiverId?.ToString())
+                                                        {
+                                                            <option value="@item.Value" selected>@item.Text</option>
+                                                        }
+                                                        else
+                                                        {
+                                                            <option value="@item.Value">@item.Text</option>
+                                                        }
+                                                    }
+                                                }
+                                            </select>
+                                            <span asp-validation-for="ReceiverId" class="text-danger small"></span>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">حالة الحساب</label>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" asp-for="IsActive"
+                                                       id="accountStatus" style="transform: scale(1.5);">
+                                                <label class="form-check-label ms-2" for="accountStatus">
+                                                    <span id="statusText" class="fw-bold @(Model.IsActive ? "text-success" : "text-danger")">
+                                                        @(Model.IsActive ? "مفعل ✓" : "معطل ✗")
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label asp-for="AccountExpirationDate" class="form-label">
+                                                <i class="fas fa-calendar-alt me-1"></i>
+                                                تاريخ انتهاء صلاحية الحساب
+                                            </label>
+                                            <input asp-for="AccountExpirationDate" 
+                                                   type="date" 
+                                                   class="form-control" 
+                                                   value="@(Model.AccountExpirationDate?.ToString("yyyy-MM-dd"))" />
+                                            <span asp-validation-for="AccountExpirationDate" class="text-danger small"></span>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle"></i>
+                                                حدد تاريخ انتهاء صلاحية حساب العميل
+                                                @if (Model.AccountExpirationDate.HasValue)
+                                                {
+                                                    var daysRemaining = (Model.AccountExpirationDate.Value - DateTime.Now).Days;
+                                                    if (daysRemaining < 0)
+                                                    {
+                                                        <span class="text-danger"> (منتهي الصلاحية)</span>
+                                                    }
+                                                    else if (daysRemaining <= 7)
+                                                    {
+                                                        <span class="text-warning"> (ينتهي خلال @daysRemaining يوم)</span>
+                                                    }
+                                                }
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- أزرار الإجراء -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <button type="submit" class="btn btn-primary px-4" id="saveBtn">
+                                            <i class="fas fa-save me-2"></i> حفظ التغييرات
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary ms-2" id="resetBtn">
+                                            <i class="fas fa-redo me-2"></i> إعادة تعيين
+                                        </button>
+                                        <a href="@Url.Action("AllUsers", new { id = serverId })"
+                                           class="btn btn-outline-danger ms-2">
+                                            <i class="fas fa-times me-2"></i> إلغاء
+                                        </a>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-info me-2">
+                                            <i class="fas fa-server me-1"></i> المايكروتك
+                                        </span>
+                                        @if (Model.IsInDatabase)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-database me-1"></i> قاعدة البيانات
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-plus-circle me-1"></i> سجل جديد
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const accountStatus = document.getElementById('accountStatus');
+            const statusText = document.getElementById('statusText');
+            const profileSelect = document.getElementById('profileSelect');
+            const saveBtn = document.getElementById('saveBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const form = document.getElementById('editUserForm');
+            const originalProfile = document.getElementById('originalProfile')?.value;
+
+            // التحقق من صحة الحقول المطلوبة
+            const requiredFields = document.querySelectorAll('[required]');
+            requiredFields.forEach(field => {
+                field.addEventListener('blur', function() {
+                    if (!this.value.trim()) {
+                        this.classList.add('is-invalid');
+                    } else {
+                        this.classList.remove('is-invalid');
+                    }
+                });
+            });
+
+            // تحديث حالة الحساب
+            if (accountStatus) {
+                accountStatus.addEventListener('change', function() {
+                    if (this.checked) {
+                        statusText.textContent = 'مفعل ✓';
+                        statusText.className = 'fw-bold text-success';
+                    } else {
+                        statusText.textContent = 'معطل ✗';
+                        statusText.className = 'fw-bold text-danger';
+                    }
+                });
+            }
+
+            // زر إعادة التعيين
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    if (confirm('هل أنت متأكد من إعادة تعيين جميع التغييرات؟')) {
+                        // إعادة تعيين الحقول النصية
+                        document.querySelector('input[name="Name"]').value = '@Html.Raw(Model.Name)';
+                        document.querySelector('input[name="PhoneNumber"]').value = '@Html.Raw(Model.PhoneNumber)';
+
+                        // إعادة تعيين البروفايل إلى القيمة الأصلية
+                        if (originalProfile && profileSelect) {
+                            profileSelect.value = originalProfile;
+                        }
+
+                        // إعادة تعيين المستقبل
+                        const receiverSelect = document.querySelector('select[name="ReceiverId"]');
+                        if (receiverSelect) {
+                            receiverSelect.value = '@Model.ReceiverId';
+                        }
+
+                        // إعادة تعيين تاريخ انتهاء الصلاحية
+                        const expirationDateInput = document.querySelector('input[name="AccountExpirationDate"]');
+                        if (expirationDateInput) {
+                            @if (Model.AccountExpirationDate.HasValue)
+                            {
+                                <text>
+                                expirationDateInput.value = '@Model.AccountExpirationDate.Value.ToString("yyyy-MM-dd")';
+                                </text>
+                            }
+                            else
+                            {
+                                <text>
+                                expirationDateInput.value = '';
+                                </text>
+                            }
+                        }
+
+                        // إعادة تعيين حالة الحساب
+                        const originalStatus = @(Model.IsActive.ToString().ToLower());
+                        if (accountStatus) {
+                            accountStatus.checked = originalStatus;
+                            statusText.textContent = originalStatus ? 'مفعل ✓' : 'معطل ✗';
+                            statusText.className = originalStatus ? 'fw-bold text-success' : 'fw-bold text-danger';
+                        }
+
+                        // إزالة فئات الأخطاء
+                        requiredFields.forEach(field => {
+                            field.classList.remove('is-invalid');
+                        });
+
+                        showAlert('info', 'تمت إعادة تعيين جميع الحقول');
+                    }
+                });
+            }
+
+            // التحقق من البيانات قبل الإرسال
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    let isValid = true;
+
+                    // التحقق من الحقول المطلوبة
+                    requiredFields.forEach(field => {
+                        if (!field.value.trim()) {
+                            field.classList.add('is-invalid');
+                            isValid = false;
+                        }
+                    });
+
+                    // التحقق من اختيار بروفايل
+                    if (profileSelect && !profileSelect.value) {
+                        profileSelect.classList.add('is-invalid');
+                        isValid = false;
+                    }
+
+                    if (!isValid) {
+                        e.preventDefault();
+                        showAlert('warning', 'يرجى ملء جميع الحقول المطلوبة');
+                        return false;
+                    }
+
+                    // إظهار تحميل
+                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> جاري الحفظ...';
+                    saveBtn.disabled = true;
+                    if (resetBtn) resetBtn.disabled = true;
+
+                    return true;
+                });
+            }
+
+            // عرض تنبيه
+            function showAlert(type, message) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-3`;
+                alertDiv.innerHTML = `
+                    <i class="fas fa-${getIconForType(type)} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                const cardBody = document.querySelector('.card-body');
+                const firstElement = cardBody.firstChild;
+                cardBody.insertBefore(alertDiv, firstElement);
+
+                // إزالة التنبيه تلقائياً بعد 5 ثواني
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, 5000);
+            }
+
+            function getIconForType(type) {
+                switch(type) {
+                    case 'success': return 'check-circle';
+                    case 'warning': return 'exclamation-triangle';
+                    case 'danger': return 'times-circle';
+                    case 'info': return 'info-circle';
+                    default: return 'info-circle';
+                }
+            }
+
+            // تحديث عدد البروفايلات المتاحة
+            function updateProfileCount() {
+                const profileCountSpan = document.getElementById('profileCount');
+                if (profileCountSpan && profileSelect) {
+                    const availableOptions = Array.from(profileSelect.options)
+                        .filter(option => option.value !== '').length;
+                    profileCountSpan.textContent = availableOptions;
+                }
+            }
+
+            // تحسين تجربة المستخدم للقائمة المنسدلة
+            if (profileSelect) {
+                profileSelect.addEventListener('change', function() {
+                    this.classList.remove('is-invalid');
+                });
+            }
+
+            // تحديث عدد البروفايلات عند التحميل
+            updateProfileCount();
+        });
+    </script>
+
+}

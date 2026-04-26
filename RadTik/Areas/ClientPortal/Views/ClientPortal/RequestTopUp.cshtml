@@ -1,0 +1,262 @@
+@model RadTik.ViewModels.ClientPortal.ClientPortalTopUpRequestViewModel
+@{
+    ViewData["Title"] = "طلب تغذية رصيد";
+    var firstPm = Model.PaymentMethodOptions.FirstOrDefault();
+    var selectedPmId = Model.PaymentMethodId != 0 ? Model.PaymentMethodId : (firstPm?.Id ?? 0);
+}
+
+<div class="client-portal">
+    <div class="page-header mb-4">
+        <h2><i class="fas fa-wallet text-primary"></i> طلب تغذية رصيد</h2>
+        <p class="text-muted mb-0">قدّم طلب شراء رصيد لمحفظتك لدى مدير الشركة أو نقطة التحصيل</p>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> @TempData["Success"]
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-coins"></i> رصيد المحفظة الحالي</h5>
+                </div>
+                <div class="card-body">
+                    <div class="balance-display">
+                        <span class="balance-value">@(Model.WalletBalance.ToString("N0"))</span>
+                        <span class="balance-currency">ل.س</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-paper-plane"></i> بيانات الطلب</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="RequestTopUp" method="post" enctype="multipart/form-data" id="topUpForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="ClientId" />
+
+                        <div class="mb-3">
+                            <label class="form-label">إرسال الطلب إلى</label>
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" asp-for="RecipientTarget" value="@((int)RadTik.Models.ClientWalletTopUpRecipientTarget.CompanyManager)" id="rtManager" />
+                                    <label class="form-check-label" for="rtManager">مدير الشركة</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" asp-for="RecipientTarget" value="@((int)RadTik.Models.ClientWalletTopUpRecipientTarget.CollectionPoint)" id="rtCp" />
+                                    <label class="form-check-label" for="rtCp">نقطة تحصيل</label>
+                                </div>
+                            </div>
+                            <span asp-validation-for="RecipientTarget" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3" id="cpSelectWrap" style="display:none;">
+                            <label asp-for="TargetCollectionPointAccountId" class="form-label"></label>
+                            <select asp-for="TargetCollectionPointAccountId" class="form-select">
+                                <option value="">— اختر نقطة التحصيل —</option>
+                                @foreach (var cp in Model.CollectionPointOptions)
+                                {
+                                    <option value="@cp.CollectionPointAccountId" data-sham-qr="@cp.ShamCashQrCodePath">@cp.DisplayName</option>
+                                }
+                            </select>
+                            <span asp-validation-for="TargetCollectionPointAccountId" class="text-danger"></span>
+                            @if (!Model.CollectionPointOptions.Any())
+                            {
+                                <div class="form-text text-warning">لا توجد نقاط تحصيل مرتبطة بشبكتك حالياً.</div>
+                            }
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Amount" class="form-label"></label>
+                            <input asp-for="Amount" class="form-control" type="number" step="0.01" min="0.01" />
+                            <span asp-validation-for="Amount" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">طريقة الدفع</label>
+                            <div class="d-flex flex-wrap gap-3">
+                                @foreach (var pm in Model.PaymentMethodOptions)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input pm-radio" type="radio" name="PaymentMethodId" id="pm_@pm.Id" value="@pm.Id" data-cash="@(pm.IsCash.ToString().ToLowerInvariant())" @(pm.Id == selectedPmId ? "checked" : null) />
+                                        <label class="form-check-label" for="pm_@pm.Id">@pm.Label</label>
+                                    </div>
+                                }
+                            </div>
+                            <span asp-validation-for="PaymentMethodId" class="text-danger"></span>
+                        </div>
+
+                        <div id="nonCashFields" class="border rounded p-3 mb-3 bg-light">
+                            <p class="small text-muted mb-2">مطلوب عند الدفع بـ شام كاش أو بنك</p>
+                            <div class="mb-3">
+                                <label asp-for="ReferenceNumber" class="form-label"></label>
+                                <input asp-for="ReferenceNumber" class="form-control" autocomplete="off" />
+                                <span asp-validation-for="ReferenceNumber" class="text-danger"></span>
+                            </div>
+                            <div class="mb-0">
+                                <label asp-for="ReceiptImage" class="form-label"></label>
+                                <input asp-for="ReceiptImage" class="form-control" type="file" accept="image/*" data-max-bytes="3145728" data-size-message="حجم صورة الإيصال يجب ألا يتجاوز 3 ميغابايت." />
+                                <span asp-validation-for="ReceiptImage" class="text-danger"></span>
+                                <div class="form-text">الحد الأقصى لحجم صورة الإيصال: 3 ميغابايت.</div>
+                            </div>
+                        </div>
+
+                        <div id="shamCashQrInfo" class="alert alert-info d-none" role="alert">
+                            <div class="d-flex flex-column align-items-start gap-2">
+                                <strong id="shamCashQrTitle">QR شام كاش</strong>
+                                <img id="shamCashQrImage" src="" alt="QR شام كاش" class="img-thumbnail d-none" style="max-width: 260px;" />
+                                <div id="shamCashQrMissing" class="text-danger d-none">
+                                    لم يتم إضافة QR شام كاش لهذه الجهة بعد.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label"></label>
+                            <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> إرسال الطلب
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="fas fa-link"></i> روابط سريعة</h6>
+                    <a href="@Url.Action("RenewSubscription")" class="btn btn-success btn-block mb-2">
+                        <i class="fas fa-sync-alt"></i> تجديد الاشتراك
+                    </a>
+                    <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-block">
+                        <i class="fas fa-tachometer-alt"></i> لوحة التحكم
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .client-portal { padding: var(--spacing-lg, 1.5rem); }
+    .balance-display { font-size: 2rem; font-weight: 700; color: var(--primary, #0d6efd); }
+    .balance-currency { font-size: 1rem; font-weight: 500; color: var(--text-muted); margin-right: 0.25rem; }
+    .btn-block { display: block; width: 100%; }
+</style>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var receiptInput = document.getElementById('ReceiptImage');
+            if (receiptInput) {
+                var maxBytes = Number(receiptInput.getAttribute('data-max-bytes') || (3 * 1024 * 1024));
+                var sizeMessage = receiptInput.getAttribute('data-size-message') || 'حجم الصورة يجب ألا يتجاوز 3 ميغابايت.';
+                receiptInput.addEventListener('change', function () {
+                    var file = receiptInput.files && receiptInput.files.length ? receiptInput.files[0] : null;
+                    if (!file) {
+                        receiptInput.setCustomValidity('');
+                        return;
+                    }
+
+                    if (file.size > maxBytes) {
+                        receiptInput.value = '';
+                        receiptInput.setCustomValidity(sizeMessage);
+                        receiptInput.reportValidity();
+                    } else {
+                        receiptInput.setCustomValidity('');
+                    }
+                });
+            }
+
+            function toggleCp() {
+                var v = document.querySelector('input[name="RecipientTarget"]:checked');
+                var wrap = document.getElementById('cpSelectWrap');
+                if (!wrap) return;
+                wrap.style.display = (v && parseInt(v.value, 10) === @((int)RadTik.Models.ClientWalletTopUpRecipientTarget.CollectionPoint)) ? 'block' : 'none';
+            }
+            function toggleNonCash() {
+                var sel = document.querySelector('.pm-radio:checked');
+                var box = document.getElementById('nonCashFields');
+                if (!sel || !box) return;
+                var isCash = sel.getAttribute('data-cash') === 'true';
+                box.style.display = isCash ? 'none' : 'block';
+            }
+            function updateShamCashQr() {
+                var selectedPayment = document.querySelector('.pm-radio:checked');
+                var qrWrap = document.getElementById('shamCashQrInfo');
+                var qrImage = document.getElementById('shamCashQrImage');
+                var qrMissing = document.getElementById('shamCashQrMissing');
+                var qrTitle = document.getElementById('shamCashQrTitle');
+                if (!selectedPayment || !qrWrap || !qrImage || !qrMissing || !qrTitle) return;
+
+                var isShamCash = parseInt(selectedPayment.value, 10) === @(Model.ShamCashPaymentMethodId ?? 0);
+                if (!isShamCash) {
+                    qrWrap.classList.add('d-none');
+                    qrImage.classList.add('d-none');
+                    qrMissing.classList.add('d-none');
+                    return;
+                }
+
+                var recipient = document.querySelector('input[name="RecipientTarget"]:checked');
+                var qrPath = '';
+                var title = 'QR شام كاش';
+                if (recipient && parseInt(recipient.value, 10) === @((int)RadTik.Models.ClientWalletTopUpRecipientTarget.CompanyManager)) {
+                    qrPath = '@(Model.CompanyManagerShamCashQrCodePath ?? string.Empty)';
+                    title = 'QR شام كاش - مدير الشركة';
+                } else {
+                    var cpSelect = document.getElementById('TargetCollectionPointAccountId');
+                    var selectedOption = cpSelect ? cpSelect.options[cpSelect.selectedIndex] : null;
+                    qrPath = selectedOption ? (selectedOption.getAttribute('data-sham-qr') || '') : '';
+                    title = 'QR شام كاش - نقطة التحصيل المختارة';
+                }
+
+                qrTitle.textContent = title;
+                qrWrap.classList.remove('d-none');
+                if (qrPath) {
+                    qrImage.src = qrPath;
+                    qrImage.classList.remove('d-none');
+                    qrMissing.classList.add('d-none');
+                } else {
+                    qrImage.src = '';
+                    qrImage.classList.add('d-none');
+                    qrMissing.classList.remove('d-none');
+                }
+            }
+            document.querySelectorAll('input[name="RecipientTarget"]').forEach(function (r) {
+                r.addEventListener('change', function () {
+                    toggleCp();
+                    updateShamCashQr();
+                });
+            });
+            document.querySelectorAll('.pm-radio').forEach(function (r) {
+                r.addEventListener('change', function () {
+                    toggleNonCash();
+                    updateShamCashQr();
+                });
+            });
+            var cpSelect = document.getElementById('TargetCollectionPointAccountId');
+            if (cpSelect) {
+                cpSelect.addEventListener('change', updateShamCashQr);
+            }
+            toggleCp();
+            toggleNonCash();
+            updateShamCashQr();
+        })();
+    </script>
+}

@@ -1,0 +1,737 @@
+@model RadTik.Models.MaintenanceRequest
+@using RadTik.Models
+@using RadTik.Helpers
+@inject RadTik.Services.PermissionService PermissionService
+@{
+    ViewData["Title"] = $"طلب صيانة #{Model.Id}";
+    var availableStaff = ViewBag.AvailableStaff as List<ApplicationUser> ?? new List<ApplicationUser>();
+    var canManageMaintenance = await PermissionService.HasPermissionAsync(User, "MaintenanceRequests.Manage");
+    var invoice = ViewBag.MaintenanceInvoice as MaintenanceInvoice;
+    var pricedOptions = ViewBag.PricedMaintenanceOptions as List<RadTik.ViewModels.Maintenance.PricedMaintenanceOptionViewModel>
+        ?? new List<RadTik.ViewModels.Maintenance.PricedMaintenanceOptionViewModel>();
+    var pricedTotal = pricedOptions.Sum(p => p.AmountSYP);
+    var defaultSelectedTotal = pricedOptions.Where(p => p.IsDefaultForRequestType).Sum(p => p.AmountSYP);
+    var transportFee = ViewBag.MaintenanceTransportFee is decimal tf ? tf : 0m;
+    var commissionMode = ViewBag.MaintenanceCommissionMode is MaintenanceCommissionMode cm ? cm : MaintenanceCommissionMode.Fixed;
+    var commissionValue = ViewBag.MaintenanceCommissionValue is decimal cv ? cv : 0m;
+    var initialSubtotalEstimate = defaultSelectedTotal + transportFee;
+    var initialCommissionEstimate = commissionMode == MaintenanceCommissionMode.Percent
+        ? Math.Ceiling(initialSubtotalEstimate * commissionValue / 100m)
+        : Math.Ceiling(commissionValue);
+    if (initialCommissionEstimate < 0m) { initialCommissionEstimate = 0m; }
+    var initialGrossEstimate = Math.Max(0m, initialSubtotalEstimate + initialCommissionEstimate);
+    var initialNetEstimate = Math.Max(0m, initialGrossEstimate - initialCommissionEstimate);
+    var commissionModeLabel = commissionMode == MaintenanceCommissionMode.Percent
+        ? $"نسبة ({commissionValue:N2}%)"
+        : $"ثابت ({commissionValue:N0} ل.س)";
+    var invoiceStatusText = invoice?.Status switch
+    {
+        MaintenanceInvoiceStatus.Pending => "بانتظار السداد",
+        MaintenanceInvoiceStatus.Paid => "مدفوعة بالكامل",
+        MaintenanceInvoiceStatus.Cancelled => "ملغاة",
+        _ => "غير معروفة"
+    };
+}
+
+<div class="page-header">
+    <div class="page-header-content">
+        <h1 class="page-title">
+            <i class="fas fa-tools"></i>
+            @ViewData["Title"]
+        </h1>
+        <a asp-route="networkManager-requestsManagement" asp-route-action="MaintenanceRequests" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة للقائمة
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Success"]</div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Error"]</div>
+    </div>
+}
+
+<div class="details-grid">
+    <!-- معلومات الطلب -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-info-circle"></i> تفاصيل الطلب</h3>
+            <span class="status-badge @GetStatusClass(Model.Status)">@GetStatusName(Model.Status)</span>
+        </div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">نوع المشكلة</span>
+                    <span class="info-value">
+                        <i class="fas @GetTypeIcon(Model.Type)"></i>
+                        @GetMaintenanceTypeName(Model.Type)
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">الأولوية</span>
+                    <span class="info-value">
+                        <span class="priority-badge @GetPriorityClass(Model.Priority)">
+                            @GetPriorityName(Model.Priority)
+                        </span>
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">تاريخ الطلب</span>
+                    <span class="info-value">@Model.RequestDate.ToString("yyyy/MM/dd HH:mm")</span>
+                </div>
+                @if (Model.ScheduledVisitDate.HasValue)
+                {
+                    <div class="info-item">
+                        <span class="info-label">موعد الزيارة</span>
+                        <span class="info-value">@Model.ScheduledVisitDate?.ToString("yyyy/MM/dd HH:mm")</span>
+                    </div>
+                }
+                @if (Model.AcceptedDate.HasValue)
+                {
+                    <div class="info-item">
+                        <span class="info-label">تاريخ القبول</span>
+                        <span class="info-value">@Model.AcceptedDate?.ToString("yyyy/MM/dd HH:mm")</span>
+                    </div>
+                }
+                @if (Model.CompletedDate.HasValue)
+                {
+                    <div class="info-item">
+                        <span class="info-label">تاريخ الإنجاز</span>
+                        <span class="info-value">@Model.CompletedDate?.ToString("yyyy/MM/dd HH:mm")</span>
+                    </div>
+                }
+            </div>
+
+            <div class="description-section">
+                <h4>وصف المشكلة</h4>
+                <p class="description-text">@Model.Description</p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.ContactPhone) || !string.IsNullOrEmpty(Model.PreferredContactTime) || !string.IsNullOrEmpty(Model.Address))
+            {
+                <div class="contact-section">
+                    <h4>معلومات التواصل</h4>
+                    <div class="contact-grid">
+                        @if (!string.IsNullOrEmpty(Model.ContactPhone))
+                        {
+                            <div class="contact-item">
+                                <i class="fas fa-phone"></i>
+                                <a href="tel:@Model.ContactPhone">@Model.ContactPhone</a>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.PreferredContactTime))
+                        {
+                            <div class="contact-item">
+                                <i class="fas fa-clock"></i>
+                                @Model.PreferredContactTime
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Address))
+                        {
+                            <div class="contact-item">
+                                <i class="fas fa-map-marker-alt"></i>
+                                @Model.Address
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.TechnicianNotes))
+            {
+                <div class="notes-section">
+                    <h4>ملاحظات الفني</h4>
+                    <p class="notes-text">@Model.TechnicianNotes</p>
+                </div>
+            }
+
+            @if (invoice != null)
+            {
+                <div class="notes-section">
+                    <h4>فاتورة الصيانة</h4>
+                    <p class="mb-1"><strong>رقم الفاتورة:</strong> #@invoice.Id</p>
+                    <p class="mb-1"><strong>الحالة:</strong> @invoiceStatusText</p>
+                    <p class="mb-1"><strong>المبلغ الإجمالي:</strong> @invoice.GrossAmount.ToString("N0") ل.س</p>
+                    <p class="mb-1"><strong>عمولة النظام المضافة:</strong> @invoice.CommissionAmount.ToString("N0") ل.س</p>
+                    <p class="mb-0"><strong>صافي الشركة:</strong> @invoice.NetAmountToCompany.ToString("N0") ل.س</p>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.RejectionReason))
+            {
+                <div class="rejection-section">
+                    <h4>سبب الرفض</h4>
+                    <p class="rejection-text">@Model.RejectionReason</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- معلومات العميل -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-user"></i> معلومات العميل</h3>
+        </div>
+        <div class="card-body">
+            @if (Model.Client != null)
+            {
+                <div class="client-card">
+                    <div class="client-avatar-lg">
+                        @(Model.Client.Name?.Substring(0, 1).ToUpper() ?? "?")
+                    </div>
+                    <div class="client-details">
+                        <h4>@Model.Client.Name</h4>
+                        <p><i class="fas fa-user"></i> @Model.Client.UserName</p>
+                        <p><i class="fas fa-phone"></i> @Model.Client.PhoneNumber</p>
+                        @if (Model.Client.Profile != null)
+                        {
+                            <p><i class="fas fa-wifi"></i> @Model.Client.Profile.Name - @Model.Client.Profile.DownloadSpeedDisplay</p>
+                        }
+                        @if (Model.Client.Receiver != null)
+                        {
+                            <p><i class="fas fa-broadcast-tower"></i> @Model.Client.Receiver.Name</p>
+                        }
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a asp-route="networkManager-clients" asp-route-action="Details" asp-route-id="@Model.ClientId" class="btn btn-outline-info btn-sm">
+                        <i class="fas fa-external-link-alt"></i> عرض ملف العميل
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- إجراءات -->
+<div class="actions-card">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-cogs"></i> إجراءات</h3>
+        </div>
+        <div class="card-body">
+            @if (canManageMaintenance && Model.Status != MaintenanceRequestStatus.Completed && Model.Status != MaintenanceRequestStatus.Rejected && Model.Status != MaintenanceRequestStatus.Cancelled)
+            {
+                <form asp-action="SetMaintenanceScheduledVisitDate" method="post" class="action-form mb-4">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <h4 class="h6 mb-2"><i class="fas fa-calendar-alt"></i> موعد الزيارة</h4>
+                    <p class="small text-muted mb-2">يظهر الطلب في لوحة الموظف عندما يكون تاريخ الموعد في اليوم الحالي.</p>
+                    <input type="datetime-local" name="scheduledVisitDate" class="form-control mb-2" value="@(Model.ScheduledVisitDate.HasValue ? Model.ScheduledVisitDate.Value.ToString("yyyy-MM-ddTHH:mm") : "")" />
+                    <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-save"></i> حفظ الموعد</button>
+                </form>
+                <hr class="my-3" />
+            }
+            @if (Model.Status == MaintenanceRequestStatus.Pending)
+            {
+                <div class="actions-grid">
+                    <!-- قبول الطلب -->
+                    <form asp-action="AcceptMaintenanceRequest" method="post" class="action-form">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <div class="form-group mb-3">
+                            <label class="form-label">تعيين موظف (اختياري)</label>
+                            <select name="assignedToId" class="form-select">
+                                <option value="">-- اختر موظف --</option>
+                                @foreach (var staff in availableStaff)
+                                {
+                                    <option value="@staff.Id">@staff.FullName</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            <i class="fas fa-check"></i> قبول الطلب
+                        </button>
+                    </form>
+
+                    <!-- رفض الطلب -->
+                    <form asp-action="RejectMaintenanceRequest" method="post" class="action-form" onsubmit="return validateRejection(this)">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <div class="form-group mb-3">
+                            <label class="form-label">سبب الرفض</label>
+                            <textarea name="rejectionReason" class="form-control" rows="2" placeholder="اكتب سبب الرفض..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-danger btn-lg w-100">
+                            <i class="fas fa-times"></i> رفض الطلب
+                        </button>
+                    </form>
+                </div>
+            }
+            else if (Model.Status == MaintenanceRequestStatus.Accepted)
+            {
+                <form asp-action="StartMaintenanceRequest" method="post" class="text-center">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-play"></i> بدء العمل على الطلب
+                    </button>
+                </form>
+            }
+            else if (Model.Status == MaintenanceRequestStatus.InProgress)
+            {
+                <form asp-action="CompleteMaintenanceRequest" method="post" onsubmit="return validateCompletion(this)">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="form-group mb-3">
+                        <label class="form-label">شرح العطل</label>
+                        <textarea name="faultExplanation" class="form-control" rows="3" placeholder="ما هو العطل الذي تم اكتشافه؟" required>@Model.Description</textarea>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">ملاحظات إضافية</label>
+                        <textarea name="technicianNotes" class="form-control" rows="2" placeholder="ملاحظات اختيارية"></textarea>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">طرق الحل المسعّرة (اختر طريقة حل واحدة أو أكثر)</label>
+                        @if (pricedOptions.Any())
+                        {
+                            <div class="service-check-grid" id="serviceCheckGrid">
+                                @for (var idx = 0; idx < pricedOptions.Count; idx++)
+                                {
+                                    var opt = pricedOptions[idx];
+                                    var cid = $"maint_type_{(int)opt.MaintenanceType}";
+                                    <label class="service-check-item" for="@cid">
+                                        <span class="service-check-order">@(idx + 1)</span>
+                                        <input type="checkbox"
+                                               id="@cid"
+                                               name="selectedMaintenanceTypes"
+                                               value="@((int)opt.MaintenanceType)"
+                                               data-price="@opt.AmountSYP.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                               class="service-check-input"
+                                               @(opt.IsDefaultForRequestType ? "checked" : null) />
+                                        <span class="service-check-name">@opt.DisplayName</span>
+                                        <span class="service-check-price">@opt.AmountSYP.ToString("N0") ل.س</span>
+                                    </label>
+                                }
+                            </div>
+                            <div class="live-total-box mt-2">
+                                <span>إجمالي الخدمات المحددة الآن:</span>
+                                <strong id="liveSelectedServiceTotal">@defaultSelectedTotal.ToString("N0") ل.س</strong>
+                            </div>
+                            <div class="live-total-box mt-2">
+                                <span>عدد طرق الحل المحددة:</span>
+                                <strong id="liveSelectedServiceCount">@pricedOptions.Count(p => p.IsDefaultForRequestType)</strong>
+                            </div>
+                            <div class="live-total-box mt-2">
+                                <span>أجور النقل:</span>
+                                <strong id="liveTransportFee">@transportFee.ToString("N0") ل.س</strong>
+                            </div>
+                            <div class="live-total-box mt-2">
+                                <span>الإجمالي قبل العمولة:</span>
+                                <strong id="liveSubtotalEstimate" data-transport="@transportFee.ToString(System.Globalization.CultureInfo.InvariantCulture)">@initialSubtotalEstimate.ToString("N0") ل.س</strong>
+                            </div>
+                            <div class="live-total-box mt-2">
+                                <span>عمولة النظام المضافة:</span>
+                                <strong id="liveCommissionEstimate"
+                                        data-commission-mode="@((int)commissionMode)"
+                                        data-commission-value="@commissionValue.ToString(System.Globalization.CultureInfo.InvariantCulture)">@initialCommissionEstimate.ToString("N0") ل.س</strong>
+                            </div>
+                            <div class="live-total-box mt-2">
+                                <span>الإجمالي النهائي على العميل:</span>
+                                <strong id="liveGrossEstimate">@initialGrossEstimate.ToString("N0") ل.س</strong>
+                            </div>
+                            <div class="form-text text-muted mt-1">
+                                نوع العمولة الحالي: <strong>@commissionModeLabel</strong>
+                            </div>
+                            <div class="live-total-box mt-2">
+                                <span>صافي الشركة التقديري:</span>
+                                <strong id="liveNetEstimate">@initialNetEstimate.ToString("N0") ل.س</strong>
+                            </div>
+                            <div class="form-text mt-2">
+                                مجموع العناصر المحددة سيُستخدم كـ«سعر خدمة أساسي»، ثم تُضاف أجور النقل والعمولة تلقائياً على الفاتورة.
+                                إجمالي التسعيرات المتاحة حالياً: <strong>@pricedTotal.ToString("N0") ل.س</strong>
+                            </div>
+                            <div id="selectionValidationMessage" class="text-danger small mt-2" style="display:none;">
+                                يرجى اختيار طريقة حل واحدة على الأقل قبل إتمام الطلب.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning py-2 mb-0">
+                                لا توجد عناصر صيانة مسعّرة حالياً لهذه الشبكة. يجب ضبط الأسعار أولاً.
+                            </div>
+                        }
+                    </div>
+                    <button type="submit" id="completeMaintenanceSubmitBtn" class="btn btn-success btn-lg" disabled="@(!pricedOptions.Any())">
+                        <i class="fas fa-check-double"></i> تمت الصيانة وإصدار الفاتورة
+                    </button>
+                </form>
+            }
+            else
+            {
+                <div class="text-center text-muted">
+                    <i class="fas fa-info-circle"></i>
+                    لا توجد إجراءات متاحة لهذا الطلب
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-header {
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .page-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .page-title {
+        font-size: var(--font-2xl);
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--spacing-lg);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .card {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-md) var(--spacing-lg);
+        background: var(--bg-hover);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-title {
+        margin: 0;
+        font-size: var(--font-md);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .card-body {
+        padding: var(--spacing-lg);
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
+    .info-label {
+        font-size: var(--font-sm);
+        color: var(--text-muted);
+    }
+
+    .info-value {
+        font-weight: 600;
+    }
+
+    .description-section, .contact-section, .notes-section, .rejection-section {
+        margin-top: var(--spacing-lg);
+        padding-top: var(--spacing-lg);
+        border-top: 1px solid var(--border-color);
+    }
+
+    .description-section h4, .contact-section h4, .notes-section h4, .rejection-section h4 {
+        font-size: var(--font-md);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .description-text {
+        background: var(--bg-hover);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-sm);
+        white-space: pre-wrap;
+    }
+
+    .contact-grid {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .contact-item i {
+        width: 20px;
+        color: var(--text-muted);
+    }
+
+    .notes-text {
+        background: rgba(76, 175, 80, 0.1);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-sm);
+        border-right: 3px solid var(--success);
+    }
+
+    .rejection-text {
+        background: rgba(244, 67, 54, 0.1);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-sm);
+        border-right: 3px solid var(--danger);
+    }
+
+    .client-card {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-lg);
+    }
+
+    .client-avatar-lg {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+
+    .client-details h4 {
+        margin: 0 0 var(--spacing-sm) 0;
+    }
+
+    .client-details p {
+        margin: var(--spacing-xs) 0;
+        color: var(--text-secondary);
+        font-size: var(--font-sm);
+    }
+
+    .client-details i {
+        width: 20px;
+        color: var(--text-muted);
+    }
+
+    .actions-card {
+        max-width: 600px;
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-lg);
+    }
+
+    .action-form {
+        padding: var(--spacing-md);
+        background: var(--bg-hover);
+        border-radius: var(--radius);
+    }
+
+    .service-check-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .75rem;
+    }
+
+    .service-check-item {
+        display: grid;
+        grid-template-columns: auto auto 1fr auto;
+        align-items: center;
+        gap: .5rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: .6rem .75rem;
+        background: var(--bg-card);
+        cursor: pointer;
+    }
+
+    .service-check-item:hover {
+        border-color: var(--primary);
+    }
+
+    .service-check-order {
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: rgba(103, 58, 183, 0.14);
+        color: var(--primary);
+        font-size: .75rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .service-check-name {
+        font-weight: 600;
+    }
+
+    .service-check-price {
+        color: var(--text-muted);
+        font-size: .9rem;
+    }
+
+    .live-total-box {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: .55rem .75rem;
+        background: var(--bg-hover);
+        font-size: .95rem;
+    }
+
+    @@media (max-width: 768px) {
+        .details-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .service-check-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .client-card {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+</style>
+
+@functions {
+    string GetMaintenanceTypeName(MaintenanceType type) => MaintenanceCatalog.GetDisplayName(type);
+
+    string GetTypeIcon(MaintenanceType type) => MaintenanceCatalog.GetIcon(type);
+
+    string GetStatusName(MaintenanceRequestStatus status) => PricingDisplay.MaintenanceRequestStatusLabel(status);
+
+    string GetStatusClass(MaintenanceRequestStatus status) => PricingDisplay.MaintenanceRequestStatusClass(status);
+
+    string GetPriorityName(RequestPriority priority) => PricingDisplay.RequestPriorityLabel(priority);
+
+    string GetPriorityClass(RequestPriority priority) => PricingDisplay.RequestPriorityClass(priority);
+}
+
+@section Scripts {
+    <script>
+        function validateRejection(form) {
+            var reason = form.querySelector('textarea[name="rejectionReason"]').value;
+            if (!reason.trim()) {
+                alert('يجب تحديد سبب الرفض');
+                return false;
+            }
+            return confirm('هل أنت متأكد من رفض هذا الطلب؟');
+        }
+
+        function validateCompletion(form) {
+            const checks = form.querySelectorAll('input[name="selectedMaintenanceTypes"]:checked');
+            const validationNode = document.getElementById('selectionValidationMessage');
+            if (checks.length === 0) {
+                if (validationNode) {
+                    validationNode.style.display = '';
+                }
+                return false;
+            }
+            if (validationNode) {
+                validationNode.style.display = 'none';
+            }
+            return true;
+        }
+
+        function updateSelectedServicesLiveTotal() {
+            const checks = document.querySelectorAll('input[name="selectedMaintenanceTypes"]:checked');
+            const totalNode = document.getElementById('liveSelectedServiceTotal');
+            const countNode = document.getElementById('liveSelectedServiceCount');
+            const subtotalNode = document.getElementById('liveSubtotalEstimate');
+            const commissionNode = document.getElementById('liveCommissionEstimate');
+            const grossNode = document.getElementById('liveGrossEstimate');
+            const netNode = document.getElementById('liveNetEstimate');
+            const submitBtn = document.getElementById('completeMaintenanceSubmitBtn');
+            const validationNode = document.getElementById('selectionValidationMessage');
+            if (!totalNode) return;
+
+            let total = 0;
+            checks.forEach((c) => {
+                const v = Number(c.dataset.price || 0);
+                if (!Number.isNaN(v)) total += v;
+            });
+
+            const formatSyp = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+            const ceilSyp = (n) => Math.ceil(n);
+
+            totalNode.textContent = `${formatSyp(total)} ل.س`;
+            if (countNode) {
+                countNode.textContent = checks.length.toString();
+            }
+            if (submitBtn && !submitBtn.hasAttribute('disabled')) {
+                submitBtn.disabled = checks.length === 0;
+            }
+            if (validationNode && checks.length > 0) {
+                validationNode.style.display = 'none';
+            }
+            if (subtotalNode) {
+                const transport = Number(subtotalNode.dataset.transport || 0);
+                const subtotal = total + (Number.isNaN(transport) ? 0 : transport);
+                subtotalNode.textContent = `${formatSyp(subtotal)} ل.س`;
+
+                if (commissionNode) {
+                    const mode = Number(commissionNode.dataset.commissionMode || 2);
+                    const value = Number(commissionNode.dataset.commissionValue || 0);
+                    let commission = mode === 1
+                        ? ceilSyp(subtotal * (value / 100))
+                        : ceilSyp(value);
+                    if (Number.isNaN(commission) || commission < 0) commission = 0;
+                    commissionNode.textContent = `${formatSyp(commission)} ل.س`;
+
+                    if (grossNode) {
+                        const gross = Math.max(0, subtotal + commission);
+                        grossNode.textContent = `${formatSyp(gross)} ل.س`;
+                    }
+
+                    if (netNode) {
+                        const net = Math.max(0, subtotal);
+                        netNode.textContent = `${formatSyp(net)} ل.س`;
+                    }
+                }
+            }
+        }
+
+        document.addEventListener('change', function (e) {
+            if (e.target && e.target.matches('input[name="selectedMaintenanceTypes"]')) {
+                updateSelectedServicesLiveTotal();
+            }
+        });
+
+        updateSelectedServicesLiveTotal();
+    </script>
+}
+

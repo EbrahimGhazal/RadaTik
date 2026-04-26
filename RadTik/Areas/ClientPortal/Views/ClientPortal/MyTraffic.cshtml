@@ -1,0 +1,111 @@
+@{
+    ViewData["Title"] = "معدلي المباشر";
+    var clientName = ViewBag.ClientName as string ?? "—";
+    var userName = ViewBag.ClientUserName as string ?? "—";
+    var serverName = ViewBag.ServerName as string ?? "—";
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+            <h4 class="mb-1">@ViewData["Title"]</h4>
+            <p class="text-muted mb-0">هذه الصفحة تعرض معدل اتصالك أنت فقط بشكل مباشر.</p>
+        </div>
+        <a asp-route="clientPortal-actions" asp-route-action="Index" class="btn btn-outline-secondary btn-sm rounded-3">
+            <i class="fas fa-arrow-right me-1"></i> لوحة التحكم
+        </a>
+    </div>
+
+    <div id="client-traffic-alert" class="alert alert-danger d-none" role="alert"></div>
+    <div id="client-traffic-warn" class="alert alert-warning" role="alert">
+        تنبيه: كل مرة تبدأ الاختبار سيتم حسم <strong>50 ل.س جديدة</strong> من رصيدك. مدة الاختبار 10 ثوانٍ، ويتكرر كل 4 ساعات.
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-3">
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge text-bg-light border">العميل: <strong>@clientName</strong></span>
+                <span class="badge text-bg-light border">اسم الاشتراك: <strong>@userName</strong></span>
+                <span class="badge text-bg-light border">الخادم: <strong>@serverName</strong></span>
+                <span id="client-traffic-updated" class="badge text-bg-light border">—</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                <button id="client-traffic-start-btn" type="button" class="btn btn-primary btn-sm rounded-3">
+                    بدء اختبار 10 ثوان
+                </button>
+                <span id="client-traffic-test-status" class="small text-muted">بانتظار حالة الاختبار…</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">معدل الاستقبال (RX)</div>
+                    <div id="client-traffic-rx-rate" class="fs-5 fw-bold text-primary">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">معدل الإرسال (TX)</div>
+                    <div id="client-traffic-tx-rate" class="fs-5 fw-bold text-success">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">إجمالي الاستقبال</div>
+                    <div id="client-traffic-rx-total" class="fs-6 fw-semibold">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">إجمالي الإرسال</div>
+                    <div id="client-traffic-tx-total" class="fs-6 fw-semibold">—</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-body-tertiary">
+            <strong>اتجاه المعدل المباشر</strong>
+            <small class="text-muted ms-2">(آخر 24 عينة)</small>
+        </div>
+        <div class="card-body">
+            <div style="height: 290px;">
+                <canvas id="client-traffic-chart" aria-label="مخطط معدل RX/TX"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-body-tertiary">
+            <strong>تفاصيل الاتصال</strong>
+        </div>
+        <div class="card-body">
+            <div class="row g-2 small text-muted">
+                <div class="col-md-4">الحالة: <span id="client-traffic-status" class="fw-semibold text-dark">—</span></div>
+                <div class="col-md-4">الـ uptime: <span id="client-traffic-uptime" class="fw-semibold text-dark">—</span></div>
+                <div class="col-md-4">العنوان: <span id="client-traffic-address" class="fw-semibold text-dark">—</span></div>
+                <div class="col-md-4">MAC: <span id="client-traffic-mac" class="fw-semibold text-dark">—</span></div>
+                <div class="col-md-4">حزم RX: <span id="client-traffic-rx-packets" class="fw-semibold text-dark">—</span></div>
+                <div class="col-md-4">حزم TX: <span id="client-traffic-tx-packets" class="fw-semibold text-dark">—</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+    <script src="~/js/client-my-traffic.js" asp-append-version="true"></script>
+    <script>
+        window.initClientMyTraffic();
+    </script>
+}

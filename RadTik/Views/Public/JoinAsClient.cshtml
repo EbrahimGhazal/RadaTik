@@ -1,0 +1,382 @@
+@model RadTik.Models.JoinRequest
+
+@{
+    ViewData["Title"] = "الاشتراك كعميل";
+    Layout = "~/Views/Shared/_PublicLayout.cshtml";
+    var profiles = ViewBag.Profiles as List<RadTik.Models.Profile> ?? new List<RadTik.Models.Profile>();
+    var selectedProfileId = Context.Request.Query["profileId"].ToString();
+}
+
+<style>
+    .page-hero {
+        background: var(--gradient-hero);
+        padding: 150px 0 100px;
+        text-align: center;
+        color: white;
+    }
+
+    .page-hero-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 30px;
+    }
+
+    .page-hero-title {
+        font-size: 48px;
+        font-weight: 800;
+        margin-bottom: 20px;
+    }
+
+    .page-hero-desc {
+        font-size: 20px;
+        color: rgba(255,255,255,0.8);
+    }
+
+    .join-section {
+        padding: 80px 0;
+        background: var(--light);
+    }
+
+    .join-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 30px;
+    }
+
+    .join-card {
+        background: white;
+        border-radius: 20px;
+        padding: 50px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+
+    .join-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .join-header-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, rgba(0, 102, 204, 0.1) 0%, rgba(0, 200, 83, 0.1) 100%);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 36px;
+        color: var(--primary);
+    }
+
+    .join-header h3 {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 10px;
+    }
+
+    .join-header p {
+        color: var(--gray);
+    }
+
+    .form-section {
+        margin-bottom: 35px;
+        padding-bottom: 35px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .form-section:last-of-type {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .form-section-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .form-section-title i {
+        color: var(--primary);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: var(--dark);
+        margin-bottom: 10px;
+        font-size: 15px;
+    }
+
+    .form-label.required::after {
+        content: ' *';
+        color: #dc3545;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 16px 20px;
+        border: 2px solid #eee;
+        border-radius: 12px;
+        font-size: 16px;
+        font-family: 'Tajawal', sans-serif;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.1);
+    }
+
+    select.form-control {
+        cursor: pointer;
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .text-danger {
+        color: #dc3545;
+        font-size: 13px;
+        margin-top: 5px;
+        display: block;
+    }
+
+    .validation-summary {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 25px;
+        color: #721c24;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+    }
+
+    .form-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 18px 40px;
+        border-radius: 12px;
+        font-size: 17px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-family: 'Tajawal', sans-serif;
+        text-decoration: none;
+        border: none;
+    }
+
+    .form-btn-primary {
+        background: var(--gradient-primary);
+        color: white;
+    }
+
+    .form-btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0, 102, 204, 0.3);
+    }
+
+    .form-btn-secondary {
+        background: var(--light);
+        color: var(--dark);
+    }
+
+    .form-btn-secondary:hover {
+        background: #e9ecef;
+    }
+
+    .join-employee-link {
+        text-align: center;
+        margin-top: 30px;
+        padding-top: 30px;
+        border-top: 1px solid #eee;
+    }
+
+    .join-employee-link p {
+        color: var(--gray);
+        margin-bottom: 10px;
+    }
+
+    .join-employee-link a {
+        color: var(--primary);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .join-employee-link a:hover {
+        text-decoration: underline;
+    }
+
+    @@media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .join-card {
+            padding: 30px;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .form-btn {
+            justify-content: center;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .page-hero-title {
+            font-size: 36px;
+        }
+    }
+</style>
+
+<section class="page-hero">
+    <div class="page-hero-container">
+        <h1 class="page-hero-title">الاشتراك كعميل</h1>
+        <p class="page-hero-desc">انضم إلى آلاف العملاء السعداء واستمتع بأفضل خدمات الإنترنت</p>
+    </div>
+</section>
+
+<section class="join-section">
+    <div class="join-container">
+        <div class="join-card">
+            <div class="join-header">
+                <div class="join-header-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h3>نموذج طلب الاشتراك</h3>
+                <p>يرجى تعبئة البيانات التالية وسيتم التواصل معك في أقرب وقت</p>
+            </div>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+            }
+
+            <form asp-action="JoinAsClient" method="post">
+                <input type="hidden" asp-for="RequestType" value="1" />
+
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <i class="fas fa-user"></i>
+                        المعلومات الشخصية
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label asp-for="FullName" class="form-label required">الاسم الكامل</label>
+                            <input asp-for="FullName" class="form-control" placeholder="أدخل اسمك الكامل" />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="NationalId" class="form-label">رقم الهوية</label>
+                            <input asp-for="NationalId" class="form-control" placeholder="أدخل رقم الهوية" />
+                            <span asp-validation-for="NationalId" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label asp-for="Email" class="form-label required">البريد الإلكتروني</label>
+                            <input asp-for="Email" class="form-control" placeholder="example@email.com" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="PhoneNumber" class="form-label required">رقم الهاتف</label>
+                            <input asp-for="PhoneNumber" class="form-control" placeholder="+963 XX XXX XXXX" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Address" class="form-label">العنوان الكامل</label>
+                        <input asp-for="Address" class="form-control" placeholder="المدينة - الحي - الشارع" />
+                        <span asp-validation-for="Address" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <i class="fas fa-wifi"></i>
+                        الباقة المطلوبة
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="RequestedProfileId" class="form-label">اختر الباقة</label>
+                        <select asp-for="RequestedProfileId" class="form-control">
+                            <option value="">-- اختر الباقة المناسبة --</option>
+                            @foreach (var profile in profiles)
+                            {
+                                var isSelected = selectedProfileId == profile.Id.ToString();
+                                <option value="@profile.Id" selected="@isSelected">
+                                    @profile.Name - @profile.DownloadSpeedDisplay - @profile.PriceWithVAT.ToString("N0") ل.س/شهرياً
+                                </option>
+                            }
+                        </select>
+                        <span asp-validation-for="RequestedProfileId" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <i class="fas fa-comment-dots"></i>
+                        ملاحظات إضافية
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Notes" class="form-label">ملاحظات</label>
+                        <textarea asp-for="Notes" class="form-control" placeholder="أي ملاحظات أو طلبات إضافية..."></textarea>
+                        <span asp-validation-for="Notes" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="form-btn form-btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                        إرسال الطلب
+                    </button>
+                    <a href="@Url.Action("Packages", "Public")" class="form-btn form-btn-secondary">
+                        <i class="fas fa-th-list"></i>
+                        عرض الباقات
+                    </a>
+                </div>
+            </form>
+
+            <div class="join-employee-link">
+                <p>هل تبحث عن فرصة عمل؟</p>
+                <a href="@Url.Action("JoinAsEmployee", "Public")">
+                    <i class="fas fa-briefcase"></i>
+                    انضم إلينا كموظف
+                </a>
+            </div>
+        </div>
+    </div>
+</section>

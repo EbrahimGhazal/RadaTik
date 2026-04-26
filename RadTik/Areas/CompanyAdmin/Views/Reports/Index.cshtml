@@ -1,0 +1,108 @@
+@using RadTik.Helpers
+@using RadTik.ViewModels.CompanyAdmin
+@{
+    ViewData["Title"] = "التقارير";
+    var exportPrice = ViewBag.ExportPriceSyp as decimal?;
+}
+
+<div class="page-header">
+    <div class="page-header-content d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h1 class="page-title mb-0">
+            <i class="fas fa-file-alt"></i>
+            @ViewData["Title"]
+        </h1>
+        <a class="btn btn-outline-primary btn-sm" asp-action="Templates">
+            <i class="fas fa-file-code"></i> قوالب التقارير (ثوابت ومتغيرات)
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0"><i class="fas fa-filter"></i> إعدادات التقرير</h3>
+    </div>
+    <div class="card-body">
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
+
+        <div class="alert alert-info">
+            <strong>التسعير:</strong>
+            @if (exportPrice.HasValue)
+            {
+                <span>يُخصم من محفظة الشركة <strong>@exportPrice.Value.ToString("N2")</strong> ل.س.ج عن كل عملية عرض أو تصدير (حسب تسعير <code>ReportsExport</code> من مدير النظام).</span>
+            }
+            else
+            {
+                <span>لم يُعرّف بعد سعر التصدير من مدير النظام (<code>ReportsExport</code>). اطلب تفعيل خدمة التقارير ثم يضيف المدير سعر التوليد.</span>
+            }
+        </div>
+
+        <form id="reportsForm" method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+
+            <div class="col-md-6">
+                <label class="form-label">نوع التقرير</label>
+                <select name="Kind" class="form-select" required>
+                    <option value="@((int)CompanyReportKind.Subscribers)">تقارير المشتركين</option>
+                    <option value="@((int)CompanyReportKind.Sectors)">تقارير المرسلات (القطاعات)</option>
+                    <option value="@((int)CompanyReportKind.Receivers)">تقارير المستقبلات</option>
+                    <option value="@((int)CompanyReportKind.Servers)">تقارير السيرفرات (MikroTik)</option>
+                    <option value="@((int)CompanyReportKind.Subcontractors)">تقارير المتعاقدين بالباطن (نقاط التحصيل)</option>
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">الفترة الزمنية</label>
+                <select name="Period" id="periodSelect" class="form-select" required>
+                    <option value="@((int)CompanyReportPeriodPreset.Today)">اليوم</option>
+                    <option value="@((int)CompanyReportPeriodPreset.Week)">أسبوع (آخر 7 أيام)</option>
+                    <option value="@((int)CompanyReportPeriodPreset.Month)">الشهر الحالي</option>
+                    <option value="@((int)CompanyReportPeriodPreset.ThreeMonths)">3 أشهر</option>
+                    <option value="@((int)CompanyReportPeriodPreset.SixMonths)">6 أشهر</option>
+                    <option value="@((int)CompanyReportPeriodPreset.Year)">سنة (من بداية العام)</option>
+                    <option value="@((int)CompanyReportPeriodPreset.Custom)">بين تاريخين</option>
+                </select>
+            </div>
+
+            <div class="col-md-6 custom-range d-none" id="customFromWrap">
+                <label class="form-label">من تاريخ</label>
+                <input type="datetime-local" name="CustomFrom" class="form-control" />
+            </div>
+            <div class="col-md-6 custom-range d-none" id="customToWrap">
+                <label class="form-label">إلى تاريخ</label>
+                <input type="datetime-local" name="CustomTo" class="form-control" />
+            </div>
+
+            <div class="col-12 d-flex flex-wrap gap-2 mt-2">
+                <button type="submit" class="btn btn-primary" formaction="@Url.Action("Print")">
+                    <i class="fas fa-print"></i> عرض وطباعة
+                </button>
+                <button type="submit" class="btn btn-success" formaction="@Url.Action("ExportExcel")">
+                    <i class="fas fa-file-excel"></i> تصدير Excel
+                </button>
+                <a class="btn btn-outline-secondary" asp-route="networkManager-dashboard">رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var sel = document.getElementById('periodSelect');
+            function syncCustom() {
+                var v = sel && parseInt(sel.value, 10);
+                var show = v === @((int)CompanyReportPeriodPreset.Custom);
+                document.querySelectorAll('.custom-range').forEach(function (el) {
+                    el.classList.toggle('d-none', !show);
+                });
+            }
+            if (sel) {
+                sel.addEventListener('change', syncCustom);
+                syncCustom();
+            }
+        })();
+    </script>
+}

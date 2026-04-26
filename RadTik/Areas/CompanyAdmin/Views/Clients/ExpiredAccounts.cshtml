@@ -1,0 +1,383 @@
+@model IEnumerable<RadTik.Models.Client>
+@{
+    ViewData["Title"] = "الاشتراكات المنتهية";
+    var totalExpired = ViewBag.TotalExpired ?? 0;
+    var activeExpired = ViewBag.ActiveExpired ?? 0;
+    var disabledExpired = ViewBag.DisabledExpired ?? 0;
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-header-content">
+        <h1 class="page-title">
+            <i class="fas fa-exclamation-triangle text-danger"></i>
+            @ViewData["Title"]
+        </h1>
+        <div class="page-actions">
+            <a asp-action="ExpiringIn3Days" class="btn btn-warning btn-sm">
+                <i class="fas fa-clock"></i> تنتهي خلال 3 أيام
+            </a>
+            <a asp-action="CheckExpiredAccounts" class="btn btn-sm" style="background: var(--danger); color: white;"
+               onclick="return confirm('هل تريد فحص وإيقاف الحسابات المنتهية؟')">
+                <i class="fas fa-sync-alt"></i> فحص وإيقاف
+            </a>
+            <a asp-action="Index" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-right"></i> العودة
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Success"]</div>
+        <button class="alert-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Error"]</div>
+        <button class="alert-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+    </div>
+}
+
+<!-- Compact Statistics Bar -->
+<div class="stats-bar">
+    <div class="stat-item stat-danger">
+        <div class="stat-icon-mini"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalExpired</span>
+            <span class="stat-label">إجمالي المنتهية</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-warning">
+        <div class="stat-icon-mini"><i class="fas fa-user-times"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@activeExpired</span>
+            <span class="stat-label">منتهية ونشطة</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-secondary">
+        <div class="stat-icon-mini"><i class="fas fa-ban"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@disabledExpired</span>
+            <span class="stat-label">منتهية ومعطلة</span>
+        </div>
+    </div>
+</div>
+
+<!-- Expired Accounts Table -->
+<div class="card">
+    <div class="card-header" style="background: linear-gradient(135deg, var(--danger) 0%, #C62828 100%); color: white;">
+        <h3 class="card-title" style="color: white;">
+            <i class="fas fa-list"></i>
+            قائمة الاشتراكات المنتهية
+        </h3>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        @if (Model.Any())
+        {
+            <div class="table-container">
+                <table class="table" id="expiredTable">
+                    <thead>
+                        <tr>
+                            <th>العميل</th>
+                            <th>اسم المستخدم</th>
+                            <th>تاريخ الانتهاء</th>
+                            <th>منتهي منذ</th>
+                            <th>الحالة</th>
+                            <th>الباقة</th>
+                            <th>إجراءات التمديد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var client in Model)
+                        {
+                            var daysExpired = (DateTime.Now - client.AccountExpirationDate!.Value).Days;
+                            <tr class="@(client.IsActive ? "row-danger" : "")">
+                                <td>
+                                    <div class="client-info">
+                                        <div class="client-avatar offline">
+                                            @(client.Name?.Substring(0, 1).ToUpper() ?? "?")
+                                        </div>
+                                        <div>
+                                            <div class="client-name">@client.Name</div>
+                                            @if (!string.IsNullOrEmpty(client.PhoneNumber))
+                                            {
+                                                <div class="client-sid">@client.PhoneNumber</div>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><code>@client.UserName</code></td>
+                                <td>
+                                    <span class="badge badge-danger">
+                                        @client.AccountExpirationDate.Value.ToString("yyyy/MM/dd")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="days-badge days-expired">
+                                        <i class="fas fa-calendar-times"></i>
+                                        @daysExpired يوم
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (client.IsActive)
+                                    {
+                                        <span class="status-badge status-danger">
+                                            <i class="fas fa-exclamation-triangle"></i> نشط!
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-inactive">
+                                            <i class="fas fa-ban"></i> معطل
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (client.Profile != null)
+                                    {
+                                        <span class="badge badge-info">@client.Profile.Name</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a asp-action="Details" asp-route-id="@client.Id" class="btn btn-sm btn-icon btn-info" title="تفاصيل">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        @if (User.IsInRole("SystemAdministrator"))
+                                        {
+                                            <form asp-action="QuickExtend" method="post" style="display: inline;">
+                                                <input type="hidden" name="id" value="@client.Id" />
+                                                <input type="hidden" name="days" value="3" />
+                                                <button type="submit" class="btn btn-sm btn-warning" title="تمديد 3 أيام"
+                                                        onclick="return confirm('تمديد 3 أيام للعميل @client.Name؟')">
+                                                    <i class="fas fa-plus"></i> 3 أيام
+                                                </button>
+                                            </form>
+                                            <form asp-action="RenewTo8thNextMonth" method="post" style="display: inline;">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@client.Id" />
+                                                <button type="submit" class="btn btn-sm btn-success" title="تمديد لـ 8 الشهر القادم"
+                                                        onclick="return confirm('تمديد للعميل @client.Name حتى 8 الشهر القادم؟')">
+                                                    <i class="fas fa-calendar-check"></i> 8 الشهر
+                                                </button>
+                                            </form>
+                                            <a asp-action="RenewSubscription" asp-route-id="@client.Id" class="btn btn-sm btn-primary" title="تجديد مخصص">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <div class="empty-icon text-success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h3>لا توجد اشتراكات منتهية</h3>
+                <p class="text-muted">جميع الاشتراكات سارية المفعول</p>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .page-header {
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .page-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--spacing-md);
+    }
+    
+    .page-title {
+        font-size: var(--font-2xl);
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .page-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+    }
+
+    .stats-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-md);
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: var(--spacing-lg);
+        align-items: center;
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-sm);
+        background: var(--bg-hover);
+        min-width: 120px;
+    }
+    
+    .stat-icon-mini {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: white;
+    }
+    
+    .stat-data {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+    }
+    
+    .stat-number {
+        font-size: var(--font-xl);
+        font-weight: 700;
+    }
+    
+    .stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+    
+    .stat-danger .stat-icon-mini { background: var(--danger); }
+    .stat-danger .stat-number { color: var(--danger); }
+    
+    .stat-warning .stat-icon-mini { background: var(--warning); }
+    .stat-warning .stat-number { color: var(--warning); }
+    
+    .stat-secondary .stat-icon-mini { background: var(--text-muted); }
+    .stat-secondary .stat-number { color: var(--text-muted); }
+
+    .client-info {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+    
+    .client-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: white;
+        font-size: var(--font-sm);
+    }
+    
+    .client-avatar.offline {
+        background: var(--text-muted);
+    }
+    
+    .client-name {
+        font-weight: 600;
+        font-size: var(--font-sm);
+    }
+    
+    .client-sid {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    .days-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .days-expired {
+        background: rgba(244, 67, 54, 0.15);
+        color: var(--danger);
+    }
+
+    .row-danger {
+        background: rgba(244, 67, 54, 0.05) !important;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+    
+    .btn-icon {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+    }
+    
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    @@keyframes pulse-danger {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+</style>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#expiredTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+                },
+                order: [[3, 'desc']],
+                pageLength: 25
+            });
+        });
+    </script>
+}

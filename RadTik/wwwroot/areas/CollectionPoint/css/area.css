@@ -1,0 +1,7 @@
+/* CollectionPoint Area CSS */
+
+/* Preserve previous sidebar theme (CollectionPoint) */
+.sidebar {
+    background: linear-gradient(180deg, #064E3B 0%, #0F766E 55%, #064E3B 100%) !important;
+}
+

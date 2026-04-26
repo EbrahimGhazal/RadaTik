@@ -1,0 +1,190 @@
+@model RadTik.ViewModels.Account.ProfileViewModel
+@{
+    ViewData["Title"] = "إعدادات الحساب";
+    var initial =
+        !string.IsNullOrWhiteSpace(Model.FullName) ? Model.FullName.Trim().Substring(0, 1).ToUpper()
+        : !string.IsNullOrWhiteSpace(Model.UserName) ? Model.UserName.Trim().Substring(0, 1).ToUpper()
+        : "م";
+    var heroChips = new List<(string IconClass, string Text)>
+    {
+        ("fas fa-user-shield", "صلاحية: مدير الشركة"),
+        ("fas fa-check-circle", "الحساب نشط")
+    };
+}
+
+<partial name="_ProfileHero"
+         view-data='new ViewDataDictionary(ViewData)
+         {
+             ["HeroTitle"] = ViewData["Title"],
+             ["HeroSubtitle"] = "تحديث بياناتك الشخصية وإدارة معلومات الحساب من مكان واحد.",
+             ["HeroIconClass"] = "fas fa-user-cog",
+             ["HeroChips"] = heroChips
+         }' />
+
+<partial name="_TempDataAlerts" />
+
+<div class="row g-3">
+    <div class="col-12 col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mx-auto mb-3 d-flex align-items-center justify-content-center"
+                     style="width:96px;height:96px;border-radius:24px;background:var(--primary-gradient);color:#fff;font-weight:800;font-size:2.5rem;">
+                    @initial
+                </div>
+                <div class="fw-bold fs-5">@(string.IsNullOrWhiteSpace(Model.FullName) ? "مدير الشركة" : Model.FullName)</div>
+                <div class="text-muted small">@@@Model.UserName</div>
+                <hr />
+                <div class="text-start">
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="text-muted">الدور</span>
+                        <span class="badge bg-primary">مدير الشركة</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="text-muted">عدد الأدوار</span>
+                        <span class="fw-semibold">@((Model.Roles?.Count) ?? 0)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-0 py-3">
+                <h5 class="mb-0"><i class="fas fa-id-card text-primary me-2"></i>البيانات الشخصية</h5>
+            </div>
+            <div class="card-body">
+                <form asp-area="CompanyAdmin" asp-controller="Account" asp-action="UpdateProfile" method="post" enctype="multipart/form-data" class="mb-0" id="companyAdminProfileForm">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">اسم المستخدم</label>
+                            <input class="form-control" value="@Model.UserName" disabled />
+                            <div class="form-text">لا يمكن تغيير اسم المستخدم.</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">الاسم الكامل</label>
+                            <input class="form-control" value="@Model.FullName" disabled />
+                            <div class="form-text">لا يمكن تعديل الاسم الكامل من هذه الصفحة.</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control profile-editable" readonly />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label"></label>
+                            <input asp-for="PhoneNumber" class="form-control profile-editable" readonly />
+                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="ShamCashQrCodeFile" class="form-label"></label>
+                            <input asp-for="ShamCashQrCodeFile" type="file" class="form-control profile-editable-file" accept="image/*" disabled data-max-bytes="3145728" data-size-message="حجم صورة QR يجب ألا يتجاوز 3 ميغابايت." />
+                            <span asp-validation-for="ShamCashQrCodeFile" class="text-danger"></span>
+                            <div class="form-text">الحد الأقصى لحجم صورة QR: 3 ميغابايت.</div>
+
+                            @if (!string.IsNullOrWhiteSpace(Model.ShamCashQrCodePath))
+                            {
+                                <div class="mt-2">
+                                    <img src="@Model.ShamCashQrCodePath" alt="QR شام كاش" class="img-thumbnail" style="max-width: 220px;" />
+                                </div>
+                                <div class="form-check mt-2">
+                                    <input asp-for="RemoveShamCashQrCode" class="form-check-input profile-editable-check" disabled />
+                                    <label asp-for="RemoveShamCashQrCode" class="form-check-label"></label>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="form-text">لم يتم إضافة QR شام كاش بعد.</div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="mt-3 d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-outline-primary" id="companyAdminEditProfileBtn">
+                            <i class="fas fa-pen me-1"></i> تعديل البيانات
+                        </button>
+                        <button type="submit" class="btn btn-primary d-none" id="companyAdminSaveProfileBtn">
+                            <i class="fas fa-save me-1"></i> حفظ التغييرات
+                        </button>
+                        <a asp-area="CompanyAdmin" asp-controller="Account" asp-action="Profile" class="btn btn-outline-secondary d-none" id="companyAdminCancelEditBtn">
+                            <i class="fas fa-undo me-1"></i> تراجع
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-header bg-transparent border-0 py-3">
+                <h5 class="mb-0"><i class="fas fa-key text-primary me-2"></i>تغيير كلمة المرور</h5>
+            </div>
+            <div class="card-body">
+                <form asp-area="CompanyAdmin" asp-controller="Account" asp-action="ChangePassword" method="post" class="mb-0">
+                    @Html.AntiForgeryToken()
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">كلمة المرور الحالية</label>
+                            <input type="password" name="CurrentPassword" class="form-control" autocomplete="current-password" />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">كلمة المرور الجديدة</label>
+                            <input type="password" name="NewPassword" class="form-control" autocomplete="new-password" />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">تأكيد كلمة المرور الجديدة</label>
+                            <input type="password" name="ConfirmNewPassword" class="form-control" autocomplete="new-password" />
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="fas fa-check me-1"></i> تغيير كلمة المرور
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <partial name="_ProfileEditToggleScript"
+             view-data='new ViewDataDictionary(ViewData)
+             {
+                 ["FormId"] = "companyAdminProfileForm",
+                 ["EditButtonId"] = "companyAdminEditProfileBtn",
+                 ["SaveButtonId"] = "companyAdminSaveProfileBtn",
+                 ["CancelButtonId"] = "companyAdminCancelEditBtn",
+                 ["ReadonlySelector"] = ".profile-editable",
+                 ["DisabledSelector"] = ".profile-editable-file, .profile-editable-check"
+             }' />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var qrInput = document.getElementById('ShamCashQrCodeFile');
+            if (!qrInput) return;
+
+            var maxBytes = Number(qrInput.getAttribute('data-max-bytes') || (3 * 1024 * 1024));
+            var sizeMessage = qrInput.getAttribute('data-size-message') || 'حجم الصورة يجب ألا يتجاوز 3 ميغابايت.';
+            qrInput.addEventListener('change', function () {
+                var file = qrInput.files && qrInput.files.length ? qrInput.files[0] : null;
+                if (!file) {
+                    qrInput.setCustomValidity('');
+                    return;
+                }
+
+                if (file.size > maxBytes) {
+                    qrInput.value = '';
+                    qrInput.setCustomValidity(sizeMessage);
+                    qrInput.reportValidity();
+                } else {
+                    qrInput.setCustomValidity('');
+                }
+            });
+        });
+    </script>
+}

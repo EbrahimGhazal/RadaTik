@@ -1,0 +1,138 @@
+@model RadTik.Models.MikroTikServer
+
+@{
+    ViewData["Title"] = "إضافة خادم مايكروتك جديد";
+    var isFirstServerFree = (ViewBag.ServerPricingIsFirstFree as bool?) ?? true;
+    var companyName = ViewBag.ServerPricingCompanyName as string ?? "غير محدد";
+    var totalServers = (ViewBag.ServerPricingTotalServers as int?) ?? 0;
+    var hasInitialPricing = (ViewBag.ServerPricingHasInitial as bool?) ?? false;
+    var hasRenewalPricing = (ViewBag.ServerPricingHasRenewal as bool?) ?? false;
+    var initialPriceSyp = (ViewBag.ServerPricingInitialSyp as decimal?) ?? 0m;
+    var renewalPriceSyp = (ViewBag.ServerPricingRenewalSyp as decimal?) ?? 0m;
+    var renewalPeriodLabel = ViewBag.ServerPricingRenewalPeriodLabel as string ?? "غير محدد";
+    var requiresExplicitNetworkSelection = (ViewBag.RequiresExplicitNetworkSelection as bool?) ?? false;
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            @if (isFirstServerFree)
+            {
+                <div class="alert alert-success">
+                    <i class="fas fa-gift"></i>
+                    أول سيرفر للشركة <strong>@companyName</strong> مجاني.
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    <i class="fas fa-coins"></i>
+                    سيتم احتساب هذا السيرفر كسيرفر إضافي (العدد الحالي: @totalServers).
+                    <div class="small mt-2">
+                        <div>سعر الإضافة الآن: <strong>@initialPriceSyp.ToString("N2") ل.س.ج</strong></div>
+                        <div>التجديد الدوري: <strong>@renewalPeriodLabel</strong></div>
+                        <div>سعر التجديد لكل سيرفر إضافي: <strong>@renewalPriceSyp.ToString("N2") ل.س.ج</strong></div>
+                    </div>
+                </div>
+            }
+
+            @if (!isFirstServerFree && (!hasInitialPricing || !hasRenewalPricing))
+            {
+                <div class="alert alert-danger">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    إعدادات تسعير/تجديد السيرفرات غير مكتملة من مدير النظام (تبويب الأسعار والتجديد).
+                </div>
+            }
+
+            @if (requiresExplicitNetworkSelection)
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-diagram-project"></i>
+                    لديك أكثر من شبكة (رئيسية/فرعية). الرجاء تحديد الشبكة الهدف قبل حفظ السيرفر.
+                </div>
+            }
+
+            <div class="form-group mb-3">
+                <label asp-for="Name" class="control-label">اسم الخادم</label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Host" class="control-label">اسم المضيف (IP)</label>
+                <input asp-for="Host" class="form-control" />
+                <span asp-validation-for="Host" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Port" class="control-label">المنفذ</label>
+                <input asp-for="Port" class="form-control" value="8728" />
+                <span asp-validation-for="Port" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="User" class="control-label">اسم المستخدم</label>
+                <input asp-for="User" class="form-control" />
+                <span asp-validation-for="User" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Pass" class="control-label">كلمة المرور</label>
+                <input asp-for="Pass" type="password" class="form-control" />
+                <span asp-validation-for="Pass" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="NetworkId" class="control-label">الشبكة <span class="text-danger">*</span></label>
+                <select asp-for="NetworkId" class="form-control" asp-items="ViewBag.Networks" required>
+                    <option value="">-- اختر الشبكة --</option>
+                </select>
+                <span asp-validation-for="NetworkId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Notes" class="control-label">ملاحظات</label>
+                <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="UserID" class="control-label">معرف المستخدم (اختياري)</label>
+                <input asp-for="UserID" class="form-control" />
+                <span asp-validation-for="UserID" class="text-danger"></span>
+            </div>
+
+            <input type="hidden" asp-for="IsActive" value="true" />
+
+            <div class="form-group">
+                <input type="submit" value="حفظ" class="btn btn-success" />
+                @if (isFirstServerFree)
+                {
+                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle d-inline-flex align-items-center px-3 ms-2">
+                        <i class="fas fa-gift me-1"></i>
+                        الخصم المتوقع الآن: مجاني (0.00 ل.س.ج)
+                    </span>
+                }
+                else if (hasInitialPricing)
+                {
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle d-inline-flex align-items-center px-3 ms-2">
+                        <i class="fas fa-wallet me-1"></i>
+                        الخصم المتوقع الآن: @initialPriceSyp.ToString("N2") ل.س.ج
+                    </span>
+                }
+                <a asp-action="Index" class="btn btn-secondary">العودة للقائمة</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -1,0 +1,126 @@
+@using RadTik.Models
+@using RadTik.Helpers
+@model IReadOnlyList<NetworkServiceRequest>
+
+@{
+    ViewData["Title"] = "طلبات موافقات الموظفين";
+    int? focusRequestId = (int?)ViewBag.FocusRequestId;
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">
+            <i class="fas fa-user-check"></i>
+            طلبات الموافقات المعلّقة
+        </h3>
+        <span class="badge bg-warning text-dark">@Model.Count</span>
+    </div>
+    <div class="card-body">
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success">@TempData["Success"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
+        @if (TempData["Info"] != null)
+        {
+            <div class="alert alert-info">@TempData["Info"]</div>
+        }
+
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>الخدمة</th>
+                        <th>الموظف</th>
+                        <th>التفاصيل</th>
+                        <th>الحسم المتوقع</th>
+                        <th style="width: 330px;">الإجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">لا توجد طلبات معلّقة حالياً.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            EmployeeApprovalRequestHelper.TryParse(item.Notes, out var kind, out var entityId, out _);
+                            if (entityId <= 0 &&
+                                string.Equals(item.FeatureKey, FeatureKeys.Sectors, StringComparison.OrdinalIgnoreCase))
+                            {
+                                RadTik.Services.PricingPolicies.SenderPricingOrchestrator.TryParsePendingSectorMeta(item.Notes, out entityId);
+                            }
+                            var actionLabel = kind switch
+                            {
+                                EmployeeApprovalRequestKind.ReceiverCreate => "إضافة مستقبل",
+                                EmployeeApprovalRequestKind.ReceiverEdit => "تعديل مستقبل",
+                                EmployeeApprovalRequestKind.ClientCreate => "إضافة عميل",
+                                EmployeeApprovalRequestKind.ClientEdit => "تعديل عميل",
+                                _ when string.Equals(item.FeatureKey, FeatureKeys.Sectors, StringComparison.OrdinalIgnoreCase) => "إضافة مرسل",
+                                _ => item.FeatureKey
+                            };
+
+                            var isFocused = focusRequestId.HasValue && item.Id == focusRequestId.Value;
+                            <tr id="approval-request-@item.Id" class="@(isFocused ? "table-warning" : string.Empty)">
+                                <td>@item.RequestedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td>@actionLabel</td>
+                                <td>@(item.RequestedByUser?.FullName ?? item.RequestedByUser?.UserName ?? item.RequestedByUserId)</td>
+                                <td><code>#@entityId</code></td>
+                                <td>
+                                    @if (item.AmountSYP > 0m)
+                                    {
+                                        <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                                            <i class="fas fa-wallet me-1"></i>@item.AmountSYP.ToString("N2") ل.س.ج
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">
+                                            <i class="fas fa-minus-circle me-1"></i>لا يوجد
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column gap-2">
+                                        <form asp-area="CompanyAdmin" asp-controller="EmployeeServiceApprovals" asp-action="Approve" method="post" class="d-flex gap-2">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="text" name="notes" class="form-control form-control-sm" placeholder="ملاحظة اعتماد (اختياري)" />
+                                            <button type="submit" class="btn btn-sm btn-success">اعتماد</button>
+                                        </form>
+                                        <form asp-area="CompanyAdmin" asp-controller="EmployeeServiceApprovals" asp-action="Reject" method="post" class="d-flex gap-2">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="text" name="notes" class="form-control form-control-sm" placeholder="سبب الرفض (اختياري)" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">رفض</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (focusRequestId.HasValue)
+{
+    <script>
+        (function () {
+            var row = document.getElementById('approval-request-@focusRequestId.Value');
+            if (!row) return;
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            row.classList.add('table-warning');
+        })();
+    </script>
+}

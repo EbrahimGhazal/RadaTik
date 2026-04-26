@@ -1,0 +1,347 @@
+@{
+    ViewData["Title"] = "إعدادات عقد الانضمام";
+    var availableVariables = ViewBag.AvailableVariables as IDictionary<string, string> ?? new Dictionary<string, string>();
+    var variableSyntaxHint = (string?)ViewBag.VariableSyntaxHint ?? "اكتب المتغير بهذا الشكل: {{VariableName}}";
+    var contractTitle = (string?)ViewBag.ContractTitle ?? "عقد انضمام إلى الشركة / الشبكة";
+    var recordNumber = (string?)ViewBag.RecordNumber ?? string.Empty;
+    var licenseNumber = (string?)ViewBag.LicenseNumber ?? string.Empty;
+    var contractBodyTemplate = (string?)ViewBag.ContractBodyTemplate ?? string.Empty;
+    var defaultContractBodyTemplate = (string?)ViewBag.DefaultContractBodyTemplate ?? string.Empty;
+    var previewHtml = (string?)ViewBag.PreviewHtml ?? string.Empty;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">
+        <i class="fas fa-file-signature text-primary"></i>
+        إعدادات عقد الانضمام
+    </h2>
+    <a asp-route="networkManager-clients" asp-route-action="Index" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-right"></i> العودة للعملاء
+    </a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-warning">
+        <div class="fw-bold mb-1">يرجى تصحيح الأخطاء قبل الحفظ:</div>
+        <div asp-validation-summary="All"></div>
+    </div>
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-pen"></i> تحرير القالب
+            </div>
+            <div class="card-body">
+                <form method="post" asp-route="networkManager-clients" asp-route-action="ContractTemplateSettings">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label">عنوان العقد</label>
+                        <input type="text" class="form-control" name="contractTitle" value="@contractTitle" required />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">رقم السجل</label>
+                            <input type="text" class="form-control" name="recordNumber" value="@recordNumber" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">رقم الترخيص</label>
+                            <input type="text" class="form-control" name="licenseNumber" value="@licenseNumber" />
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label">نص العقد (محرر بصري WYSIWYG)</label>
+                        <div class="editor-toolbar border rounded-top p-2 bg-light d-flex flex-wrap gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execCmd('bold')"><b>B</b></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execCmd('italic')"><i>I</i></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execCmd('underline')"><u>U</u></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execCmd('insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execCmd('insertOrderedList')"><i class="fas fa-list-ol"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execCmd('formatBlock','<p>')">فقرة</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execCmd('formatBlock','<h3>')">عنوان</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="execCmd('removeFormat')">إزالة تنسيق</button>
+                            <select id="variableSelect" class="form-select form-select-sm ms-2" style="width: 240px;" onchange="insertSelectedVariable()">
+                                <option value="">إدراج متغير...</option>
+                                @foreach (var item in availableVariables)
+                                {
+                                    <option value="@item.Key">@item.Key - @item.Value</option>
+                                }
+                            </select>
+                        </div>
+                        <div id="contractEditor" class="form-control rounded-0 rounded-bottom" contenteditable="true" style="min-height:360px; overflow:auto;">@Html.Raw(contractBodyTemplate)</div>
+                        <textarea id="contractBodyTemplate" class="form-control d-none" name="contractBodyTemplate" rows="16" required>@contractBodyTemplate</textarea>
+                        <small class="text-muted">@variableSyntaxHint</small>
+                        <div id="templateVariableWarning" class="alert alert-warning mt-2 d-none mb-0"></div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> حفظ الإعدادات
+                        </button>
+                        <button type="button" class="btn btn-outline-dark" onclick="syncEditorToTextarea()">
+                            <i class="fas fa-sync"></i> مزامنة النص
+                        </button>
+                    </div>
+                </form>
+                <form method="post" asp-route="networkManager-clients" asp-route-action="ResetContractTemplateToDefault" class="mt-2">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('سيتم استبدال نص القالب الحالي بالنص الافتراضي. متابعة؟');">
+                        <i class="fas fa-undo"></i> إعادة الضبط للنص الافتراضي
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-list"></i> المتغيرات المتاحة
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">استخدم أي متغير داخل النص كما هو مكتوب:</p>
+                <ul class="list-group">
+                    @foreach (var item in availableVariables)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <code>@item.Key</code>
+                            <span class="small">@item.Value</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light">
+        <i class="fas fa-eye"></i> معاينة تجريبية
+    </div>
+    <div class="card-body">
+        <div class="border rounded p-3" style="background:#fafafa;">
+            @Html.Raw(previewHtml)
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        .template-var-chip {
+            background: #e0f2fe;
+            color: #075985;
+            border: 1px solid #7dd3fc;
+            border-radius: 4px;
+            padding: 0 4px;
+            font-family: Consolas, "Courier New", monospace;
+            cursor: help;
+        }
+    </style>
+    <script>
+        const allowedVars = [
+            "@string.Join("|", availableVariables.Keys)"
+        ].join("").split("|").filter(Boolean);
+        const variableDescriptions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(availableVariables));
+
+        const defaultTemplateHtml = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(defaultContractBodyTemplate));
+
+        function execCmd(command, value) {
+            document.execCommand(command, false, value || null);
+            highlightVariablesInEditor();
+            syncEditorToTextarea();
+        }
+
+        function syncEditorToTextarea() {
+            const editor = document.getElementById("contractEditor");
+            const textarea = document.getElementById("contractBodyTemplate");
+            if (!editor || !textarea) return;
+            const clone = editor.cloneNode(true);
+            clone.querySelectorAll("span.template-var-chip").forEach(function (chip) {
+                chip.replaceWith(document.createTextNode(chip.textContent || ""));
+            });
+            textarea.value = clone.innerHTML;
+        }
+
+        function extractVariables(text) {
+            const matches = text.match(/\{\{[^{}]+\}\}/g) || [];
+            return Array.from(new Set(matches));
+        }
+
+        function validateTemplateVariables() {
+            syncEditorToTextarea();
+            const textarea = document.getElementById("contractBodyTemplate");
+            const warning = document.getElementById("templateVariableWarning");
+            if (!textarea || !warning) return true;
+
+            const vars = extractVariables(textarea.value || "");
+            const unknown = vars.filter(v => !allowedVars.includes(v));
+            if (unknown.length > 0) {
+                warning.classList.remove("d-none");
+                warning.innerHTML = "تحذير: يوجد متغيرات غير معرفة: <code>" + unknown.join("</code>, <code>") + "</code>";
+                return false;
+            }
+
+            warning.classList.add("d-none");
+            warning.innerHTML = "";
+            return true;
+        }
+
+        function insertVariableAtCursor(selected) {
+            if (!selected) return;
+            const editor = document.getElementById("contractEditor");
+            if (!editor) return;
+            editor.focus();
+            document.execCommand("insertText", false, selected);
+            highlightVariablesInEditor();
+            syncEditorToTextarea();
+            validateTemplateVariables();
+        }
+
+        function insertSelectedVariable() {
+            const select = document.getElementById("variableSelect");
+            if (!select) return;
+            const selected = select.value;
+            if (!selected) return;
+            insertVariableAtCursor(selected);
+            select.value = "";
+        }
+
+        function getCaretTextOffset(root) {
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return null;
+            const range = sel.getRangeAt(0);
+            const pre = range.cloneRange();
+            pre.selectNodeContents(root);
+            pre.setEnd(range.endContainer, range.endOffset);
+            return pre.toString().length;
+        }
+
+        function setCaretTextOffset(root, targetOffset) {
+            if (targetOffset == null) return;
+            const sel = window.getSelection();
+            if (!sel) return;
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+            let count = 0;
+            let node;
+            while ((node = walker.nextNode())) {
+                const len = (node.textContent || "").length;
+                if (count + len >= targetOffset) {
+                    const r = document.createRange();
+                    r.setStart(node, Math.max(0, targetOffset - count));
+                    r.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(r);
+                    return;
+                }
+                count += len;
+            }
+            const r = document.createRange();
+            r.selectNodeContents(root);
+            r.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(r);
+        }
+
+        function unwrapHighlightedVariables(editor) {
+            editor.querySelectorAll("span.template-var-chip").forEach(function (chip) {
+                chip.replaceWith(document.createTextNode(chip.textContent || ""));
+            });
+        }
+
+        function highlightVariablesInEditor() {
+            const editor = document.getElementById("contractEditor");
+            if (!editor) return;
+
+            const caretOffset = getCaretTextOffset(editor);
+            unwrapHighlightedVariables(editor);
+
+            const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+            const nodes = [];
+            let n;
+            while ((n = walker.nextNode())) {
+                nodes.push(n);
+            }
+
+            const regex = /\{\{[^{}]+\}\}/g;
+            nodes.forEach(function (textNode) {
+                const text = textNode.textContent || "";
+                regex.lastIndex = 0;
+                let m;
+                let last = 0;
+                let found = false;
+                const frag = document.createDocumentFragment();
+                while ((m = regex.exec(text)) !== null) {
+                    found = true;
+                    if (m.index > last) {
+                        frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+                    }
+                    const token = m[0];
+                    const span = document.createElement("span");
+                    span.className = "template-var-chip";
+                    const description = variableDescriptions[token];
+                    const isKnown = allowedVars.includes(token);
+                    span.title = description
+                        ? (token + " - " + description)
+                        : (token + " - متغير غير معروف");
+                    if (!allowedVars.includes(token)) {
+                        span.style.background = "#fee2e2";
+                        span.style.color = "#991b1b";
+                        span.style.borderColor = "#fecaca";
+                        span.title = token + " - هذا متغير غير مدعوم وسيمنع الحفظ";
+                    }
+                    span.setAttribute("aria-label", span.title);
+                    span.textContent = token;
+                    frag.appendChild(span);
+                    last = m.index + token.length;
+                }
+                if (!found) return;
+                if (last < text.length) {
+                    frag.appendChild(document.createTextNode(text.slice(last)));
+                }
+                textNode.parentNode.replaceChild(frag, textNode);
+            });
+
+            setCaretTextOffset(editor, caretOffset);
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.querySelector('form[asp-route-action="ContractTemplateSettings"]') || document.querySelector("form[action*='ContractTemplateSettings']");
+            const editor = document.getElementById("contractEditor");
+
+            if (editor && !editor.innerHTML.trim()) {
+                editor.innerHTML = defaultTemplateHtml || "";
+            }
+
+            if (editor) {
+                highlightVariablesInEditor();
+                editor.addEventListener("input", function () {
+                    highlightVariablesInEditor();
+                    validateTemplateVariables();
+                });
+            }
+
+            if (form) {
+                form.addEventListener("submit", function (e) {
+                    const isValid = validateTemplateVariables();
+                    if (!isValid) {
+                        e.preventDefault();
+                    }
+                });
+            }
+
+            validateTemplateVariables();
+        });
+    </script>
+}

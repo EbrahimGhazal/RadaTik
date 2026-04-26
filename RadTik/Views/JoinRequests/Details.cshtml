@@ -1,0 +1,475 @@
+@model RadTik.Models.JoinRequest
+
+@{
+    ViewData["Title"] = "تفاصيل طلب الانضمام";
+}
+
+<link rel="stylesheet" href="~/css/radtik-theme.css" asp-append-version="true" />
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0;
+    }
+
+    .back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: var(--bg-hover);
+        color: var(--text-primary);
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 25px;
+    }
+
+    .card {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-light);
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 20px 25px;
+        border-bottom: 1px solid var(--border-light);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .card-header i {
+        font-size: 1.2rem;
+        color: var(--primary);
+    }
+
+    .card-header h3 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .card-body {
+        padding: 25px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .info-item.full {
+        grid-column: 1 / -1;
+    }
+
+    .info-item label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .info-item span {
+        font-size: 1rem;
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .type-badge.client {
+        background: rgba(0, 102, 204, 0.1);
+        color: var(--primary);
+    }
+
+    .type-badge.employee {
+        background: rgba(0, 200, 83, 0.1);
+        color: var(--success);
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .status-badge.pending { background: rgba(255, 152, 0, 0.1); color: #ff9800; }
+    .status-badge.under-review { background: rgba(33, 150, 243, 0.1); color: #2196f3; }
+    .status-badge.approved { background: rgba(0, 200, 83, 0.1); color: var(--success); }
+    .status-badge.rejected { background: rgba(244, 67, 54, 0.1); color: var(--danger); }
+
+    .action-card .card-body {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .status-form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+    }
+
+    .form-control {
+        padding: 12px 15px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-body);
+        color: var(--text-primary);
+        font-family: 'Tajawal', sans-serif;
+        font-size: 0.95rem;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        font-family: 'Tajawal', sans-serif;
+    }
+
+    .btn-success {
+        background: var(--success);
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #00a854;
+    }
+
+    .btn-danger {
+        background: var(--danger);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #d32f2f;
+    }
+
+    .btn-warning {
+        background: #ff9800;
+        color: white;
+    }
+
+    .btn-warning:hover {
+        background: #f57c00;
+    }
+
+    .btn-outline {
+        background: transparent;
+        border: 2px solid var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .btn-outline:hover {
+        background: var(--bg-hover);
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .delete-form {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-light);
+    }
+
+    @@media (max-width: 992px) {
+        .details-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="page-header">
+    <h1>
+        <i class="fas fa-file-alt"></i>
+        تفاصيل طلب الانضمام #@Model.Id
+    </h1>
+    <a asp-action="Index" class="back-btn">
+        <i class="fas fa-arrow-right"></i>
+        العودة للقائمة
+    </a>
+</div>
+
+<div class="details-grid">
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-user"></i>
+                <h3>معلومات مقدم الطلب</h3>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>الاسم الكامل</label>
+                        <span>@Model.FullName</span>
+                    </div>
+                    <div class="info-item">
+                        <label>البريد الإلكتروني</label>
+                        <span>@Model.Email</span>
+                    </div>
+                    <div class="info-item">
+                        <label>رقم الهاتف</label>
+                        <span>@Model.PhoneNumber</span>
+                    </div>
+                    <div class="info-item">
+                        <label>العنوان</label>
+                        <span>@(Model.Address ?? "غير محدد")</span>
+                    </div>
+                    <div class="info-item">
+                        <label>نوع الطلب</label>
+                        @if (Model.RequestType == RadTik.Models.JoinRequestType.Client)
+                        {
+                            <span class="type-badge client">
+                                <i class="fas fa-user"></i>
+                                عميل
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="type-badge employee">
+                                <i class="fas fa-briefcase"></i>
+                                موظف
+                            </span>
+                        }
+                    </div>
+                    <div class="info-item">
+                        <label>تاريخ التقديم</label>
+                        <span>@Model.CreatedDate.ToString("yyyy/MM/dd hh:mm tt")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.RequestType == RadTik.Models.JoinRequestType.Client)
+        {
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <i class="fas fa-wifi"></i>
+                    <h3>معلومات الاشتراك المطلوب</h3>
+                </div>
+                <div class="card-body">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>رقم الهوية</label>
+                            <span>@(Model.NationalId ?? "غير محدد")</span>
+                        </div>
+                        <div class="info-item">
+                            <label>الباقة المطلوبة</label>
+                            <span>@(Model.RequestedProfile?.Name ?? "غير محدد")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <i class="fas fa-graduation-cap"></i>
+                    <h3>المؤهلات والخبرات</h3>
+                </div>
+                <div class="card-body">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>المؤهل العلمي</label>
+                            <span>@(Model.Qualification ?? "غير محدد")</span>
+                        </div>
+                        <div class="info-item">
+                            <label>الوظيفة المطلوبة</label>
+                            <span>@(Model.DesiredPosition ?? "غير محدد")</span>
+                        </div>
+                        <div class="info-item full">
+                            <label>الخبرات السابقة</label>
+                            <span>@(Model.Experience ?? "لم يتم تحديد خبرات")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Notes))
+        {
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <i class="fas fa-comment"></i>
+                    <h3>ملاحظات مقدم الطلب</h3>
+                </div>
+                <div class="card-body">
+                    <p style="margin: 0; color: var(--text-secondary); line-height: 1.7;">@Model.Notes</p>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div>
+        <div class="card action-card">
+            <div class="card-header">
+                <i class="fas fa-cogs"></i>
+                <h3>إدارة الطلب</h3>
+            </div>
+            <div class="card-body">
+                <div class="info-item">
+                    <label>الحالة الحالية</label>
+                    @switch (Model.Status)
+                    {
+                        case RadTik.Models.JoinRequestStatus.Pending:
+                            <span class="status-badge pending"><i class="fas fa-clock"></i> قيد الانتظار</span>
+                            break;
+                        case RadTik.Models.JoinRequestStatus.UnderReview:
+                            <span class="status-badge under-review"><i class="fas fa-search"></i> قيد المراجعة</span>
+                            break;
+                        case RadTik.Models.JoinRequestStatus.Approved:
+                            <span class="status-badge approved"><i class="fas fa-check"></i> مقبول</span>
+                            break;
+                        case RadTik.Models.JoinRequestStatus.Rejected:
+                            <span class="status-badge rejected"><i class="fas fa-times"></i> مرفوض</span>
+                            break;
+                    }
+                </div>
+
+                @if (Model.ProcessedByUser != null)
+                {
+                    <div class="info-item">
+                        <label>معالج بواسطة</label>
+                        <span>@(Model.ProcessedByUser.FullName ?? Model.ProcessedByUser.UserName)</span>
+                    </div>
+                    <div class="info-item">
+                        <label>تاريخ المعالجة</label>
+                        <span>@Model.ProcessedDate?.ToString("yyyy/MM/dd hh:mm tt")</span>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.AdminNotes))
+                {
+                    <div class="info-item">
+                        <label>ملاحظات الإدارة</label>
+                        <span style="color: var(--text-secondary);">@Model.AdminNotes</span>
+                    </div>
+                }
+
+                <hr style="border: none; border-top: 1px solid var(--border-light); margin: 15px 0;">
+
+                <form asp-action="UpdateStatus" method="post" class="status-form">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    
+                    <div class="form-group">
+                        <label>تغيير الحالة</label>
+                        <select name="status" class="form-control">
+                            <option value="1" selected="@(Model.Status == RadTik.Models.JoinRequestStatus.Pending)">قيد الانتظار</option>
+                            <option value="2" selected="@(Model.Status == RadTik.Models.JoinRequestStatus.UnderReview)">قيد المراجعة</option>
+                            <option value="3" selected="@(Model.Status == RadTik.Models.JoinRequestStatus.Approved)">مقبول</option>
+                            <option value="4" selected="@(Model.Status == RadTik.Models.JoinRequestStatus.Rejected)">مرفوض</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>ملاحظات الإدارة</label>
+                        <textarea name="adminNotes" class="form-control" placeholder="أضف ملاحظات...">@Model.AdminNotes</textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i>
+                        حفظ التغييرات
+                    </button>
+                </form>
+
+                @if (User.IsInRole("SystemAdministrator"))
+                {
+                    <form asp-action="Delete" method="post" class="delete-form" 
+                          onsubmit="return confirm('هل أنت متأكد من حذف هذا الطلب؟');">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-danger" style="width: 100%;">
+                            <i class="fas fa-trash"></i>
+                            حذف الطلب
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>

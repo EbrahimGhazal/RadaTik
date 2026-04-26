@@ -1,0 +1,476 @@
+@model RadTik.Models.Client
+@inject RadTik.Services.PermissionService PermissionService
+@{
+    ViewData["Title"] = ViewBag.IsClientOnly == true ? "بيانات حسابي" : "تفاصيل العميل";
+    var isClientOnly = ViewBag.IsClientOnly == true;
+    var canEditClient = await PermissionService.HasPermissionAsync(User, "Clients.Edit");
+    var isPendingApproval = (bool?)ViewBag.IsPendingClientApproval == true;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-user-circle text-primary"></i>
+        @ViewData["Title"]
+    </h2>
+    <div>
+        @if (User.IsInRole("NetworkAdministrator") || User.IsInRole("SystemAdministrator"))
+        {
+            <a asp-route="networkManager-clients"
+               asp-route-action="ContractTemplateSettings"
+               class="btn btn-outline-primary">
+                <i class="fas fa-file-alt"></i> إعدادات العقد
+            </a>
+            <a asp-route="networkManager-clients"
+               asp-route-action="MembershipContract"
+               asp-route-id="@Model.Id"
+               target="_blank"
+               class="btn btn-outline-dark">
+                <i class="fas fa-print"></i> طباعة عقد الانضمام
+            </a>
+        }
+        @if (User.IsInRole("SystemAdministrator"))
+        {
+            <a asp-route="networkManager-clients" asp-route-action="RenewSubscription" asp-route-id="@Model.Id" class="btn btn-success">
+                <i class="fas fa-sync-alt"></i> تجديد الاشتراك
+            </a>
+        }
+        @if (isClientOnly && Model.Profile != null)
+        {
+            var profile = Model.Profile!;
+            var basePrice = profile.Price;
+            var vatPercentage = profile.VATPercentage;
+            var vatAmount = basePrice * (vatPercentage / 100m);
+            var priceWithVat = basePrice + vatAmount;
+            var canSelfRenew = Model.Balance >= priceWithVat;
+            if (canSelfRenew)
+            {
+                var confirmMsg =
+                    "سيتم خصم " + priceWithVat.ToString("N0") + " ل.س من رصيد محفظتك وتجديد الاشتراك لمدة شهر. " +
+                    "(الأساسي: " + basePrice.ToString("N0") + " + الضريبة " + vatPercentage.ToString("N2") + "%: " + vatAmount.ToString("N0") + "). متابعة؟";
+                <form method="post" action="@Url.RouteUrl("networkManager-clients", new { action = "SelfRenewSubscription", id = Model.Id })" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-success" onclick="return confirm(@Html.Raw(Json.Serialize(confirmMsg)));">
+                        <i class="fas fa-sync-alt"></i> تجديد الاشتراك من المحفظة
+                    </button>
+                </form>
+            }
+        }
+        @if (User.IsInRole("SystemAdministrator") || User.IsInRole("Employee"))
+        {
+            <a asp-route="networkManager-clients" asp-route-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                <i class="fas fa-edit"></i> تعديل
+            </a>
+        }
+        <a asp-route="networkManager-clients" asp-route-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة للقائمة
+        </a>
+    </div>
+</div>
+
+@if (ViewBag.RenewalBlockedMessage != null)
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-triangle-exclamation"></i>
+        @ViewBag.RenewalBlockedMessage
+    </div>
+}
+@if (TempData["Info"] != null)
+{
+    <div class="alert alert-info">
+        <i class="fas fa-circle-info"></i>
+        @TempData["Info"]
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> المعلومات الأساسية
+                </h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Name)</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(model => model.Name)</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.SID)</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(model => model.SID)</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.PhoneNumber)</dt>
+                    <dd class="col-sm-8">
+                        <i class="fas fa-phone text-info"></i>
+                        @Html.DisplayFor(model => model.PhoneNumber)
+                    </dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.CreatedDate)</dt>
+                    <dd class="col-sm-8">@Html.DisplayFor(model => model.CreatedDate)</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.AccountExpirationDate)</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.AccountExpirationDate.HasValue)
+                        {
+                            var expirationDate = Model.AccountExpirationDate.Value;
+                            var isExpired = expirationDate < DateTime.Now;
+                            var isExpiringSoon = expirationDate <= DateTime.Now.AddDays(7) && expirationDate >= DateTime.Now;
+                            
+                            <span class="badge @(isExpired ? "bg-danger" : isExpiringSoon ? "bg-warning" : "bg-success")">
+                                <i class="fas fa-calendar-alt"></i> @expirationDate.ToString("yyyy/MM/dd")
+                            </span>
+                            @if (isExpired)
+                            {
+                                <span class="text-danger">(منتهي الصلاحية)</span>
+                            }
+                            else if (isExpiringSoon)
+                            {
+                                <span class="text-warning">(ينتهي قريباً)</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">غير محدد</span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">الحالة</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.IsActive)
+                        {
+                            <span class="badge bg-success">
+                                <i class="fas fa-check"></i> مفعل
+                            </span>
+                        }
+                        else if (isPendingApproval)
+                        {
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-hourglass-half"></i> بانتظار موافقة المدير
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">
+                                <i class="fas fa-times"></i> معطل
+                            </span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-wifi"></i> بيانات الاتصال
+                </h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.UserName)</dt>
+                    <dd class="col-sm-8"><code>@Html.DisplayFor(model => model.UserName)</code></dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Password)</dt>
+                    <dd class="col-sm-8"><code>@Html.DisplayFor(model => model.Password)</code></dd>
+
+                    <dt class="col-sm-4">البروفايل</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.Profile != null)
+                        {
+                            <span class="badge bg-secondary">
+                                @Model.Profile.Name - @Model.Profile.DownloadSpeedDisplay
+                            </span>
+                        }
+                        else if (!string.IsNullOrEmpty(Model.ProfileName))
+                        {
+                            <span class="badge bg-secondary">@Model.ProfileName</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">غير محدد</span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Receiver)</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.Receiver != null)
+                        {
+                            <span class="badge bg-info">@Model.Receiver.Name</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">غير محدد</span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Balance)</dt>
+                    <dd class="col-sm-8"><strong class="text-success">@Model.Balance.ToString("N0") ل.س</strong></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (User.IsInRole("SystemAdministrator") || User.IsInRole("NetworkAdministrator"))
+{
+    var recentTopUps = ViewBag.RecentTopUps as IEnumerable<RadTik.Models.ClientTopUpTransaction> ?? Enumerable.Empty<RadTik.Models.ClientTopUpTransaction>();
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-coins"></i> تبويب تغذية الرصيد
+                    </h5>
+                    <small>يمكن تغذية الرصيد من مدير النظام أو مدير الشبكة</small>
+                </div>
+                <div class="card-body">
+                    <form asp-action="TopUpBalance" method="post" class="row g-2 align-items-end mb-4">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <div class="col-md-2">
+                            <label class="form-label">المبلغ (ل.س)</label>
+                            <input type="number" name="amount" class="form-control" min="0.01" step="0.01" required placeholder="0" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">ملاحظات (اختياري)</label>
+                            <input type="text" name="notes" class="form-control" placeholder="ملاحظات" />
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-success w-100" onclick="return confirm('تأكيد تغذية الرصيد؟');">
+                                <i class="fas fa-plus-circle"></i> تغذية الرصيد
+                            </button>
+                        </div>
+                    </form>
+                    @if (recentTopUps.Any())
+                    {
+                        <h6 class="mb-2">آخر عمليات التغذية</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead><tr><th>التاريخ</th><th>المبلغ</th><th>المصدر</th><th>بواسطة</th></tr></thead>
+                                <tbody>
+                                    @foreach (var t in recentTopUps)
+                                    {
+                                        <tr>
+                                            <td>@t.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                            <td>+@t.Amount.ToString("N0") ل.س</td>
+                                            <td>@(t.SourceType == RadTik.Models.ClientTopUpSource.SystemAdmin ? "مدير النظام" : t.SourceType == RadTik.Models.ClientTopUpSource.NetworkManager ? "مدير الشبكة" : "نقطة التحصيل")</td>
+                                            <td>@(t.CreatedByUser?.UserName ?? "—")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (!isClientOnly && canEditClient)
+{
+    var installationDate = Model.CreatedDate;
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-hard-hat"></i> موعد التركيب
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        موعد التركيب مرتبط تلقائياً بتاريخ إضافة العميل (قاعدة البيانات/المزامنة مع MikroTik)، ولا يتم تعديله يدوياً.
+                    </p>
+                    <p class="mb-0">
+                        موعد التركيب الحالي:
+                        <strong>@installationDate.ToString("yyyy/MM/dd HH:mm")</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-server"></i> معلومات الاتصال
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <dl>
+                            <dt>@Html.DisplayNameFor(model => model.Service)</dt>
+                            <dd>@Html.DisplayFor(model => model.Service)</dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-3">
+                        <dl>
+                            <dt>@Html.DisplayNameFor(model => model.Address)</dt>
+                            <dd>
+                                @if (!string.IsNullOrEmpty(Model.Address))
+                                {
+                                    <span class="badge bg-primary">@Model.Address</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">غير محدد</span>
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-3">
+                        <dl>
+                            <dt>@Html.DisplayNameFor(model => model.ConnectionStatus)</dt>
+                            <dd>
+                                @if (isPendingApproval)
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-user-clock"></i> قيد الاعتماد
+                                    </span>
+                                }
+                                else
+                                {
+                                    @Html.DisplayFor(model => model.ConnectionStatus)
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-3">
+                        <dl>
+                            <dt>@Html.DisplayNameFor(model => model.MikroTikServer)</dt>
+                            <dd>
+                                @if (Model.MikroTikServer != null)
+                                {
+                                    <span class="badge bg-success">@Model.MikroTikServer.Host</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">غير محدد</span>
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Uptime))
+                {
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <dl>
+                                <dt>@Html.DisplayNameFor(model => model.Uptime)</dt>
+                                <dd><small class="text-muted">@Model.Uptime</small></dd>
+                            </dl>
+                        </div>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.MacAddress))
+                {
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <dl>
+                                <dt>@Html.DisplayNameFor(model => model.MacAddress)</dt>
+                                <dd><code>@Model.MacAddress</code></dd>
+                            </dl>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- قسم معلومات المايكروتك - حصراً لمدير الشركة -->
+@if (ViewBag.MikroTikInfo != null && User.IsInRole("NetworkAdministrator"))
+{
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-sync-alt"></i> معلومات المايكروتك المباشرة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>اسم المستخدم:</strong>
+                            <code>@ViewBag.MikroTikInfo.UserName</code>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>كلمة المرور:</strong>
+                            <code>@ViewBag.MikroTikInfo.Password</code>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>الحالة:</strong>
+                            <span class="badge bg-success">@ViewBag.MikroTikInfo.ConnectionStatus</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ViewBag.MikroTikError != null)
+{
+    <div class="alert alert-warning mt-3">
+        <i class="fas fa-exclamation-triangle"></i>
+        @ViewBag.MikroTikError
+    </div>
+}
+
+<!-- قسم إدارة الحساب (MikroTik) - حصراً لمدير الشركة -->
+@if (Model.MikroTikServerId.HasValue && User.IsInRole("NetworkAdministrator"))
+{
+    <div class="mt-4">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cogs"></i> إدارة الحساب
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="btn-group" role="group">
+                    <form asp-action="SyncWithMikroTik" method="get" class="d-inline">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-outline-info">
+                            <i class="fas fa-sync-alt"></i> مزامنة مع المايكروتك
+                        </button>
+                    </form>
+
+                    @if (Model.IsActive)
+                    {
+                        <form asp-action="Freeze" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-warning" onclick="return confirm('هل أنت متأكد من تجميد الحساب؟ سيتم قطع الاتصال النشط أيضاً.');">
+                                <i class="fas fa-pause"></i> تجميد الحساب
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form asp-action="Unfreeze" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-success" onclick="return confirm('هل أنت متأكد من تفعيل الحساب؟');">
+                                <i class="fas fa-play"></i> تفعيل الحساب
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="mt-3">
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-arrow-right"></i> العودة للقائمة
+    </a>
+</div>
