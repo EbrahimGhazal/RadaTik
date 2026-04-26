@@ -130,11 +130,11 @@
         <div class="card-body">
             <form method="post" asp-area="SystemAdmin" asp-controller="ServiceCatalog" asp-action="UpdateNetworkPricing" class="row g-3 service-catalog-form-horizontal">
                 @Html.AntiForgeryToken()
-                <div class="col-md-4 pricing-mode-block">
+                <div class="col-md-4">
                     <label class="form-label">سعر إنشاء كل شبكة إضافية (ل.س.ج)</label>
                     <input type="number" min="0" step="0.01" name="initialPriceSyp" class="form-control" value="@networkPricing.InitialPriceSyp" required />
                 </div>
-                <div class="col-md-4 pricing-mode-block">
+                <div class="col-md-4">
                     <label class="form-label">زمن التجديد الدوري</label>
                     <select name="renewalBillingPeriod" class="form-select" required>
                         @foreach (var p in renewalPeriods)
@@ -143,15 +143,15 @@
                         }
                     </select>
                 </div>
-                <div class="col-md-4 pricing-mode-block">
+                <div class="col-md-4">
                     <label class="form-label">سعر التجديد لكل وحدة (ل.س.ج)</label>
                     <input type="number" min="0" step="0.01" name="renewalPricePerUnitSyp" class="form-control" value="@networkPricing.RenewalPricePerUnitSyp" required />
                 </div>
-                <div class="col-md-4 pricing-mode-block">
+                <div class="col-md-4">
                     <label class="form-label">عدد مجاني قبل بدء التسعير</label>
                     <input type="number" min="0" max="@maxFreeUnitsLimit" step="1" name="freeInitialUnits" class="form-control" value="@networkPricing.FreeInitialUnits" />
                 </div>
-                <div class="col-md-4 pricing-mode-block">
+                <div class="col-md-4">
                     <label class="form-label">عدد مجاني قبل بدء رسوم التجديد</label>
                     <input type="number" min="0" max="@maxFreeUnitsLimit" step="1" name="freeRenewalUnits" class="form-control" value="@networkPricing.FreeRenewalUnits" />
                 </div>
