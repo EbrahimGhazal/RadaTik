@@ -1,4 +1,5 @@
 using System.Text.Json;
+using RadTik.Models;
 
 namespace RadTik.Services.SystemAdminPricing;
 
@@ -127,5 +128,12 @@ public static class RecurringPricingPolicyCodec
         }
 
         return new FullyPaidRecurringPolicy();
+    }
+
+    public static RecurringPricingPolicy ReadFromPricings(
+        FeaturePricing? initialPricing,
+        FeaturePricing? renewalPricing)
+    {
+        return ReadFromNotes(initialPricing?.Notes, renewalPricing?.Notes);
     }
 }

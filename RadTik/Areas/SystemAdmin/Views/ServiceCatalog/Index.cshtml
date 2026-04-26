@@ -178,7 +178,7 @@
                 <div class="col-md-4">
                     <label class="form-label">سعر إنشاء كل سيرفر إضافي (ل.س.ج)</label>
                     <input type="number" min="0" step="0.01" name="initialPriceSyp" class="form-control" value="@serverPricing.InitialPriceSyp" required />
-                    <div class="text-muted small">السيرفر الأول لكل مدير شركة مجاني تلقائياً.</div>
+                    <div class="text-muted small">يُطبّق عدد مجاني قبل بدء التسعير حسب الإعداد أدناه.</div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">زمن التجديد الدوري</label>
@@ -192,7 +192,7 @@
                 <div class="col-md-4">
                     <label class="form-label">سعر التجديد لكل وحدة (ل.س.ج)</label>
                     <input type="number" min="0" step="0.01" name="renewalPricePerUnitSyp" class="form-control" value="@serverPricing.RenewalPricePerUnitSyp" required />
-                    <div class="text-muted small">الوحدة = كل سيرفر إضافي (بعد الأول).</div>
+                    <div class="text-muted small">الوحدة = كل سيرفر فعّال.</div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">عدد مجاني قبل بدء التسعير</label>
@@ -727,51 +727,108 @@
 
 <style>
     .service-catalog-page {
-        --svc-primary: var(--sys-primary, #2563eb);
-        --svc-border: rgba(37, 99, 235, .55);
-        --svc-soft: rgba(37, 99, 235, .08);
-        --svc-surface: #f3f4f6;
+        --svc-primary: var(--bs-primary, #0d6efd);
+        --svc-border: #dee2e6;
+        --svc-soft: #f8f9fa;
+        --svc-surface: #ffffff;
     }
 
-    .service-catalog-toolbar { display: grid; gap: .85rem; margin-bottom: 1rem; }
-    .service-catalog-kpis { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-    .kpi-tile { border: 1px solid rgba(37, 99, 235, .25); border-radius: 12px; background: #fff; padding: .75rem .9rem; }
-    .kpi-value { font-size: 1.35rem; font-weight: 800; color: #1d4ed8; line-height: 1.15; }
-    .kpi-label { margin-top: .22rem; color: var(--text-muted); font-size: .82rem; }
+    .sys-hero {
+        border: 1px solid var(--svc-border);
+        border-radius: .75rem;
+        background: var(--svc-surface);
+    }
+
+    .service-catalog-toolbar {
+        display: grid;
+        gap: .85rem;
+        margin-bottom: 1rem;
+    }
+
+    .service-catalog-kpis {
+        display: grid;
+        gap: .7rem;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .kpi-tile {
+        border: 1px solid var(--svc-border);
+        border-radius: .75rem;
+        background: #fff;
+        padding: .75rem .9rem;
+    }
+
+    .kpi-value { font-size: 1.3rem; font-weight: 700; color: var(--bs-primary, #0d6efd); line-height: 1.15; }
+    .kpi-label { margin-top: .2rem; color: #6c757d; font-size: .82rem; }
 
     .service-catalog-sections-nav {
-        position: sticky; top: calc(var(--header-height, 72px) + .4rem); z-index: 12;
-        display: flex; flex-wrap: wrap; gap: .4rem;
-        border: 1px solid var(--svc-border); border-radius: 14px; background: var(--svc-surface); padding: .55rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .45rem;
+        border: 1px solid var(--svc-border);
+        border-radius: .75rem;
+        background: var(--svc-surface);
+        padding: .6rem;
     }
-    .service-catalog-sections-nav .btn { border-radius: 999px; border-color: rgba(37, 99, 235, .25); color: #1e3a8a; background: #fff; font-weight: 700; }
+
+    .service-catalog-sections-nav .btn {
+        border-radius: 999px;
+        font-weight: 600;
+    }
+
     .service-catalog-sections-nav .btn.is-active { background: var(--svc-primary); border-color: var(--svc-primary); color: #fff; }
 
     .service-catalog-global-actions { display: flex; flex-wrap: wrap; gap: .45rem; }
     .service-catalog-global-actions .btn { font-weight: 700; }
-    .service-catalog-search { border: 1px solid var(--svc-border); border-radius: 14px; background: var(--svc-surface); padding: .8rem; }
+    .service-catalog-search {
+        border: 1px solid var(--svc-border);
+        border-radius: .75rem;
+        background: var(--svc-surface);
+        padding: .8rem;
+    }
+
     .service-catalog-search .input-group-text { background: var(--svc-soft); border-color: var(--svc-border); }
     .service-catalog-search-meta { margin-top: .4rem; display: flex; justify-content: space-between; align-items: center; gap: .6rem; }
-    .search-count-badge { border-radius: 999px; border: 1px solid var(--svc-border); background: var(--svc-soft); color: var(--text-secondary); font-size: .76rem; padding: .18rem .55rem; }
+    .search-count-badge { border-radius: 999px; border: 1px solid var(--svc-border); background: var(--svc-soft); color: #495057; font-size: .76rem; padding: .18rem .55rem; }
 
-    .service-catalog-group { border: 1px solid var(--svc-border); border-radius: 14px; background: var(--svc-surface); padding: .9rem; }
-    .service-catalog-group-header { border-bottom: 1px solid rgba(37, 99, 235, .22); margin-bottom: .75rem; padding-bottom: .65rem; }
-    .service-catalog-group-header h2 { margin: 0; font-size: 1.05rem; font-weight: 800; color: #1e3a8a; display: flex; gap: .45rem; align-items: center; }
-    .service-catalog-group-header p { margin: .28rem 0 0; color: var(--text-muted); font-size: .82rem; }
+    .service-catalog-group {
+        border: 1px solid var(--svc-border);
+        border-radius: .75rem;
+        background: var(--svc-surface);
+        padding: .9rem;
+    }
+
+    .service-catalog-group-header {
+        border-bottom: 1px solid var(--svc-border);
+        margin-bottom: .75rem;
+        padding-bottom: .65rem;
+    }
+
+    .service-catalog-group-header h2 { margin: 0; font-size: 1.03rem; font-weight: 700; color: #212529; display: flex; gap: .45rem; align-items: center; }
+    .service-catalog-group-header p { margin: .28rem 0 0; color: #6c757d; font-size: .82rem; }
     .service-catalog-group-actions { margin-top: .5rem; display: flex; flex-wrap: wrap; gap: .4rem; }
     .service-catalog-group-body { display: grid; gap: .75rem; }
     .service-catalog-group-body--cards { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
 
-    .service-catalog-section-card { border: 1px solid rgba(37, 99, 235, .28); border-radius: 12px; overflow: hidden; scroll-margin-top: 105px; box-shadow: none; background: #fff; }
+    .service-catalog-section-card {
+        border: 1px solid var(--svc-border);
+        border-radius: .75rem;
+        overflow: hidden;
+        scroll-margin-top: 105px;
+        box-shadow: none;
+        background: #fff;
+    }
+
     .service-catalog-section-card .card-header {
         display: flex; gap: .45rem; align-items: center; flex-wrap: wrap;
-        background: rgba(37, 99, 235, .06); border-bottom: 1px solid rgba(37, 99, 235, .2);
+        background: #f8f9fa;
+        border-bottom: 1px solid var(--svc-border);
         cursor: pointer; user-select: none;
     }
-    .service-catalog-section-card .card-header .card-title { margin: 0; font-size: .97rem; font-weight: 700; flex: 1 1 auto; color: #1f2937; }
-    .service-catalog-section-card .card-header:focus-visible { outline: 2px solid rgba(37,99,235,.45); outline-offset: -2px; }
+    .service-catalog-section-card .card-header .card-title { margin: 0; font-size: .97rem; font-weight: 700; flex: 1 1 auto; color: #212529; }
+    .service-catalog-section-card .card-header:focus-visible { outline: 2px solid rgba(13,110,253,.45); outline-offset: -2px; }
 
-    .section-toggle-icon { margin-inline-start: auto; color: #1d4ed8; transition: transform .2s ease; }
+    .section-toggle-icon { margin-inline-start: auto; color: #6c757d; transition: transform .2s ease; }
     .section-advanced-toggle {
         border: 1px solid rgba(37, 99, 235, .22); background: rgba(37, 99, 235, .05); color: #1d4ed8;
         border-radius: 999px; font-size: .72rem; font-weight: 700; line-height: 1; padding: .28rem .58rem;
@@ -782,8 +839,27 @@
     .service-catalog-section-card.is-details-hidden .alert.alert-info.py-2 { display: none !important; }
 
     .service-catalog-section-card .card-body form.row.g-3 { row-gap: .72rem !important; }
-    .service-catalog-section-card .card-body form .form-label { font-size: .84rem; font-weight: 700; margin-bottom: .35rem; color: var(--text-secondary); }
+    .service-catalog-section-card .card-body form .form-label { font-size: .84rem; font-weight: 600; margin-bottom: .35rem; color: #495057; }
     .service-catalog-section-card .card-body form .text-muted.small { margin-top: .28rem; line-height: 1.4; }
+
+    .service-catalog-page .form-control,
+    .service-catalog-page .form-select {
+        border-radius: .5rem;
+        border-color: #ced4da;
+        min-height: 2.5rem;
+        box-shadow: none;
+    }
+
+    .service-catalog-page .form-control:focus,
+    .service-catalog-page .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 .2rem rgba(13, 110, 253, .15);
+    }
+
+    .service-catalog-page .btn.btn-primary {
+        border-radius: .5rem;
+        font-weight: 600;
+    }
 
     /* Horizontal field layout for recurring pricing cards */
     .service-catalog-form-horizontal > .col-md-4 {
@@ -1260,25 +1336,27 @@
 </script>*@
 
 <style>
-    /* Closely match provided wireframe style */
+    /* Formal enterprise style override */
     .sys-hero,
     .service-catalog-toolbar {
-        display: none;
+        display: block;
     }
 
     .content-grid {
-        max-width: 1080px;
+        max-width: 1180px;
         margin: 0 auto;
         padding: 1rem;
-        border: 1px solid #aeb5c0;
-        background: #f3f4f6;
+        border: 1px solid #dee2e6;
+        background: #ffffff;
+        border-radius: .75rem;
     }
 
     .service-catalog-group {
-        border: 1px solid #cfd5dd;
-        background: #f9fafb;
+        border: 1px solid #dee2e6;
+        background: #ffffff;
         padding: 1rem;
         margin-bottom: 1rem;
+        border-radius: .75rem;
     }
 
     .service-pricing-legend {
@@ -1290,7 +1368,7 @@
         top: calc(var(--header-height, 72px) + .35rem);
         z-index: 15;
         padding: .3rem 0;
-        background: #f3f4f6;
+        background: #ffffff;
     }
 
     .service-pricing-legend .legend-item {
@@ -1311,31 +1389,17 @@
         display: inline-block;
     }
 
-    .service-pricing-legend .legend-priced .legend-dot {
-        background: #16a34a;
-    }
+    .service-pricing-legend .legend-priced .legend-dot { background: #6c757d; }
+    .service-pricing-legend .legend-unpriced .legend-dot { background: #adb5bd; }
 
-    .service-pricing-legend .legend-unpriced .legend-dot {
-        background: #ef4444;
-    }
+    .service-catalog-group-header { text-align: start; margin-bottom: .85rem; }
 
-    .service-catalog-group-header {
-        text-align: center;
-        margin-bottom: 1rem;
-    }
-
-    .service-catalog-group-header h2 {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin: 0 0 .35rem;
-    }
+    .service-catalog-group-header h2 { font-size: 1.05rem; font-weight: 700; margin: 0 0 .35rem; color: #212529; }
 
     .service-catalog-group-header h2 i,
     .service-catalog-sections-nav i,
     .service-catalog-search .input-group-text i,
-    .service-catalog-section-card form .btn i {
-        display: none !important;
-    }
+    .service-catalog-section-card form .btn i { opacity: .8; }
 
     .service-catalog-group-header p {
         margin: 0;
@@ -1349,43 +1413,18 @@
         gap: .75rem;
     }
 
-    .service-catalog-section-card {
-        border: 1px solid #cfd5dd;
-        border-radius: 0;
-        background: #fff;
-    }
+    .service-catalog-section-card { border: 1px solid #dee2e6; border-radius: .6rem; background: #fff; }
 
-    .service-catalog-section-card.service-priced {
-        border-right: 4px solid #16a34a;
-        background: #f7fff9;
-    }
+    .service-catalog-section-card.service-priced { border-inline-start: 3px solid #adb5bd; background: #fff; }
+    .service-catalog-section-card.service-unpriced { border-inline-start: 3px solid #dee2e6; background: #fff; }
 
-    .service-catalog-section-card.service-unpriced {
-        border-right: 4px solid #ef4444;
-        background: #fff7f7;
-    }
+    .service-catalog-section-card .card-header { background: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: .75rem 1rem; }
 
-    .service-catalog-section-card .card-header {
-        background: #fff;
-        border-bottom: 1px solid #e5e7eb;
-        padding: .75rem 1rem;
-    }
+    .service-catalog-section-card .card-title { margin: 0; text-align: start; font-size: 1rem; font-weight: 700; color: #212529; }
 
-    .service-catalog-section-card .card-title {
-        margin: 0;
-        text-align: center;
-        font-size: 1.2rem;
-        font-weight: 600;
-    }
+    .service-catalog-section-card .card-title i { color: #6c757d !important; }
 
-    .service-catalog-section-card .card-title i {
-        display: none;
-    }
-
-    .service-catalog-section-card .card-body {
-        padding: .65rem;
-        position: relative;
-    }
+    .service-catalog-section-card .card-body { padding: .85rem; position: relative; }
 
     .service-catalog-section-card .card-body::before {
         content: "";
@@ -1404,7 +1443,8 @@
     .service-catalog-section-card form .col-md-6,
     .service-catalog-section-card form .col-md-3 {
         width: 100%;
-        border: 1px solid #dde2e8;
+        border: 1px solid #e9ecef;
+        border-radius: .5rem;
         padding: .7rem .72rem;
         margin-bottom: .55rem;
         background: #fff;
@@ -1427,8 +1467,8 @@
     .service-catalog-section-card form .form-control,
     .service-catalog-section-card form .form-select,
     .service-catalog-section-card form textarea.form-control {
-        border-radius: 12px;
-        border: 1px solid var(--sys-border, #d1d5db);
+        border-radius: .5rem;
+        border: 1px solid #ced4da;
         max-width: 100%;
         margin-inline: 0;
         text-align: right;
@@ -1440,8 +1480,8 @@
     .service-catalog-section-card form .form-control:focus,
     .service-catalog-section-card form .form-select:focus,
     .service-catalog-section-card form textarea.form-control:focus {
-        border-color: rgba(15, 107, 255, 0.55);
-        box-shadow: 0 0 0 4px rgba(15, 107, 255, 0.12);
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 .2rem rgba(13, 110, 253, .15);
     }
 
     .service-catalog-section-card form .form-select {
@@ -1482,7 +1522,7 @@
     }
 
     .service-catalog-section-card form .btn {
-        border-radius: 12px;
+        border-radius: .5rem;
         min-width: 170px;
         min-height: 42px;
         font-size: .9rem;
@@ -1490,18 +1530,10 @@
         padding: .5rem 1rem;
     }
 
-    .service-catalog-section-card form .btn:focus-visible {
-        box-shadow: 0 0 0 4px rgba(15, 107, 255, 0.14);
-    }
+    .service-catalog-section-card form .btn:focus-visible { box-shadow: 0 0 0 .2rem rgba(13, 110, 253, .2); }
 
-    .service-catalog-section-card form .btn.btn-primary {
-        background: linear-gradient(135deg, var(--sys-primary, #2563eb) 0%, var(--sys-primary-deep, #1e3a8a) 100%);
-        border: none;
-    }
-
-    .service-catalog-section-card form .btn.btn-primary:hover {
-        filter: brightness(0.98);
-    }
+    .service-catalog-section-card form .btn.btn-primary { background: var(--bs-primary, #0d6efd); border-color: var(--bs-primary, #0d6efd); }
+    .service-catalog-section-card form .btn.btn-primary:hover { background: #0b5ed7; border-color: #0a58ca; }
 
     @@media (max-width: 992px) {
         .service-catalog-group-body--cards {

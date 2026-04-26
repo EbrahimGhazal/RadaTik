@@ -1,0 +1,347 @@
+@model RadTik.ViewModels.Admin.CreateEmployeeViewModel
+
+@{
+    ViewData["Title"] = "إضافة موظف";
+}
+
+<div class="employee-create-shell">
+    <div class="employee-create-hero card border-0 mb-3">
+        <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+                <div class="hero-chip mb-2">
+                    <i class="fas fa-shield-alt"></i>
+                    إدارة الموظفين
+                </div>
+                <h1 class="mb-1 employee-create-title">
+                    <i class="fas fa-user-plus"></i>
+                    @ViewData["Title"]
+                </h1>
+                <p class="mb-0 employee-create-subtitle">إنشاء موظف وتحديد صلاحياته التشغيلية لكل خدمة مفعّلة للشركة.</p>
+            </div>
+            <a class="btn btn-light btn-back" asp-route="networkManager-users-employees">
+                <i class="fas fa-arrow-right"></i> رجوع
+            </a>
+        </div>
+    </div>
+
+    <div class="info-strip mb-3">
+        <i class="fas fa-circle-info"></i>
+        مدير الشركة يملك كامل الصلاحيات. تظهر هنا جميع خدمات صلاحيات الموظف القابلة للتخصيص، بينما تُمنح صلاحيات الموظف بشكل مقيد حسب سياسة الشركة.
+    </div>
+
+    @{
+        var hasEmployeeCreatePricing = (bool?)(ViewBag.EmployeeCreateChargeHasPricing) == true;
+        var employeeCreateChargeAmount = (decimal?)(ViewBag.EmployeeCreateChargeAmount) ?? 0m;
+        var employeeCreateWalletBalance = (decimal?)(ViewBag.EmployeeCreateChargeWalletBalance) ?? 0m;
+        var employeeCreateInitialPrice = (decimal?)(ViewBag.EmployeeCreateInitialPrice) ?? employeeCreateChargeAmount;
+        var hasEmployeeCreateRenewalPricing = (bool?)(ViewBag.EmployeeCreateHasRenewalPricing) == true;
+        var employeeCreateRenewalPrice = (decimal?)(ViewBag.EmployeeCreateRenewalPrice) ?? 0m;
+        var employeeCreateRenewalPeriodLabel = (string?)ViewBag.EmployeeCreateRenewalPeriodLabel;
+    }
+    <div class="alert @(hasEmployeeCreatePricing ? "alert-warning" : "alert-secondary") mb-3">
+        <i class="fas fa-receipt me-1"></i>
+        @if (hasEmployeeCreatePricing)
+        {
+            <span>
+                ملاحظة التسعير (من إعدادات مدير النظام):
+                قيمة الإضافة:
+                <strong>@employeeCreateInitialPrice.ToString("N2")</strong>
+                ل.س.ج.
+                @if (hasEmployeeCreateRenewalPricing && !string.IsNullOrWhiteSpace(employeeCreateRenewalPeriodLabel))
+                {
+                    <text>
+                        التجديد:
+                        <strong>@employeeCreateRenewalPrice.ToString("N2")</strong>
+                        ل.س.ج |
+                        زمن التجديد:
+                        <strong>@employeeCreateRenewalPeriodLabel</strong>.
+                    </text>
+                }
+                سيتم الآن حسم:
+                <strong>@employeeCreateChargeAmount.ToString("N2")</strong>
+                ل.س.ج عند إنشاء الموظف.
+                الرصيد الحالي:
+                <strong>@employeeCreateWalletBalance.ToString("N2")</strong>
+                ل.س.ج.
+            </span>
+        }
+        else
+        {
+            <span>
+                ملاحظة: لا توجد حالياً تسعيرة فعّالة لخدمة إضافة الموظفين من إعدادات مدير النظام، لذلك لن يتم أي حسم عند الإنشاء.
+            </span>
+        }
+    </div>
+
+    <div class="card employee-form-card border-0">
+        <div class="card-body">
+            <form asp-route="networkManager-addnewEmployee" method="post" class="row g-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ReturnUrl" />
+
+                <div class="col-12">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                </div>
+
+                <div class="col-12">
+                    <div class="section-title">
+                        <i class="fas fa-id-card"></i>
+                        بيانات الحساب
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="UserName" class="form-label"></label>
+                    <input asp-for="UserName" class="form-control elegant-input" autocomplete="off" />
+                    <span asp-validation-for="UserName" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control elegant-input" autocomplete="off" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="PhoneNumber" class="form-label"></label>
+                    <input asp-for="PhoneNumber" class="form-control elegant-input" autocomplete="off" />
+                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="FullName" class="form-label"></label>
+                    <input asp-for="FullName" class="form-control elegant-input" autocomplete="off" />
+                    <span asp-validation-for="FullName" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="Password" class="form-label"></label>
+                    <input asp-for="Password" class="form-control elegant-input" autocomplete="new-password" />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-3">
+                    <label asp-for="ConfirmPassword" class="form-label"></label>
+                    <input asp-for="ConfirmPassword" class="form-control elegant-input" autocomplete="new-password" />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                </div>
+
+                <div class="col-12">
+                    <label class="switch-box">
+                        <input class="form-check-input" asp-for="IsActive" />
+                        <span class="switch-label">@Html.DisplayNameFor(m => m.IsActive)</span>
+                    </label>
+                </div>
+
+                <div class="col-12">
+                    <div class="section-title d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <span><i class="fas fa-key"></i> صلاحيات الخدمات المفعّلة</span>
+                        <span class="selected-counter">صلاحيات محددة: <strong id="permSelectedCount">0</strong></span>
+                    </div>
+
+                    <div class="alert alert-info mt-2 mb-2">
+                        <i class="fas fa-circle-info me-1"></i>
+                        <strong>سياسة منح الصلاحيات للموظف:</strong>
+                        <ul class="mb-0 mt-1">
+                            <li>المرسلات والمستقبلات والعملاء: العرض مباشر، أمّا الإضافة والتعديل فتتطلب موافقة مدير الشركة.</li>
+                            <li>المخدمات (MikroTik): مجمّدة حالياً للموظفين.</li>
+                            <li>طلبات الصيانة: تعمل كما هي حالياً.</li>
+                            <li>طلبات التركيب: متاحة للعرض فقط.</li>
+                        </ul>
+                    </div>
+
+                    <div class="permission-tools mb-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="permSelectAll">
+                            تحديد الكل
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="permClearAll">
+                            إلغاء الكل
+                        </button>
+                    </div>
+
+                    <partial name="_EmployeePermissionMatrix" model="Model.SelectedPermissionIds" />
+                </div>
+
+                <div class="col-12 d-flex gap-2 justify-content-end">
+                    <a class="btn btn-outline-secondary btn-cancel" asp-route="networkManager-users-employees">
+                        إلغاء
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-save">
+                        <i class="fas fa-save"></i> حفظ الموظف
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .employee-create-shell {
+        padding-bottom: 0.5rem;
+    }
+
+    .employee-create-hero {
+        background: radial-gradient(120% 180% at 100% 0%, #dbeafe 0%, #eff6ff 45%, #ffffff 100%);
+        box-shadow: 0 16px 35px -22px rgba(37, 99, 235, 0.35);
+        border-radius: 1.1rem;
+    }
+
+    .hero-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.32rem 0.68rem;
+        border-radius: 999px;
+        background: #dbeafe;
+        color: #1d4ed8;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .employee-create-title {
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .employee-create-subtitle {
+        color: #475569;
+    }
+
+    .btn-back {
+        border-radius: 0.75rem;
+        font-weight: 600;
+    }
+
+    .info-strip {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        background: linear-gradient(135deg, #eef6ff 0%, #f8fbff 100%);
+        border: 1px solid #dbeafe;
+        color: #1e3a8a;
+        border-radius: 0.9rem;
+        padding: 0.8rem 0.95rem;
+        box-shadow: 0 8px 20px -16px rgba(30, 58, 138, 0.35);
+    }
+
+    .employee-form-card {
+        border-radius: 1.05rem;
+        box-shadow: 0 14px 30px -20px rgba(15, 23, 42, 0.28);
+    }
+
+    .section-title {
+        font-weight: 700;
+        color: #1e293b;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 0.55rem;
+    }
+
+    .section-title i {
+        color: #2563eb;
+        margin-inline-end: 0.35rem;
+    }
+
+    .elegant-input {
+        border-radius: 0.75rem;
+        border: 1px solid #dbe3ef;
+        background: #fcfdff;
+    }
+
+    .elegant-input:focus {
+        border-color: #93c5fd;
+        box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.12);
+        background: #fff;
+    }
+
+    .switch-box {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 0.5rem 0.7rem;
+    }
+
+    .switch-label {
+        color: #334155;
+        font-weight: 600;
+    }
+
+    .permission-tools {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .selected-counter {
+        font-size: 0.88rem;
+        color: #475569;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        padding: 0.25rem 0.6rem;
+    }
+
+    .btn-save {
+        border-radius: 0.75rem;
+        font-weight: 700;
+        padding-inline: 1rem;
+    }
+
+    .btn-cancel {
+        border-radius: 0.75rem;
+        font-weight: 600;
+    }
+</style>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const selectAllBtn = document.getElementById('permSelectAll');
+            const clearAllBtn = document.getElementById('permClearAll');
+
+            function updateSelectedCount() {
+                const el = document.getElementById('permSelectedCount');
+                if (!el) return;
+                const set = new Set();
+                document.querySelectorAll('input[name="SelectedPermissionIds"]:checked').forEach(function (i) {
+                    set.add(i.value);
+                });
+                el.textContent = set.size.toString();
+            }
+
+            if (selectAllBtn) {
+                selectAllBtn.addEventListener('click', function () {
+                    document.querySelectorAll('input[name="SelectedPermissionIds"]').forEach(function (cb) {
+                        cb.checked = true;
+                    });
+                    document.querySelectorAll('.perm-master').forEach(function (m) {
+                        m.checked = true;
+                    });
+                    updateSelectedCount();
+                });
+            }
+            if (clearAllBtn) {
+                clearAllBtn.addEventListener('click', function () {
+                    document.querySelectorAll('input[name="SelectedPermissionIds"]').forEach(function (cb) {
+                        cb.checked = false;
+                    });
+                    document.querySelectorAll('.perm-master').forEach(function (m) {
+                        m.checked = false;
+                    });
+                    updateSelectedCount();
+                });
+            }
+
+            document.addEventListener('change', function (e) {
+                if (e.target.matches('input[name="SelectedPermissionIds"], .perm-master')) {
+                    updateSelectedCount();
+                }
+            });
+            updateSelectedCount();
+        })();
+    </script>
+}
+
