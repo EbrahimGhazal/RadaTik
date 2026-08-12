@@ -1,0 +1,203 @@
+@model RadaTik.ViewModels.Public.ContactViewModel
+
+@{
+    ViewData["Title"] = "اتصل بنا";
+}
+
+@section Styles {
+<style>
+    .rt-page-hero {
+        background: var(--rt-gradient);
+        padding: 140px 0 80px;
+        text-align: center;
+        color: #fff;
+    }
+
+    .rt-page-hero h1 { font-size: 2.8rem; margin-bottom: 12px; }
+    .rt-page-hero p { color: rgba(255,255,255,0.82); font-size: 1.1rem; }
+
+    .rt-contact {
+        padding: 80px 0;
+    }
+
+    .rt-contact-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 24px;
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 28px;
+    }
+
+    .rt-contact-info,
+    .rt-contact-form {
+        background: #fff;
+        border: 1px solid var(--rt-border);
+        border-radius: var(--rt-radius);
+        padding: 32px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    .rt-contact-info h3,
+    .rt-contact-form h3 {
+        font-size: 1.4rem;
+        margin-bottom: 16px;
+        color: var(--rt-primary-deep);
+    }
+
+    .rt-contact-info p { color: var(--rt-muted); margin-bottom: 24px; }
+
+    .rt-info-item {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .rt-info-item i {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: rgba(37, 99, 235, 0.1);
+        color: var(--rt-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .rt-form-group { margin-bottom: 18px; }
+    .rt-form-group label { display: block; margin-bottom: 8px; font-weight: 600; }
+
+    .rt-form-group input,
+    .rt-form-group textarea {
+        width: 100%;
+        border: 1px solid var(--rt-border);
+        border-radius: 12px;
+        padding: 12px 14px;
+        font-family: inherit;
+        font-size: 15px;
+    }
+
+    .rt-form-group textarea { min-height: 140px; resize: vertical; }
+
+    .rt-form-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .rt-btn-submit {
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 24px;
+        border-radius: 12px;
+        background: var(--rt-gradient-accent);
+        color: #fff;
+        font-weight: 700;
+        font-family: inherit;
+    }
+
+    .rt-btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 24px;
+        border-radius: 12px;
+        border: 1px solid var(--rt-border);
+        color: var(--rt-text);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .field-validation-error { color: #dc2626; font-size: 13px; }
+
+    @@media (max-width: 900px) {
+        .rt-contact-inner { grid-template-columns: 1fr; }
+    }
+</style>
+}
+
+<section class="rt-page-hero">
+    <h1>اتصل بنا</h1>
+    <p>للاستفسار عن RadaTik، عروض الشركات، أو طلب عرض توضيحي — يسعدنا تواصلك.</p>
+</section>
+
+<section class="rt-contact">
+    <div class="rt-contact-inner">
+        <aside class="rt-contact-info">
+            <h3>تواصل مع فريق RadaTik</h3>
+            <p>نرد على استفسارات الشركات الراغبة في استخدام المنصة، ونساعدك في اختيار الوحدات المناسبة.</p>
+            <div class="rt-info-item">
+                <i class="fas fa-envelope"></i>
+                <div>
+                    <strong>البريد</strong><br />
+                    <span style="color: var(--rt-muted);">info@radatik.app</span>
+                </div>
+            </div>
+            <div class="rt-info-item">
+                <i class="fas fa-building"></i>
+                <div>
+                    <strong>للشركات</strong><br />
+                    <span style="color: var(--rt-muted);">تسجيل مدير شبكة / ISP</span>
+                </div>
+            </div>
+            <div class="rt-info-item">
+                <i class="fas fa-user-plus"></i>
+                <div>
+                    <strong>ابدأ مباشرة</strong><br />
+                    <a href="/Account/RegisterNetworkAdmin" style="color: var(--rt-primary); font-weight: 600;">نموذج تسجيل الشركة</a>
+                </div>
+            </div>
+        </aside>
+
+        <div class="rt-contact-form">
+            <h3>أرسل رسالة</h3>
+            <form asp-action="Contact" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="field-validation-error"></div>
+
+                <div class="rt-form-group">
+                    <label asp-for="Name"></label>
+                    <input asp-for="Name" placeholder="اسم الشركة أو المسؤول" />
+                    <span asp-validation-for="Name"></span>
+                </div>
+                <div class="rt-form-group">
+                    <label asp-for="Email"></label>
+                    <input asp-for="Email" placeholder="example@company.com" />
+                    <span asp-validation-for="Email"></span>
+                </div>
+                <div class="rt-form-group">
+                    <label asp-for="Phone"></label>
+                    <input asp-for="Phone" placeholder="+963..." />
+                    <span asp-validation-for="Phone"></span>
+                </div>
+                <div class="rt-form-group">
+                    <label asp-for="Subject"></label>
+                    <input asp-for="Subject" placeholder="استفسار عن RadaTik / طلب عرض" />
+                    <span asp-validation-for="Subject"></span>
+                </div>
+                <div class="rt-form-group">
+                    <label asp-for="Message"></label>
+                    <textarea asp-for="Message" placeholder="اكتب رسالتك..."></textarea>
+                    <span asp-validation-for="Message"></span>
+                </div>
+                <div class="rt-form-actions">
+                    <button type="submit" class="rt-btn-submit">
+                        <i class="fas fa-paper-plane"></i>
+                        إرسال
+                    </button>
+                    <a href="/Account/RegisterNetworkAdmin" class="rt-btn-secondary">
+                        <i class="fas fa-building"></i>
+                        سجّل شركتك
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

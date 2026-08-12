@@ -1,0 +1,75 @@
+@using RadaTik.Helpers
+@using RadaTik.Models
+@{
+    var direction = ViewData["Direction"] as string ?? "SypToUsd";
+    var isSypToUsd = direction == "SypToUsd";
+    var fromCurrency = isSypToUsd ? PricingCurrency.SYP_New : PricingCurrency.USD;
+    var toCurrency = isSypToUsd ? PricingCurrency.USD : PricingCurrency.SYP_New;
+    var available = (decimal)(ViewData["AvailableBalance"] ?? 0m);
+    var defaultRate = ViewData["DefaultExchangeRate"] as decimal?;
+    var formId = isSypToUsd ? "exchange-syp-usd" : "exchange-usd-syp";
+    var panelClass = isSypToUsd ? "cashbox-panel-syp" : "cashbox-panel-usd";
+}
+
+<div class="cashbox-exchange-panel @panelClass h-100">
+    <div class="cashbox-exchange-panel__header">
+        <div class="cashbox-exchange-panel__from">
+            <span class="cashbox-currency-badge">@CurrencyHelper.GetSymbol(fromCurrency)</span>
+            <span>@(isSypToUsd ? "ليرة سورية جديدة" : "دولار")</span>
+        </div>
+        <div class="cashbox-exchange-panel__arrow" aria-hidden="true">
+            <i class="fas fa-long-arrow-alt-left"></i>
+        </div>
+        <div class="cashbox-exchange-panel__to">
+            <span class="cashbox-currency-badge cashbox-currency-badge--target">@CurrencyHelper.GetSymbol(toCurrency)</span>
+            <span>@(isSypToUsd ? "دولار" : "ليرة سورية جديدة")</span>
+        </div>
+    </div>
+
+    <p class="cashbox-exchange-panel__avail small text-muted mb-3">
+        المتاح للتحويل: <strong>@CurrencyHelper.FormatAmount(available, fromCurrency)</strong>
+    </p>
+
+    <form asp-area="CompanyAdmin" asp-controller="CashBox" asp-action="Exchange" method="post"
+          class="cashbox-exchange-form" id="@formId" data-direction="@direction">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="fromCurrency" value="@((int)fromCurrency)" />
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">
+                المبلغ المراد تحويله (@CurrencyHelper.GetSymbol(fromCurrency))
+            </label>
+            <input type="number" name="sourceAmount" class="form-control form-control-lg cashbox-exchange-source"
+                   step="0.01" min="0.01" required
+                   placeholder="@(isSypToUsd ? "مثال: 15,000,000" : "مثال: 500")" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">سعر الصرف</label>
+            <div class="input-group">
+                <span class="input-group-text small">1 $ =</span>
+                <input type="number" name="exchangeRate" class="form-control cashbox-exchange-rate"
+                       step="0.0001" min="0.0001" required
+                       value="@(defaultRate.HasValue && defaultRate > 0 ? defaultRate.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")"
+                       placeholder="15000" />
+                <span class="input-group-text small">ل.س.ج</span>
+            </div>
+        </div>
+
+        <div class="cashbox-exchange-result mb-3">
+            <div class="small text-muted mb-1">ستستلم في الصندوق</div>
+            <div class="cashbox-exchange-result__value cashbox-exchange-target">—</div>
+            <div class="small text-muted cashbox-exchange-target-hint">@CurrencyHelper.GetSymbol(toCurrency)</div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">ملاحظات (اختياري)</label>
+            <input type="text" name="notes" class="form-control" maxlength="500" placeholder="سبب التحويل" />
+        </div>
+
+        <button type="submit" class="btn @(isSypToUsd ? "btn-primary" : "btn-success") w-100 micro-btn">
+            <i class="fas fa-exchange-alt"></i>
+            تحويل إلى @CurrencyHelper.GetSymbol(toCurrency)
+        </button>
+    </form>
+</div>

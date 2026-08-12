@@ -1,0 +1,1 @@
+import{n as e,t}from"./cn-CO7O-Ahk.js";var n=e();function r({children:e,className:r}){return(0,n.jsx)(`div`,{className:t(`space-y-6`,r),children:e})}export{r as t};

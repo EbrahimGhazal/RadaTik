@@ -1,0 +1,113 @@
+<div class="radtk-page--companyadmin-views-receiver-delete">
+<div class="radtk-page--companyadmin-views-receiver-delete">
+@model RadaTik.Models.Receiver
+
+@{
+    ViewData["Title"] = "حذف المستقبل";
+    ViewBag.PageHeroIcon = "fas fa-trash-alt";
+    ViewBag.PageHeroTheme = "danger";
+    ViewBag.PageHeroBackUrl = Url.Action("Index");
+    ViewBag.PageHeroBackText = "إلغاء والعودة";
+}
+
+<partial name="_CrudPageHero" />
+
+<div class="delete-container">
+    <!-- Warning Alert -->
+    <div class="alert alert-danger">
+        <div class="alert-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="alert-content">
+            <h4>تنبيه مهم!</h4>
+            <p>هل أنت متأكد من رغبتك في حذف هذا المستقبل؟</p>
+            <p class="mb-0"><strong>سيتم حذف جميع العملاء المرتبطين بهذا المستقبل أيضاً!</strong></p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header card-header-danger">
+            <h3 class="card-title">
+                <i class="fas fa-wifi"></i>
+                بيانات المستقبل
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="info-list">
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-tag"></i> اسم المستقبل</span>
+                    <span class="info-value"><strong>@Model.Name</strong></span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-broadcast-tower"></i> القطاع</span>
+                    <span class="info-value">
+                        @if (Model.Sector != null)
+                        {
+                            <span>@Model.Sector.Name</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">غير مرتبط</span>
+                        }
+                    </span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-network-wired"></i> عنوان IP</span>
+                    <span class="info-value"><code>@Model.IPAddress</code></span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-mask"></i> قناع الشبكة</span>
+                    <span class="info-value">@Model.NetworkMask</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-map-marker-alt"></i> الموقع</span>
+                    <span class="info-value">@Model.Latitude.ToString("F6"), @Model.Longitude.ToString("F6")</span>
+                </div>
+            </div>
+
+            <!-- Warning Stats -->
+            <div class="delete-stats">
+                <div class="delete-stat stat-danger">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value">@Model.UserCount</span>
+                        <span class="stat-label">مستخدم سيتم حذفه</span>
+                    </div>
+                </div>
+
+                <div class="delete-stat">
+                    <div class="stat-icon"><i class="fas fa-toggle-@(Model.IsActive ? "on" : "off")"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value">@(Model.IsActive ? "نشط" : "غير نشط")</span>
+                        <span class="stat-label">الحالة الحالية</span>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.ProfileNames))
+            {
+                <div class="info-item" style="margin-top: var(--spacing-md);">
+                    <span class="info-label"><i class="fas fa-database"></i> البروفايلات</span>
+                    <span class="info-value"><span class="badge badge-info">@Model.ProfileNames</span></span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Delete Form -->
+    <form asp-action="Delete" class="delete-form">
+        <input type="hidden" asp-for="Id" />
+        <div class="form-actions">
+            <button type="submit" class="btn btn-danger btn-lg">
+                <i class="fas fa-trash"></i> تأكيد الحذف
+            </button>
+            <a asp-action="Index" class="btn btn-secondary btn-lg">
+                <i class="fas fa-times"></i> إلغاء والعودة
+            </a>
+        </div>
+    </form>
+</div>

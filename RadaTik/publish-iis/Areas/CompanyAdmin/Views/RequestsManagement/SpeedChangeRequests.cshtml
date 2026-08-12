@@ -1,0 +1,310 @@
+@model IEnumerable<RadaTik.Models.SpeedChangeRequest>
+@using RadaTik.Models
+@using RadaTik.Helpers
+@{
+    ViewData["Title"] = "طلبات تغيير السرعة";
+    var currentStatus = ViewBag.CurrentStatus as string;
+}
+
+<div class="page-header">
+    <div class="page-header-content">
+        <h1 class="page-title">
+            <i class="fas fa-tachometer-alt"></i>
+            @ViewData["Title"]
+        </h1>
+        <div class="page-actions">
+            <a asp-route="networkManager-requestsManagement" asp-route-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Success"]</div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Error"]</div>
+    </div>
+}
+
+<!-- فلتر الحالة -->
+<div class="filter-bar">
+    <a href="@Url.Action("SpeedChangeRequests")" class="filter-btn @(string.IsNullOrEmpty(currentStatus) ? "active" : "")">
+        الكل
+    </a>
+    <a href="@Url.Action("SpeedChangeRequests", new { status = "Pending" })" class="filter-btn @(currentStatus == "Pending" ? "active" : "")">
+        <i class="fas fa-clock"></i> في الانتظار
+    </a>
+    <a href="@Url.Action("SpeedChangeRequests", new { status = "Approved" })" class="filter-btn @(currentStatus == "Approved" ? "active" : "")">
+        <i class="fas fa-thumbs-up"></i> تمت الموافقة
+    </a>
+    <a href="@Url.Action("SpeedChangeRequests", new { status = "Implemented" })" class="filter-btn @(currentStatus == "Implemented" ? "active" : "")">
+        <i class="fas fa-check-double"></i> تم التنفيذ
+    </a>
+    <a href="@Url.Action("SpeedChangeRequests", new { status = "Rejected" })" class="filter-btn @(currentStatus == "Rejected" ? "active" : "")">
+        <i class="fas fa-times"></i> مرفوض
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table" id="speedChangeTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>العميل</th>
+                            <th>من باقة</th>
+                            <th>إلى باقة</th>
+                            <th>فرق السعر</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الطلب</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var request in Model)
+                        {
+                            var statusClass = PricingDisplay.SpeedChangeRequestStatusClass(request.Status);
+
+                            <tr class="@(request.Status == SpeedChangeRequestStatus.Pending ? "row-highlight" : "")">
+                                <td>@request.Id</td>
+                                <td>
+                                    <div class="client-info">
+                                        <div class="client-avatar">
+                                            @(request.Client?.Name?.Substring(0, 1).ToUpper() ?? "?")
+                                        </div>
+                                        <div>
+                                            <div class="client-name">@request.Client?.Name</div>
+                                            <div class="client-phone">@request.Client?.PhoneNumber</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="profile-info">
+                                        <span class="profile-name">@request.CurrentProfile?.Name</span>
+                                        <span class="profile-speed">@request.CurrentProfile?.DownloadSpeedDisplay</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="profile-info new">
+                                        <span class="profile-name">@request.RequestedProfile?.Name</span>
+                                        <span class="profile-speed">@request.RequestedProfile?.DownloadSpeedDisplay</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (request.PriceDifference.HasValue)
+                                    {
+                                        <span class="price-diff @(request.PriceDifference > 0 ? "increase" : "decrease")">
+                                            @(request.PriceDifference > 0 ? "+" : "")@request.PriceDifference?.ToString("N2") ر.س
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="status-badge @statusClass">
+                                        @GetStatusName(request.Status)
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="date-info">
+                                        <div>@request.RequestDate.ToString("yyyy/MM/dd")</div>
+                                        <div class="time-ago">@request.RequestDate.ToString("HH:mm")</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <a asp-action="SpeedChangeRequestDetails" asp-route-id="@request.Id" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> عرض
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <h3>لا توجد طلبات</h3>
+                <p>لا توجد طلبات تغيير سرعة @(string.IsNullOrEmpty(currentStatus) ? "" : "بهذه الحالة")</p>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .page-header {
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .page-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .page-title {
+        font-size: var(--font-2xl);
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-md);
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .filter-btn {
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--radius-sm);
+        text-decoration: none;
+        color: var(--text-secondary);
+        background: var(--bg-hover);
+        font-size: var(--font-sm);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        transition: all var(--transition);
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+        background: var(--primary);
+        color: white;
+    }
+
+    .card {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .card-body {
+        padding: var(--spacing-md);
+    }
+
+    .row-highlight {
+        background: rgba(255, 152, 0, 0.05) !important;
+    }
+
+    .client-info {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .client-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: var(--font-sm);
+    }
+
+    .client-name {
+        font-weight: 600;
+        font-size: var(--font-sm);
+    }
+
+    .client-phone {
+        font-size: var(--font-xs);
+        color: var(--text-muted);
+    }
+
+    .profile-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .profile-name {
+        font-weight: 600;
+        font-size: var(--font-sm);
+    }
+
+    .profile-speed {
+        font-size: var(--font-xs);
+        color: var(--text-muted);
+    }
+
+    .profile-info.new .profile-name {
+        color: var(--primary);
+    }
+
+    .price-diff {
+        font-weight: 600;
+        font-size: var(--font-sm);
+    }
+
+    .price-diff.increase {
+        color: var(--danger);
+    }
+
+    .price-diff.decrease {
+        color: var(--success);
+    }
+
+    .date-info {
+        font-size: var(--font-sm);
+    }
+
+    .time-ago {
+        font-size: var(--font-xs);
+        color: var(--text-muted);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: var(--spacing-2xl);
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: var(--spacing-md);
+    }
+</style>
+
+@functions {
+    string GetStatusName(SpeedChangeRequestStatus status) => PricingDisplay.SpeedChangeRequestStatusLabel(status);
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#speedChangeTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+                },
+                order: [[6, 'desc']],
+                pageLength: 25
+            });
+        });
+    </script>
+}
+

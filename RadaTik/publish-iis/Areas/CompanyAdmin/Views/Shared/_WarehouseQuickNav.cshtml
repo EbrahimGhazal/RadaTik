@@ -1,0 +1,10 @@
+@{
+    var current = (ViewBag.WarehouseNavCurrent as string) ?? "warehouse";
+}
+<nav class="warehouse-quick-nav mb-3" aria-label="وحدات المستودع">
+    <a class="warehouse-quick-nav__item @(current == "warehouse" ? "is-current" : "")" asp-area="CompanyAdmin" asp-controller="Warehouse" asp-action="Index"><i class="fas fa-warehouse"></i> المستودع</a>
+    <a class="warehouse-quick-nav__item @(current == "purchase" ? "is-current" : "")" asp-area="CompanyAdmin" asp-controller="MaterialPurchaseInvoices" asp-action="Index"><i class="fas fa-cart-plus"></i> شراء</a>
+    <a class="warehouse-quick-nav__item @(current == "sales" ? "is-current" : "")" asp-area="CompanyAdmin" asp-controller="MaterialSalesInvoices" asp-action="Index"><i class="fas fa-receipt"></i> بيع</a>
+    <a class="warehouse-quick-nav__item @(current == "stocktake" ? "is-current" : "")" asp-area="CompanyAdmin" asp-controller="WarehouseStocktake" asp-action="Index"><i class="fas fa-clipboard-check"></i> جرد</a>
+    <a class="warehouse-quick-nav__item @(current == "report" ? "is-current" : "")" asp-area="CompanyAdmin" asp-controller="WarehouseStocktake" asp-action="Report"><i class="fas fa-chart-line"></i> تقرير</a>
+</nav>

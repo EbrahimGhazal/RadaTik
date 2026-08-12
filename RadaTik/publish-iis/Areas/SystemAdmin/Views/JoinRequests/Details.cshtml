@@ -1,0 +1,157 @@
+@model RadaTik.Models.JoinRequest
+
+@{
+    var requestTypeText = Model.RequestType == RadaTik.Models.JoinRequestType.CollectionPoint ? "نقطة تحصيل" : "مدير شركة";
+    ViewData["Title"] = $"تفاصيل طلب الانضمام ({requestTypeText}) #{Model.Id}";
+    var hasSavedRequestedPassword = !string.IsNullOrWhiteSpace(Model.RequestedPassword);
+
+    string StatusText(RadaTik.Models.JoinRequestStatus s) => s switch
+    {
+        RadaTik.Models.JoinRequestStatus.Pending => "قيد الانتظار",
+        RadaTik.Models.JoinRequestStatus.UnderReview => "قيد المراجعة",
+        RadaTik.Models.JoinRequestStatus.Approved => "مقبول",
+        RadaTik.Models.JoinRequestStatus.Rejected => "مرفوض",
+        _ => s.ToString()
+    };
+
+    string StatusBadgeClass(RadaTik.Models.JoinRequestStatus s) => s switch
+    {
+        RadaTik.Models.JoinRequestStatus.Pending => "bg-warning text-dark",
+        RadaTik.Models.JoinRequestStatus.UnderReview => "bg-info text-dark",
+        RadaTik.Models.JoinRequestStatus.Approved => "bg-success",
+        RadaTik.Models.JoinRequestStatus.Rejected => "bg-danger",
+        _ => "bg-secondary"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h1 class="m-0">
+        <i class="fas fa-user-shield"></i>
+        @ViewData["Title"]
+    </h1>
+    <a class="btn btn-outline-secondary" asp-route="systemAdmin-joinRequests">
+        <i class="fas fa-arrow-right me-1"></i> العودة
+    </a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-12 col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <strong>بيانات الطلب</strong>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">الاسم</dt>
+                    <dd class="col-sm-8">@Model.FullName</dd>
+
+                    <dt class="col-sm-4">البريد</dt>
+                    <dd class="col-sm-8">@Model.Email</dd>
+
+                    <dt class="col-sm-4">الهاتف</dt>
+                    <dd class="col-sm-8">@Model.PhoneNumber</dd>
+
+                    <dt class="col-sm-4">العنوان</dt>
+                    <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Address) ? "-" : Model.Address)</dd>
+
+                    <dt class="col-sm-4">تاريخ الطلب</dt>
+                    <dd class="col-sm-8">@Model.CreatedDate.ToString("yyyy/MM/dd HH:mm")</dd>
+
+                    <dt class="col-sm-4">نوع الطلب</dt>
+                    <dd class="col-sm-8">@requestTypeText</dd>
+
+                    <dt class="col-sm-4">الحالة</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge @StatusBadgeClass(Model.Status)">@StatusText(Model.Status)</span>
+                    </dd>
+
+                    <dt class="col-sm-4">ملاحظات مقدم الطلب</dt>
+                    <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Notes) ? "-" : Model.Notes)</dd>
+
+                    <dt class="col-sm-4">كلمة المرور المطلوبة</dt>
+                    <dd class="col-sm-8">
+                        @if (hasSavedRequestedPassword)
+                        {
+                            <span class="badge bg-success">محفوظة (مشفرة)</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">غير متوفرة</span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">ملاحظات الإدارة</dt>
+                    <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.AdminNotes) ? "-" : Model.AdminNotes)</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-5">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <strong>تحديث الحالة</strong>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-route="systemAdmin-joinRequests" asp-route-action="UpdateStatus">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+
+                    <div class="mb-3">
+                        <label class="form-label">الحالة</label>
+                        <select class="form-select form-select-lg" name="status" required>
+                            <option value="1" selected="@(Model.Status == RadaTik.Models.JoinRequestStatus.Pending)">قيد الانتظار</option>
+                            <option value="2" selected="@(Model.Status == RadaTik.Models.JoinRequestStatus.UnderReview)">قيد المراجعة</option>
+                            <option value="3" selected="@(Model.Status == RadaTik.Models.JoinRequestStatus.Approved)">مقبول</option>
+                            <option value="4" selected="@(Model.Status == RadaTik.Models.JoinRequestStatus.Rejected)">مرفوض</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">ملاحظات الإدارة</label>
+                        <textarea class="form-control" name="adminNotes" rows="3" maxlength="500">@Model.AdminNotes</textarea>
+                    </div>
+
+                    <div id="passwordHintAlert" class="alert alert-warning d-none" role="alert" data-has-saved-password="@(hasSavedRequestedPassword ? "true" : "false")">
+                        <i class="fas fa-triangle-exclamation me-2"></i>
+                        لا توجد كلمة مرور محفوظة للطلب. عند الحفظ بحالة <strong>مقبول</strong> سيتم توليد كلمة مرور مؤقتة تلقائيا.
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save me-1"></i> حفظ
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const form = document.querySelector('form[asp-route-action="UpdateStatus"], form[action*="UpdateStatus"]');
+        if (!form) return;
+
+        const statusSelect = form.querySelector('select[name="status"]');
+        const alertBox = document.getElementById('passwordHintAlert');
+        if (!statusSelect || !alertBox) return;
+        const hasSavedPassword = (alertBox.dataset.hasSavedPassword || '').toLowerCase() === 'true';
+
+        const sync = () => {
+            const isApprove = statusSelect.value === '3';
+            const missingPassword = !hasSavedPassword;
+            alertBox.classList.toggle('d-none', !(isApprove && missingPassword));
+        };
+
+        statusSelect.addEventListener('change', sync);
+        sync();
+    })();
+</script>
+

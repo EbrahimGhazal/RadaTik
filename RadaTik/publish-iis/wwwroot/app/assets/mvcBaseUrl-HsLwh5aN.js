@@ -1,0 +1,1 @@
+function e(){return typeof window<`u`?window.location.origin:``}export{e as t};

@@ -1,0 +1,157 @@
+@model List<RadaTik.Models.MikroTikServer>
+@{
+    ViewData["Title"] = "استيراد المشتركين من سيرفر";
+    ViewBag.PageHeroIcon = "fas fa-download";
+    ViewBag.PageHeroSubtitle = "اختر السيرفر المطلوب لاستيراد جميع المشتركين الموجودين عليه إلى قاعدة البيانات (الشبكة الحالية).";
+    ViewBag.PageHeroBackUrl = Url.Action("Index", "Clients");
+    ViewBag.PageHeroBackText = "قائمة العملاء";
+    var importPreviewByServer = ViewBag.ImportPreviewByServer as Dictionary<int, RadaTik.Services.ImportUsersPreviewResult>;
+    var importChargeByServer = ViewBag.ImportChargeByServer as Dictionary<int, RadaTik.Services.UsageImportChargeEstimate>;
+    var clientImportUnitPrice = (decimal?)(ViewBag.ClientImportUnitPrice) ?? 0m;
+}
+
+<partial name="_CrudPageHero" />
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-triangle"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card border-0 shadow-sm mb-3 border-start border-4 border-primary">
+    <div class="card-body py-2">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center" style="width:34px;height:34px;">
+                    <i class="fas fa-users"></i>
+                </span>
+                <div>
+                    <div class="small text-muted mb-1">التسعير الفعّال قبل اختيار السيرفر</div>
+                    <div class="fw-semibold">سعر الوحدة المعتمد لاستيراد كل عميل</div>
+                </div>
+            </div>
+            <div class="fw-bold text-primary">@SyrianCurrencyHelper.FormatNew(clientImportUnitPrice) ل.س.ج</div>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        لا يوجد خوادم MikroTik في الشبكة الحالية. أضف خادماً من قسم <a asp-route="networkManager-mikrotikservers" asp-route-action="Index" asp-route-id="">خوادم MikroTik</a> أولاً.
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-header bg-warning text-dark">
+            <i class="fas fa-server"></i> اختر السيرفر ثم اضغط "استيراد من هذا السيرفر"
+        </div>
+        <div class="card-body">
+            <div class="list-group list-group-flush">
+                @foreach (var server in Model)
+                {
+                    RadaTik.Services.ImportUsersPreviewResult preview;
+                    if (importPreviewByServer != null && importPreviewByServer.TryGetValue(server.Id, out var previewItem))
+                    {
+                        preview = previewItem;
+                    }
+                    else
+                    {
+                        preview = new RadaTik.Services.ImportUsersPreviewResult();
+                    }
+
+                    RadaTik.Services.UsageImportChargeEstimate charge;
+                    if (importChargeByServer != null && importChargeByServer.TryGetValue(server.Id, out var chargeItem))
+                    {
+                        charge = chargeItem;
+                    }
+                    else
+                    {
+                        charge = new RadaTik.Services.UsageImportChargeEstimate();
+                    }
+                    <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <strong>@server.Name</strong>
+                            <span class="text-muted small">(@server.Host:@server.Port)</span>
+                            <div class="small text-muted mt-1">
+                                على السيرفر: <strong>@preview.TotalUsersOnServer</strong> |
+                                قابل للاستيراد: <strong>@preview.ImportableUsersCount</strong> |
+                                سعر كل عميل: <strong>@SyrianCurrencyHelper.FormatNew(charge.UnitPriceSyp)</strong> ل.س.ج |
+                                الإجمالي المتوقع: <strong>@SyrianCurrencyHelper.FormatNew(charge.RequiredAmountSyp)</strong> ل.س.ج |
+                                الرصيد الحالي: <strong>@SyrianCurrencyHelper.FormatNew(charge.WalletBalance)</strong> ل.س.ج
+                            </div>
+                            @if (preview.HasConnectionError && !string.IsNullOrWhiteSpace(preview.PreviewNote))
+                            {
+                                <div class="alert alert-danger py-2 px-3 mt-2 mb-0 small">
+                                    <i class="fas fa-exclamation-triangle"></i> @preview.PreviewNote
+                                    <div class="mt-1">
+                                        <a asp-route="networkManager-mikrotikservers" asp-route-action="Edit" asp-route-id="@server.Id" class="alert-link">
+                                            تعديل بيانات الاتصال للسيرفر
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <form asp-action="ImportFromServer" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="serverId" value="@server.Id" />
+                            <button type="submit"
+                                    class="btn btn-warning btn-sm"
+                                    data-server-name="@server.Name"
+                                    data-total-users="@preview.TotalUsersOnServer"
+                                    data-importable-users="@preview.ImportableUsersCount"
+                                    data-unit-price="@charge.UnitPriceSyp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                    data-total-charge="@charge.RequiredAmountSyp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                    data-wallet-balance="@charge.WalletBalance.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                    @(preview.HasConnectionError || preview.ImportableUsersCount <= 0 ? "disabled" : null)
+                                    onclick="return confirmClientsImport(this);">
+                                <i class="fas fa-download"></i> استيراد من هذا السيرفر
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<div class="mt-3">
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-arrow-right"></i> العودة لقائمة المشتركين
+    </a>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmClientsImport(btn) {
+            const serverName = btn.getAttribute('data-server-name') || 'غير معروف';
+            const totalUsers = Number(btn.getAttribute('data-total-users') || 0);
+            const importableUsers = Number(btn.getAttribute('data-importable-users') || 0);
+            const unitPrice = Number(btn.getAttribute('data-unit-price') || 0);
+            const totalCharge = Number(btn.getAttribute('data-total-charge') || 0);
+            const walletBalance = Number(btn.getAttribute('data-wallet-balance') || 0);
+
+            if (importableUsers <= 0) {
+                alert('لا يوجد عملاء جدد قابلين للاستيراد من هذا السيرفر حالياً.');
+                return false;
+            }
+
+            const message =
+                `تنبيه واضح قبل الاستيراد:\n\n` +
+                `السيرفر: ${serverName}\n` +
+                `عدد العملاء على السيرفر: ${totalUsers}\n` +
+                `العملاء القابلون للاستيراد: ${importableUsers}\n` +
+                `سعر استيراد كل عميل: ${unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n` +
+                `إجمالي مبلغ الاستيراد: ${totalCharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n` +
+                `رصيد المحفظة الحالي: ${walletBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n\n` +
+                `سيتم التحقق من الرصيد قبل التنفيذ الفعلي، وفي حال عدم الكفاية سيتم إلغاء العملية مع توضيح السبب.\n\n` +
+                `هل تريد المتابعة؟`;
+
+            return window.confirm(message);
+        }
+    </script>
+}

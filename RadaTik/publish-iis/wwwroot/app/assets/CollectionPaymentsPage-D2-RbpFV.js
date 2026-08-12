@@ -1,0 +1,1 @@
+import{CollectionTransactionsPage as e}from"./CollectionTransactionsPage-BX-RvTBe.js";export{e as CollectionPaymentsPage};

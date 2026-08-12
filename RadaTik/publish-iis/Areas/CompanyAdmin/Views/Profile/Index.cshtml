@@ -1,0 +1,571 @@
+@model IEnumerable<RadaTik.Models.Profile>
+@{
+    ViewData["Title"] = "إدارة البروفايلات";
+    ViewBag.PageHeroIcon = "fas fa-tags";
+    ViewBag.PageHeroExtraActions = new[]
+    {
+        new RadaTik.ViewModels.UI.PageHeroActionViewModel { Text = "إضافة بروفايل جديد", Url = Url.Action("Create")!, CssClass = "btn btn-success btn-sm", IconClass = "fas fa-plus-circle" }
+    };
+    var totalProfiles = Model.Count();
+    var activeProfiles = Model.Count(p => p.IsActive);
+    var syncedProfiles = Model.Count(p => p.IsSyncedWithMikroTik);
+    var inactiveProfiles = totalProfiles - activeProfiles;
+    var profileImportUnitPrice = (decimal?)(ViewBag.ProfileImportUnitPrice) ?? 0m;
+}
+<div class="radtk-page-profile-index">
+
+<link rel="stylesheet" href="~/css/radatik-theme.css" asp-append-version="true" />
+
+<partial name="_CrudPageHero" />
+
+<!-- Alert Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i>
+        <span>@TempData["SuccessMessage"]</span>
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>@TempData["ErrorMessage"]</span>
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+}
+@if (TempData["WarningMessage"] != null)
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>@TempData["WarningMessage"]</span>
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+}
+@if (TempData["InfoMessage"] != null)
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        <span>@TempData["InfoMessage"]</span>
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+}
+
+<!-- Server Filter -->
+<div class="filter-card" style="background: var(--bg-card); border-radius: var(--radius); padding: var(--spacing-lg); margin-bottom: var(--spacing-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--border-light);">
+    <div style="display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap;">
+        <label style="font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-filter"></i>
+            تصفية حسب الخادم:
+        </label>
+        <select class="form-select" id="serverFilter" style="max-width: 300px;">
+            <option value="">جميع الخوادم</option>
+            @if (ViewBag.MikroTikServers != null)
+            {
+                @foreach (var server in ViewBag.MikroTikServers)
+                {
+                    var isSelected = ViewBag.SelectedServerId != null && ViewBag.SelectedServerId.ToString() == server.Id.ToString();
+                    <option value="@server.Id" selected="@isSelected">@server.Name</option>
+                }
+            }
+        </select>
+        @if (ViewBag.SelectedServerId != null)
+        {
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-times"></i> إزالة التصفية
+            </a>
+        }
+    </div>
+</div>
+
+<!-- Statistics Bar -->
+<div class="stats-bar">
+    <div class="stat-item">
+        <div class="stat-icon total">
+            <i class="fas fa-layer-group"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@totalProfiles</h3>
+            <span>إجمالي البروفايلات</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon active">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@activeProfiles</h3>
+            <span>المفعلة</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon synced">
+            <i class="fas fa-sync-alt"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@syncedProfiles</h3>
+            <span>المتزامنة</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon inactive">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@(totalProfiles - syncedProfiles)</h3>
+            <span>غير المتزامنة</span>
+        </div>
+    </div>
+</div>
+
+@{
+    var catalogs = ViewBag.CompanyCatalogs as IEnumerable<RadaTik.ViewModels.Profile.CompanyCatalogSummaryItem>;
+}
+@if (catalogs != null && catalogs.Any())
+{
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-layer-group text-primary"></i> كتالوج بروفايلات الشركة</span>
+            <a asp-action="Create" class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> بروفايل جديد</a>
+        </div>
+        <div class="card-body py-2">
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var cat in catalogs)
+                {
+                    <a asp-action="Deploy" asp-route-id="@cat.Id" class="btn btn-outline-primary btn-sm">
+                        @cat.Name <span class="badge bg-secondary ms-1">@cat.DeployedCount سيرفر</span>
+                    </a>
+                }
+            </div>
+            <p class="small text-muted mb-0 mt-2">اضغط على البروفايل لنشره على سيرفرات إضافية.</p>
+        </div>
+    </div>
+}
+
+<div class="card border-0 shadow-sm mb-3 border-start border-4 border-success">
+    <div class="card-body py-2">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="rounded-circle bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center" style="width:34px;height:34px;">
+                    <i class="fas fa-layer-group"></i>
+                </span>
+                <div>
+                    <div class="small text-muted mb-1">التسعير الفعّال قبل اختيار السيرفر</div>
+                    <div class="fw-semibold">سعر الوحدة المعتمد لاستيراد كل بروفايل</div>
+                </div>
+            </div>
+            <div class="fw-bold text-success">@SyrianCurrencyHelper.FormatNew(profileImportUnitPrice) ل.س.ج</div>
+        </div>
+    </div>
+</div>
+
+<!-- Sync Card -->
+<div class="sync-card">
+    <div class="sync-card-header">
+        <i class="fas fa-sync-alt"></i>
+        <h5>مزامنة مع MikroTik</h5>
+    </div>
+    <div class="sync-controls">
+        <select class="form-select" id="serverSelect">
+            <option value="">-- اختر خادم MikroTik --</option>
+            @foreach (RadaTik.Models.MikroTikServer server in ViewBag.MikroTikServers)
+            {
+                <option value="@server.Id"
+                        data-server-name="@server.Name">
+                    @server.Name
+                </option>
+            }
+        </select>
+        <div class="small text-muted" title="سعر المستورد الجديد يتم تطبيقه تلقائياً من إعدادات النظام">
+            <i class="fas fa-circle-info"></i>
+            سعر المستورد الجديد (ل.س): ملاحظة فقط — يتم تطبيق القيمة الافتراضية تلقائياً من النظام ولا يمكن تعديلها من هذه الشاشة.
+            <span class="fw-semibold text-success">القيمة الحالية: @SyrianCurrencyHelper.FormatNew(profileImportUnitPrice) ل.س.ج</span>
+        </div>
+        <div class="sync-buttons">
+            <button type="button" class="sync-btn view" onclick="viewMikroTikProfiles()">
+                <i class="fas fa-eye"></i>
+                عرض من MikroTik
+            </button>
+            <button type="button" class="sync-btn import" onclick="syncFromMikroTik()">
+                <i class="fas fa-download"></i>
+                استيراد
+            </button>
+            <button type="button" class="sync-btn export" onclick="syncToMikroTik()">
+                <i class="fas fa-upload"></i>
+                تصدير
+            </button>
+            <button type="button" class="sync-btn bidirectional" onclick="twoWaySync()">
+                <i class="fas fa-exchange-alt"></i>
+                مزامنة ثنائية
+            </button>
+        </div>
+    </div>
+    <div id="importPreviewHint" class="small text-muted mt-3">
+        اختر خادمًا لتحميل معاينة الاستيراد والتكلفة.
+    </div>
+</div>
+
+<!-- Profiles Table -->
+<div class="table-card">
+    @if (Model.Any())
+    {
+        <table class="table table-sm table-hover data-table radtk-data-table radtk-data-table--cards" id="profilesTable">
+            <thead>
+                <tr>
+                    <th>الاسم</th>
+                    <th>النوع</th>
+                    <th>السعر</th>
+                    <th>السرعة</th>
+                    <th>الأجهزة</th>
+                    <th>الخادم</th>
+                    <th>الحالة</th>
+                    <th>المزامنة</th>
+                    <th>العملاء</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="profile-name">@item.Name</div>
+                            @if (item.CompanyProfileCatalogId.HasValue)
+                            {
+                                <span class="badge bg-primary mt-1" title="بروفايل كتالوج الشركة">كتالوج</span>
+                            }
+                            @if (!string.IsNullOrEmpty(item.Description))
+                            {
+                                <div class="profile-desc">@item.Description</div>
+                            }
+                        </td>
+                        <td>
+                            <span class="type-badge">@item.Type</span>
+                            <div class="cycle-text">@item.BillingCycle</div>
+                        </td>
+                        <td>
+                            <div class="price-main">
+                                @SyrianCurrencyHelper.FormatNew(item.Price) ل.س جديد
+                            </div>
+                            <div class="price-vat">
+                                شامل: @SyrianCurrencyHelper.FormatNew(item.PriceWithVAT) ل.س جديد
+                            </div>
+                            <div class="price-old-hint" style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px;">
+                                <i class="fas fa-coins"></i>
+                                قديم: @((item.Price * 100).ToString("N0")) ل.س
+                            </div>
+                        </td>
+                        <td>
+                            <div class="speed-value">@item.DownloadSpeedDisplay</div>
+                            @if (item.UploadSpeed.HasValue)
+                            {
+                                <div class="speed-upload">رفع: @item.UploadSpeedDisplay</div>
+                            }
+                        </td>
+                        <td>
+                            <span class="devices-badge" title="عدد الأجهزة الأدنى - الأقصى">
+                                <i class="fas fa-mobile-alt"></i>
+                                @item.MinDevices - @item.MaxDevices
+                            </span>
+                        </td>
+                        <td>
+                            @if (item.MikroTikServer != null)
+                            {
+                                <span class="server-badge">
+                                    <i class="fas fa-server"></i>
+                                    @item.MikroTikServer.Name
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">غير مرتبط</span>
+                            }
+                        </td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="status-badge active">
+                                    <i class="fas fa-check"></i>
+                                    مفعل
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="status-badge inactive">
+                                    <i class="fas fa-times"></i>
+                                    معطل
+                                </span>
+                            }
+                        </td>
+                        <td>
+                            <div class="sync-badge">
+                                @if (item.IsSyncedWithMikroTik)
+                                {
+                                    <span class="sync-status synced">
+                                        <i class="fas fa-check-circle"></i>
+                                        مزامن
+                                    </span>
+                                    <span class="sync-date">@item.LastSyncDate?.ToString("yyyy-MM-dd")</span>
+                                }
+                                else
+                                {
+                                    <span class="sync-status not-synced">
+                                        <i class="fas fa-times-circle"></i>
+                                        غير مزامن
+                                    </span>
+                                }
+                            </div>
+                        </td>
+                        <td>
+                            <span class="clients-badge">@item.Clients.Count</span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a asp-action="Details" asp-route-id="@item.Id" class="action-btn view" title="تفاصيل">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                @if (item.CompanyProfileCatalogId.HasValue)
+                                {
+                                    <a asp-action="Deploy" asp-route-id="@item.CompanyProfileCatalogId" class="action-btn view" title="نشر على سيرفرات">
+                                        <i class="fas fa-share-alt"></i>
+                                    </a>
+                                }
+                                <a asp-action="Edit" asp-route-id="@item.Id" asp-route-serverId="@ViewBag.SelectedServerId" class="action-btn edit" title="تعديل">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="action-btn delete" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                                @if (item.MikroTikServerId > 0)
+                                {
+                                    <button type="button" class="action-btn sync" onclick="testSync(@item.MikroTikServerId, @item.Id)" title="فحص المزامنة">
+                                        <i class="fas fa-sync"></i>
+                                    </button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fas fa-tags"></i>
+            <h3>لا توجد بروفايلات</h3>
+            <p>لم يتم إنشاء أي بروفايلات حتى الآن</p>
+            <a asp-action="Create" class="btn btn-primary mt-3">
+                <i class="fas fa-plus-circle"></i>
+                إضافة بروفايل جديد
+            </a>
+        </div>
+    }
+</div>
+
+@if (Model.Any())
+{
+    <div class="card-footer">
+        <small>تم التحديث في: @DateTime.Now.ToString("yyyy-MM-dd HH:mm")</small>
+    </div>
+}
+
+
+</div>
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            if ($('#profilesTable').length) {
+                $('#profilesTable').DataTable({
+                    language: {
+                        url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+                    },
+                    order: [[0, 'asc']],
+                    pageLength: 25,
+                    responsive: true
+                });
+            }
+        });
+
+        function viewMikroTikProfiles() {
+            var serverId = $('#serverSelect').val();
+            if (!serverId) {
+                alert('الرجاء اختيار خادم MikroTik أولاً');
+                return;
+            }
+            window.location.href = '@Url.Action("ViewMikroTikProfiles")' + '?serverId=' + serverId;
+        }
+
+        const importPreviewCache = {};
+        let loadingImportPreview = false;
+
+        async function loadImportPreview(serverId, forceRefresh = false) {
+            if (!serverId) return null;
+            if (!forceRefresh && importPreviewCache[serverId]) {
+                updateImportPreviewHint(importPreviewCache[serverId]);
+                return importPreviewCache[serverId];
+            }
+
+            if (loadingImportPreview) return null;
+            loadingImportPreview = true;
+            updateImportPreviewHint(null, 'جاري تحميل معاينة الاستيراد...');
+
+            try {
+                const response = await fetch('@Url.Action("GetImportPreviewData")' + '?serverId=' + encodeURIComponent(serverId), {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const result = await response.json();
+                if (!result || !result.success) {
+                    updateImportPreviewHint(null, result?.message || 'تعذر جلب معاينة الاستيراد.');
+                    return null;
+                }
+
+                importPreviewCache[serverId] = result;
+                updateImportPreviewHint(result);
+                return result;
+            } catch {
+                updateImportPreviewHint(null, 'تعذر جلب معاينة الاستيراد حالياً.');
+                return null;
+            } finally {
+                loadingImportPreview = false;
+            }
+        }
+
+        function updateImportPreviewHint(data, fallbackMessage) {
+            const hint = document.getElementById('importPreviewHint');
+            if (!hint) return;
+
+            if (fallbackMessage) {
+                hint.textContent = fallbackMessage;
+                return;
+            }
+
+            if (!data) {
+                hint.textContent = 'اختر خادمًا لتحميل معاينة الاستيراد والتكلفة.';
+                return;
+            }
+
+            hint.textContent =
+                `البروفايلات على السيرفر: ${data.totalProfiles} | القابلة للاستيراد: ${data.importableProfiles} | ` +
+                `التكلفة الكلية: ${Number(data.totalCharge || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج`;
+        }
+
+        async function syncFromMikroTik() {
+            var serverId = $('#serverSelect').val();
+            if (!serverId) {
+                alert('الرجاء اختيار خادم MikroTik أولاً');
+                return;
+            }
+
+            const selected = document.getElementById('serverSelect').selectedOptions[0];
+            const serverName = selected?.getAttribute('data-server-name') || 'غير معروف';
+            const previewData = await loadImportPreview(serverId);
+            if (!previewData) {
+                alert('تعذر جلب معاينة الاستيراد حالياً. حاول مرة أخرى.');
+                return;
+            }
+            const totalProfiles = Number(previewData.totalProfiles || 0);
+            const importableProfiles = Number(previewData.importableProfiles || 0);
+            const unitPrice = Number(previewData.unitPrice || 0);
+            const totalCharge = Number(previewData.totalCharge || 0);
+            const walletBalance = Number(previewData.walletBalance || 0);
+
+            if (importableProfiles <= 0) {
+                if (confirm('لا يوجد بروفايلات جديدة للاستيراد من هذا السيرفر حالياً.\n\nهل تريد تشغيل «المزامنة الثنائية» لتحديث البروفايلات الحالية؟')) {
+                    window.location.href = '@Url.Action("TwoWaySync")' + '?serverId=' + encodeURIComponent(serverId);
+                }
+                return;
+            }
+
+            const message =
+                `تنبيه واضح قبل الاستيراد:\n\n` +
+                `السيرفر: ${serverName}\n` +
+                `عدد البروفايلات على السيرفر: ${totalProfiles}\n` +
+                `البروفايلات القابلة للاستيراد: ${importableProfiles}\n` +
+                `سعر استيراد كل بروفايل: ${unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n` +
+                `إجمالي مبلغ الاستيراد: ${totalCharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n` +
+                `رصيد المحفظة الحالي: ${walletBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n\n` +
+                `سيتم التحقق من الرصيد قبل التنفيذ الفعلي، وفي حال عدم الكفاية سيتم إلغاء العملية مع توضيح السبب.\n\n` +
+                `هل تريد المتابعة؟`;
+
+            if (confirm(message)) {
+                window.location.href = '@Url.Action("SyncFromMikroTik")' + '?serverId=' + encodeURIComponent(serverId);
+            }
+        }
+
+        function syncToMikroTik() {
+            var serverId = $('#serverSelect').val();
+            if (!serverId) {
+                alert('الرجاء اختيار خادم MikroTik أولاً');
+                return;
+            }
+            if (confirm('هل تريد تصدير البروفايلات من قاعدة البيانات إلى MikroTik؟')) {
+                window.location.href = '@Url.Action("SyncToMikroTik")' + '?serverId=' + serverId;
+            }
+        }
+
+        function twoWaySync() {
+            var serverId = $('#serverSelect').val();
+            if (!serverId) {
+                alert('الرجاء اختيار خادم MikroTik أولاً');
+                return;
+            }
+            if (confirm('هل تريد مزامنة البروفايلات ثنائية الاتجاه؟')) {
+                window.location.href = '@Url.Action("TwoWaySync")' + '?serverId=' + encodeURIComponent(serverId);
+            }
+        }
+
+        function testSync(serverId, profileId) {
+            $.ajax({
+                url: '@Url.Action("TestSync")',
+                type: 'GET',
+                data: { serverId: serverId, profileId: profileId },
+                success: function (result) {
+                    if (result.success) {
+                        if (result.exists) {
+                            alert('✅ ' + result.message);
+                        } else {
+                            alert('⚠️ ' + result.message);
+                        }
+                    } else {
+                        alert('❌ ' + result.message);
+                    }
+                },
+                error: function () {
+                    alert('❌ حدث خطأ أثناء فحص المزامنة');
+                }
+            });
+        }
+
+        // Server Filter
+        $(document).ready(function() {
+            $('#serverFilter').on('change', function() {
+                var serverId = $(this).val();
+                var url = '@Url.Action("Index")';
+                if (serverId) {
+                    url += '?serverId=' + serverId;
+                }
+                window.location.href = url;
+            });
+
+            $('#serverSelect').on('change', function() {
+                const serverId = $(this).val();
+                if (!serverId) {
+                    updateImportPreviewHint(null);
+                    return;
+                }
+                loadImportPreview(serverId);
+            });
+        });
+    </script>
+}

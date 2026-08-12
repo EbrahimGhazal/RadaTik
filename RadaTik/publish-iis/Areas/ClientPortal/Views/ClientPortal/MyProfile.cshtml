@@ -1,0 +1,323 @@
+@model RadaTik.ViewModels.ClientPortal.ClientProfileViewModel
+@{
+    ViewData["Title"] = "بروفايل العميل";
+    var hasLocation = Model.Latitude.HasValue && Model.Longitude.HasValue;
+    var defaultLat = Model.Latitude ?? 34.8;
+    var defaultLng = Model.Longitude ?? 38.0;
+    var heroChips = new List<(string IconClass, string Text)>
+    {
+        ("fas fa-user", "صلاحية: عميل"),
+        ("fas fa-map-marker-alt", "موقع السكن")
+    };
+}
+
+<div class="client-portal-profile-page">
+    <partial name="_ProfileHero"
+             view-data='new ViewDataDictionary(ViewData)
+             {
+                 ["HeroTitle"] = "بروفايل العميل",
+                 ["HeroSubtitle"] = "إدارة بيانات حسابك وموقع السكن بنفس هوية صفحات الملف الشخصي.",
+                 ["HeroIconClass"] = "fas fa-user-circle",
+                 ["HeroChips"] = heroChips
+             }' />
+
+    <partial name="_TempDataAlerts" />
+
+    <form asp-action="MyProfile" method="post" id="profileForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="ClientId" />
+        <input type="hidden" asp-for="Latitude" id="inputLatitude" />
+        <input type="hidden" asp-for="Longitude" id="inputLongitude" />
+
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-id-card"></i> البيانات الأساسية</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control client-editable" placeholder="الاسم الأول الثاني الثالث" readonly />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label asp-for="PhoneNumber" class="form-label"></label>
+                            <input asp-for="PhoneNumber" class="form-control client-editable" placeholder="09xxxxxxxx" readonly />
+                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                        </div>
+                        <div class="form-group mb-0">
+                            <label asp-for="ResidenceAddress" class="form-label"></label>
+                            <textarea asp-for="ResidenceAddress" id="residenceAddress" class="form-control client-editable" rows="2" placeholder="المحافظة، المدينة، الحي، الشارع... أو الإحداثيات" readonly></textarea>
+                            <button type="button" id="btnWriteFromMap" class="btn btn-outline-primary btn-sm mt-1 client-editable-action" title="نسخ إحداثيات الموقع المحدد على الخريطة إلى خانة مكان السكن" disabled>
+                                <i class="fas fa-map-marker-alt"></i> كتابة الموقع من الخريطة
+                            </button>
+                            <span asp-validation-for="ResidenceAddress" class="text-danger d-block"></span>
+                            <small class="text-muted">اكتب المكان يدوياً، أو انقر على الخريطة لسحب العنوان تلقائياً: دولة - محافظة - مدينة - منطقة - حي - شارع - بناء - طابق</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> الإحداثيات (يدوياً)</h5>
+                        <small class="text-muted">اختياري: أو حدد من الخريطة</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <label class="form-label">خط العرض</label>
+                                <input type="number" step="any" id="manualLat" class="form-control client-editable-manual" placeholder="مثال: 34.8" value="@(Model.Latitude?.ToString("G", System.Globalization.CultureInfo.InvariantCulture))" disabled />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">خط الطول</label>
+                                <input type="number" step="any" id="manualLng" class="form-control client-editable-manual" placeholder="مثال: 38.0" value="@(Model.Longitude?.ToString("G", System.Globalization.CultureInfo.InvariantCulture))" disabled />
+                            </div>
+                        </div>
+                        <button type="button" id="btnApplyManual" class="btn btn-outline-secondary btn-sm mt-2 client-editable-action" disabled>تطبيق على الخريطة</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h5 class="mb-0"><i class="fas fa-map"></i> موقع السكن على الخريطة</h5>
+                        <button type="button" id="btnMyLocation" class="btn btn-primary btn-sm">
+                            <i class="fas fa-location-crosshairs"></i> تحديد موقعي
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="map" style="height: 320px; width: 100%;"></div>
+                        <div class="p-2 bg-light small text-muted">
+                            انقر على الخريطة لوضع علامة موقع السكن، أو استخدم «تحديد موقعي» لاستخدام موقعك الحالي.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4 d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-outline-primary btn-lg" id="clientEditProfileBtn">
+                <i class="fas fa-pen"></i> تعديل البيانات
+            </button>
+            <button type="submit" class="btn btn-success btn-lg d-none" id="clientSaveProfileBtn">
+                <i class="fas fa-save"></i> حفظ التعديلات
+            </button>
+            <a asp-route="clientPortal-actions" asp-route-action="MyProfile" class="btn btn-outline-secondary btn-lg d-none" id="clientCancelProfileBtn">إلغاء</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .client-portal-profile-page { padding: var(--spacing-lg, 1.5rem); }
+    #map { min-height: 320px; background: #e5e3df; }
+</style>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <partial name="_ProfileEditToggleScript"
+             view-data='new ViewDataDictionary(ViewData)
+             {
+                 ["FormId"] = "profileForm",
+                 ["EditButtonId"] = "clientEditProfileBtn",
+                 ["SaveButtonId"] = "clientSaveProfileBtn",
+                 ["CancelButtonId"] = "clientCancelProfileBtn",
+                 ["ReadonlySelector"] = ".client-editable",
+                 ["DisabledSelector"] = ".client-editable-action, .client-editable-manual"
+             }' />
+    <script>
+(function () {
+    if (typeof L === 'undefined') {
+        console.error('Leaflet (L) غير محمّل. تأكد من تحميل مكتبة Leaflet قبل هذا السكربت.');
+        return;
+    }
+    var defaultLat = @(defaultLat.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    var defaultLng = @(defaultLng.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    var zoom = @(hasLocation ? "14" : "6");
+    var mapEl = document.getElementById('map');
+    if (!mapEl) return;
+    var map = L.map('map').setView([defaultLat, defaultLng], zoom);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    map.invalidateSize();
+    setTimeout(function () { map.invalidateSize(); }, 100);
+    var marker = null;
+    var profileForm = document.getElementById('profileForm');
+    function isEditMode() {
+        return profileForm && profileForm.getAttribute('data-edit-mode') === 'true';
+    }
+
+    function updateMarker(lat, lng) {
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat, lng]).addTo(map);
+        document.getElementById('inputLatitude').value = lat;
+        document.getElementById('inputLongitude').value = lng;
+        document.getElementById('manualLat').value = lat;
+        document.getElementById('manualLng').value = lng;
+    }
+    function buildAddressFromResponse(addr) {
+        if (!addr) return '';
+        var parts = [];
+        if (addr.country) parts.push(addr.country);                    // دولة
+        if (addr.state) parts.push(addr.state);                        // محافظة
+        if (addr.city) parts.push(addr.city);
+        else if (addr.town) parts.push(addr.town);
+        else if (addr.village) parts.push(addr.village);               // مدينة
+        if (addr.state_district) parts.push(addr.state_district);      // منطقة (مقاطعة/قضاء)
+        else if (addr.county) parts.push(addr.county);
+        if (addr.suburb) parts.push(addr.suburb);                      // حي/ضاحية
+        if (addr.neighbourhood && addr.neighbourhood !== addr.suburb) parts.push(addr.neighbourhood);
+        if (addr.quarter && addr.quarter !== addr.suburb) parts.push(addr.quarter);
+        if (addr.road) parts.push(addr.road);                          // شارع
+        if (addr.building) parts.push(addr.building);                  // بناء
+        else if (addr.house_number) parts.push('رقم ' + addr.house_number);
+        if (addr.level) parts.push('طابق ' + addr.level);              // طابق
+        return parts.filter(Boolean).join(' - ');
+    }
+    function fetchAddressFromCoords(lat, lng, callback) {
+        fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json&zoom=18&addressdetails=1', {
+            headers: { 'Accept-Language': 'ar', 'User-Agent': 'RadaTikClientPortal/1.0' }
+        }).then(function (r) { return r.json(); })
+          .then(function (data) {
+              var addrStr = buildAddressFromResponse(data.address) || (data.display_name || '');
+              if (callback) callback(addrStr);
+          })
+          .catch(function () { if (callback) callback(''); });
+    }
+    map.on('click', function (e) {
+        if (!isEditMode()) return;
+        var lat = e.latlng.lat, lng = e.latlng.lng;
+        updateMarker(lat, lng);
+        var txt = document.getElementById('residenceAddress');
+        txt.placeholder = 'جاري جلب العنوان...';
+        fetchAddressFromCoords(lat, lng, function (addr) {
+            txt.placeholder = 'المحافظة، المدينة، الحي، الشارع...';
+            if (addr) txt.value = addr;
+        });
+    });
+    @if (hasLocation)
+    {
+        @:updateMarker(defaultLat, defaultLng);
+    }
+    else
+    {
+        @:document.getElementById('inputLatitude').value = '';
+        @:document.getElementById('inputLongitude').value = '';
+    }
+    document.getElementById('btnMyLocation').addEventListener('click', function () {
+        if (!isEditMode()) {
+            var editBtn = document.getElementById('clientEditProfileBtn');
+            if (editBtn) {
+                editBtn.click();
+            }
+        }
+        if (!navigator.geolocation) {
+            alert('المتصفح لا يدعم تحديد الموقع.');
+            return;
+        }
+        var btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديد...';
+        navigator.geolocation.getCurrentPosition(
+            function (pos) {
+                var lat = pos.coords.latitude;
+                var lng = pos.coords.longitude;
+                updateMarker(lat, lng);
+                map.setView([lat, lng], 16);
+                var txt = document.getElementById('residenceAddress');
+                txt.placeholder = 'جاري جلب العنوان...';
+                fetchAddressFromCoords(lat, lng, function (addr) {
+                    txt.placeholder = 'المحافظة، المدينة، الحي، الشارع...';
+                    if (addr) txt.value = addr;
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> تحديد موقعي';
+                });
+            },
+            function (err) {
+                var message = 'تعذر الحصول على الموقع.';
+                if (err && typeof err.code !== 'undefined') {
+                    switch (err.code) {
+                        case 1:
+                            message = 'تم رفض إذن الموقع. اسمح للموقع بالوصول من إعدادات المتصفح ثم أعد المحاولة.';
+                            break;
+                        case 2:
+                            message = 'معلومات الموقع غير متوفرة حالياً. تأكد من تفعيل خدمة الموقع في الجهاز ثم أعد المحاولة.';
+                            break;
+                        case 3:
+                            message = 'انتهت مهلة تحديد الموقع. تأكد من اتصال الإنترنت ثم أعد المحاولة.';
+                            break;
+                        default:
+                            message = 'تعذر الحصول على الموقع. تأكد من السماح للموقع بالوصول إلى موقعك.';
+                            break;
+                    }
+                }
+                message += '\nيمكنك أيضاً تحديد الموقع يدوياً بالنقر على الخريطة أو إدخال الإحداثيات.';
+                alert(message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> تحديد موقعي';
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0
+            }
+        );
+    });
+    document.getElementById('btnApplyManual').addEventListener('click', function () {
+        if (!isEditMode()) return;
+        var lat = parseFloat(document.getElementById('manualLat').value);
+        var lng = parseFloat(document.getElementById('manualLng').value);
+        if (isNaN(lat) || isNaN(lng)) {
+            alert('أدخل قيم خط عرض وخط طول صحيحة.');
+            return;
+        }
+        updateMarker(lat, lng);
+        map.setView([lat, lng], 14);
+        var txt = document.getElementById('residenceAddress');
+        txt.placeholder = 'جاري جلب العنوان...';
+        fetchAddressFromCoords(lat, lng, function (addr) {
+            txt.placeholder = 'المحافظة، المدينة، الحي، الشارع...';
+            if (addr) txt.value = addr;
+        });
+    });
+    document.getElementById('btnWriteFromMap').addEventListener('click', function () {
+        if (!isEditMode()) return;
+        var lat = document.getElementById('inputLatitude').value;
+        var lng = document.getElementById('inputLongitude').value;
+        if (!lat || !lng) {
+            alert('حدد موقعاً على الخريطة أولاً (انقر على الخريطة أو استخدم «تحديد موقعي» أو أدخل الإحداثيات يدوياً).');
+            return;
+        }
+        var txt = document.getElementById('residenceAddress');
+        var btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري جلب العنوان...';
+        fetchAddressFromCoords(parseFloat(lat), parseFloat(lng), function (addr) {
+            if (addr) txt.value = addr;
+            else alert('لم يتم العثور على عنوان لهذا الموقع. يمكنك كتابة المكان يدوياً.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-map-marker-alt"></i> كتابة الموقع من الخريطة';
+        });
+    });
+
+    document.getElementById('manualLat').addEventListener('change', syncFromManual);
+    document.getElementById('manualLng').addEventListener('change', syncFromManual);
+    function syncFromManual() {
+        var lat = document.getElementById('manualLat').value;
+        var lng = document.getElementById('manualLng').value;
+        document.getElementById('inputLatitude').value = lat || '';
+        document.getElementById('inputLongitude').value = lng || '';
+    }
+    document.getElementById('profileForm').addEventListener('submit', function () {
+        var lat = document.getElementById('manualLat').value.trim();
+        var lng = document.getElementById('manualLng').value.trim();
+        if (lat || lng) {
+            document.getElementById('inputLatitude').value = lat || '';
+            document.getElementById('inputLongitude').value = lng || '';
+        }
+    });
+})();
+</script>
+}

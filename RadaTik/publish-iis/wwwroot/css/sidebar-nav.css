@@ -1,0 +1,400 @@
+/* ============================================
+   RadaTik — Sidebar Navigation (موحد لجميع الأدوار)
+   خطوط، تبويبات فرعية، موبايل/تابلت
+   ============================================ */
+
+.sidebar-pro {
+    --sidebar-font-family: "Cairo", "Tajawal", "Poppins", ui-sans-serif, system-ui, sans-serif;
+    --sidebar-font-section: 0.72rem;
+    --sidebar-font-link: 0.875rem;
+    --sidebar-font-sub: 0.8125rem;
+    --sidebar-font-label: 0.6875rem;
+    --sidebar-font-brand: 1.125rem;
+    --sidebar-font-brand-sub: 0.6875rem;
+    --sidebar-touch-min: 44px;
+    --sidebar-sub-indent: 0.85rem;
+    --sidebar-sub-rail: rgba(255, 255, 255, 0.14);
+    --sidebar-sub-bg: rgba(0, 0, 0, 0.12);
+    --sidebar-sub-border: rgba(255, 255, 255, 0.08);
+    font-family: var(--sidebar-font-family);
+}
+
+.sidebar-pro .sidebar-brand-name {
+    font-family: var(--sidebar-font-family);
+    font-size: var(--sidebar-font-brand);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.sidebar-pro .sidebar-brand-sub {
+    font-family: var(--sidebar-font-family);
+    font-size: var(--sidebar-font-brand-sub);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+/* ——— عناوين الأقسام ——— */
+.sidebar-pro .nav-section-title {
+    font-family: var(--sidebar-font-family);
+    font-size: var(--sidebar-font-section);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1.35;
+}
+
+.sidebar-pro .nav-section-title.nav-section-static {
+    cursor: default;
+    user-select: none;
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-size: 0.78rem;
+}
+
+.sidebar-pro .nav-section-title.nav-section-static .nav-section-chevron {
+    display: none;
+}
+
+/* ——— الرئيسية (مدير الشركة) ——— */
+.sidebar-pro .nav-section-quick,
+.sidebar-pro .nav-section-home {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sidebar-pro .nav-section-home .nav-link-featured .nav-icon {
+    color: #ffd166;
+}
+
+.sidebar-pro .nav-section-account {
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-pro .nav-section-quick .nav-section-title.nav-section-static {
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.sidebar-pro .nav-section-quick .nav-section-title .fa-bolt {
+    color: #ffd166;
+}
+
+/* ——— بوابة الموظف: فصل المهام عن الحساب الشخصي ——— */
+.sidebar-pro.sidebar-employee .nav-section-heading {
+    margin: var(--spacing-xs) 0 2px;
+    padding: 0 var(--spacing-md);
+    pointer-events: none;
+}
+
+.sidebar-pro.sidebar-employee .nav-section-heading .nav-section-title {
+    opacity: 0.72;
+    padding: 6px 0 2px;
+    font-size: 0.7rem;
+}
+
+.sidebar-pro.sidebar-employee .nav-section-heading .fa-briefcase {
+    color: #90e0ef;
+}
+
+.sidebar-pro.sidebar-employee .nav-section-account {
+    margin-top: auto;
+}
+
+.sidebar-pro.sidebar-employee .nav-section-account .nav-section-title .fa-user-circle {
+    color: #8ecae6;
+}
+
+.sidebar-pro.sidebar-employee .nav-section-account .nav-link {
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.sidebar-pro.sidebar-employee .nav-link-hint {
+    display: block;
+    flex: 1 1 100%;
+    margin-top: 2px;
+    padding-right: 46px;
+    font-size: 0.68rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: rgba(255, 255, 255, 0.48);
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.sidebar-pro.sidebar-employee .nav-link.active .nav-link-hint,
+.sidebar-pro.sidebar-employee .nav-link:hover .nav-link-hint {
+    color: rgba(255, 255, 255, 0.62);
+}
+
+.sidebar-pro.sidebar-employee .nav-link-personal-wallet .nav-icon {
+    background: rgba(144, 224, 239, 0.16);
+}
+
+.sidebar-pro.sidebar-employee .nav-link-personal-wallet.active .nav-icon,
+.sidebar-pro.sidebar-employee .nav-link-personal-wallet:hover .nav-icon {
+    background: rgba(144, 224, 239, 0.28);
+    color: #caf0f8;
+}
+
+.sidebar-pro.sidebar-employee .nav-section-empty-work {
+    padding: 0 var(--spacing-md) var(--spacing-sm);
+}
+
+.sidebar-pro.sidebar-employee .nav-empty-hint {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.14);
+    border: 1px dashed rgba(255, 255, 255, 0.14);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.sidebar-pro.sidebar-employee .nav-empty-hint .fa-info-circle {
+    margin-left: 6px;
+    opacity: 0.85;
+}
+
+.sidebar-pro.sidebar-employee .nav-section-account.section-has-active .nav-section-title {
+    opacity: 1;
+}
+
+/* ——— روابط رئيسية ——— */
+.sidebar-pro .nav-link,
+.sidebar-pro .nav-link-toggle {
+    font-family: var(--sidebar-font-family);
+    font-size: var(--sidebar-font-link);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.sidebar-pro .nav-link.active,
+.sidebar-pro .nav-link-toggle[aria-expanded="true"] {
+    font-weight: 600;
+}
+
+/* ——— رابط مميز (إجراء أساسي) ——— */
+.sidebar-pro .nav-link-featured {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.06) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    font-weight: 600;
+}
+
+.sidebar-pro .nav-link-featured:hover,
+.sidebar-pro .nav-link-featured.active {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.sidebar-pro .nav-link-featured .nav-icon {
+    background: rgba(255, 209, 102, 0.18);
+    color: #ffe08a;
+}
+
+/* ——— تبويبات فرعية ——— */
+.sidebar-pro .nav-sublist {
+    position: relative;
+    margin: 4px var(--spacing-sm) 6px;
+    padding: 6px 0 8px;
+    border-radius: 10px;
+    background: var(--sidebar-sub-bg);
+    border: 1px solid var(--sidebar-sub-border);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+}
+
+.sidebar-pro .nav-item.has-dropdown.open .nav-sublist {
+    max-height: 520px;
+}
+
+.sidebar-pro .nav-sublist::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    right: calc(var(--sidebar-sub-indent) + 14px);
+    width: 2px;
+    border-radius: 2px;
+    background: var(--sidebar-sub-rail);
+    pointer-events: none;
+}
+
+.sidebar-pro .nav-group-label {
+    list-style: none;
+    padding: 8px var(--spacing-md) 3px calc(var(--sidebar-sub-indent) + var(--spacing-md));
+    margin: 0;
+    font-family: var(--sidebar-font-family);
+    font-size: var(--sidebar-font-label);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    user-select: none;
+}
+
+.sidebar-pro .nav-item.has-dropdown .nav-sublist .nav-group-label:first-child {
+    padding-top: 4px;
+}
+
+.sidebar-pro .nav-link-sub {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px var(--spacing-md) 9px calc(var(--sidebar-sub-indent) + var(--spacing-md));
+    margin: 2px var(--spacing-xs);
+    border-radius: 8px;
+    font-family: var(--sidebar-font-family);
+    font-size: var(--sidebar-font-sub);
+    font-weight: 500;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.82);
+    text-decoration: none;
+    border-right: 2px solid transparent;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.sidebar-pro .nav-link-sub i {
+    width: 16px;
+    min-width: 16px;
+    text-align: center;
+    font-size: 0.78rem;
+    opacity: 0.85;
+    flex-shrink: 0;
+}
+
+.sidebar-pro .nav-link-sub:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-right-color: rgba(255, 255, 255, 0.35);
+}
+
+.sidebar-pro .nav-link-sub.active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-weight: 600;
+    border-right-color: var(--accent, #06b6d4);
+}
+
+.sidebar-pro .nav-link-sub.active i {
+    opacity: 1;
+    color: var(--accent-light, #22d3ee);
+}
+
+/* ——— تبديل القائمة الفرعية ——— */
+.sidebar-pro .nav-link-toggle {
+    padding: 10px 14px;
+    margin: 4px 0;
+    border-radius: var(--radius-md);
+}
+
+.sidebar-pro .nav-link-toggle .nav-chevron {
+    margin-inline-start: auto;
+    font-size: 0.65rem;
+    opacity: 0.65;
+    transition: transform 0.25s ease;
+}
+
+.sidebar-pro .nav-item.has-dropdown.open > .nav-link-toggle {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* ——— شارات ——— */
+.sidebar-pro .nav-badge {
+    font-family: var(--sidebar-font-family);
+    font-size: 0.6875rem;
+    font-weight: 700;
+}
+
+.sidebar-pro .nav-link-sub .nav-badge {
+    margin-inline-start: auto;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 0.625rem;
+    flex-shrink: 0;
+}
+
+/* ——— رصيد المحفظة في الشريط ——— */
+.sidebar-pro .sidebar-wallet-balance {
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ——— تابلت (768–992) ——— */
+@media (max-width: 992px) {
+    .sidebar-pro {
+        --sidebar-font-link: 0.9375rem;
+        --sidebar-font-sub: 0.875rem;
+    }
+
+    .sidebar-pro .nav-link,
+    .sidebar-pro .nav-link-toggle {
+        min-height: var(--sidebar-touch-min);
+        padding-top: 11px;
+        padding-bottom: 11px;
+    }
+
+    .sidebar-pro .nav-link-sub {
+        min-height: 42px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+
+    .sidebar-pro .sidebar-nav {
+        padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    }
+
+    .sidebar-pro .nav-section {
+        padding-left: max(var(--spacing-sm), env(safe-area-inset-left, 0px));
+        padding-right: max(var(--spacing-sm), env(safe-area-inset-right, 0px));
+    }
+
+    .sidebar-pro .sidebar-header {
+        padding-top: max(var(--spacing-lg), env(safe-area-inset-top, 0px));
+    }
+}
+
+/* ——— موبايل (<576) ——— */
+@media (max-width: 576px) {
+    .sidebar-pro {
+        --sidebar-font-section: 0.7rem;
+        --sidebar-font-link: 0.9rem;
+        --sidebar-font-sub: 0.8125rem;
+    }
+
+    .sidebar-pro .nav-link .nav-icon,
+    .sidebar-pro .nav-link-toggle .nav-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+    }
+
+    .sidebar-pro .nav-section-title {
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+
+    .sidebar-pro .nav-sublist::before {
+        display: none;
+    }
+
+    .sidebar-pro .nav-link-sub {
+        padding-right: var(--spacing-md);
+        padding-left: calc(var(--sidebar-sub-indent) + var(--spacing-sm));
+    }
+}
+
+/* ——— تمرير سلس للشريط على الشاشات الصغيرة ——— */
+@media (max-width: 992px) {
+    .sidebar.sidebar-pro {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        scroll-behavior: smooth;
+    }
+}

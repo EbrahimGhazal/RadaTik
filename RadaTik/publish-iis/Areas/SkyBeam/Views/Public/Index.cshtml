@@ -1,0 +1,858 @@
+@{
+    ViewData["Title"] = "الصفحة الرئيسية";
+    Layout = "~/Areas/SkyBeam/Views/Shared/_PublicLayout.cshtml";
+    var profiles = ViewBag.Profiles as List<RadaTik.Models.Profile> ?? new List<RadaTik.Models.Profile>();
+    int totalClients = ViewBag.TotalClients ?? 0;
+    int totalSectors = ViewBag.TotalSectors ?? 0;
+    int totalReceivers = ViewBag.TotalReceivers ?? 0;
+}
+
+<style>
+    /* Hero Section */
+    .hero {
+        min-height: 100vh;
+        background: var(--gradient-hero);
+        position: relative;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    .hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+        opacity: 0.5;
+    }
+
+    .hero-particles {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .particle {
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        background: rgba(0, 180, 216, 0.4);
+        border-radius: 50%;
+        animation: float 15s infinite;
+    }
+
+    @@keyframes float {
+        0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
+    }
+
+    .hero-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 30px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 60px;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero-content {
+        color: white;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(0, 200, 83, 0.15);
+        border: 1px solid rgba(0, 200, 83, 0.3);
+        padding: 10px 20px;
+        border-radius: 50px;
+        margin-bottom: 30px;
+        font-size: 14px;
+        color: #00c853;
+    }
+
+    .hero-badge i {
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .hero-title {
+        font-size: 56px;
+        font-weight: 800;
+        line-height: 1.2;
+        margin-bottom: 25px;
+    }
+
+    .hero-title span {
+        background: linear-gradient(135deg, #00b4d8 0%, #00c853 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-desc {
+        font-size: 20px;
+        color: rgba(255,255,255,0.8);
+        margin-bottom: 40px;
+        line-height: 1.8;
+    }
+
+    .hero-buttons {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .hero-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 36px;
+        border-radius: 12px;
+        font-size: 17px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .hero-btn-primary {
+        background: var(--gradient-primary);
+        color: white;
+        box-shadow: 0 10px 30px rgba(0, 102, 204, 0.4);
+    }
+
+    .hero-btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 40px rgba(0, 102, 204, 0.5);
+    }
+
+    .hero-btn-secondary {
+        background: rgba(255,255,255,0.1);
+        color: white;
+        border: 2px solid rgba(255,255,255,0.3);
+    }
+
+    .hero-btn-secondary:hover {
+        background: rgba(255,255,255,0.2);
+        border-color: rgba(255,255,255,0.5);
+    }
+
+    .hero-stats {
+        display: flex;
+        gap: 40px;
+        margin-top: 50px;
+    }
+
+    .hero-stat {
+        text-align: center;
+    }
+
+    .hero-stat-number {
+        font-size: 42px;
+        font-weight: 800;
+        color: #00b4d8;
+        display: block;
+    }
+
+    .hero-stat-label {
+        font-size: 14px;
+        color: rgba(255,255,255,0.6);
+    }
+
+    .hero-image {
+        position: relative;
+    }
+
+    .hero-image-main {
+        width: 100%;
+        max-width: 500px;
+        animation: floatY 6s ease-in-out infinite;
+    }
+
+    @@keyframes floatY {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+
+    .hero-glow {
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(0, 180, 216, 0.3) 0%, transparent 70%);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        filter: blur(60px);
+    }
+
+    /* Features Section */
+    .features {
+        padding: 120px 0;
+        background: white;
+    }
+
+    .section-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 30px;
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 70px;
+    }
+
+    .section-badge {
+        display: inline-block;
+        background: rgba(0, 102, 204, 0.1);
+        color: var(--primary);
+        padding: 8px 20px;
+        border-radius: 50px;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+
+    .section-title {
+        font-size: 42px;
+        font-weight: 800;
+        color: var(--dark);
+        margin-bottom: 20px;
+    }
+
+    .section-desc {
+        font-size: 18px;
+        color: var(--gray);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 30px;
+    }
+
+    .feature-card {
+        background: white;
+        padding: 40px 30px;
+        border-radius: var(--radius-lg);
+        text-align: center;
+        border: 1px solid #eee;
+        transition: all 0.4s ease;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: var(--shadow-lg);
+        border-color: transparent;
+    }
+
+    .feature-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, rgba(0, 102, 204, 0.1) 0%, rgba(0, 200, 83, 0.1) 100%);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 25px;
+        font-size: 32px;
+        color: var(--primary);
+        transition: all 0.3s ease;
+    }
+
+    .feature-card:hover .feature-icon {
+        background: var(--gradient-primary);
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .feature-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 15px;
+    }
+
+    .feature-desc {
+        color: var(--gray);
+        line-height: 1.7;
+    }
+
+    /* Packages Section */
+    .packages {
+        padding: 120px 0;
+        background: linear-gradient(180deg, #f8f9fa 0%, white 100%);
+    }
+
+    .packages-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 30px;
+    }
+
+    .package-card {
+        background: white;
+        border-radius: var(--radius-lg);
+        padding: 40px;
+        border: 2px solid #eee;
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .package-card.popular {
+        border-color: var(--primary);
+        transform: scale(1.05);
+    }
+
+    .package-card.popular::before {
+        content: 'الأكثر طلباً';
+        position: absolute;
+        top: 20px;
+        left: -30px;
+        background: var(--primary);
+        color: white;
+        padding: 5px 40px;
+        font-size: 12px;
+        font-weight: 600;
+        transform: rotate(-45deg);
+    }
+
+    .package-card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-10px);
+    }
+
+    .package-card.popular:hover {
+        transform: scale(1.05) translateY(-10px);
+    }
+
+    .package-name {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 10px;
+    }
+
+    .package-speed {
+        display: flex;
+        align-items: baseline;
+        gap: 5px;
+        margin-bottom: 20px;
+    }
+
+    .package-speed-number {
+        font-size: 48px;
+        font-weight: 800;
+        color: var(--primary);
+    }
+
+    .package-speed-unit {
+        font-size: 20px;
+        color: var(--gray);
+    }
+
+    .package-price {
+        display: flex;
+        align-items: baseline;
+        gap: 5px;
+        padding: 20px 0;
+        border-top: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+        margin-bottom: 25px;
+    }
+
+    .package-price-number {
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--dark);
+    }
+
+    .package-price-period {
+        color: var(--gray);
+    }
+
+    .package-features {
+        list-style: none;
+        margin-bottom: 30px;
+    }
+
+    .package-features li {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        color: var(--gray);
+    }
+
+    .package-features li i {
+        color: var(--secondary);
+        font-size: 18px;
+    }
+
+    .package-btn {
+        display: block;
+        width: 100%;
+        padding: 16px;
+        background: var(--light);
+        color: var(--dark);
+        text-align: center;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .package-btn:hover,
+    .package-card.popular .package-btn {
+        background: var(--gradient-primary);
+        color: white;
+    }
+
+    /* Stats Section */
+    .stats {
+        padding: 100px 0;
+        background: var(--gradient-hero);
+        position: relative;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 40px;
+    }
+
+    .stat-item {
+        text-align: center;
+        color: white;
+    }
+
+    .stat-icon {
+        width: 70px;
+        height: 70px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 28px;
+        color: #00b4d8;
+    }
+
+    .stat-number {
+        font-size: 48px;
+        font-weight: 800;
+        margin-bottom: 10px;
+    }
+
+    .stat-label {
+        color: rgba(255,255,255,0.7);
+        font-size: 16px;
+    }
+
+    /* CTA Section */
+    .cta {
+        padding: 120px 0;
+        background: white;
+    }
+
+    .cta-box {
+        background: var(--gradient-primary);
+        border-radius: var(--radius-lg);
+        padding: 80px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cta-box::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    }
+
+    .cta-title {
+        font-size: 42px;
+        font-weight: 800;
+        color: white;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .cta-desc {
+        font-size: 20px;
+        color: rgba(255,255,255,0.9);
+        margin-bottom: 40px;
+        position: relative;
+    }
+
+    .cta-buttons {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        position: relative;
+    }
+
+    .cta-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 18px 40px;
+        border-radius: 12px;
+        font-size: 17px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+    .cta-btn-white {
+        background: white;
+        color: var(--primary);
+    }
+
+    .cta-btn-white:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .cta-btn-outline {
+        border: 2px solid rgba(255,255,255,0.5);
+        color: white;
+    }
+
+    .cta-btn-outline:hover {
+        background: rgba(255,255,255,0.1);
+        border-color: white;
+    }
+
+    /* Responsive */
+    @@media (max-width: 992px) {
+        .hero-container {
+            grid-template-columns: 1fr;
+            text-align: center;
+            padding-top: 120px;
+        }
+
+        .hero-title {
+            font-size: 40px;
+        }
+
+        .hero-buttons {
+            justify-content: center;
+        }
+
+        .hero-stats {
+            justify-content: center;
+        }
+
+        .hero-image {
+            display: none;
+        }
+
+        .features-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .packages-grid {
+            grid-template-columns: 1fr;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .package-card.popular {
+            transform: none;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .cta-box {
+            padding: 50px 30px;
+        }
+
+        .cta-title {
+            font-size: 32px;
+        }
+
+        .cta-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .hero-title {
+            font-size: 32px;
+        }
+
+        .hero-desc {
+            font-size: 16px;
+        }
+
+        .hero-stats {
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .features-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .section-title {
+            font-size: 32px;
+        }
+    }
+</style>
+
+<!-- Hero Section -->
+<section class="hero">
+    <div class="hero-particles">
+        @for (int i = 0; i < 20; i++)
+        {
+            <div class="particle" style="left: @(new Random().Next(0, 100))%; animation-delay: @(new Random().Next(0, 15))s; animation-duration: @(new Random().Next(10, 20))s;"></div>
+        }
+    </div>
+
+    <div class="hero-container">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <i class="fas fa-bolt"></i>
+                إنترنت فائق السرعة
+            </div>
+
+            <h1 class="hero-title">
+                اتصال بلا حدود
+                <br>
+                <span>سرعة بلا انقطاع</span>
+            </h1>
+
+            <p class="hero-desc">
+                استمتع بأسرع إنترنت في المنطقة مع باقات تناسب احتياجاتك.
+                دعم فني متميز على مدار الساعة وضمان جودة الخدمة.
+            </p>
+
+            <div class="hero-buttons">
+                <a href="@Url.Action("Packages", "Public", new { area = "SkyBeam" })" class="hero-btn hero-btn-primary">
+                    <i class="fas fa-rocket"></i>
+                    اكتشف الباقات
+                </a>
+                <a href="@Url.Action("JoinAsClient", "Public", new { area = "SkyBeam" })" class="hero-btn hero-btn-secondary">
+                    <i class="fas fa-user-plus"></i>
+                    انضم إلينا
+                </a>
+            </div>
+
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span class="hero-stat-number">@totalClients+</span>
+                    <span class="hero-stat-label">عميل سعيد</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-number">@totalSectors</span>
+                    <span class="hero-stat-label">قطاع تغطية</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-number">24/7</span>
+                    <span class="hero-stat-label">دعم فني</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-image">
+            <div class="hero-glow"></div>
+            <svg class="hero-image-main" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="200" cy="200" r="150" fill="url(#grad1)" opacity="0.1"/>
+                <circle cx="200" cy="200" r="100" fill="url(#grad1)" opacity="0.15"/>
+                <circle cx="200" cy="200" r="50" fill="url(#grad1)" opacity="0.2"/>
+                <g transform="translate(140, 140)">
+                    <rect width="120" height="120" rx="20" fill="url(#grad1)"/>
+                    <path d="M60 30 L60 90 M30 60 L90 60" stroke="white" stroke-width="8" stroke-linecap="round"/>
+                    <circle cx="60" cy="60" r="25" stroke="white" stroke-width="6" fill="none"/>
+                </g>
+                <defs>
+                    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#0066cc"/>
+                        <stop offset="100%" style="stop-color:#00c853"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features">
+    <div class="section-container">
+        <div class="section-header">
+            <span class="section-badge">لماذا نحن؟</span>
+            <h2 class="section-title">مميزات تجعلنا الخيار الأفضل</h2>
+            <p class="section-desc">نقدم لك خدمات إنترنت متميزة مع ضمان أعلى معايير الجودة والموثوقية</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h3 class="feature-title">سرعات فائقة</h3>
+                <p class="feature-desc">سرعات تصل حتى 100 ميجابت في الثانية تلبي جميع احتياجاتك</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3 class="feature-title">اتصال آمن</h3>
+                <p class="feature-desc">حماية متقدمة لبياناتك مع تشفير عالي المستوى</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <h3 class="feature-title">دعم 24/7</h3>
+                <p class="feature-desc">فريق دعم فني متخصص متاح على مدار الساعة لخدمتك</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <h3 class="feature-title">أسعار منافسة</h3>
+                <p class="feature-desc">باقات متنوعة بأسعار تناسب جميع الميزانيات</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Packages Section -->
+@if (profiles.Any())
+{
+<section class="packages">
+    <div class="section-container">
+        <div class="section-header">
+            <span class="section-badge">الباقات والأسعار</span>
+            <h2 class="section-title">اختر الباقة المناسبة لك</h2>
+            <p class="section-desc">باقات متنوعة تناسب جميع احتياجاتك مع أفضل الأسعار</p>
+        </div>
+
+        <div class="packages-grid">
+            @{ int index = 0; }
+            @foreach (var profile in profiles.Take(3))
+            {
+                <div class="package-card @(index == 1 ? "popular" : "")">
+                    <h3 class="package-name">@profile.Name</h3>
+                    <div class="package-speed">
+                        <span class="package-speed-number">@profile.DownloadSpeedDisplay</span>
+                        <span class="package-speed-unit">Mbps</span>
+                    </div>
+                    <div class="package-price">
+                        <span class="package-price-number">@profile.PriceWithVAT.ToString("N0")</span>
+                        <span class="package-price-period">ل.س / شهرياً</span>
+                    </div>
+                    <ul class="package-features">
+                        <li><i class="fas fa-check-circle"></i> سرعة التحميل: @profile.DownloadSpeedDisplay</li>
+                        <li><i class="fas fa-check-circle"></i> سرعة الرفع: @(profile.UploadSpeedDisplay ?? "غير محدد")</li>
+                        @if (profile.DataLimit.HasValue && profile.DataLimit > 0)
+                        {
+                            <li><i class="fas fa-check-circle"></i> حد البيانات: @profile.DataLimit GB</li>
+                        }
+                        else
+                        {
+                            <li><i class="fas fa-check-circle"></i> بيانات غير محدودة</li>
+                        }
+                        <li><i class="fas fa-check-circle"></i> دعم فني على مدار الساعة</li>
+                    </ul>
+                    <a href="@Url.Action("JoinAsClient", "Public", new { area = "SkyBeam", profileId = profile.Id })" class="package-btn">اشترك الآن</a>
+                </div>
+                index++;
+            }
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="@Url.Action("Packages", "Public", new { area = "SkyBeam" })" class="hero-btn hero-btn-primary" style="display: inline-flex;">
+                <i class="fas fa-th-list"></i>
+                عرض جميع الباقات
+            </a>
+        </div>
+    </div>
+</section>
+}
+
+<!-- Stats Section -->
+<section class="stats">
+    <div class="section-container">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-number">@totalClients+</div>
+                <div class="stat-label">عميل راضٍ</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-broadcast-tower"></i>
+                </div>
+                <div class="stat-number">@totalSectors</div>
+                <div class="stat-label">قطاع تغطية</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-satellite-dish"></i>
+                </div>
+                <div class="stat-number">@totalReceivers</div>
+                <div class="stat-label">نقطة توزيع</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i class="fas fa-award"></i>
+                </div>
+                <div class="stat-number">5+</div>
+                <div class="stat-label">سنوات خبرة</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta">
+    <div class="section-container">
+        <div class="cta-box">
+            <h2 class="cta-title">جاهز للانضمام إلينا؟</h2>
+            <p class="cta-desc">انضم لآلاف العملاء السعداء واستمتع بأفضل خدمات الإنترنت</p>
+            <div class="cta-buttons">
+                <a href="@Url.Action("JoinAsClient", "Public", new { area = "SkyBeam" })" class="cta-btn cta-btn-white">
+                    <i class="fas fa-user-plus"></i>
+                    اشترك الآن
+                </a>
+                <a href="@Url.Action("Contact", "Public", new { area = "SkyBeam" })" class="cta-btn cta-btn-outline">
+                    <i class="fas fa-phone"></i>
+                    تواصل معنا
+                </a>
+            </div>
+        </div>
+    </div>
+</section>

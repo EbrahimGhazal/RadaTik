@@ -1,0 +1,213 @@
+@model RadaTik.Areas.CompanyAdmin.ViewModels.PayrollEmployeeDetailsViewModel
+@using RadaTik.Models.Business
+@{
+    ViewData["Title"] = Model.FullName;
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var monthNames = new[] { "", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
+    var s = Model.MonthSummary;
+}
+
+<div class="financial-page financial-hub-page">
+    @{
+        ViewBag.FinancialNavCurrent = "payroll";
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-user-tie";
+        ViewBag.FinancialHeroTheme = "default";
+        ViewBag.FinancialHeroSubtitle = companyName + " — " + monthNames[Model.Month] + " " + Model.Year;
+    }
+    <partial name="_FinancialSysHero" />
+    <div class="d-flex gap-2 flex-wrap align-items-end mb-3">
+        <form method="get" class="d-flex gap-2 align-items-end">
+            <input type="hidden" name="id" value="@Model.EmployeeId" />
+            <input type="number" name="year" class="form-control form-control-sm" value="@Model.Year" style="width:5rem" />
+            <select name="month" class="form-select form-select-sm">
+                @for (int i = 1; i <= 12; i++)
+                {
+                    if (i == Model.Month) { <option value="@i" selected>@monthNames[i]</option> }
+                    else { <option value="@i">@monthNames[i]</option> }
+                }
+            </select>
+            <button type="submit" class="btn btn-outline-primary btn-sm">عرض</button>
+        </form>
+        <a asp-action="Employees" class="btn btn-outline-secondary btn-sm micro-btn">قائمة الموظفين</a>
+        <a asp-action="Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month" class="btn btn-outline-secondary btn-sm micro-btn">رواتب الشهر</a>
+    </div>
+
+    @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+    @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header"><h6 class="mb-0">بيانات الموظف</h6></div>
+                <div class="card-body small">
+                    <p class="mb-1"><strong>الدوام:</strong> @Model.EmploymentLabel (@Model.WeeklyWorkHours س/أسبوع)</p>
+                    <p class="mb-1"><strong>الراتب الشهري:</strong> @Model.MonthlySalary.ToString("N0") ل.س</p>
+                    <p class="mb-1"><strong>المسمى:</strong> @(Model.JobTitle ?? "—")</p>
+                    <p class="mb-1"><strong>الهاتف:</strong> @(Model.Phone ?? "—")</p>
+                    <p class="mb-1">
+                        <strong>حساب النظام:</strong>
+                        @if (!string.IsNullOrEmpty(Model.LinkedApplicationUserId))
+                        {
+                            <a asp-area="CompanyAdmin" asp-controller="Admin" asp-action="DetailsEmployee" asp-route-id="@Model.LinkedApplicationUserId">
+                                @(Model.LinkedUserName ?? Model.LinkedApplicationUserId)
+                            </a>
+                        }
+                        else
+                        {
+                            @(Model.LinkedUserName ?? "—")
+                        }
+                    </p>
+                    <p class="mb-0"><strong>الحالة:</strong> @(Model.IsActive ? "نشط" : "موقوف")</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header"><h6 class="mb-0">ملخص @monthNames[Model.Month]</h6></div>
+                <div class="card-body">
+                    <div class="row g-2 text-center">
+                        <div class="col-6 col-md-4"><div class="text-muted small">أساسي</div><div class="fw-bold">@s.AccruedBase.ToString("N0")</div></div>
+                        <div class="col-6 col-md-4"><div class="text-muted small">مكافآت</div><div class="fw-bold text-success">@((s.PaymentBonus + s.TransactionBonus).ToString("N0"))</div></div>
+                        <div class="col-6 col-md-4"><div class="text-muted small">حسومات</div><div class="fw-bold text-danger">@((s.PaymentDeduction + s.TransactionDeduction).ToString("N0"))</div></div>
+                        <div class="col-6 col-md-4"><div class="text-muted small">سحوبات</div><div class="fw-bold">@s.Withdrawals.ToString("N0")</div></div>
+                        <div class="col-6 col-md-4"><div class="text-muted small">سلف</div><div class="fw-bold">@s.Advances.ToString("N0")</div></div>
+                        <div class="col-6 col-md-4"><div class="text-muted small">المستحق للصرف</div><div class="fw-bold fs-5 text-primary">@s.NetPayable.ToString("N0")</div></div>
+                    </div>
+                    @if (Model.MonthPayment == null)
+                    {
+                        <p class="text-muted small mt-2 mb-0">لم يُجهَّز سجل راتب لهذا الشهر بعد — من صفحة «رواتب الشهر».</p>
+                    }
+                    else if (Model.MonthPayment.IsPaid)
+                    {
+                        <p class="text-success small mt-2 mb-0"><i class="fas fa-check"></i> راتب الشهر مُصروف.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header"><h6 class="mb-0">تسجيل حركة</h6></div>
+                <div class="card-body">
+                    <form asp-action="AddTransaction" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="employeeId" value="@Model.EmployeeId" />
+                        <input type="hidden" name="year" value="@Model.Year" />
+                        <input type="hidden" name="month" value="@Model.Month" />
+                        <div class="mb-2">
+                            <label class="form-label">النوع</label>
+                            <select name="type" class="form-select" required>
+                                <option value="@((int)PayrollTransactionType.MidMonthWithdrawal)">سحب من الراتب</option>
+                                <option value="@((int)PayrollTransactionType.Advance)">سلفة على الراتب</option>
+                                <option value="@((int)PayrollTransactionType.Bonus)">مكافأة</option>
+                                <option value="@((int)PayrollTransactionType.Deduction)">حسم</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">المبلغ (ل.س)</label>
+                            <input name="amount" type="number" step="0.01" min="0.01" class="form-control" required />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">التاريخ</label>
+                            <input name="transactionDate" type="date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">ملاحظات</label>
+                            <input name="notes" class="form-control" maxlength="500" />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">حفظ</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h6 class="mb-0">زيادة الراتب</h6></div>
+                <div class="card-body">
+                    <form asp-action="ApplySalaryIncrease" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="employeeId" value="@Model.EmployeeId" />
+                        <div class="mb-2">
+                            <label class="form-label">طريقة الزيادة</label>
+                            <select name="adjustmentType" class="form-select" id="adjType">
+                                <option value="@((int)PayrollSalaryAdjustmentType.FixedAmount)">مبلغ ثابت (ل.س)</option>
+                                <option value="@((int)PayrollSalaryAdjustmentType.Percentage)">نسبة مئوية (%)</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">القيمة</label>
+                            <input name="adjustmentValue" type="number" step="0.01" min="0.01" class="form-control" required />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">تاريخ السريان</label>
+                            <input name="effectiveDate" type="date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">ملاحظات</label>
+                            <input name="notes" class="form-control" maxlength="500" />
+                        </div>
+                        <button type="submit" class="btn btn-outline-success w-100" onclick="return confirm('تأكيد تطبيق زيادة الراتب؟');">تطبيق الزيادة</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card mb-3">
+                <div class="card-header"><h6 class="mb-0">حركات الشهر</h6></div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0 radtk-data-table radtk-data-table--cards">
+                        <thead>
+                            <tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>ملاحظات</th></tr>
+                        </thead>
+                        <tbody>
+                        @if (!Model.Transactions.Any())
+                        {
+                            <tr><td colspan="4" class="text-center text-muted py-3">لا توجد حركات.</td></tr>
+                        }
+                        @foreach (var t in Model.Transactions)
+                        {
+                            <tr>
+                                <td>@t.TransactionDate.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                                <td>@t.TypeLabel</td>
+                                <td>@t.Amount.ToString("N0")</td>
+                                <td class="small">@(t.Notes ?? "—")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h6 class="mb-0">سجل زيادات الراتب</h6></div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0 radtk-data-table radtk-data-table--cards">
+                        <thead>
+                            <tr><th>التاريخ</th><th>التعديل</th><th>قبل</th><th>بعد</th></tr>
+                        </thead>
+                        <tbody>
+                        @if (!Model.SalaryRevisions.Any())
+                        {
+                            <tr><td colspan="4" class="text-center text-muted py-3">لا يوجد سجل.</td></tr>
+                        }
+                        @foreach (var r in Model.SalaryRevisions)
+                        {
+                            <tr>
+                                <td>@r.EffectiveDate.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                                <td>@r.AdjustmentDescription</td>
+                                <td>@r.PreviousSalary.ToString("N0")</td>
+                                <td class="fw-bold">@r.NewSalary.ToString("N0")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

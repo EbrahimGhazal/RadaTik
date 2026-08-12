@@ -1,0 +1,4497 @@
+/* CompanyAdmin Area CSS */
+
+/* Unified CompanyAdmin sidebar visual identity */
+.company-dashboard-page .sidebar.sidebar-pro {
+    --nm-accent: #4cc9f0;
+    --nm-accent-strong: #2bb4df;
+    --nm-surface-soft: rgba(76, 201, 240, 0.14);
+    --nm-surface-soft-hover: rgba(76, 201, 240, 0.2);
+    --nm-text-soft: rgba(233, 245, 255, 0.88);
+    background: linear-gradient(180deg, #0b2e64 0%, #12478f 55%, #0d3f7f 100%) !important;
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-link,
+.company-dashboard-page .sidebar.sidebar-pro .nav-link-toggle,
+.company-dashboard-page .sidebar.sidebar-pro .nav-link-sub {
+    color: var(--nm-text-soft);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-link .nav-icon,
+.company-dashboard-page .sidebar.sidebar-pro .nav-link-toggle .nav-icon {
+    background: var(--nm-surface-soft);
+    color: #d8f4ff;
+    border: 1px solid rgba(76, 201, 240, 0.25);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-link:hover .nav-icon,
+.company-dashboard-page .sidebar.sidebar-pro .nav-link.active .nav-icon,
+.company-dashboard-page .sidebar.sidebar-pro .nav-link-toggle:hover .nav-icon,
+.company-dashboard-page .sidebar.sidebar-pro .nav-item.has-dropdown.open .nav-link-toggle .nav-icon {
+    background: var(--nm-surface-soft-hover);
+    color: #ffffff;
+    border-color: rgba(76, 201, 240, 0.45);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-link:hover,
+.company-dashboard-page .sidebar.sidebar-pro .nav-link-toggle:hover,
+.company-dashboard-page .sidebar.sidebar-pro .nav-link-sub:hover {
+    border-right-color: var(--nm-accent);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-link.active,
+.company-dashboard-page .sidebar.sidebar-pro .nav-link-sub.active {
+    border-right-color: var(--nm-accent-strong);
+    box-shadow: inset 0 0 0 1px rgba(76, 201, 240, 0.22);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-section-title {
+    border-right-color: rgba(76, 201, 240, 0.55);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-sublist {
+    background: rgba(6, 24, 52, 0.26);
+    border: 1px solid rgba(76, 201, 240, 0.12);
+    --sidebar-sub-rail: rgba(76, 201, 240, 0.25);
+    --sidebar-sub-bg: rgba(6, 24, 52, 0.26);
+    --sidebar-sub-border: rgba(76, 201, 240, 0.12);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-group-label {
+    color: rgba(216, 244, 255, 0.5);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .sidebar-toggle-btn {
+    background: rgba(76, 201, 240, 0.16);
+    border-color: rgba(76, 201, 240, 0.35);
+    color: #e8f9ff;
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .sidebar-toggle-btn:hover {
+    background: rgba(76, 201, 240, 0.24);
+    border-color: rgba(76, 201, 240, 0.55);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-section-quick,
+.company-dashboard-page .sidebar.sidebar-pro .nav-section-home {
+    border-bottom: 1px solid rgba(76, 201, 240, 0.14);
+    margin-bottom: 0.35rem;
+    padding-bottom: 0.35rem;
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-section-home .nav-list--flat,
+.company-dashboard-page .sidebar.sidebar-pro .nav-section-account .nav-list--flat {
+    padding-top: 0.15rem;
+    padding-bottom: 0.15rem;
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-section-home .nav-link,
+.company-dashboard-page .sidebar.sidebar-pro .nav-section-account .nav-link {
+    border-radius: 10px;
+    margin-bottom: 0.15rem;
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-section-subscribers .nav-section-title,
+.company-dashboard-page .sidebar.sidebar-pro .nav-section-infra .nav-section-title {
+    border-right-color: rgba(76, 201, 240, 0.45);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-section-erp .nav-section-title {
+    border-right-color: rgba(255, 209, 102, 0.55);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-section-account {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(76, 201, 240, 0.14);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-section-quick .nav-section-title.nav-section-static {
+    border-right-color: #7ee0ff;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-link-featured {
+    background: linear-gradient(135deg, rgba(76, 201, 240, 0.22) 0%, rgba(46, 160, 220, 0.12) 100%);
+    border-color: rgba(126, 224, 255, 0.35);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-link-featured:hover,
+.company-dashboard-page .sidebar.sidebar-pro .nav-link-featured.active {
+    background: linear-gradient(135deg, rgba(76, 201, 240, 0.32) 0%, rgba(46, 160, 220, 0.2) 100%);
+    border-color: rgba(126, 224, 255, 0.55);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .nav-link-featured .nav-icon {
+    background: rgba(255, 209, 102, 0.2);
+    border-color: rgba(255, 209, 102, 0.45);
+    color: #ffe08a;
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .sidebar-user-avatar,
+.company-dashboard-page .sidebar.sidebar-pro .network-selector-icon {
+    background: linear-gradient(145deg, #2bb4df 0%, #0f74bf 100%);
+    box-shadow: 0 6px 16px rgba(43, 180, 223, 0.3);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .sidebar-wallet-balance {
+    margin: 0.35rem 0.65rem 0.75rem;
+    padding: 0.65rem 0.75rem !important;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(76, 201, 240, 0.18);
+    backdrop-filter: blur(6px);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .sidebar-wallet-balance .header-wallet-balance {
+    font-size: 0.82rem;
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .sidebar-header {
+    padding-bottom: 0.35rem;
+}
+
+/* Wallet TopUp page enhancements */
+.wallet-topup-page .wallet-stat-card {
+    border: 1px solid var(--border-color);
+}
+
+.wallet-topup-page .wallet-stat-balance {
+    background: linear-gradient(135deg, rgba(0, 102, 204, 0.08) 0%, var(--bg-card) 70%);
+    border-color: rgba(0, 102, 204, 0.2);
+}
+
+.wallet-topup-page .wallet-stat-label {
+    color: var(--text-muted);
+    font-size: .88rem;
+    font-weight: 600;
+    margin-bottom: .35rem;
+}
+
+.wallet-topup-page .wallet-stat-value {
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.wallet-topup-page .wallet-stat-meta {
+    color: var(--text-muted);
+    font-size: .84rem;
+    margin-top: .35rem;
+}
+
+.wallet-topup-page .wallet-currency {
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.wallet-topup-page .wallet-form-card {
+    border: 1px solid var(--border-color);
+}
+
+.wallet-topup-page .wallet-form-card .form-control,
+.wallet-topup-page .wallet-form-card .form-select {
+    min-height: 2.65rem;
+    border-radius: .75rem;
+}
+
+.wallet-topup-page .topup-amount-field > .form-label {
+    font-weight: 600;
+}
+
+/* مبلغ التعبئة: شارة العملة متصلة بالحقل بنفس الارتفاع */
+.wallet-topup-page .topup-amount-field .syp-amount-input-wrap {
+    display: flex;
+    align-items: stretch;
+}
+
+.wallet-topup-page .topup-amount-field .syp-amount-currency-badge {
+    position: static;
+    transform: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-width: 3.25rem;
+    padding: 0 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text-muted, #64748b);
+    background: rgba(148, 163, 184, 0.16);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-inline-end: 0;
+    border-start-start-radius: 0.75rem;
+    border-end-start-radius: 0.75rem;
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+    letter-spacing: 0.02em;
+}
+
+.wallet-topup-page .topup-amount-field .syp-amount-display {
+    flex: 1 1 auto;
+    min-height: 2.65rem;
+    padding-inline-start: 0.85rem;
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+    border-start-end-radius: 0.75rem;
+    border-end-end-radius: 0.75rem;
+    font-size: 1.1rem;
+}
+
+.wallet-topup-page .topup-amount-field .syp-amount-input-wrap:focus-within .syp-amount-currency-badge {
+    border-color: rgba(13, 110, 253, 0.55);
+    color: #0d6efd;
+    background: rgba(13, 110, 253, 0.08);
+}
+
+.wallet-topup-page .topup-amount-field .syp-amount-input-wrap:focus-within .syp-amount-display {
+    border-color: rgba(13, 110, 253, 0.55);
+    box-shadow: none;
+}
+
+[data-theme="dark"] .wallet-topup-page .topup-amount-field .syp-amount-currency-badge {
+    color: #94a3b8;
+    background: rgba(51, 65, 85, 0.55);
+    border-color: rgba(148, 163, 184, 0.28);
+}
+
+.wallet-topup-page .wallet-help-card,
+.wallet-topup-page .wallet-actions-card {
+    border: 1px solid var(--border-color);
+}
+
+.wallet-topup-page .wallet-help-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: .9rem;
+}
+
+.wallet-topup-page .wallet-help-steps li {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    align-items: start;
+    gap: .65rem;
+}
+
+.wallet-topup-page .wallet-help-steps .step-dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    background: rgba(13, 110, 253, .12);
+    color: #0d6efd;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .85rem;
+    margin-top: 1px;
+}
+
+.wallet-topup-page .wallet-form-actions .btn {
+    min-width: 170px;
+}
+
+[data-theme="dark"] .wallet-topup-page .wallet-form-card .form-control::file-selector-button {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+@media (max-width: 991.98px) {
+    .wallet-topup-page .wallet-form-actions {
+        flex-direction: column-reverse;
+    }
+
+    .wallet-topup-page .wallet-form-actions .btn {
+        width: 100%;
+    }
+}
+
+.wallet-topup-page .topup-balance-strip {
+    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.04) 0%, var(--bg-card) 60%);
+}
+
+.wallet-topup-page .topup-balance-strip__label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.15rem;
+}
+
+.wallet-topup-page .topup-balance-strip__value {
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.wallet-topup-page .topup-form-section__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.wallet-topup-page .topup-file-wrap {
+    border: 2px dashed var(--border-color);
+    border-radius: 0.75rem;
+    padding: 0.35rem;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.wallet-topup-page .topup-choice-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.wallet-topup-page .topup-choice-card {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: start;
+    gap: 1rem;
+    width: 100%;
+    text-align: right;
+    padding: 1.1rem 1.25rem;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.wallet-topup-page .topup-choice-card:hover {
+    border-color: rgba(13, 110, 253, 0.45);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.wallet-topup-page .topup-choice-card.is-active {
+    border-color: #0d6efd;
+    background: rgba(13, 110, 253, 0.06);
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+}
+
+.wallet-topup-page .topup-choice-card--cashbox.is-active {
+    border-color: #fd7e14;
+    background: rgba(253, 126, 20, 0.08);
+    box-shadow: 0 0 0 3px rgba(253, 126, 20, 0.2);
+}
+
+.wallet-topup-page .topup-choice-card__radio {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid #adb5bd;
+    margin-top: 2px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.wallet-topup-page .topup-choice-card.is-active .topup-choice-card__radio {
+    border-color: #0d6efd;
+    background: #0d6efd;
+}
+
+.wallet-topup-page .topup-choice-card--cashbox.is-active .topup-choice-card__radio {
+    border-color: #fd7e14;
+    background: #fd7e14;
+}
+
+.wallet-topup-page .topup-choice-card.is-active .topup-choice-card__radio::after {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.wallet-topup-page .topup-choice-card__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--bg-hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wallet-topup-page .topup-choice-card__title {
+    display: block;
+    font-size: 1.05rem;
+    margin-bottom: 0.35rem;
+}
+
+.wallet-topup-page .topup-choice-card__desc {
+    display: block;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.wallet-topup-page .topup-choice-card__balances {
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+/* Finance pages unified style */
+.financial-page .financial-stat-card {
+    border: 1px solid var(--border-color);
+}
+
+.financial-page .financial-stat-accent {
+    background: linear-gradient(135deg, rgba(0, 102, 204, 0.08) 0%, var(--bg-card) 70%);
+    border-color: rgba(0, 102, 204, 0.2);
+}
+
+.financial-page .financial-stat-label {
+    color: var(--text-muted);
+    font-size: .88rem;
+    font-weight: 600;
+    margin-bottom: .35rem;
+}
+
+.financial-page .financial-stat-value {
+    color: var(--text-primary);
+    font-size: 1.28rem;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.financial-page .financial-stat-meta {
+    color: var(--text-muted);
+    font-size: .84rem;
+    margin-top: .35rem;
+}
+
+.financial-page .financial-form-card,
+.financial-page .financial-table-card,
+.financial-page .receipts-filter-card {
+    border: 1px solid var(--border-color);
+}
+
+.financial-page .table td,
+.financial-page .table th {
+    vertical-align: middle;
+}
+
+.financial-page .financial-table tbody tr {
+    transition: background-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+
+.financial-page .financial-row:hover {
+    transform: translateY(-1px);
+    box-shadow: inset 3px 0 0 rgba(0, 102, 204, .35);
+}
+
+.financial-page .financial-row.is-success {
+    --row-accent: rgba(25, 135, 84, .16);
+}
+
+.financial-page .financial-row.is-warning {
+    --row-accent: rgba(255, 193, 7, .22);
+}
+
+.financial-page .financial-row.is-danger {
+    --row-accent: rgba(220, 53, 69, .18);
+}
+
+/* Sector radio engineering study */
+.radio-study-page .rs-stat {
+    border: 1px solid var(--border-color);
+}
+
+.radio-study-page .rs-stat small {
+    color: var(--text-muted);
+    font-size: .78rem;
+}
+
+.radio-study-page .rs-stat .v {
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.radio-study-page .rs-scenario {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: .8rem;
+    background: linear-gradient(180deg, rgba(13, 110, 253, .04), transparent);
+}
+
+.radio-study-page .rs-scenario p {
+    font-size: .86rem;
+    color: var(--text-secondary);
+}
+
+.radio-study-page .rs-phase {
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+    padding: .7rem .8rem;
+}
+
+[data-theme="dark"] .radio-study-page .rs-scenario {
+    background: linear-gradient(180deg, rgba(76, 201, 240, .08), transparent);
+}
+
+.radio-study-page .table td,
+.radio-study-page .table th {
+    white-space: nowrap;
+    font-size: .84rem;
+}
+
+.radio-study-page .table td:last-child {
+    max-width: 340px;
+    white-space: normal;
+}
+
+.radio-study-page .rs-trend-bars {
+    min-height: 96px;
+    height: 96px;
+    display: flex;
+    align-items: end;
+    gap: 4px;
+}
+
+.radio-study-page .rs-trend-bar {
+    width: 100%;
+    max-width: 14px;
+    border-radius: 4px 4px 0 0;
+    display: inline-block;
+    opacity: .92;
+}
+
+.radio-study-page .rs-trend-bar-snr {
+    background: linear-gradient(180deg, #198754, #0f5132);
+}
+
+.radio-study-page .rs-trend-bar-ccq {
+    background: linear-gradient(180deg, #0d6efd, #0b3d91);
+}
+
+.radio-study-page .rs-trend-bar-noise {
+    background: linear-gradient(180deg, #dc3545, #842029);
+}
+
+.financial-page .financial-row.is-neutral {
+    --row-accent: rgba(108, 117, 125, .15);
+}
+
+.financial-page .financial-row:hover {
+    background-color: var(--row-accent, rgba(0, 102, 204, .08));
+}
+
+.financial-page .financial-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .22rem .56rem;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+.financial-page .financial-chip.is-success {
+    color: #157347;
+    background: rgba(25, 135, 84, .12);
+    border-color: rgba(25, 135, 84, .24);
+}
+
+.financial-page .financial-chip.is-warning {
+    color: #9a6700;
+    background: rgba(255, 193, 7, .2);
+    border-color: rgba(255, 193, 7, .35);
+}
+
+.financial-page .financial-chip.is-danger {
+    color: #b02a37;
+    background: rgba(220, 53, 69, .12);
+    border-color: rgba(220, 53, 69, .24);
+}
+
+.financial-page .financial-chip.is-neutral {
+    color: #495057;
+    background: rgba(108, 117, 125, .13);
+    border-color: rgba(108, 117, 125, .24);
+}
+
+.micro-btn {
+    transition: transform .14s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.micro-btn:hover {
+    transform: translateY(-1px);
+    filter: saturate(1.03);
+}
+
+.micro-btn:active {
+    transform: translateY(0);
+}
+
+.financial-page .card-header .card-title {
+    font-size: 1rem;
+}
+
+@media (max-width: 991.98px) {
+    .financial-page .page-header .btn {
+        width: 100%;
+    }
+}
+
+/* Wallet Transactions visual identity polish */
+.financial-transactions-page .page-header {
+    border: 1px solid rgba(37, 99, 235, 0.16);
+    border-radius: 16px;
+    padding: 1rem 1.1rem;
+    background:
+        radial-gradient(700px 200px at 0% -20%, rgba(37, 99, 235, 0.14), transparent 55%),
+        radial-gradient(560px 180px at 100% 0%, rgba(6, 182, 212, 0.12), transparent 52%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.9));
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.financial-transactions-page .page-header h1 {
+    margin-bottom: 0.35rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.financial-transactions-page .financial-stat-card {
+    border-radius: 14px;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.financial-transactions-page .financial-stat-card .card-body {
+    padding: 1rem 1rem 0.92rem;
+}
+
+.financial-transactions-page .financial-stat-accent {
+    background:
+        radial-gradient(420px 180px at 0% 0%, rgba(37, 99, 235, 0.12), transparent 58%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.94));
+}
+
+.financial-transactions-page .financial-table-card {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.07);
+}
+
+.financial-transactions-page .financial-table-card .card-header {
+    background:
+        linear-gradient(90deg, rgba(37, 99, 235, 0.08), rgba(6, 182, 212, 0.05));
+    border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+    padding: 0.78rem 1rem;
+}
+
+.financial-transactions-page .financial-table thead th {
+    font-size: 0.79rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    letter-spacing: 0.01em;
+    text-transform: none;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.financial-transactions-page .financial-table tbody td {
+    font-size: 0.88rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.financial-transactions-page .financial-chip {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+/* جدول حركات المحفظة — سطح مكتب: إحكام + هوية RadaTik */
+.financial-transactions-page .wallet-tx-table-wrap {
+    border-radius: 0 0 16px 16px;
+}
+
+.financial-transactions-page .wallet-tx-table {
+    --wallet-tx-accent: var(--brand-primary, #2563eb);
+    --wallet-tx-accent2: var(--brand-accent, #06b6d4);
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.financial-transactions-page .wallet-tx-th-sub {
+    display: block;
+    font-weight: 700;
+    font-size: 0.68rem;
+    opacity: 0.82;
+    margin-top: 0.12rem;
+    color: var(--text-muted);
+}
+
+.financial-transactions-page .wallet-tx-col-idx {
+    width: 2.5rem;
+    font-weight: 800;
+    font-size: 0.78rem;
+}
+
+.financial-transactions-page .wallet-tx-date {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.05rem;
+    line-height: 1.15;
+}
+
+.financial-transactions-page .wallet-tx-date-d {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.financial-transactions-page .wallet-tx-date-t {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.financial-transactions-page .wallet-tx-amt,
+.financial-transactions-page .wallet-tx-bal-prev,
+.financial-transactions-page .wallet-tx-bal-next {
+    font-variant-numeric: tabular-nums;
+}
+
+.financial-transactions-page .wallet-tx-bal-flow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.28rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.financial-transactions-page .wallet-tx-bal-prev {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.financial-transactions-page .wallet-tx-bal-sep {
+    color: rgba(37, 99, 235, 0.45);
+    font-size: 0.62rem;
+    opacity: 0.9;
+}
+
+.financial-transactions-page .wallet-tx-bal-next {
+    color: var(--text-primary);
+}
+
+.financial-transactions-page .wallet-tx-ellipsis {
+    max-width: 14rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (min-width: 992px) {
+    .financial-transactions-page .wallet-tx-table thead th {
+        padding: 0.52rem 0.55rem;
+        font-size: 0.72rem;
+        white-space: nowrap;
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.98) 0%, rgba(241, 245, 249, 0.94) 100%);
+        box-shadow: 0 1px 0 rgba(148, 163, 184, 0.28);
+    }
+
+    .financial-transactions-page .wallet-tx-table tbody td {
+        padding: 0.45rem 0.55rem;
+        font-size: 0.8rem;
+        vertical-align: middle;
+    }
+
+    .financial-transactions-page .wallet-tx-table tbody tr:nth-child(even) {
+        background: rgba(37, 99, 235, 0.028);
+    }
+
+    .financial-transactions-page .wallet-tx-table tbody tr.financial-row:hover {
+        background: linear-gradient(90deg, rgba(37, 99, 235, 0.07), rgba(6, 182, 212, 0.05));
+    }
+
+    .financial-transactions-page .wallet-tx-col-type .financial-chip {
+        padding: 0.16rem 0.48rem;
+        font-size: 0.72rem;
+    }
+
+    .financial-transactions-page .wallet-tx-col-expand {
+        width: 5.5rem;
+    }
+
+    .financial-transactions-page .wallet-tx-col-by {
+        max-width: 8.5rem;
+    }
+}
+
+.financial-transactions-page .wallet-tx-detail-btn {
+    padding: 0.2rem 0.45rem;
+    font-size: 0.75rem;
+}
+
+.financial-transactions-page .wallet-tx-detail-row .wallet-tx-detail-cell {
+    padding: 0 !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22) !important;
+    background: rgba(37, 99, 235, 0.04);
+}
+
+.financial-transactions-page .wallet-tx-detail-panel {
+    padding: 0.65rem 0.85rem 0.75rem;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.financial-transactions-page .wallet-tx-detail-dl__item + .wallet-tx-detail-dl__item {
+    margin-top: 0.55rem;
+    padding-top: 0.55rem;
+    border-top: 1px dashed rgba(148, 163, 184, 0.35);
+}
+
+.financial-transactions-page .wallet-tx-detail-dl dt {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 0.2rem;
+}
+
+.financial-transactions-page .wallet-tx-detail-dl dd {
+    margin: 0;
+    word-break: break-word;
+}
+
+[data-theme="dark"] .financial-transactions-page .wallet-tx-detail-row .wallet-tx-detail-cell {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+[data-theme="dark"] .financial-transactions-page .wallet-tx-table thead th {
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%);
+    box-shadow: 0 1px 0 rgba(148, 163, 184, 0.22);
+}
+
+[data-theme="dark"] .financial-transactions-page .wallet-tx-table tbody tr:nth-child(even) {
+    background: rgba(59, 130, 246, 0.06);
+}
+
+[data-theme="dark"] .financial-transactions-page .wallet-tx-bal-sep {
+    color: rgba(96, 165, 250, 0.55);
+}
+
+[data-theme="dark"] .financial-transactions-page .page-header {
+    border-color: rgba(96, 165, 250, 0.24);
+    background:
+        radial-gradient(700px 200px at 0% -20%, rgba(37, 99, 235, 0.2), transparent 55%),
+        radial-gradient(560px 180px at 100% 0%, rgba(6, 182, 212, 0.18), transparent 52%),
+        linear-gradient(145deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.94));
+    box-shadow: 0 14px 30px rgba(2, 6, 23, 0.42);
+}
+
+[data-theme="dark"] .financial-transactions-page .financial-stat-card {
+    background: linear-gradient(160deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.92));
+    border-color: rgba(148, 163, 184, 0.24);
+    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.38);
+}
+
+[data-theme="dark"] .financial-transactions-page .financial-stat-accent {
+    background:
+        radial-gradient(420px 180px at 0% 0%, rgba(59, 130, 246, 0.24), transparent 58%),
+        linear-gradient(145deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.92));
+}
+
+[data-theme="dark"] .financial-transactions-page .financial-table-card .card-header {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(6, 182, 212, 0.14));
+    border-bottom-color: rgba(148, 163, 184, 0.24);
+}
+
+[data-theme="dark"] .financial-transactions-page .financial-table tbody td {
+    border-bottom-color: rgba(148, 163, 184, 0.18);
+}
+
+@media (max-width: 991.98px) {
+    .financial-transactions-page .financial-table-card .table-responsive {
+        padding: 0.2rem;
+        border-radius: 14px;
+    }
+
+    .financial-transactions-page .financial-table {
+        min-width: 100%;
+        border-spacing: 0;
+    }
+
+    .financial-transactions-page .financial-table thead {
+        display: none;
+    }
+
+    .financial-transactions-page .financial-table tbody tr {
+        display: block;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 14px;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+        background: rgba(255, 255, 255, 0.92);
+        transform: none !important;
+    }
+
+    .financial-transactions-page .financial-table tbody td {
+        display: grid;
+        grid-template-columns: minmax(110px, 38%) 1fr;
+        align-items: center;
+        gap: 0.55rem;
+        width: 100%;
+        border: 0;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.3);
+        border-radius: 0 !important;
+        text-align: start !important;
+        padding: 0.68rem 0.82rem;
+    }
+
+    .financial-transactions-page .financial-table tbody td::before {
+        content: attr(data-label);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+
+    .financial-transactions-page .financial-table tbody td:first-child {
+        border-radius: 14px 14px 0 0 !important;
+    }
+
+    .financial-transactions-page .financial-table tbody tr.wallet-tx-main-row td:last-child {
+        border-bottom: 0;
+    }
+
+    .financial-transactions-page .financial-table tbody tr.wallet-tx-detail-row {
+        margin-top: -0.5rem;
+        margin-bottom: 0.75rem;
+        border: 0;
+        box-shadow: none;
+        background: transparent;
+    }
+
+    .financial-transactions-page .financial-table tbody tr.wallet-tx-detail-row td {
+        display: block;
+        width: 100%;
+        padding: 0 0.82rem 0.68rem !important;
+        border: 0 !important;
+        border-radius: 0 0 14px 14px !important;
+    }
+
+    .financial-transactions-page .financial-table tbody tr.wallet-tx-detail-row td::before {
+        content: none;
+    }
+
+    .financial-transactions-page .wallet-tx-ellipsis {
+        max-width: none;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+    }
+
+    .financial-transactions-page .wallet-tx-bal-flow {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+}
+
+[data-theme="dark"] .financial-transactions-page .financial-table tbody tr {
+    background: rgba(30, 41, 59, 0.86);
+    border-color: rgba(148, 163, 184, 0.3);
+    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.45);
+}
+
+/* Receipts + CashBox mobile table cards */
+@media (max-width: 991.98px) {
+    .financial-receipts-page .financial-table-card .table-responsive,
+    .financial-cashbox-page .financial-table-card .table-responsive {
+        padding: 0.2rem;
+        border-radius: 14px;
+    }
+
+    .financial-receipts-page .financial-table,
+    .financial-cashbox-page .financial-table {
+        min-width: 100%;
+        border-spacing: 0;
+    }
+
+    .financial-receipts-page .financial-table thead,
+    .financial-cashbox-page .financial-table thead {
+        display: none;
+    }
+
+    .financial-receipts-page .financial-table tbody tr,
+    .financial-cashbox-page .financial-table tbody tr {
+        display: block;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 14px;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+        background: rgba(255, 255, 255, 0.92);
+        transform: none !important;
+    }
+
+    .financial-receipts-page .financial-table tbody td,
+    .financial-cashbox-page .financial-table tbody td {
+        display: grid;
+        grid-template-columns: minmax(110px, 38%) 1fr;
+        align-items: center;
+        gap: 0.55rem;
+        width: 100%;
+        border: 0;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.3);
+        border-radius: 0 !important;
+        text-align: start !important;
+        padding: 0.68rem 0.82rem;
+    }
+
+    .financial-receipts-page .financial-table tbody td::before,
+    .financial-cashbox-page .financial-table tbody td::before {
+        content: attr(data-label);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+
+    .financial-receipts-page .financial-table tbody td:first-child,
+    .financial-cashbox-page .financial-table tbody td:first-child {
+        border-radius: 14px 14px 0 0 !important;
+    }
+
+    .financial-receipts-page .financial-table tbody td:last-child,
+    .financial-cashbox-page .financial-table tbody td:last-child {
+        border-bottom: 0;
+        border-radius: 0 0 14px 14px !important;
+    }
+}
+
+[data-theme="dark"] .financial-receipts-page .financial-table tbody tr,
+[data-theme="dark"] .financial-cashbox-page .financial-table tbody tr {
+    background: rgba(30, 41, 59, 0.86);
+    border-color: rgba(148, 163, 184, 0.3);
+    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.45);
+}
+
+/* NetworkManager dashboard: full sidebar nav (CompanyAdmin _SidebarNavSections). */
+@media (min-width: 768px) {
+    .company-dashboard-page .sidebar.sidebar-pro .sidebar-nav {
+        padding-top: 0.5rem;
+    }
+
+    .company-dashboard-page.manager-dashboard-page .sidebar.sidebar-pro .sidebar-nav {
+        padding-top: 0.75rem;
+    }
+}
+
+/* إضافة/تعديل موظف + مصفوفة الصلاحيات — دعم الوضع الداكن */
+[data-theme="dark"] .company-dashboard-page .employee-create-hero,
+[data-theme="dark"] .admin-dashboard-page .employee-create-hero {
+    background: radial-gradient(120% 180% at 100% 0%, rgba(37, 99, 235, 0.28) 0%, rgba(30, 41, 59, 0.92) 48%, #0f172a 100%);
+    box-shadow: 0 16px 40px -20px rgba(0, 0, 0, 0.55);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-create-hero .employee-create-title,
+[data-theme="dark"] .admin-dashboard-page .employee-create-hero .employee-create-title {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-create-hero .employee-create-subtitle,
+[data-theme="dark"] .admin-dashboard-page .employee-create-hero .employee-create-subtitle {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-create-hero .hero-chip,
+[data-theme="dark"] .admin-dashboard-page .employee-create-hero .hero-chip {
+    background: rgba(37, 99, 235, 0.25);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-create-shell .btn-back,
+[data-theme="dark"] .admin-dashboard-page .employee-create-shell .btn-back {
+    background: rgba(30, 41, 59, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-create-shell .btn-back:hover,
+[data-theme="dark"] .admin-dashboard-page .employee-create-shell .btn-back:hover {
+    background: rgba(51, 65, 85, 0.98);
+    color: #f8fafc;
+    border-color: rgba(148, 163, 184, 0.5);
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-create-shell .info-strip,
+[data-theme="dark"] .admin-dashboard-page .employee-create-shell .info-strip {
+    background: linear-gradient(135deg, rgba(30, 58, 138, 0.35) 0%, rgba(15, 23, 42, 0.9) 100%);
+    border-color: rgba(59, 130, 246, 0.35);
+    color: #cbd5e1;
+    box-shadow: 0 8px 24px -16px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-form-card,
+[data-theme="dark"] .admin-dashboard-page .employee-form-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    box-shadow: 0 14px 36px -22px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-form-card .card-body,
+[data-theme="dark"] .admin-dashboard-page .employee-form-card .card-body {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-create-shell .section-title,
+[data-theme="dark"] .admin-dashboard-page .employee-create-shell .section-title {
+    color: #f1f5f9;
+    border-bottom-color: #334155;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-create-shell .elegant-input,
+[data-theme="dark"] .admin-dashboard-page .employee-create-shell .elegant-input {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-create-shell .elegant-input:focus,
+[data-theme="dark"] .admin-dashboard-page .employee-create-shell .elegant-input:focus {
+    background: #1e293b;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.22);
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-create-shell .switch-box,
+[data-theme="dark"] .admin-dashboard-page .employee-create-shell .switch-box {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-create-shell .switch-label,
+[data-theme="dark"] .admin-dashboard-page .employee-create-shell .switch-label {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-create-shell .selected-counter,
+[data-theme="dark"] .admin-dashboard-page .employee-create-shell .selected-counter {
+    color: #94a3b8;
+    background: #0f172a;
+    border-color: #334155;
+}
+
+/* تسمية متجاوبة + حقل مبلغ ل.س.ج */
+.syp-responsive-label .syp-label-long {
+    display: none;
+}
+
+.syp-responsive-label .syp-label-short {
+    display: inline;
+}
+
+@media (min-width: 768px) {
+    .syp-responsive-label .syp-label-long {
+        display: inline;
+    }
+
+    .syp-responsive-label .syp-label-short {
+        display: none;
+    }
+}
+
+.syp-amount-input-wrap {
+    position: relative;
+}
+
+.syp-amount-input-wrap .syp-amount-currency-badge {
+    position: absolute;
+    inset-inline-start: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #64748b;
+    background: rgba(148, 163, 184, 0.14);
+    padding: 0.12rem 0.35rem;
+    border-radius: 6px;
+    pointer-events: none;
+    letter-spacing: 0.02em;
+}
+
+.syp-amount-input-wrap .syp-amount-display {
+    padding-inline-start: 3.35rem;
+    font-variant-numeric: tabular-nums;
+    text-align: start;
+    direction: ltr;
+}
+
+.employee-create-shell .payroll-salary-field .syp-amount-display {
+    border-radius: 0.75rem;
+    border: 1px solid #dbe3ef;
+    background: #fcfdff;
+    min-height: calc(1.5em + 0.75rem + 2px);
+}
+
+.employee-create-shell .payroll-salary-field .syp-amount-hint {
+    font-size: 0.75rem;
+    line-height: 1.45;
+}
+
+[data-theme="dark"] .employee-create-shell .payroll-salary-field .syp-amount-display {
+    background: rgba(15, 23, 42, 0.55);
+    border-color: rgba(148, 163, 184, 0.28);
+}
+
+[data-theme="dark"] .syp-amount-input-wrap .syp-amount-currency-badge {
+    color: #94a3b8;
+    background: rgba(51, 65, 85, 0.55);
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-edit-page .employee-edit-hero,
+[data-theme="dark"] .admin-dashboard-page .employee-edit-page .employee-edit-hero {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%);
+    border: 1px solid #334155;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-edit-page .employee-edit-title,
+[data-theme="dark"] .admin-dashboard-page .employee-edit-page .employee-edit-title {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-edit-page .employee-edit-note,
+[data-theme="dark"] .admin-dashboard-page .employee-edit-page .employee-edit-note {
+    background: linear-gradient(135deg, rgba(30, 58, 138, 0.3) 0%, rgba(15, 23, 42, 0.92) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.3) !important;
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-edit-form-card,
+[data-theme="dark"] .admin-dashboard-page .employee-edit-form-card {
+    background: #1e293b;
+    border: 1px solid #334155 !important;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-edit-form-card .card-body,
+[data-theme="dark"] .admin-dashboard-page .employee-edit-form-card .card-body {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-edit-form-card .form-control,
+[data-theme="dark"] .admin-dashboard-page .employee-edit-form-card .form-control {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-edit-form-card .form-control:focus,
+[data-theme="dark"] .admin-dashboard-page .employee-edit-form-card .form-control:focus {
+    background: #1e293b;
+    border-color: #3b82f6;
+    color: #f8fafc;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-edit-form-card .form-text,
+[data-theme="dark"] .admin-dashboard-page .employee-edit-form-card .form-text {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-perm-service-card,
+[data-theme="dark"] .admin-dashboard-page .employee-perm-service-card {
+    border-color: rgba(59, 130, 246, 0.35);
+    background: linear-gradient(180deg, #1e293b 0%, #172033 100%);
+    box-shadow: 0 12px 28px -22px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-perm-service-title,
+[data-theme="dark"] .admin-dashboard-page .employee-perm-service-title {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-perm-service-title .text-primary,
+[data-theme="dark"] .admin-dashboard-page .employee-perm-service-title .text-primary {
+    color: #60a5fa !important;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-perm-slot,
+[data-theme="dark"] .admin-dashboard-page .employee-perm-slot {
+    border-color: #334155;
+    background: #0f172a;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-perm-slot:hover,
+[data-theme="dark"] .admin-dashboard-page .employee-perm-slot:hover {
+    border-color: #3b82f6;
+    background: rgba(30, 41, 59, 0.95);
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-perm-slot-label,
+[data-theme="dark"] .admin-dashboard-page .employee-perm-slot-label {
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-perm-hint,
+[data-theme="dark"] .admin-dashboard-page .employee-perm-hint {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .company-dashboard-page .perm-slot-multi,
+[data-theme="dark"] .admin-dashboard-page .perm-slot-multi {
+    border-color: #334155;
+    background: #0f172a;
+}
+
+[data-theme="dark"] .company-dashboard-page .perm-slot-multi:hover,
+[data-theme="dark"] .admin-dashboard-page .perm-slot-multi:hover {
+    border-color: #475569;
+    background: rgba(30, 41, 59, 0.95);
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-perm-matrix .form-check-input,
+[data-theme="dark"] .admin-dashboard-page .employee-perm-matrix .form-check-input {
+    border-color: #64748b;
+    background-color: #1e293b;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-perm-matrix .form-check-input:checked,
+[data-theme="dark"] .admin-dashboard-page .employee-perm-matrix .form-check-input:checked {
+    background-color: #2563eb;
+    border-color: #2563eb;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-form-card .form-label,
+[data-theme="dark"] .admin-dashboard-page .employee-form-card .form-label {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-edit-form-card .form-label,
+[data-theme="dark"] .admin-dashboard-page .employee-edit-form-card .form-label {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-edit-form-card hr,
+[data-theme="dark"] .admin-dashboard-page .employee-edit-form-card hr {
+    border-color: #334155;
+    opacity: 1;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-edit-form-card .form-check-label,
+[data-theme="dark"] .admin-dashboard-page .employee-edit-form-card .form-check-label {
+    color: #cbd5e1;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-edit-form-card h5,
+[data-theme="dark"] .admin-dashboard-page .employee-edit-form-card h5 {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .company-dashboard-page .employee-edit-page .text-muted,
+[data-theme="dark"] .admin-dashboard-page .employee-edit-page .text-muted {
+    color: #94a3b8 !important;
+}
+
+/* ============================================
+   Features hub (/networkManager/features) — هوية RadaTik + لوحة تفاصيل
+   ============================================ */
+.features-hub-page .features-hub {
+    --fh-accent: #06b6d4;
+    --fh-accent-soft: rgba(6, 182, 212, 0.14);
+    --fh-primary: #2563eb;
+    --fh-primary-soft: rgba(37, 99, 235, 0.12);
+}
+
+.features-hub-page .features-hub-hero {
+    position: relative;
+    overflow: hidden;
+}
+
+.features-hub-page .features-hub-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(900px 280px at 0% -10%, rgba(37, 99, 235, 0.22), transparent 55%),
+        radial-gradient(700px 240px at 100% 0%, rgba(6, 182, 212, 0.2), transparent 52%);
+    pointer-events: none;
+}
+
+.features-hub-page .features-hub-hero .sys-hero-main {
+    position: relative;
+    z-index: 1;
+}
+
+.features-hub-page .features-hub-stat-card {
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.88));
+    transition: transform 0.18s ease, box-shadow 0.2s ease, border-color 0.18s ease;
+    cursor: pointer;
+    text-align: start;
+    width: 100%;
+}
+
+.features-hub-page .features-hub-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+    border-color: rgba(37, 99, 235, 0.35);
+}
+
+.features-hub-page .features-hub-stat-card.is-active-filter {
+    border-color: rgba(37, 99, 235, 0.55);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.features-hub-page .features-hub-stat-card .stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+}
+
+.features-hub-page .features-hub-stat-card[data-hub-status="active"] .stat-icon {
+    background: rgba(25, 135, 84, 0.14);
+    color: #198754;
+}
+
+.features-hub-page .features-hub-stat-card[data-hub-status="pending"] .stat-icon {
+    background: rgba(255, 193, 7, 0.2);
+    color: #b45309;
+}
+
+.features-hub-page .features-hub-stat-card[data-hub-status="inactive"] .stat-icon {
+    background: rgba(108, 117, 125, 0.16);
+    color: #495057;
+}
+
+.features-hub-page .features-hub-context {
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(241, 245, 249, 0.92) 100%);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.features-hub-page .features-hub-context-item {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.features-hub-page .features-hub-context-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--fh-primary-soft);
+    color: var(--fh-primary);
+    flex-shrink: 0;
+}
+
+.features-hub-page .features-hub-services-card {
+    border-radius: 18px;
+    overflow: visible;
+}
+
+.features-hub-page .features-hub-services-card > .card-header {
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.88));
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 18px 18px 0 0;
+}
+
+.features-hub-page .features-hub-detail-btn {
+    border: none;
+    border-radius: 12px;
+    padding: 0.5rem 1rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #2563eb 0%, #0891b2 100%);
+    color: #fff !important;
+    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.28);
+    transition: transform 0.15s ease, box-shadow 0.18s ease, filter 0.15s ease;
+}
+
+.features-hub-page .features-hub-detail-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+    box-shadow: 0 14px 30px rgba(37, 99, 235, 0.34);
+}
+
+.features-hub-page .features-hub-detail-btn.btn-outline-brand {
+    background: transparent;
+    color: var(--fh-primary) !important;
+    border: 2px solid rgba(37, 99, 235, 0.45);
+    box-shadow: none;
+}
+
+.features-hub-page .features-hub-detail-btn.btn-outline-brand:hover {
+    background: var(--fh-primary-soft);
+}
+
+/* Offcanvas تفاصيل الخدمة */
+.feature-detail-offcanvas {
+    --bs-offcanvas-width: min(100vw - 1rem, 32rem);
+    border: none;
+    box-shadow: -12px 0 48px rgba(15, 23, 42, 0.18);
+}
+
+@media (min-width: 576px) {
+    .feature-detail-offcanvas {
+        --bs-offcanvas-width: min(100vw - 2rem, 36rem);
+    }
+}
+
+.feature-detail-offcanvas .offcanvas-header.feature-detail-offcanvas-header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 42%, #0891b2 110%);
+    color: #f8fafc;
+    padding: 1.25rem 1rem;
+    border-bottom: none;
+}
+
+.feature-detail-offcanvas .feature-detail-offcanvas-header .btn-close {
+    filter: brightness(0) invert(1);
+    opacity: 0.85;
+}
+
+.feature-detail-offcanvas .feature-detail-hero-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: #fff;
+}
+
+.feature-detail-offcanvas .feature-detail-section {
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: rgba(248, 250, 252, 0.65);
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.feature-detail-offcanvas .feature-detail-section-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    font-weight: 700;
+    font-size: 0.92rem;
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.08), transparent);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    color: #1e293b;
+}
+
+.feature-detail-offcanvas .feature-detail-section-head i {
+    color: #2563eb;
+}
+
+.feature-detail-offcanvas .feature-detail-section-body {
+    padding: 1rem;
+}
+
+.feature-detail-offcanvas .feature-detail-section-body.feature-rich,
+.feature-detail-offcanvas .feature-rich {
+    line-height: 1.75;
+    font-size: 0.95rem;
+}
+
+.feature-detail-offcanvas .feature-detail-section-body.feature-rich ul,
+.feature-detail-offcanvas .feature-rich ul {
+    padding-inline-start: 1.2rem;
+}
+
+.feature-detail-offcanvas .feature-pricing-table-wrap {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.feature-detail-offcanvas .feature-pricing-table-wrap .table {
+    margin-bottom: 0;
+    font-size: 0.88rem;
+}
+
+.feature-detail-offcanvas .feature-detail-actions {
+    padding: 0.85rem 1.25rem;
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.98));
+    border-top: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.feature-detail-offcanvas .company-feature-pricing-pills {
+    flex-direction: column;
+}
+
+.feature-detail-offcanvas .company-feature-pricing-pill {
+    flex: 1 1 auto;
+}
+
+[data-theme="dark"] .features-hub-page .features-hub-stat-card {
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.92));
+    border-color: rgba(148, 163, 184, 0.28);
+}
+
+[data-theme="dark"] .features-hub-page .features-hub-context {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.94) 100%);
+    border-color: rgba(148, 163, 184, 0.22);
+}
+
+[data-theme="dark"] .features-hub-page .features-hub-services-card > .card-header {
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.88));
+    border-bottom-color: rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .feature-detail-offcanvas .feature-detail-section {
+    background: rgba(15, 23, 42, 0.65);
+    border-color: rgba(148, 163, 184, 0.22);
+}
+
+[data-theme="dark"] .feature-detail-offcanvas .feature-detail-section-head {
+    color: #e2e8f0;
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.2), transparent);
+}
+
+[data-theme="dark"] .feature-detail-offcanvas .feature-detail-actions {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
+    border-top-color: rgba(148, 163, 184, 0.22);
+}
+
+/* نافذة حظر الرصيد — فوق الشريط الجانبي والرأس */
+#nmCompanyBalanceBlockModal.modal {
+    z-index: 1085;
+}
+
+body.modal-open:has(#nmCompanyBalanceBlockModal.show) .modal-backdrop {
+    z-index: 1080;
+}
+
+/* ========== Mobile: تمرير، جداول، نماذج (CompanyAdmin) ========== */
+@media (max-width: 991.98px) {
+    .financial-page .page-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .financial-page .page-header > * {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .financial-page .page-header .btn-group,
+    .financial-page .page-header .d-flex.gap-2 {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .financial-page .page-header .btn {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .financial-page .row > [class*="col-"] {
+        min-width: 0;
+    }
+
+    .financial-page .card,
+    .financial-page .card-body {
+        min-width: 0;
+    }
+
+    .financial-page .table-responsive {
+        overflow-x: visible;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .financial-page .table-responsive > .table {
+        min-width: 0;
+    }
+
+    /* بطاقات صفوف الجدول (مستودع، دفتر، رواتب، فواتير...) — دون تعارض مع صفحات المحفظة/القبض */
+    .financial-page:not(.financial-receipts-page):not(.financial-cashbox-page):not(.financial-transactions-page) .table-responsive > .table thead {
+        display: none;
+    }
+
+    .financial-page:not(.financial-receipts-page):not(.financial-cashbox-page):not(.financial-transactions-page) .table-responsive > .table,
+    .financial-page:not(.financial-receipts-page):not(.financial-cashbox-page):not(.financial-transactions-page) .table-responsive > .table tbody,
+    .financial-page:not(.financial-receipts-page):not(.financial-cashbox-page):not(.financial-transactions-page) .table-responsive > .table tbody tr,
+    .financial-page:not(.financial-receipts-page):not(.financial-cashbox-page):not(.financial-transactions-page) .table-responsive > .table tbody td {
+        display: block;
+        width: 100%;
+    }
+
+    .financial-page:not(.financial-receipts-page):not(.financial-cashbox-page):not(.financial-transactions-page) .table-responsive > .table tbody tr {
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 14px;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+        background: rgba(255, 255, 255, 0.92);
+        padding: 0.15rem 0;
+    }
+
+    .financial-page:not(.financial-receipts-page):not(.financial-cashbox-page):not(.financial-transactions-page) .table-responsive > .table tbody td {
+        display: grid;
+        grid-template-columns: minmax(100px, 38%) 1fr;
+        align-items: center;
+        gap: 0.55rem;
+        border: 0;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.3);
+        border-radius: 0 !important;
+        text-align: start !important;
+        padding: 0.68rem 0.82rem;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .financial-page:not(.financial-receipts-page):not(.financial-cashbox-page):not(.financial-transactions-page) .table-responsive > .table tbody td::before {
+        content: attr(data-label);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+
+    .financial-page:not(.financial-receipts-page):not(.financial-cashbox-page):not(.financial-transactions-page) .table-responsive > .table tbody td:first-child {
+        border-radius: 14px 14px 0 0 !important;
+    }
+
+    .financial-page:not(.financial-receipts-page):not(.financial-cashbox-page):not(.financial-transactions-page) .table-responsive > .table tbody td:last-child {
+        border-bottom: 0;
+        border-radius: 0 0 14px 14px !important;
+    }
+
+    .financial-page:not(.financial-receipts-page):not(.financial-cashbox-page):not(.financial-transactions-page) .table-responsive > .table tbody tr:only-child td[colspan] {
+        display: block;
+        text-align: center !important;
+    }
+
+    .financial-page:not(.financial-receipts-page):not(.financial-cashbox-page):not(.financial-transactions-page) .table-responsive > .table tbody tr:only-child td[colspan]::before {
+        content: none;
+    }
+
+    .financial-page .form-control,
+    .financial-page .form-select {
+        max-width: 100%;
+    }
+
+    .financial-page .input-group {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 991.98px) {
+    [data-theme="dark"] .financial-page:not(.financial-receipts-page):not(.financial-cashbox-page):not(.financial-transactions-page) .table-responsive > .table tbody tr {
+        background: rgba(30, 41, 59, 0.86);
+        border-color: rgba(148, 163, 184, 0.3);
+    }
+}
+
+/* صفحات بدون financial-page: رأس وتخطيط عام */
+@media (max-width: 991.98px) {
+    .role-company-admin .page-content .page-header,
+    .admin-dashboard-page.role-company-admin .page-content .page-header {
+        overflow: visible !important;
+    }
+
+    .role-company-admin .page-header-content {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 0.75rem;
+    }
+
+    .role-company-admin .page-header-actions {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .role-company-admin .page-header-actions .btn,
+    .role-company-admin .page-header-actions .form-select {
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .role-company-admin .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* تلميحات المستودع */
+.warehouse-usage-hints {
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.04), rgba(6, 182, 212, 0.06));
+}
+
+.warehouse-hint-box {
+    padding: 0.65rem 0.75rem;
+    border-radius: 8px;
+    background: rgba(37, 99, 235, 0.06);
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    line-height: 1.45;
+}
+
+[data-theme="dark"] .warehouse-hint-box {
+    background: rgba(37, 99, 235, 0.12);
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+/* صفحة المستودع — تخطيط منظم */
+.warehouse-page .warehouse-quick-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+
+.warehouse-page .warehouse-quick-nav__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.warehouse-page .warehouse-quick-nav__item:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.warehouse-page .warehouse-quick-nav__item.is-current {
+    color: #0d6efd;
+    background: rgba(13, 110, 253, 0.1);
+    border-color: rgba(13, 110, 253, 0.25);
+}
+
+.warehouse-page .warehouse-stat-pill {
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    height: 100%;
+}
+
+.warehouse-page .warehouse-stat-pill--ok {
+    border-color: rgba(25, 135, 84, 0.25);
+    background: rgba(25, 135, 84, 0.05);
+}
+
+.warehouse-page .warehouse-stat-pill--warn {
+    border-color: rgba(220, 53, 69, 0.3);
+    background: rgba(220, 53, 69, 0.05);
+}
+
+.warehouse-page .warehouse-stat-pill__label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.2rem;
+}
+
+.warehouse-page .warehouse-stat-pill__value {
+    font-size: 1.65rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.warehouse-page .warehouse-panel-card {
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.warehouse-page .warehouse-panel-card__header {
+    border-bottom: 2px solid transparent;
+    padding: 0.85rem 1.15rem;
+}
+
+.warehouse-page .warehouse-panel-card__header--move {
+    background: rgba(13, 110, 253, 0.06);
+    border-bottom-color: #0d6efd;
+}
+
+.warehouse-page .warehouse-movement-type .btn {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.warehouse-page .warehouse-movement-type .btn-check:checked + .btn-outline-success {
+    background-color: #198754;
+    border-color: #198754;
+    color: #fff;
+}
+
+.warehouse-page .warehouse-movement-type .btn-check:checked + .btn-outline-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
+}
+
+.warehouse-page .warehouse-movement-type .btn-check:checked + .btn-outline-warning {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #212529;
+}
+
+.warehouse-page .warehouse-accordion .accordion-button {
+    font-size: 0.92rem;
+    font-weight: 600;
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.warehouse-page .warehouse-accordion .accordion-button:not(.collapsed) {
+    background: rgba(13, 110, 253, 0.06);
+    color: #0d6efd;
+}
+
+.warehouse-page .warehouse-log-tabs .nav-link {
+    font-weight: 600;
+}
+
+.warehouse-page .warehouse-search-input {
+    max-width: 220px;
+    min-width: 160px;
+}
+
+.warehouse-page .warehouse-qty {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.warehouse-page .bg-success-subtle {
+    background-color: rgba(25, 135, 84, 0.12) !important;
+}
+
+.warehouse-page .warehouse-price-dl dt {
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.warehouse-page .warehouse-price-dl dd {
+    margin-bottom: 0.35rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.warehouse-item-page .warehouse-stat-pill__value.warehouse-qty {
+    font-size: 1.85rem;
+}
+
+@media (max-width: 991.98px) {
+    .warehouse-page .warehouse-search-input {
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
+/* الليرة السورية — الصندوق والمبالغ */
+.syp-currency-notice {
+    border-radius: 12px;
+}
+
+.financial-cashbox-page .syp-amount-display {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+.financial-cashbox-page .syp-amount-display.is-invalid {
+    border-color: var(--bs-danger);
+}
+
+/* سجل حركات الصندوق — تمييز العملة بلون الصف */
+.cashbox-currency-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    font-size: 0.82rem;
+}
+
+.cashbox-currency-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 600;
+}
+
+.cashbox-currency-legend__item--syp { color: #0a58ca; }
+.cashbox-currency-legend__item--usd { color: #146c43; }
+.cashbox-currency-legend__item--fx { color: #495057; }
+
+.cashbox-currency-legend__item--syp i { color: #0d6efd; }
+.cashbox-currency-legend__item--usd i { color: #198754; }
+.cashbox-currency-legend__item--fx i {
+    background: linear-gradient(90deg, #0d6efd 50%, #198754 50%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.financial-cashbox-page .financial-table tbody tr.cashbox-row-currency--syp {
+    background: rgba(13, 110, 253, 0.11);
+    box-shadow: inset 4px 0 0 #0d6efd;
+}
+
+.financial-cashbox-page .financial-table tbody tr.cashbox-row-currency--usd {
+    background: rgba(25, 135, 84, 0.12);
+    box-shadow: inset 4px 0 0 #198754;
+}
+
+.financial-cashbox-page .financial-table tbody tr.cashbox-row-currency--fx-syp-usd {
+    background: linear-gradient(
+        to left,
+        rgba(25, 135, 84, 0.14) 0%,
+        rgba(25, 135, 84, 0.1) 42%,
+        rgba(13, 110, 253, 0.1) 58%,
+        rgba(13, 110, 253, 0.14) 100%
+    );
+    box-shadow: inset 4px 0 0 #0d6efd, inset -4px 0 0 #198754;
+}
+
+.financial-cashbox-page .financial-table tbody tr.cashbox-row-currency--fx-usd-syp {
+    background: linear-gradient(
+        to left,
+        rgba(13, 110, 253, 0.14) 0%,
+        rgba(13, 110, 253, 0.1) 42%,
+        rgba(25, 135, 84, 0.1) 58%,
+        rgba(25, 135, 84, 0.14) 100%
+    );
+    box-shadow: inset 4px 0 0 #198754, inset -4px 0 0 #0d6efd;
+}
+
+.financial-cashbox-page .financial-table tbody tr.cashbox-row-currency--syp:hover,
+.financial-cashbox-page .financial-table tbody tr.cashbox-row-currency--usd:hover,
+.financial-cashbox-page .financial-table tbody tr.cashbox-row-currency--fx-syp-usd:hover,
+.financial-cashbox-page .financial-table tbody tr.cashbox-row-currency--fx-usd-syp:hover {
+    filter: brightness(0.96);
+}
+
+.cashbox-currency-chip {
+    display: inline-block;
+    min-width: 2.1rem;
+    padding: 0.1rem 0.4rem;
+    margin-inline-end: 0.35rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.cashbox-currency-chip--0 {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.cashbox-currency-chip--2 {
+    background: #d1e7dd;
+    color: #0a3622;
+}
+
+[data-theme="dark"] .financial-cashbox-page .financial-table tbody tr.cashbox-row-currency--syp {
+    background: rgba(59, 130, 246, 0.16);
+    box-shadow: inset 4px 0 0 #3b82f6;
+}
+
+[data-theme="dark"] .financial-cashbox-page .financial-table tbody tr.cashbox-row-currency--usd {
+    background: rgba(34, 197, 94, 0.16);
+    box-shadow: inset 4px 0 0 #22c55e;
+}
+
+[data-theme="dark"] .cashbox-currency-chip--0 {
+    background: rgba(59, 130, 246, 0.25);
+    color: #bfdbfe;
+}
+
+[data-theme="dark"] .cashbox-currency-chip--2 {
+    background: rgba(34, 197, 94, 0.22);
+    color: #bbf7d0;
+}
+
+/* Network Create — أول دخول مدير الشركة + تغذية الرصيد */
+.network-onboarding-panel {
+    border-radius: 18px;
+    border: 1px solid rgba(15, 107, 255, 0.2);
+    background:
+        radial-gradient(720px 200px at 0% 0%, rgba(15, 107, 255, 0.14), transparent 55%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+
+[data-theme="dark"] .network-onboarding-panel {
+    border-color: rgba(96, 165, 250, 0.28);
+    background:
+        radial-gradient(720px 200px at 0% 0%, rgba(96, 165, 250, 0.18), transparent 55%),
+        linear-gradient(135deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.9));
+}
+
+.network-onboarding-panel__inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.1rem 1.2rem;
+}
+
+.network-onboarding-panel__icon {
+    flex: 0 0 auto;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: linear-gradient(135deg, var(--sys-primary, #0f6bff) 0%, #8b5cf6 100%);
+    box-shadow: 0 10px 22px rgba(15, 107, 255, 0.28);
+}
+
+.network-onboarding-panel__title {
+    margin: 0 0 0.35rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--text-primary, #0f172a);
+}
+
+.network-onboarding-panel__text {
+    margin: 0;
+    color: var(--text-muted, #64748b);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.network-onboarding-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.network-onboarding-steps__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    font-size: 0.88rem;
+    color: var(--text-muted, #64748b);
+}
+
+.network-onboarding-steps__item--active {
+    color: var(--text-primary, #0f172a);
+    font-weight: 600;
+}
+
+.network-onboarding-steps__badge {
+    flex: 0 0 auto;
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 800;
+    background: rgba(148, 163, 184, 0.2);
+    color: var(--text-muted, #64748b);
+}
+
+.network-onboarding-steps__item--active .network-onboarding-steps__badge {
+    background: var(--sys-primary, #0f6bff);
+    color: #fff;
+}
+
+.network-topup-card {
+    border: 1px solid rgba(25, 135, 84, 0.22) !important;
+}
+
+.network-create-layout .network-create-form .btn-lg {
+    width: 100%;
+}
+
+@media (min-width: 992px) {
+    .network-create-layout .network-create-form .btn-lg {
+        width: auto;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .network-onboarding-panel__inner {
+        flex-direction: column;
+    }
+
+    .network-create-layout .card-header .btn {
+        width: 100%;
+    }
+
+    .network-create-layout .border-top .d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .network-create-layout .border-top .text-danger.small {
+        text-align: center;
+    }
+}
+
+@media (max-width: 576px) {
+    .sys-hero.network-create-hero .sys-hero-title {
+        font-size: 1.25rem;
+    }
+}
+
+/* MikroTik Servers — قائمة الخوادم (موبايل / تابلت) */
+.mikrotik-servers-page {
+    padding-bottom: 0.5rem;
+}
+
+.mikrotik-servers-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.mikrotik-servers-hero .sys-hero-main {
+    flex: 1 1 280px;
+    min-width: 0;
+}
+
+.mikrotik-servers-hero .sys-hero-actions {
+    flex: 0 1 auto;
+    align-items: stretch;
+    margin-top: 0;
+}
+
+.mikrotik-servers-hero__actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.mikrotik-servers-renewal__badges .badge {
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.35;
+    white-space: normal;
+    text-align: start;
+}
+
+.mikrotik-servers-shell {
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(248, 250, 252, 0.9) 100%);
+}
+
+[data-theme="dark"] .mikrotik-servers-shell {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.78) 0%, rgba(15, 23, 42, 0.92) 100%);
+    border-color: rgba(148, 163, 184, 0.26);
+}
+
+.mikrotik-servers-table {
+    margin-bottom: 0;
+    min-width: 880px;
+}
+
+.mikrotik-servers-table thead th {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted, #64748b);
+    white-space: nowrap;
+}
+
+.mikrotik-servers-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    justify-content: flex-end;
+}
+
+.mikrotik-servers-actions .btn {
+    padding: 0.2rem 0.45rem;
+}
+
+.mikrotik-servers-actions__label {
+    display: none;
+}
+
+.mikrotik-servers-row--inactive {
+    opacity: 0.92;
+}
+
+.mikrotik-servers-row--inactive .mikrotik-servers-cell--lead strong {
+    color: var(--text-muted, #64748b);
+}
+
+@media (max-width: 991.98px) {
+    .mikrotik-servers-hero {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .mikrotik-servers-hero .sys-hero-main {
+        width: 100%;
+    }
+
+    .mikrotik-servers-hero__actions {
+        width: 100%;
+    }
+
+    .mikrotik-servers-hero__actions .btn {
+        flex: 1 1 calc(50% - 0.35rem);
+        min-width: 0;
+    }
+
+    .mikrotik-servers-renewal__copy {
+        width: 100%;
+    }
+
+    .mikrotik-servers-renewal__badges {
+        width: 100%;
+    }
+
+    .mikrotik-servers-filter .btn {
+        min-height: 42px;
+    }
+
+    .mikrotik-servers-shell {
+        padding: 0.2rem;
+        border-radius: 14px;
+        overflow: visible;
+    }
+
+    .mikrotik-servers-table {
+        min-width: 100%;
+    }
+
+    .mikrotik-servers-table thead {
+        display: none;
+    }
+
+    .mikrotik-servers-table tbody tr {
+        display: block;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 14px;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+        background: rgba(255, 255, 255, 0.92);
+    }
+
+    .mikrotik-servers-table tbody tr.mikrotik-servers-row--inactive {
+        border-top: 3px solid rgba(220, 53, 69, 0.55);
+    }
+
+    .mikrotik-servers-table tbody td {
+        display: grid;
+        grid-template-columns: minmax(108px, 36%) 1fr;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        border: 0;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.3);
+        border-radius: 0 !important;
+        text-align: start !important;
+        padding: 0.68rem 0.82rem;
+    }
+
+    .mikrotik-servers-table tbody td::before {
+        content: attr(data-label);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-muted, #64748b);
+    }
+
+    .mikrotik-servers-table tbody td.mikrotik-servers-cell--lead {
+        display: block !important;
+        grid-template-columns: none !important;
+        padding: 0.85rem 0.9rem !important;
+        background: linear-gradient(180deg, rgba(15, 107, 255, 0.06) 0%, transparent 100%);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.22) !important;
+    }
+
+    .mikrotik-servers-table tbody td.mikrotik-servers-cell--lead::before {
+        content: none !important;
+        display: none !important;
+    }
+
+    .mikrotik-servers-table tbody td:last-child {
+        border-bottom: 0 !important;
+        border-radius: 0 0 14px 14px !important;
+    }
+
+    .mikrotik-servers-action-cell {
+        display: block !important;
+    }
+
+    .mikrotik-servers-action-cell::before {
+        margin-bottom: 0.35rem;
+    }
+
+    .mikrotik-servers-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .mikrotik-servers-actions .btn {
+        flex: 1 1 calc(50% - 0.3rem);
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+    }
+
+    .mikrotik-servers-actions__label {
+        display: inline;
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
+
+    .mikrotik-servers-footer {
+        text-align: center;
+    }
+
+    .mikrotik-servers-footer .text-md-end {
+        text-align: center !important;
+    }
+}
+
+@media (max-width: 991.98px) {
+    [data-theme="dark"] .mikrotik-servers-table tbody tr {
+        background: rgba(30, 41, 59, 0.86);
+        border-color: rgba(148, 163, 184, 0.3);
+    }
+
+    [data-theme="dark"] .mikrotik-servers-table tbody td.mikrotik-servers-cell--lead {
+        background: linear-gradient(180deg, rgba(59, 130, 246, 0.12) 0%, transparent 100%);
+    }
+}
+
+@media (max-width: 576px) {
+    .mikrotik-servers-hero__actions .btn {
+        flex: 1 1 100%;
+    }
+
+    .mikrotik-servers-hero__btn-text {
+        font-size: 0.88rem;
+    }
+
+    .mikrotik-servers-table tbody td {
+        grid-template-columns: 1fr;
+        gap: 0.35rem;
+    }
+
+    .mikrotik-servers-table tbody td::before {
+        margin-bottom: 0.1rem;
+    }
+
+    .mikrotik-servers-actions .btn {
+        flex: 1 1 100%;
+    }
+}
+
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    .mikrotik-servers-table {
+        min-width: 760px;
+    }
+}
+
+/* Finance hub — هوية موحّدة مع فواتير المواد */
+.financial-hub-page {
+    --fin-accent: #0f6bff;
+    --fin-accent-soft: rgba(15, 107, 255, 0.12);
+    --fin-accent-border: rgba(15, 107, 255, 0.28);
+    --fin-hero-gradient: linear-gradient(135deg, rgba(15, 107, 255, 0.18) 0%, rgba(59, 130, 246, 0.06) 100%);
+}
+
+.financial-hub-page.material-invoice-page--sales {
+    --fin-accent: #198754;
+    --fin-accent-soft: rgba(25, 135, 84, 0.14);
+    --fin-accent-border: rgba(25, 135, 84, 0.32);
+    --fin-hero-gradient: linear-gradient(135deg, rgba(25, 135, 84, 0.2) 0%, rgba(52, 211, 153, 0.08) 100%);
+}
+
+.financial-hub-page .financial-quick-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.65rem;
+    background: var(--bg-card, #fff);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 12px;
+}
+
+.financial-hub-page .financial-quick-nav__sep {
+    width: 1px;
+    height: 1.5rem;
+    background: rgba(148, 163, 184, 0.35);
+    margin: 0 0.15rem;
+}
+
+.financial-hub-page .financial-quick-nav__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--text-muted, #64748b);
+    border: 1px solid transparent;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.financial-hub-page .financial-quick-nav__item:hover {
+    color: var(--text-primary, #0f172a);
+    background: var(--bg-hover, rgba(248, 250, 252, 0.9));
+}
+
+.financial-hub-page .financial-quick-nav__item.is-current {
+    color: var(--fin-accent, #0f6bff);
+    background: var(--fin-accent-soft, rgba(15, 107, 255, 0.1));
+    border-color: var(--fin-accent-border, rgba(15, 107, 255, 0.25));
+}
+
+.financial-hub-page .financial-sys-hero,
+.financial-hub-page .material-invoice-hero {
+    border-color: var(--fin-accent-border, rgba(15, 107, 255, 0.28));
+    background:
+        var(--fin-hero-gradient),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.9));
+}
+
+[data-theme="dark"] .financial-hub-page .financial-sys-hero,
+[data-theme="dark"] .financial-hub-page .material-invoice-hero {
+    background:
+        var(--fin-hero-gradient),
+        linear-gradient(135deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.88));
+}
+
+.financial-hub-page .financial-sys-hero .sys-hero-icon,
+.financial-hub-page .material-invoice-hero .sys-hero-icon {
+    background: linear-gradient(135deg, var(--fin-accent, #0f6bff) 0%, color-mix(in srgb, var(--fin-accent, #0f6bff) 70%, #8b5cf6) 100%);
+    box-shadow: 0 12px 24px color-mix(in srgb, var(--fin-accent, #0f6bff) 35%, transparent);
+}
+
+.financial-hub-page .financial-sys-hero--cashbox { --fin-accent: #0d9488; --fin-accent-soft: rgba(13, 148, 136, 0.14); --fin-accent-border: rgba(13, 148, 136, 0.32); --fin-hero-gradient: linear-gradient(135deg, rgba(13, 148, 136, 0.2), rgba(45, 212, 191, 0.08)); }
+.financial-hub-page .financial-sys-hero--diary { --fin-accent: #7c3aed; --fin-accent-soft: rgba(124, 58, 237, 0.14); --fin-accent-border: rgba(124, 58, 237, 0.3); --fin-hero-gradient: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(167, 139, 250, 0.08)); }
+.financial-hub-page .financial-sys-hero--wallet { --fin-accent: #d97706; --fin-accent-soft: rgba(217, 119, 6, 0.14); --fin-accent-border: rgba(217, 119, 6, 0.32); --fin-hero-gradient: linear-gradient(135deg, rgba(217, 119, 6, 0.18), rgba(251, 191, 36, 0.08)); }
+.financial-hub-page .financial-sys-hero--reconciliation { --fin-accent: #475569; --fin-accent-soft: rgba(71, 85, 105, 0.12); --fin-accent-border: rgba(71, 85, 105, 0.28); }
+.financial-hub-page .financial-sys-hero--payroll { --fin-accent: #2563eb; --fin-accent-soft: rgba(37, 99, 235, 0.12); --fin-accent-border: rgba(37, 99, 235, 0.3); --fin-hero-gradient: linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(96, 165, 250, 0.08)); }
+
+/* ——— رواتب الموظفين (مدير الشبكة) ——— */
+.payroll-admin-page.financial-hub-page {
+    --fin-accent: #2563eb;
+    --fin-accent-soft: rgba(37, 99, 235, 0.12);
+    --fin-accent-border: rgba(37, 99, 235, 0.3);
+}
+
+.payroll-admin-page .payroll-guide-details {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-card);
+    overflow: hidden;
+}
+
+.payroll-admin-page .payroll-guide-summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.65rem 1rem;
+    font-weight: 700;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+}
+
+.payroll-admin-page .payroll-guide-summary::-webkit-details-marker {
+    display: none;
+}
+
+.payroll-admin-page .payroll-guide-details[open] .payroll-guide-summary {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.payroll-admin-page .payroll-guide-details .business-module-guide {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+}
+
+.payroll-admin-page .payroll-alert {
+    border-radius: 12px;
+}
+
+.payroll-admin-page .payroll-toolbar-card,
+.payroll-admin-page .payroll-prepare-card {
+    border-top: 3px solid var(--fin-accent, #2563eb) !important;
+}
+
+.payroll-admin-page .payroll-period-form input[type="number"] {
+    width: 5.5rem;
+}
+
+.payroll-admin-page .payroll-prepare-card {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(255, 255, 255, 0.98));
+}
+
+.payroll-admin-page .payroll-withdrawals-card {
+    border-right: 4px solid #f59e0b !important;
+}
+
+.payroll-admin-page .payroll-withdrawals-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(255, 255, 255, 0.9));
+    font-weight: 800;
+}
+
+.payroll-admin-page .payroll-amount-pill {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border-radius: 8px;
+    background: rgba(245, 158, 11, 0.15);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.payroll-admin-page .payroll-stat-card .card-body {
+    position: relative;
+    padding-top: 1.1rem;
+}
+
+.payroll-admin-page .payroll-stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.65rem;
+    font-size: 1rem;
+}
+
+.payroll-admin-page .payroll-stat-total .payroll-stat-icon {
+    background: rgba(37, 99, 235, 0.12);
+    color: #2563eb;
+}
+
+.payroll-admin-page .payroll-stat-paid .payroll-stat-icon {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+}
+
+.payroll-admin-page .payroll-stat-pending .payroll-stat-icon {
+    background: rgba(245, 158, 11, 0.14);
+    color: #d97706;
+}
+
+.payroll-admin-page .payroll-stat-total {
+    border-right: 3px solid #2563eb;
+}
+
+.payroll-admin-page .payroll-stat-paid {
+    border-right: 3px solid #10b981;
+}
+
+.payroll-admin-page .payroll-stat-pending {
+    border-right: 3px solid #f59e0b;
+}
+
+.payroll-admin-page .payroll-ledger-table thead th {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    white-space: nowrap;
+    background: #f8fafc;
+}
+
+.payroll-admin-page .payroll-ledger-table .tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
+.payroll-admin-page .payroll-row-pending {
+    background: rgba(245, 158, 11, 0.04);
+}
+
+.payroll-admin-page .payroll-row-paid {
+    background: rgba(16, 185, 129, 0.04);
+}
+
+.payroll-admin-page .payroll-employee-cell {
+    min-width: 10rem;
+}
+
+.payroll-admin-page .payroll-employee-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.payroll-admin-page .payroll-employee-link:hover strong {
+    color: var(--fin-accent, #2563eb);
+}
+
+.payroll-admin-page .payroll-emp-badge {
+    display: inline-block;
+    margin-top: 0.2rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--text-muted);
+}
+
+.payroll-admin-page .payroll-num-input {
+    width: 5.25rem;
+    margin-inline: auto;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.payroll-admin-page .payroll-net-pill {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    border-radius: 8px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d4ed8;
+}
+
+.payroll-admin-page .payroll-net-pill--paid {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+}
+
+.payroll-admin-page .payroll-status-pending {
+    background: rgba(245, 158, 11, 0.18) !important;
+    color: #92400e !important;
+}
+
+.payroll-admin-page .payroll-status-paid {
+    background: rgba(16, 185, 129, 0.18) !important;
+    color: #065f46 !important;
+}
+
+.payroll-admin-page .payroll-row-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+}
+
+.payroll-admin-page .payroll-mark-paid-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+}
+
+.payroll-admin-page .payroll-diary-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.payroll-admin-page .payroll-empty-state {
+    color: var(--text-muted);
+}
+
+.payroll-admin-page .payroll-empty-state i {
+    font-size: 2rem;
+    opacity: 0.45;
+    margin-bottom: 0.5rem;
+}
+
+[data-theme="dark"] .payroll-admin-page .payroll-prepare-card {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(30, 41, 59, 0.95));
+}
+
+[data-theme="dark"] .payroll-admin-page .payroll-ledger-table thead th {
+    background: rgba(15, 23, 42, 0.6);
+}
+
+[data-theme="dark"] .payroll-admin-page .payroll-row-pending {
+    background: rgba(245, 158, 11, 0.06);
+}
+
+[data-theme="dark"] .payroll-admin-page .payroll-row-paid {
+    background: rgba(16, 185, 129, 0.06);
+}
+
+.financial-hub-page .material-invoice-section,
+.financial-hub-page .financial-table-card {
+    border-top: 3px solid var(--fin-accent, #0f6bff) !important;
+}
+
+.financial-hub-page .material-invoice-choice-panel.is-currency-locked {
+    opacity: 0.92;
+    pointer-events: none;
+}
+
+.financial-hub-page .material-invoice-choice-panel.is-currency-locked .material-invoice-choice-panel__badge--unset {
+    display: none !important;
+}
+
+/* Operational pages (infrastructure, clients, requests) */
+.operational-page {
+    padding-bottom: var(--spacing-lg);
+}
+
+.operational-sys-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle, rgba(15, 23, 42, 0.08));
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(148, 163, 184, 0.04));
+}
+
+.operational-sys-hero .sys-hero-main {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.operational-sys-hero .sys-hero-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    background: rgba(59, 130, 246, 0.12);
+    color: var(--primary, #2563eb);
+}
+
+.operational-sys-hero .sys-hero-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+.operational-sys-hero .sys-hero-subtitle {
+    color: var(--text-muted, #64748b);
+    font-size: 0.9rem;
+}
+
+.page-actions-toolbar .btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+}
+
+.sector-index-page .page-actions-toolbar {
+    gap: 0.5rem;
+}
+
+@media (max-width: 991.98px) {
+    .operational-page.sector-index-page .operational-sys-hero {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .operational-page.sector-index-page .operational-sys-hero .sys-hero-title {
+        font-size: 1.15rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .operational-page.sector-index-page .operational-sys-hero .sys-hero-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+}
+
+[data-theme="dark"] .operational-sys-hero {
+    border-color: rgba(148, 163, 184, 0.15);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.4));
+}
+
+.material-invoice-page--create .material-invoice-lines-table--sales {
+    min-width: 560px;
+}
+
+.material-invoice-page--create .material-invoice-lines-table--sales col.mat-col-item { width: 32%; }
+.material-invoice-page--create .material-invoice-lines-table--sales col.mat-col-unit { width: 22%; }
+.material-invoice-page--create .material-invoice-lines-table--sales col.mat-col-qty { width: 14%; }
+.material-invoice-page--create .material-invoice-lines-table--sales col.mat-col-total { width: 18%; }
+.material-invoice-page--create .material-invoice-lines-table--sales col.mat-col-actions { width: 4%; }
+
+.material-invoice-page--sales .mat-cell-total .line-total {
+    font-weight: 700;
+    color: var(--bs-success, #198754);
+    border: 1px solid rgba(25, 135, 84, 0.2);
+    pointer-events: none;
+}
+
+.material-sales-invoice-total-row td {
+    background: rgba(25, 135, 84, 0.06);
+    border-top: 2px solid rgba(25, 135, 84, 0.2);
+}
+
+.material-invoice-page--sales .unit-price:not(:disabled) {
+    background-color: #fff;
+}
+
+.material-invoice-choice-grid--triple {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 991.98px) {
+    .material-invoice-choice-grid--triple {
+        grid-template-columns: 1fr;
+    }
+}
+
+.mat-item-ref-prices {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.68rem;
+    line-height: 1.25;
+}
+
+.mat-item-ref-prices .mat-ref {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.35rem;
+    padding: 0.1rem 0.2rem;
+    border-radius: 4px;
+    background: rgba(148, 163, 184, 0.08);
+}
+
+.mat-item-ref-prices .mat-ref__label {
+    font-weight: 700;
+    color: var(--text-muted, #64748b);
+}
+
+.mat-item-ref-prices .mat-ref__val {
+    font-weight: 600;
+    color: var(--text-primary, #0f172a);
+    white-space: nowrap;
+}
+
+.material-invoice-page--sales .mat-cell-ref {
+    vertical-align: middle;
+}
+
+.material-invoice-page--create .price-warn {
+    font-size: 0.65rem;
+    line-height: 1.2;
+    margin-top: 0.15rem;
+}
+
+.material-invoice-page--create .material-invoice-lines-formula--sales {
+    background: rgba(25, 135, 84, 0.06);
+}
+
+.material-invoice-page--create .price-hint {
+    display: block;
+    font-size: 0.65rem;
+    line-height: 1.2;
+    margin-top: 0.15rem;
+}
+
+@media (min-width: 992px) {
+    .material-invoice-page--create .material-invoice-lines-table--sales .price-hint {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .material-invoice-page--create .mat-cell-price {
+        position: relative;
+    }
+}
+
+/* فواتير شراء / بيع المواد — تمييز لوني وهيكلة */
+.material-invoice-page--purchase {
+    --mat-inv-accent: #0f6bff;
+    --mat-inv-accent-soft: rgba(15, 107, 255, 0.12);
+    --mat-inv-accent-border: rgba(15, 107, 255, 0.28);
+    --mat-inv-hero-gradient: linear-gradient(135deg, rgba(15, 107, 255, 0.18) 0%, rgba(59, 130, 246, 0.06) 100%);
+}
+
+.material-invoice-page--sales {
+    --mat-inv-accent: #198754;
+    --mat-inv-accent-soft: rgba(25, 135, 84, 0.14);
+    --mat-inv-accent-border: rgba(25, 135, 84, 0.32);
+    --mat-inv-hero-gradient: linear-gradient(135deg, rgba(25, 135, 84, 0.2) 0%, rgba(52, 211, 153, 0.08) 100%);
+}
+
+.material-invoice-page .material-invoice-hero {
+    border-color: var(--mat-inv-accent-border);
+    background:
+        var(--mat-inv-hero-gradient),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.9));
+}
+
+[data-theme="dark"] .material-invoice-page .material-invoice-hero {
+    background:
+        var(--mat-inv-hero-gradient),
+        linear-gradient(135deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.88));
+}
+
+.material-invoice-page .material-invoice-hero .sys-hero-icon {
+    background: linear-gradient(135deg, var(--mat-inv-accent) 0%, color-mix(in srgb, var(--mat-inv-accent) 70%, #8b5cf6) 100%);
+    box-shadow: 0 12px 24px color-mix(in srgb, var(--mat-inv-accent) 35%, transparent);
+}
+
+.material-invoice-page .material-invoice-section__header {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    background: var(--mat-inv-accent-soft);
+    padding: 0.75rem 1rem;
+}
+
+.material-invoice-page .material-invoice-section__header h2 {
+    color: var(--text-primary, #0f172a);
+    font-weight: 700;
+}
+
+.material-invoice-page--purchase .material-invoice-section {
+    border-top: 3px solid var(--mat-inv-accent) !important;
+}
+
+.material-invoice-page--sales .material-invoice-section {
+    border-top: 3px solid var(--mat-inv-accent) !important;
+}
+
+.material-invoice-page .material-invoice-lines-shell {
+    border-radius: 0 0 12px 12px;
+}
+
+.material-invoice-page .material-invoice-lines-table {
+    min-width: 720px;
+    margin-bottom: 0;
+}
+
+/* لوحات اختيار: عملة الفاتورة + حالة الدفع */
+.material-invoice-choice-panel {
+    border-radius: 16px;
+    border: 1px solid var(--mat-inv-accent-border, rgba(148, 163, 184, 0.28));
+    background: var(--mat-inv-accent-soft, rgba(248, 250, 252, 0.9));
+    padding: 1rem 1.1rem;
+}
+
+.material-invoice-choice-panel__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.65rem 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.material-invoice-choice-panel__icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: var(--mat-inv-accent, #0f6bff);
+}
+
+.material-invoice-choice-panel__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.material-invoice-choice-panel__subtitle {
+    font-size: 0.82rem;
+    color: var(--text-muted, #64748b);
+}
+
+.material-invoice-choice-panel__badge {
+    margin-inline-start: auto;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.material-invoice-choice-panel__badge--unset {
+    background: rgba(148, 163, 184, 0.2);
+    color: #475569;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.material-invoice-choice-panel__badge--syp {
+    background: rgba(15, 107, 255, 0.14);
+    color: #0b4fd4;
+    border: 1px solid rgba(15, 107, 255, 0.28);
+}
+
+.material-invoice-choice-panel__badge--usd {
+    background: rgba(25, 135, 84, 0.14);
+    color: #166534;
+    border: 1px solid rgba(25, 135, 84, 0.28);
+}
+
+.material-invoice-choice-panel__badge--pending {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.material-invoice-choice-panel__badge--paid {
+    background: rgba(25, 135, 84, 0.16);
+    color: #166534;
+    border: 1px solid rgba(25, 135, 84, 0.32);
+}
+
+.material-invoice-choice-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+}
+
+.material-invoice-choice {
+    display: block;
+    margin: 0;
+    cursor: pointer;
+}
+
+.material-invoice-choice__input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.material-invoice-choice__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem 0.85rem;
+    border-radius: 12px;
+    border: 2px solid rgba(148, 163, 184, 0.28);
+    background: rgba(255, 255, 255, 0.92);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    min-height: 100%;
+}
+
+.material-invoice-choice.is-selected .material-invoice-choice__body,
+.material-invoice-choice__input:focus-visible + .material-invoice-choice__body {
+    border-color: var(--mat-inv-accent, #0f6bff);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--mat-inv-accent, #0f6bff) 22%, transparent);
+    background: #fff;
+}
+
+.material-invoice-choice-panel--payment.is-paid .material-invoice-choice.is-selected[data-payment-choice="paid"] .material-invoice-choice__body,
+.material-invoice-choice-panel--payment.is-unpaid .material-invoice-choice:has([data-payment-choice="unpaid"]:checked) .material-invoice-choice__body {
+    border-color: var(--mat-inv-accent, #198754);
+}
+
+.material-invoice-choice__title {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--text-primary, #0f172a);
+}
+
+.material-invoice-choice__desc {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--text-muted, #64748b);
+}
+
+.material-invoice-choice-panel--payment.is-paid {
+    border-color: rgba(25, 135, 84, 0.35);
+}
+
+.material-invoice-choice-panel--currency.is-currency-set {
+    border-color: rgba(15, 107, 255, 0.32);
+}
+
+.material-payment-panel {
+    border-radius: 16px;
+    border: 1px solid var(--mat-inv-accent-border, rgba(148, 163, 184, 0.28));
+    background: var(--mat-inv-accent-soft, rgba(248, 250, 252, 0.9));
+    padding: 1rem 1.1rem;
+}
+
+.material-invoice-page--purchase .material-payment-panel.is-paid {
+    border-color: rgba(15, 107, 255, 0.45);
+    background: linear-gradient(135deg, rgba(15, 107, 255, 0.1), rgba(255, 255, 255, 0.92));
+}
+
+.material-invoice-page--sales .material-payment-panel.is-paid {
+    border-color: rgba(25, 135, 84, 0.45);
+    background: linear-gradient(135deg, rgba(25, 135, 84, 0.12), rgba(255, 255, 255, 0.92));
+}
+
+.material-payment-panel__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.65rem 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.material-payment-panel__icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: var(--mat-inv-accent, #0f6bff);
+}
+
+.material-payment-panel__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.material-payment-panel__subtitle {
+    font-size: 0.82rem;
+    color: var(--text-muted, #64748b);
+}
+
+.material-payment-panel__badge {
+    margin-inline-start: auto;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.material-payment-panel__badge--pending {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.material-payment-panel__badge--paid {
+    background: rgba(25, 135, 84, 0.16);
+    color: #166534;
+    border: 1px solid rgba(25, 135, 84, 0.35);
+}
+
+.material-payment-toggle-wrap {
+    margin-bottom: 0.65rem;
+}
+
+.material-payment-toggle__input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.material-payment-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+}
+
+.material-payment-toggle__track {
+    position: relative;
+    width: 3.4rem;
+    height: 1.85rem;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.45);
+    transition: background 0.2s ease;
+}
+
+.material-payment-toggle__thumb {
+    position: absolute;
+    top: 0.2rem;
+    inset-inline-start: 0.22rem;
+    width: 1.45rem;
+    height: 1.45rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.material-payment-toggle__input:checked + .material-payment-toggle .material-payment-toggle__track {
+    background: var(--mat-inv-accent, #198754);
+}
+
+.material-payment-toggle__input:checked + .material-payment-toggle .material-payment-toggle__thumb {
+    transform: translateX(1.45rem);
+}
+
+[dir="rtl"] .material-payment-toggle__input:checked + .material-payment-toggle .material-payment-toggle__thumb {
+    transform: translateX(-1.45rem);
+}
+
+.material-payment-toggle__labels {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.material-payment-toggle__label--on {
+    color: var(--text-muted, #64748b);
+}
+
+.material-payment-toggle__label--off {
+    color: var(--text-primary, #0f172a);
+}
+
+.material-payment-toggle__input:checked + .material-payment-toggle .material-payment-toggle__label--on {
+    color: var(--mat-inv-accent, #198754);
+}
+
+.material-payment-toggle__input:checked + .material-payment-toggle .material-payment-toggle__label--off {
+    color: var(--text-muted, #94a3b8);
+    font-weight: 500;
+}
+
+.material-payment-panel__hint {
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.material-invoice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    padding-bottom: 0.5rem;
+}
+
+/* شراء مواد — عدد/وحدة: مقفل عند «قطعة» فقط (readOnly وليس disabled ليبقى في الإرسال) */
+.material-per-pkg-cell.material-per-pkg--locked .per-pkg,
+.material-per-pkg-cell.material-per-pkg--locked .fmt-number-display {
+    background-color: var(--bs-secondary-bg, #e9ecef);
+    cursor: not-allowed;
+    opacity: 0.92;
+}
+
+.material-per-pkg-cell:not(.material-per-pkg--locked) .per-pkg,
+.material-per-pkg-cell:not(.material-per-pkg--locked) .fmt-number-display {
+    background-color: var(--bs-body-bg, #fff);
+    cursor: text;
+}
+
+.material-invoice-lines-formula {
+    background: rgba(15, 107, 255, 0.05);
+}
+
+.material-line-stock-preview {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.material-line-name-hint {
+    font-size: 0.72rem;
+    line-height: 1.35;
+}
+
+.material-invoice-lines-table thead th {
+    font-size: 0.78rem;
+    white-space: normal;
+    vertical-align: bottom;
+    line-height: 1.3;
+}
+
+/* صفحة إنشاء فاتورة شراء — تخطيط مضغوط */
+.material-invoice-page--create .material-invoice-help {
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 12px;
+    background: rgba(248, 250, 252, 0.85);
+    overflow: hidden;
+}
+
+.material-invoice-page--create .material-invoice-help__summary {
+    cursor: pointer;
+    padding: 0.65rem 1rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary, #0f172a);
+}
+
+.material-invoice-page--create .material-invoice-help__summary::-webkit-details-marker {
+    display: none;
+}
+
+.material-invoice-page--create .material-invoice-help[open] .material-invoice-help__summary {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+    background: var(--mat-inv-accent-soft, rgba(15, 107, 255, 0.08));
+}
+
+.material-invoice-page--create .material-invoice-help__body {
+    padding: 0.85rem 1rem 1rem;
+}
+
+.material-invoice-page--create .material-invoice-section--choices {
+    border-top: 3px solid var(--mat-inv-accent) !important;
+}
+
+.material-invoice-page--create .material-invoice-section--choices .material-invoice-choice-panel {
+    margin: 0;
+    height: 100%;
+}
+
+.material-invoice-page--create .material-invoice-choice-panel__header {
+    margin-bottom: 0.65rem;
+}
+
+.material-invoice-page--create .material-invoice-choice-panel__subtitle {
+    font-size: 0.76rem;
+}
+
+.material-invoice-page--create .material-invoice-choice__desc {
+    font-size: 0.72rem;
+}
+
+.material-invoice-page--create .material-invoice-lines-table--compact {
+    min-width: 880px;
+    table-layout: fixed;
+}
+
+.material-invoice-page--create .material-invoice-lines-table--compact col.mat-col-wh { width: 11%; }
+.material-invoice-page--create .material-invoice-lines-table--compact col.mat-col-name { width: 16%; }
+.material-invoice-page--create .material-invoice-lines-table--compact col.mat-col-model { width: 8%; }
+.material-invoice-page--create .material-invoice-lines-table--compact col.mat-col-unit { width: 9%; }
+.material-invoice-page--create .material-invoice-lines-table--compact col.mat-col-per { width: 7%; }
+.material-invoice-page--create .material-invoice-lines-table--compact col.mat-col-qty { width: 11%; }
+.material-invoice-page--create .material-invoice-lines-table--compact col.mat-col-price { width: 10%; }
+.material-invoice-page--create .material-invoice-lines-table--compact col.mat-col-wholesale { width: 9%; }
+.material-invoice-page--create .material-invoice-lines-table--compact col.mat-col-retail { width: 9%; }
+.material-invoice-page--create .material-invoice-lines-table--compact col.mat-col-actions { width: 3%; }
+
+.material-invoice-page--create .material-invoice-lines-table__groups th.mat-th-group {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 0.35rem 0.4rem;
+    text-align: center;
+    background: color-mix(in srgb, var(--mat-inv-accent, #0f6bff) 12%, transparent);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    color: var(--text-primary, #0f172a);
+}
+
+.material-invoice-page--create .material-invoice-lines-table__groups th.mat-th-group--actions {
+    background: transparent;
+}
+
+.material-invoice-page--create .material-invoice-lines-table__cols th {
+    font-size: 0.72rem;
+    padding: 0.35rem 0.35rem;
+    white-space: nowrap;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.material-invoice-page--create .material-invoice-lines-table tbody td {
+    padding: 0.3rem 0.35rem;
+    vertical-align: middle;
+}
+
+.material-invoice-page--create .material-invoice-lines-table .form-control-sm,
+.material-invoice-page--create .material-invoice-lines-table .form-select-sm {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.8rem;
+    min-height: calc(1.5em + 0.45rem + 2px);
+}
+
+.material-invoice-page--create .mat-qty-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.2rem;
+}
+
+.material-invoice-page--create .material-line-stock-preview {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.15rem 0.35rem;
+    align-self: flex-start;
+    white-space: nowrap;
+}
+
+.material-invoice-page--create .material-line-name-hint {
+    display: block;
+    font-size: 0.65rem;
+    line-height: 1.2;
+    margin-top: 0.15rem;
+}
+
+.material-invoice-page--create .mat-cell-actions .remove-line {
+    line-height: 1;
+    min-width: 1.75rem;
+}
+
+@media (min-width: 992px) {
+    .material-invoice-page--create .material-line-name-hint {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .material-invoice-page--create .mat-cell-name {
+        position: relative;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .material-invoice-page {
+        padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .material-invoice-lines-table {
+        min-width: 100%;
+    }
+
+    .material-invoice-actions {
+        position: sticky;
+        bottom: 0.5rem;
+        z-index: 90;
+        padding: 0.65rem;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+    }
+
+    [data-theme="dark"] .material-invoice-actions {
+        background: rgba(30, 41, 59, 0.95);
+    }
+
+    .material-invoice-actions .btn-lg {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .material-payment-panel__header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .material-payment-panel__badge {
+        margin-inline-start: 0;
+        align-self: flex-start;
+    }
+}
+
+@media (max-width: 576px) {
+    .material-invoice-actions {
+        flex-direction: column;
+    }
+
+    .material-invoice-actions .btn-lg {
+        width: 100%;
+    }
+
+    .material-invoice-choice-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .material-invoice-choice-panel__badge {
+        margin-inline-start: 0;
+    }
+}
+
+/* إدارة الشركة — بطاقات عملة (أزرق ل.س.ج · أخضر $) */
+.company-business-page .company-dual-currency-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 0.125rem 0.35rem rgba(0, 0, 0, 0.06);
+}
+
+.company-business-page .company-dual-currency-card__header {
+    background: var(--bs-body-bg);
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+
+.company-business-page .company-module-stat {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 0.125rem 0.35rem rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.company-business-page .company-module-stat.hover-shadow:hover,
+.company-business-page a:hover .company-module-stat {
+    box-shadow: 0 0.35rem 0.75rem rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.company-business-page .company-module-stat__label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+}
+
+.company-business-page .company-module-stat__value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.company-business-page .company-module-stat__meta {
+    font-size: 0.82rem;
+    color: var(--bs-secondary-color);
+}
+
+.company-business-page .company-module-link-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 0.125rem 0.35rem rgba(0, 0, 0, 0.06);
+}
+
+.company-business-page .company-currency-mini-hero {
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    color: #fff;
+    min-height: 96px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.company-business-page .company-currency-mini-hero--syp {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+}
+
+.company-business-page .company-currency-mini-hero--usd {
+    background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+}
+
+.company-business-page .company-currency-mini-hero__tag {
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0.92;
+}
+
+.company-business-page .company-currency-mini-hero__amount {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+}
+
+.company-business-page .company-currency-mini-hero__meta {
+    font-size: 0.72rem;
+    opacity: 0.85;
+    margin-top: 0.15rem;
+}
+
+.company-business-page .company-currency-panel {
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+    border: 1px solid transparent;
+}
+
+.company-business-page .company-currency-panel--syp {
+    background: rgba(13, 110, 253, 0.08);
+    border-color: rgba(13, 110, 253, 0.25);
+    box-shadow: inset 4px 0 0 #0d6efd;
+}
+
+.company-business-page .company-currency-panel--usd {
+    background: rgba(25, 135, 84, 0.1);
+    border-color: rgba(25, 135, 84, 0.28);
+    box-shadow: inset 4px 0 0 #198754;
+}
+
+.company-business-page .company-currency-panel__head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.company-business-page .company-currency-panel__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.company-business-page .company-currency-panel--syp .company-currency-panel__badge {
+    background: linear-gradient(135deg, #0d6efd, #0a58ca);
+}
+
+.company-business-page .company-currency-panel--usd .company-currency-panel__badge {
+    background: linear-gradient(135deg, #198754, #146c43);
+}
+
+.company-business-page .company-currency-panel--syp .company-currency-panel__title {
+    color: #0a58ca;
+    font-weight: 700;
+}
+
+.company-business-page .company-currency-panel--usd .company-currency-panel__title {
+    color: #146c43;
+    font-weight: 700;
+}
+
+.company-business-page .company-currency-panel__stats {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.company-business-page .company-currency-panel__stats > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+}
+
+.company-business-page .company-currency-panel__stats dt {
+    font-size: 0.82rem;
+    color: var(--bs-secondary-color);
+    margin: 0;
+    font-weight: 500;
+}
+
+.company-business-page .company-currency-panel__stats dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+}
+
+.company-business-page .company-currency-panel__net {
+    margin-top: 0.35rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed rgba(0, 0, 0, 0.12);
+}
+
+.company-business-page .company-currency-panel__net dd {
+    font-size: 1.05rem;
+}
+
+[data-theme="dark"] .company-business-page .company-currency-panel--syp {
+    background: rgba(13, 110, 253, 0.14);
+}
+
+[data-theme="dark"] .company-business-page .company-currency-panel--usd {
+    background: rgba(25, 135, 84, 0.16);
+}
+
+[data-theme="dark"] .company-business-page .company-currency-panel__net {
+    border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+.financial-reconciliation-page .company-currency-panel__stats dd .small {
+    font-size: 0.78rem;
+}
+
+/* تسعير الصيانة — نفس هيكل فواتير المواد (مضغوط + متجاوب) */
+.material-invoice-page--maintenance {
+    --mat-inv-accent: #ea580c;
+    --mat-inv-accent-soft: rgba(234, 88, 12, 0.12);
+    --mat-inv-accent-border: rgba(234, 88, 12, 0.3);
+    --mat-inv-hero-gradient: linear-gradient(135deg, rgba(234, 88, 12, 0.18) 0%, rgba(251, 146, 60, 0.08) 100%);
+}
+
+.material-invoice-page--maintenance .material-invoice-section {
+    border-top: 3px solid var(--mat-inv-accent) !important;
+}
+
+.maintenance-pricing-page .service-catalog-currency-note {
+    margin-bottom: 1rem !important;
+}
+
+.maintenance-pricing-page .maintenance-pricing-scope-info {
+    padding: 0.35rem 0;
+    line-height: 1.35;
+}
+
+.maintenance-pricing-page .maintenance-pricing-active-badge {
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.maintenance-pricing-page .maintenance-pricing-table-shell {
+    border-radius: 0 0 12px 12px;
+}
+
+.maintenance-pricing-page .maintenance-pricing-table--compact {
+    min-width: 320px;
+    table-layout: fixed;
+    margin-bottom: 0;
+}
+
+.maintenance-pricing-page .maintenance-pricing-table--compact col.maint-col-name { width: 52%; }
+.maintenance-pricing-page .maintenance-pricing-table--compact col.maint-col-price { width: 32%; }
+.maintenance-pricing-page .maintenance-pricing-table--compact col.maint-col-active { width: 16%; }
+
+.maintenance-pricing-page .maintenance-pricing-table__cols th,
+.maintenance-pricing-page .material-invoice-lines-table__cols th {
+    font-size: 0.72rem;
+    padding: 0.4rem 0.5rem;
+    white-space: nowrap;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.maintenance-pricing-page .maintenance-pricing-table tbody td {
+    padding: 0.35rem 0.5rem;
+    vertical-align: middle;
+}
+
+.maintenance-pricing-page .maintenance-pricing-solution-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.3;
+    display: block;
+}
+
+.maintenance-pricing-page .maintenance-pricing-amount {
+    max-width: 100%;
+    font-variant-numeric: tabular-nums;
+}
+
+.maintenance-pricing-page .maintenance-pricing-switch .form-check-input {
+    width: 2.25rem;
+    height: 1.2rem;
+    margin: 0 auto;
+    cursor: pointer;
+}
+
+.maintenance-pricing-page .maintenance-pricing-row.is-inactive {
+    opacity: 0.72;
+}
+
+.maintenance-pricing-page .maintenance-pricing-row.is-inactive .maintenance-pricing-solution-name {
+    font-weight: 500;
+    color: var(--bs-secondary-color);
+}
+
+.maintenance-pricing-page .maint-cell-name {
+    text-align: start;
+}
+
+.maintenance-pricing-page .maint-cell-price .form-control-sm {
+    padding: 0.25rem 0.45rem;
+    font-size: 0.85rem;
+    min-height: calc(1.5em + 0.45rem + 2px);
+}
+
+@media (max-width: 767.98px) {
+    .maintenance-pricing-page {
+        padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .maintenance-pricing-page .maintenance-pricing-table thead {
+        display: none;
+    }
+
+    .maintenance-pricing-page .maintenance-pricing-table,
+    .maintenance-pricing-page .maintenance-pricing-table tbody,
+    .maintenance-pricing-page .maintenance-pricing-table tr,
+    .maintenance-pricing-page .maintenance-pricing-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .maintenance-pricing-page .maintenance-pricing-table tbody tr {
+        margin: 0.5rem 0.65rem;
+        padding: 0.55rem 0.65rem;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 10px;
+        border-inline-start: 3px solid var(--mat-inv-accent, #ea580c);
+        background: var(--bs-body-bg);
+    }
+
+    .maintenance-pricing-page .maintenance-pricing-table tbody tr.is-inactive {
+        border-inline-start-color: rgba(148, 163, 184, 0.5);
+    }
+
+    .maintenance-pricing-page .maintenance-pricing-table tbody td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.3rem 0;
+        border: none;
+        text-align: end;
+    }
+
+    .maintenance-pricing-page .maintenance-pricing-table tbody td::before {
+        content: attr(data-label);
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--bs-secondary-color);
+        flex: 0 0 auto;
+        text-align: start;
+    }
+
+    .maintenance-pricing-page .maintenance-pricing-table tbody td.maint-cell-name {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.15rem;
+        padding-bottom: 0.45rem;
+        margin-bottom: 0.15rem;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.25);
+    }
+
+    .maintenance-pricing-page .maintenance-pricing-table tbody td.maint-cell-name::before {
+        content: none;
+    }
+
+    .maintenance-pricing-page .maintenance-pricing-table tbody td.maint-cell-name .maintenance-pricing-solution-name {
+        font-size: 0.95rem;
+    }
+
+    .maintenance-pricing-page .maintenance-pricing-table tbody td.maint-cell-price .maintenance-pricing-amount {
+        width: 8.5rem;
+        max-width: 55vw;
+    }
+
+    .maintenance-pricing-page .maintenance-pricing-table tbody td.maint-cell-active {
+        justify-content: space-between;
+    }
+
+    .maintenance-pricing-page .maintenance-pricing-table-shell {
+        overflow: visible;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .maintenance-pricing-page {
+        padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .maintenance-pricing-page .maintenance-pricing-table--compact col.maint-col-name { width: 46%; }
+    .maintenance-pricing-page .maintenance-pricing-table--compact col.maint-col-price { width: 36%; }
+}
+
+@media (min-width: 992px) {
+    .maintenance-pricing-page .maintenance-pricing-amount {
+        max-width: 11rem;
+        margin-inline: auto;
+    }
+}
+
+/* إضافة قطاع — نفس هيكل فواتير المواد */
+.material-invoice-page--sector {
+    --mat-inv-accent: #0d9488;
+    --mat-inv-accent-soft: rgba(13, 148, 136, 0.12);
+    --mat-inv-accent-border: rgba(13, 148, 136, 0.32);
+    --mat-inv-hero-gradient: linear-gradient(135deg, rgba(13, 148, 136, 0.2) 0%, rgba(45, 212, 191, 0.08) 100%);
+}
+
+.material-invoice-page--sector .material-invoice-section {
+    border-top: 3px solid var(--mat-inv-accent) !important;
+}
+
+.sector-create-page .form-label.required::after {
+    content: ' *';
+    color: var(--bs-danger);
+}
+
+.sector-create-page .sector-create-map-wrap {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.sector-create-page .sector-create-map {
+    width: 100%;
+    height: 280px;
+    min-height: 220px;
+    background: var(--bs-secondary-bg);
+    z-index: 1;
+}
+
+.sector-create-page .sector-create-map .leaflet-container {
+    font-family: inherit;
+    z-index: 1;
+}
+
+.sector-create-page .sector-create-map-controls {
+    position: absolute;
+    top: 8px;
+    inset-inline-end: 8px;
+    z-index: 1000;
+}
+
+.sector-create-page .sector-create-map-controls .map-type-btn.active {
+    background: var(--mat-inv-accent, #0d9488);
+    color: #fff;
+    border-color: var(--mat-inv-accent, #0d9488);
+}
+
+.sector-create-page .sector-create-map-legend {
+    position: absolute;
+    bottom: 8px;
+    inset-inline-end: 8px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.94);
+    border-radius: 8px;
+    padding: 0.4rem 0.55rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    line-height: 1.35;
+}
+
+[data-theme="dark"] .sector-create-page .sector-create-map-legend {
+    background: rgba(30, 41, 59, 0.94);
+}
+
+.sector-create-page .sector-legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-inline-end: 4px;
+    vertical-align: middle;
+}
+
+.sector-create-page .sector-create-map-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 200px;
+    color: var(--bs-secondary-color);
+    text-align: center;
+    padding: 1rem;
+}
+
+.sector-create-page.radtk-form .form-text,
+.sector-create-page .form-text {
+    font-size: 0.7rem;
+    margin-top: 0.15rem;
+}
+
+@media (max-width: 991.98px) {
+    .sector-create-page {
+        padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .sector-create-page .sector-create-map {
+        height: 240px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .sector-create-page .sector-create-map {
+        height: 210px;
+    }
+
+    .sector-create-page .sector-create-map-legend {
+        font-size: 0.68rem;
+        max-width: 42%;
+    }
+}
+
+.sector-create-page .map-coords-panel,
+.map-coords-panel {
+    border: 1px solid var(--rtk-border, rgba(148, 163, 184, 0.35));
+    border-radius: var(--rtk-radius, 10px);
+    padding: 0.75rem 0.85rem;
+    background: var(--rtk-card, linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.98)));
+}
+
+.radtk-form .map-coords-panel {
+    background: var(--rtk-field-bg, var(--rtk-card));
+}
+
+[data-theme="dark"] .sector-create-page .map-coords-panel,
+[data-theme="dark"] .map-coords-panel {
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.55), rgba(15, 23, 42, 0.35));
+    border-color: rgba(100, 116, 139, 0.45);
+}
+
+.sector-create-page .map-coords-panel__header,
+.map-coords-panel__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+}
+
+.sector-create-page .map-coords-panel__title,
+.map-coords-panel__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.sector-create-page .map-coords-panel__title i,
+.map-coords-panel__title i {
+    color: var(--mat-inv-accent, #0d9488);
+}
+
+.sector-create-page .map-coords-panel__modes,
+.map-coords-panel__modes {
+    display: inline-flex;
+    gap: 0.35rem;
+    padding: 0.2rem;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.15);
+}
+
+.sector-create-page .map-coords-mode-btn,
+.map-coords-mode-btn {
+    border: 0;
+    background: transparent;
+    color: var(--bs-body-color, var(--text-primary));
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.75rem;
+    line-height: 1.3;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sector-create-page .map-coords-mode-btn.active,
+.map-coords-mode-btn.active {
+    background: var(--mat-inv-accent, var(--primary, #0d9488));
+    color: #fff;
+    box-shadow: 0 1px 4px rgba(13, 148, 136, 0.35);
+}
+
+.sector-create-page .map-coords-paste-row,
+.map-coords-paste-row {
+    margin-bottom: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 8px;
+    background: rgba(148, 163, 184, 0.08);
+    transition: box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.sector-create-page .map-coords-paste-row.is-highlight,
+.map-coords-paste-row.is-highlight {
+    background: rgba(13, 148, 136, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(13, 148, 136, 0.35);
+}
+
+.sector-create-page .map-coords-paste-row code,
+.map-coords-paste-row code {
+    font-size: 0.68rem;
+    padding: 0.05rem 0.25rem;
+    border-radius: 4px;
+    background: rgba(148, 163, 184, 0.18);
+}
+
+.sector-create-page .map-coords-status.is-success,
+.map-coords-status.is-success {
+    color: var(--bs-success, var(--success));
+}
+
+.sector-create-page .map-coords-status.is-error,
+.map-coords-status.is-error {
+    color: var(--bs-danger, var(--danger));
+}
+
+.sector-create-page .map-coords-panel .font-monospace,
+.map-coords-panel .font-monospace {
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 575.98px) {
+    .sector-create-page .map-coords-panel__header,
+    .map-coords-panel__header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sector-create-page .map-coords-panel__modes,
+    .map-coords-panel__modes {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .sector-create-page .map-coords-mode-btn,
+    .map-coords-mode-btn {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+/* ——— Sector Create — أدوات الخريطة والتغطية ——— */
+.sector-create-page .sector-create-map-wrap {
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
+    border-bottom: 0;
+}
+
+.sector-create-map-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    margin-bottom: 0.85rem;
+    background: var(--bs-secondary-bg, rgba(248, 250, 252, 0.95));
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 0 0 10px 10px;
+}
+
+[data-theme="dark"] .sector-create-map-toolbar {
+    background: rgba(30, 41, 59, 0.65);
+    border-color: rgba(100, 116, 139, 0.45);
+}
+
+.sector-create-map-toolbar__group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.sector-create-map-toolbar__label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color, var(--text-muted));
+    white-space: nowrap;
+}
+
+.sector-create-map-type-group .map-type-btn {
+    min-width: 3.25rem;
+    font-size: 0.78rem;
+}
+
+.sector-create-map-type-group .map-type-btn.active {
+    background: var(--mat-inv-accent, #0d9488);
+    border-color: var(--mat-inv-accent, #0d9488);
+    color: #fff;
+}
+
+.sector-create-legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.65rem;
+    align-items: center;
+}
+
+.sector-create-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.sector-create-map-hint {
+    padding: 0.45rem 0.65rem;
+    border-radius: 8px;
+    background: rgba(13, 148, 136, 0.06);
+    border: 1px dashed rgba(13, 148, 136, 0.22);
+}
+
+.sector-create-tools-heading {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--mat-inv-accent, #0d9488);
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid rgba(13, 148, 136, 0.18);
+}
+
+.sector-create-coverage-tools {
+    padding: 0.65rem 0.75rem;
+    border-radius: 10px;
+    background: rgba(148, 163, 184, 0.06);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+[data-theme="dark"] .sector-create-coverage-tools {
+    background: rgba(30, 41, 59, 0.35);
+    border-color: rgba(100, 116, 139, 0.35);
+}
+
+.sector-create-threshold-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    align-items: flex-end;
+}
+
+.sector-create-threshold-item {
+    flex: 1 1 min(100%, 7.5rem);
+    max-width: 9rem;
+}
+
+.sector-create-threshold-item .form-control {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.sector-create-active-switch {
+    width: 100%;
+    padding: 0.35rem 0.55rem;
+    border-radius: 8px;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+[data-theme="dark"] .sector-create-active-switch {
+    background: rgba(15, 23, 42, 0.5);
+}
+
+.map-coords-paste-tools {
+    flex-wrap: nowrap;
+}
+
+.map-coords-paste-tools .form-control {
+    min-width: 0;
+}
+
+.map-coords-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.55rem;
+    border-radius: 8px;
+    background: rgba(148, 163, 184, 0.08);
+}
+
+
+@media (max-width: 575.98px) {
+    .sector-create-map-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .sector-create-map-toolbar__group {
+        justify-content: space-between;
+    }
+
+    .sector-create-map-type-group {
+        display: flex;
+        width: 100%;
+    }
+
+    .sector-create-map-type-group .map-type-btn {
+        flex: 1 1 0;
+    }
+
+    .sector-create-legend-items {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .map-coords-paste-tools {
+        flex-wrap: wrap;
+    }
+
+    .map-coords-paste-tools .form-control {
+        flex: 1 1 100%;
+        border-radius: var(--bs-border-radius-sm) !important;
+    }
+
+    .map-coords-paste-tools .input-group-text {
+        border-start-start-radius: var(--bs-border-radius-sm);
+        border-end-start-radius: var(--bs-border-radius-sm);
+    }
+
+    .map-coords-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .map-coords-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .sector-create-threshold-item {
+        max-width: none;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .sector-create-actions.material-invoice-actions {
+        position: sticky;
+        bottom: 0.5rem;
+        z-index: 90;
+        padding: 0.65rem;
+        margin-top: 0.5rem;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+    }
+
+    [data-theme="dark"] .sector-create-actions.material-invoice-actions {
+        background: rgba(30, 41, 59, 0.95);
+    }
+
+    .sector-create-actions .btn-lg {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+}
+
+@media (max-width: 576px) {
+    .sector-create-actions.material-invoice-actions {
+        flex-direction: column;
+    }
+
+    .sector-create-actions .btn-lg {
+        width: 100%;
+    }
+}

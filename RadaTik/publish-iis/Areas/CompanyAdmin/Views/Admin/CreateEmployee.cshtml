@@ -1,0 +1,624 @@
+@model RadaTik.ViewModels.Admin.CreateEmployeeViewModel
+@using RadaTik.Security
+@using RadaTik.ViewModels.UI
+
+@{
+    ViewData["Title"] = "إضافة موظف";
+}
+<div class="radtk-page--companyadmin-views-admin-createemployee">
+
+<div class="employee-create-shell">
+    <partial name="~/Views/Shared/_PageHero.cshtml" model='new PageHeroViewModel { Title = "إضافة موظف", Subtitle = "معالج خطوات — قالب سريع أو تخصيص كامل", IconClass = "fas fa-user-plus", Theme = "team" }' />
+
+    <div class="d-flex justify-content-end mb-3">
+        <a class="btn btn-light btn-back" asp-route="networkManager-users-employees">
+            <i class="fas fa-arrow-right"></i> رجوع
+        </a>
+    </div>
+
+    @{
+        var hasEmployeeCreatePricing = (bool?)(ViewBag.EmployeeCreateHasInitial) == true;
+
+        var employeeCreateInitialPrice = (decimal?)(ViewBag.EmployeeCreateInitialSyp) ?? 0m;
+
+        var hasEmployeeCreateRenewalPricing = (bool?)(ViewBag.EmployeeCreateHasRenewal) == true;
+
+        var employeeCreateRenewalPrice = (decimal?)(ViewBag.EmployeeCreateRenewalSyp) ?? 0m;
+
+        var employeeCreateRenewalPeriodLabel = (string?)ViewBag.EmployeeCreateRenewalPeriodLabel;
+
+        var employeeCreateCompanyName = (string?)ViewBag.EmployeeCreateCompanyName ?? "غير محدد";
+
+        var employeeCreateTotalCount = (int?)(ViewBag.EmployeeCreateTotalCount) ?? 0;
+
+        var employeeCreateFreeInitialUnits = (int?)(ViewBag.EmployeeCreateFreeInitialUnits) ?? 0;
+
+        var employeeCreateFreeRenewalUnits = (int?)(ViewBag.EmployeeCreateFreeRenewalUnits) ?? 0;
+
+        var employeeCreateShouldChargeNow = (bool?)(ViewBag.EmployeeCreateShouldChargeNow) ?? false;
+
+        var employeePasswordMinLength = (int?)(ViewBag.EmployeePasswordMinLength) ?? StrongPasswordRules.MinimumLength;
+
+        var wizardInitialStep = (int?)(ViewBag.WizardInitialStep) ?? 1;
+        var employeeStepper = new UnifiedStepperViewModel
+        {
+            CurrentStep = wizardInitialStep,
+            Steps =
+            [
+                new UnifiedStepperStepViewModel { Number = 1, Title = "بيانات الحساب" },
+                new UnifiedStepperStepViewModel { Number = 2, Title = "الدور" },
+                new UnifiedStepperStepViewModel { Number = 3, Title = "الصلاحيات" },
+                new UnifiedStepperStepViewModel { Number = 4, Title = "مراجعة" }
+            ]
+        };
+    }
+
+    <partial name="~/Views/Shared/_UnifiedStepper.cshtml" model="employeeStepper" />
+
+    @if (!employeeCreateShouldChargeNow)
+
+    {
+
+        <div class="alert alert-success mb-3">
+
+            <i class="fas fa-check-circle"></i>
+
+            تسعير الموظف: إنشاء <strong>@SyrianCurrencyHelper.FormatNew(employeeCreateInitialPrice) ل.س.ج</strong>
+
+            — تجديد <strong>@SyrianCurrencyHelper.FormatNew(employeeCreateRenewalPrice) ل.س.ج</strong>
+
+            / @(string.IsNullOrWhiteSpace(employeeCreateRenewalPeriodLabel) ? "—" : employeeCreateRenewalPeriodLabel)
+
+        </div>
+
+    }
+
+    else
+
+    {
+
+        <div class="alert alert-warning mb-3">
+
+            <i class="fas fa-coins"></i>
+
+            موظف إضافي لـ <strong>@employeeCreateCompanyName</strong> (الحالي: @employeeCreateTotalCount).
+
+            إنشاء <strong>@SyrianCurrencyHelper.FormatNew(employeeCreateInitialPrice) ل.س.ج</strong>.
+
+        </div>
+
+    }
+
+    @if (!hasEmployeeCreatePricing || !hasEmployeeCreateRenewalPricing)
+
+    {
+
+        <div class="alert alert-danger mb-3">
+
+            <i class="fas fa-triangle-exclamation"></i>
+
+            إعدادات تسعير الموظفين غير مكتملة من مدير النظام.
+
+        </div>
+
+    }
+
+
+
+    <div class="card employee-form-card border-0">
+
+        <div class="card-body">
+
+            <ul class="employee-wizard-steps" aria-label="خطوات إضافة الموظف">
+
+                <li class="employee-wizard-step-item is-active" data-step="1">
+
+                    <span class="step-num">1</span>
+
+                    <span class="step-label-full">بيانات الحساب</span>
+
+                </li>
+
+                <li class="employee-wizard-step-item" data-step="2">
+
+                    <span class="step-num">2</span>
+
+                    <span class="step-label-full">الدور</span>
+
+                </li>
+
+                <li class="employee-wizard-step-item" data-step="3">
+
+                    <span class="step-num">3</span>
+
+                    <span class="step-label-full">الصلاحيات</span>
+
+                </li>
+
+                <li class="employee-wizard-step-item" data-step="4">
+
+                    <span class="step-num">4</span>
+
+                    <span class="step-label-full">مراجعة</span>
+
+                </li>
+
+            </ul>
+
+
+
+            <form id="employeeCreateForm" asp-route="networkManager-addnewEmployee" method="post" class="row g-4"
+                  data-validate-url="@Url.RouteUrl("networkManager-validate-newEmployee")"
+                  data-wizard-initial-step="@wizardInitialStep">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" asp-for="ReturnUrl" />
+
+
+
+                <div class="col-12">
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                </div>
+
+
+
+                @* ——— الخطوة 1: الحساب ——— *@
+
+                <div class="col-12 employee-wizard-panel is-active" data-wizard-step="1">
+
+                    <div class="section-title mb-3">
+
+                        <i class="fas fa-id-card"></i>
+
+                        بيانات الحساب
+
+                    </div>
+
+                    @{
+                        var step1ErrorMessages = new List<string>();
+                        if (wizardInitialStep == 1)
+                        {
+                            string[] step1Keys = ["UserName", "Email", "Password", "ConfirmPassword", "PhoneNumber", ""];
+                            foreach (string key in step1Keys)
+                            {
+                                if (!ViewData.ModelState.TryGetValue(key, out var entry) || entry == null) continue;
+                                foreach (var err in entry.Errors.Where(e => !string.IsNullOrWhiteSpace(e.ErrorMessage)))
+                                {
+                                    if (!step1ErrorMessages.Contains(err.ErrorMessage))
+                                    {
+                                        step1ErrorMessages.Add(err.ErrorMessage);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    <div id="wizardStep1Errors" class="employee-wizard-step-errors alert alert-danger @(step1ErrorMessages.Count > 0 ? "" : "d-none")" role="alert" aria-live="polite">
+                        @if (step1ErrorMessages.Count > 0)
+                        {
+                            <ul class="mb-0 ps-3">
+                                @foreach (var msg in step1ErrorMessages)
+                                {
+                                    <li>@msg</li>
+                                }
+                            </ul>
+                        }
+                    </div>
+
+                    <div class="row g-3">
+
+                        <div class="col-md-4">
+
+                            <label asp-for="UserName" class="form-label"></label>
+
+                            <input asp-for="UserName" class="form-control elegant-input" autocomplete="off" required />
+
+                            <span asp-validation-for="UserName" class="text-danger"></span>
+
+                        </div>
+
+                        <div class="col-md-4">
+
+                            <label asp-for="Email" class="form-label"></label>
+
+                            <input asp-for="Email" class="form-control elegant-input" autocomplete="off" required />
+
+                            <span asp-validation-for="Email" class="text-danger"></span>
+
+                        </div>
+
+                        <div class="col-md-4">
+
+                            <label asp-for="PhoneNumber" class="form-label"></label>
+
+                            <input asp-for="PhoneNumber" class="form-control elegant-input" autocomplete="off" />
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <label asp-for="FullName" class="form-label"></label>
+
+                            <input asp-for="FullName" class="form-control elegant-input" autocomplete="off" />
+
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label"></label>
+                            <div class="sp-password-field-wrap">
+                                <span class="sp-password-field-icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
+                                <input asp-for="Password" class="form-control elegant-input" autocomplete="new-password" required minlength="@employeePasswordMinLength" />
+                                <button type="button" class="sp-password-toggle" data-sp-toggle-password="Password" aria-label="إظهار كلمة المرور" aria-pressed="false">
+                                    <i class="fas fa-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="ConfirmPassword" class="form-label"></label>
+                            <div class="sp-password-field-wrap">
+                                <span class="sp-password-field-icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
+                                <input asp-for="ConfirmPassword" class="form-control elegant-input" autocomplete="new-password" required minlength="@employeePasswordMinLength" />
+                                <button type="button" class="sp-password-toggle" data-sp-toggle-password="ConfirmPassword" aria-label="إظهار تأكيد كلمة المرور" aria-pressed="false">
+                                    <i class="fas fa-eye" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12">
+                            @{
+                                ViewData["SpRulesMinLength"] = employeePasswordMinLength;
+                                ViewData["SpRulesPasswordFieldId"] = "Password";
+                                ViewData["SpRulesUserNameFieldId"] = "UserName";
+                                ViewData["SpRulesEmailFieldId"] = "Email";
+                                ViewData["SpRulesInteractive"] = true;
+                                ViewData["SpRulesPanelId"] = "employeeCreatePasswordRules";
+                                ViewData["SpRulesSubtitle"] = "اتبع المعايير أدناه لحماية حساب الموظف";
+                            }
+                            <partial name="_StrongPasswordRulesPanel" />
+                        </div>
+
+                        <div class="col-12">
+
+                            <label class="switch-box" dir="ltr">
+
+                                <span class="switch-label">@Html.DisplayNameFor(m => m.IsActive)</span>
+
+                                <input class="form-check-input" asp-for="IsActive" />
+
+                            </label>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                @* ——— الخطوة 2: الدور ——— *@
+
+                <div class="col-12 employee-wizard-panel" data-wizard-step="2">
+
+                    <partial name="_EmployeeDepartmentSelector" model="Model.Department" />
+
+                </div>
+
+
+
+                @* ——— الخطوة 3: الصلاحيات ——— *@
+
+                <div class="col-12 employee-wizard-panel" data-wizard-step="3">
+
+                    <div class="employee-perm-summary mb-3">
+
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+
+                            <div>
+
+                                <div class="text-muted small">القالب المختار</div>
+
+                                <div class="fw-bold" id="permSummaryDept">—</div>
+
+                            </div>
+
+                            <div class="text-end">
+
+                                <div class="text-muted small">صلاحيات ستُمنح</div>
+
+                                <div class="employee-perm-summary-count"><span id="permSummaryCount">0</span></div>
+
+                            </div>
+
+                        </div>
+
+                        <p class="small text-muted mb-0 mt-2">
+
+                            للشركات الصغيرة: اضغط «التالي» مباشرة. للتعديل اليدوي استخدم «تخصيص متقدم».
+
+                        </p>
+
+                    </div>
+
+
+
+                    <button type="button" class="btn btn-sm btn-outline-primary mb-2" id="togglePermAdvanced">
+
+                        تخصيص متقدم للصلاحيات
+
+                    </button>
+
+
+
+                    <div class="employee-perm-advanced" id="permAdvancedBlock">
+
+                        <div class="section-title d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+
+                            <span><i class="fas fa-key"></i> مصفوفة الصلاحيات</span>
+
+                            <span class="selected-counter">محددة: <strong id="permSelectedCount">0</strong></span>
+
+                        </div>
+
+                        <div class="permission-tools mb-2">
+
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="permSelectAll">تحديد الكل</button>
+
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="permClearAll">إلغاء الكل</button>
+
+                        </div>
+
+                        <partial name="_EmployeePermissionMatrix" model="Model.SelectedPermissionIds" />
+
+                    </div>
+
+                </div>
+
+
+
+                @* ——— الخطوة 4: مراجعة + رواتب ——— *@
+
+                <div class="col-12 employee-wizard-panel" data-wizard-step="4">
+
+                    <div class="section-title mb-3">
+
+                        <i class="fas fa-clipboard-check"></i>
+
+                        مراجعة قبل الحفظ
+
+                    </div>
+
+                    <div class="employee-review-card mb-3">
+
+                        <div class="employee-review-row">
+
+                            <span class="employee-review-label">اسم المستخدم</span>
+
+                            <span class="employee-review-value" id="reviewUserName">—</span>
+
+                        </div>
+
+                        <div class="employee-review-row">
+
+                            <span class="employee-review-label">الاسم</span>
+
+                            <span class="employee-review-value" id="reviewFullName">—</span>
+
+                        </div>
+
+                        <div class="employee-review-row">
+
+                            <span class="employee-review-label">البريد</span>
+
+                            <span class="employee-review-value" id="reviewEmail">—</span>
+
+                        </div>
+
+                        <div class="employee-review-row">
+
+                            <span class="employee-review-label">الدور</span>
+
+                            <span class="employee-review-value" id="reviewDepartment">—</span>
+
+                        </div>
+
+                        <div class="employee-review-row">
+
+                            <span class="employee-review-label">الصلاحيات</span>
+
+                            <span class="employee-review-value" id="reviewPermissions">—</span>
+
+                        </div>
+
+                        <div class="employee-review-row">
+
+                            <span class="employee-review-label">الرواتب</span>
+
+                            <span class="employee-review-value" id="reviewPayroll">—</span>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="section-title mb-2">
+
+                        <i class="fas fa-money-check-alt"></i>
+
+                        الربط مع الرواتب (اختياري)
+
+                    </div>
+
+                    <div class="row g-3">
+
+                        <div class="col-12">
+
+                            <label class="switch-box" dir="ltr">
+
+                                <span class="switch-label">@Html.DisplayNameFor(m => m.SyncToPayroll)</span>
+
+                                <input class="form-check-input" asp-for="SyncToPayroll" id="syncToPayroll" />
+
+                            </label>
+
+                        </div>
+
+                        <div class="col-md-4 payroll-sync-field">
+                            @{
+                                var salaryField = new ViewDataDictionary(ViewData)
+                                {
+                                    ["FieldName"] = "MonthlySalary",
+                                    ["LabelLong"] = "الراتب الشهري (ل.س.ج جديدة)",
+                                    ["LabelShort"] = "الراتب الشهري (ل.س.ج)",
+                                    ["ResponsiveLabel"] = true,
+                                    ["Required"] = false,
+                                    ["Placeholder"] = "مثال: 500,000",
+                                    ["Min"] = "0",
+                                    ["CssClass"] = "payroll-salary-field",
+                                    ["InitialValue"] = Model.MonthlySalary,
+                                    ["ShowOldHint"] = true
+                                };
+                            }
+                            <partial name="_SypAmountInput" view-data="salaryField" />
+                            <span asp-validation-for="MonthlySalary" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4 payroll-sync-field">
+
+                            <label asp-for="PayrollEmploymentType" class="form-label"></label>
+
+                            <select asp-for="PayrollEmploymentType" class="form-select elegant-input" asp-items="Html.GetEnumSelectList<RadaTik.Models.Business.PayrollEmploymentType>()"></select>
+
+                        </div>
+
+                        <div class="col-md-4 payroll-sync-field">
+
+                            <label asp-for="WeeklyWorkHours" class="form-label"></label>
+
+                            <input asp-for="WeeklyWorkHours" class="form-control elegant-input" type="number" step="0.5" min="1" max="80" placeholder="40" />
+
+                        </div>
+
+                        <div class="col-md-6 payroll-sync-field">
+
+                            <label asp-for="PayrollJobTitle" class="form-label"></label>
+
+                            <input asp-for="PayrollJobTitle" class="form-control elegant-input" id="PayrollJobTitle" />
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="col-12 employee-wizard-footer">
+
+                    <div>
+
+                        <a class="btn btn-outline-secondary btn-cancel" asp-route="networkManager-users-employees">إلغاء</a>
+
+                    </div>
+
+                    <div class="d-flex gap-2">
+
+                        <button type="button" class="btn btn-outline-secondary" id="wizardBtnPrev">السابق</button>
+
+                        <button type="button" class="btn btn-primary" id="wizardBtnNext">التالي</button>
+
+                        <button type="submit" class="btn btn-primary btn-save" id="wizardBtnSubmit" style="display:none;">
+
+                            <i class="fas fa-save"></i> حفظ الموظف
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<link rel="stylesheet" href="~/css/strong-password-rules.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/areas/CompanyAdmin/css/employee-create-wizard.css" asp-append-version="true" />
+
+</div>
+@section Scripts {
+
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/strong-password-rules.js" asp-append-version="true"></script>
+    <script src="~/areas/CompanyAdmin/js/employee-create-wizard.js" asp-append-version="true"></script>
+
+    <script>
+
+        (function () {
+
+            var syncCb = document.getElementById('syncToPayroll');
+
+            var payrollFields = document.querySelectorAll('.payroll-sync-field');
+
+            function refreshPayrollFields() {
+
+                var on = syncCb && syncCb.checked;
+
+                payrollFields.forEach(function (el) {
+
+                    el.style.display = on ? '' : 'none';
+
+                    el.querySelectorAll('input,select').forEach(function (inp) { inp.disabled = !on; });
+
+                });
+
+            }
+
+            if (syncCb) {
+
+                syncCb.addEventListener('change', refreshPayrollFields);
+
+                refreshPayrollFields();
+
+            }
+
+
+
+            document.getElementById('permSelectAll')?.addEventListener('click', function () {
+
+                document.querySelectorAll('input[name="SelectedPermissionIds"]').forEach(function (cb) { cb.checked = true; });
+
+                document.querySelectorAll('.perm-master').forEach(function (m) { m.checked = true; });
+
+                document.dispatchEvent(new Event('employeePermChanged'));
+
+            });
+
+            document.getElementById('permClearAll')?.addEventListener('click', function () {
+
+                document.querySelectorAll('input[name="SelectedPermissionIds"]').forEach(function (cb) { cb.checked = false; });
+
+                document.querySelectorAll('.perm-master').forEach(function (m) { m.checked = false; });
+
+                document.dispatchEvent(new Event('employeePermChanged'));
+
+            });
+
+        })();
+
+    </script>
+
+}
+
+

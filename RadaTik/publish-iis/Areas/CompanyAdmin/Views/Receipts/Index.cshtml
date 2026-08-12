@@ -1,0 +1,176 @@
+@model RadaTik.ViewModels.Receipts.ReceiptsIndexViewModel
+@using RadaTik.ViewModels.Receipts
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="financial-page financial-hub-page financial-receipts-page">
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialNavShowWarehouse = false;
+        ViewBag.FinancialHeroIcon = "fas fa-receipt";
+        ViewBag.FinancialHeroTheme = "default";
+        ViewBag.FinancialHeroSubtitle = "تقرير قبض على نطاق شركتك";
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-primary micro-btn"" href=""" + Url.RouteUrl("networkManager-wallet-topup") + @"""><i class=""fas fa-plus-circle""></i> تغذية رصيد</a>";
+    }
+    <partial name="_FinancialSysHero" />
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <div class="card receipts-filter-card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-sm-4 col-md-3">
+                    <label class="form-label">من</label>
+                    <input type="date" name="from" class="form-control" value="@(Model.From?.ToString("yyyy-MM-dd") ?? "")" />
+                </div>
+                <div class="col-sm-4 col-md-3">
+                    <label class="form-label">إلى</label>
+                    <input type="date" name="to" class="form-control" value="@(Model.To?.ToString("yyyy-MM-dd") ?? "")" />
+                </div>
+                <div class="col-sm-4 col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1 micro-btn">
+                        <i class="fas fa-filter"></i>
+                        تطبيق
+                    </button>
+                    <a class="btn btn-outline-secondary micro-btn" asp-route="networkManager-receipts" asp-route-action="Index" asp-route-id="">
+                        تفريغ
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card financial-stat-card h-100">
+                <div class="card-body">
+                    <div class="financial-stat-label">عدد العمليات</div>
+                    <div class="financial-stat-value">@Model.TotalCount</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card financial-stat-card financial-stat-accent h-100">
+                <div class="card-body">
+                    <div class="financial-stat-label">الإجمالي (ل.س)</div>
+                    <div class="financial-stat-value">@Model.TotalSYP.ToString("N0")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card financial-stat-card h-100">
+                <div class="card-body">
+                    <div class="financial-stat-label">الإجمالي ($)</div>
+                    <div class="financial-stat-value">@SyrianCurrencyHelper.FormatNew(Model.TotalUSD)</div>
+                    <div class="financial-stat-meta">التركيز الحالي على الليرة السورية</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card financial-table-card mb-3">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-chart-pie text-success"></i> الإجمالي حسب طريقة الدفع</h5>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.ByMethod.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 financial-table radtk-data-table radtk-data-table--cards">
+                        <thead>
+                            <tr>
+                                <th>طريقة الدفع</th>
+                                <th>عدد العمليات</th>
+                                <th>الإجمالي (ل.س)</th>
+                                <th>الإجمالي ($)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in Model.ByMethod)
+                            {
+                                <tr class="financial-row is-neutral">
+                                    <td data-label="طريقة الدفع"><strong>@m.Method</strong></td>
+                                    <td data-label="عدد العمليات">@m.Count</td>
+                                    <td data-label="الإجمالي (ل.س)">@m.TotalSYP.ToString("N0")</td>
+                                    <td data-label="الإجمالي ($)">@SyrianCurrencyHelper.FormatNew(m.TotalUSD)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="p-3 text-muted">لا توجد بيانات ضمن الفترة المحددة.</div>
+            }
+        </div>
+    </div>
+
+    <div class="card financial-table-card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="card-title mb-0"><i class="fas fa-list text-primary"></i> تفاصيل العمليات</h5>
+            <span class="text-muted small">عرض آخر @Model.Items.Count عملية ضمن الفلتر.</span>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Items.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 financial-table radtk-data-table radtk-data-table--cards">
+                        <thead>
+                            <tr>
+                                <th>تاريخ الاعتماد</th>
+                                <th>رقم الطلب</th>
+                                <th>طريقة الدفع</th>
+                                <th>المبلغ (ل.س)</th>
+                                <th>مرجع</th>
+                                <th>الإيصال</th>
+                                <th>الموافق</th>
+                                <th>ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in Model.Items.Take(500))
+                            {
+                                <tr class="financial-row is-success">
+                                    <td data-label="تاريخ الاعتماد">@r.ApprovedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                    <td data-label="رقم الطلب" class="text-muted">#@r.SourceId</td>
+                                    <td data-label="طريقة الدفع">@r.PaymentMethod</td>
+                                    <td data-label="المبلغ (ل.س)" class="fw-bold text-success">@r.AmountSYP.ToString("N0")</td>
+                                    <td data-label="مرجع" class="text-muted small">@(string.IsNullOrWhiteSpace(r.ReferenceNumber) ? "—" : r.ReferenceNumber)</td>
+                                    <td data-label="الإيصال">
+                                        @if (!string.IsNullOrWhiteSpace(r.ReceiptImagePath))
+                                        {
+                                            <a class="btn btn-sm btn-outline-secondary micro-btn" href="@r.ReceiptImagePath" target="_blank">
+                                                <i class="fas fa-image"></i>
+                                                عرض
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">—</span>
+                                        }
+                                    </td>
+                                    <td data-label="الموافق" class="text-muted small">@(string.IsNullOrWhiteSpace(r.ApprovedBy) ? "—" : r.ApprovedBy)</td>
+                                    <td data-label="ملاحظات" class="text-muted small">@(string.IsNullOrWhiteSpace(r.Notes) ? "—" : r.Notes)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="p-3 text-muted">لا توجد عمليات قبض ضمن الفترة المحددة.</div>
+            }
+        </div>
+    </div>
+</div>

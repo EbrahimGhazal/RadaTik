@@ -1,0 +1,241 @@
+@model RadaTik.Areas.CompanyAdmin.ViewModels.NewSubscriberWizardSubscriberFormModel
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-user-plus text-success"></i> @ViewData["Title"]</h2>
+    <a asp-action="Start" class="btn btn-outline-secondary"><i class="fas fa-arrow-right"></i> رجوع</a>
+</div>
+
+<div class="alert alert-secondary mb-3">
+    <i class="fas fa-info-circle"></i> المسار: <strong>@ViewBag.WizardPathLabel</strong>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="card">
+    <div class="card-header bg-success text-white">الخطوة 2 — بيانات المشترك</div>
+    <div class="card-body">
+        <form asp-action="Subscriber" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Path" />
+            <input type="hidden" asp-for="ReceiverId" />
+
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" />
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="SID" class="form-label"></label>
+                    <input asp-for="SID" class="form-control" />
+                    <span asp-validation-for="SID" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="UserName" class="form-label"></label>
+                    <input asp-for="UserName" class="form-control" />
+                    <span asp-validation-for="UserName" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Password" class="form-label"></label>
+                    <input asp-for="Password" type="password" class="form-control" />
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="MikroTikServerId" class="form-label">
+                        خادم MikroTik
+                        @if (ViewBag.RequireMikroTikServer == true) { <span class="text-danger">*</span> }
+                    </label>
+                    <select asp-for="MikroTikServerId" class="form-select" asp-items="ViewBag.MikroTikServers" required="@(ViewBag.RequireMikroTikServer == true)">
+                        <option value="">— اختر —</option>
+                    </select>
+                    <span asp-validation-for="MikroTikServerId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ProfileId" class="form-label">البروفايل</label>
+                    <div class="input-group">
+                        <select asp-for="ProfileId" class="form-select" asp-items="ViewBag.Profiles" id="ProfileId">
+                            <option value="">— اختر —</option>
+                        </select>
+                        <button type="button" class="btn btn-outline-secondary" id="btnRefreshProfiles" title="تحديث القائمة" disabled>
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mt-1 small">
+                        <a class="text-decoration-none" id="linkCreateProfile" href="#" target="_blank" rel="noopener" style="display:none;">
+                            <i class="fas fa-plus-circle"></i> إضافة بروفايل للسيرفر
+                        </a>
+                        <span class="text-muted" id="profileLoadHint"></span>
+                    </div>
+                    <span asp-validation-for="ProfileId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="PhoneNumber" class="form-label"></label>
+                    <input asp-for="PhoneNumber" class="form-control" />
+                    <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ResidenceAddress" class="form-label">الموقع</label>
+                    <input asp-for="ResidenceAddress" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="ServiceStartDate" class="form-label"></label>
+                    <input asp-for="ServiceStartDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="AccountExpirationDate" class="form-label"></label>
+                    <input asp-for="AccountExpirationDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="DbUserName" class="form-label">حساب النظام (اختياري)</label>
+                    <input asp-for="DbUserName" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="DbPassword" class="form-label">كلمة مرور النظام (اختياري)</label>
+                    <input asp-for="DbPassword" type="password" class="form-control" />
+                </div>
+                <div class="col-12">
+                    <div class="form-check form-switch radtk-switch-left-label mb-3" dir="ltr">
+                        <label asp-for="IsActive" class="form-check-label">تفعيل المشترك</label>
+                        <input asp-for="IsActive" class="form-check-input" />
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success mt-3">
+                <i class="fas fa-save"></i> حفظ والانتقال للفاتورة
+            </button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        (function () {
+            const serverSelect = document.getElementById('MikroTikServerId');
+            const profileSelect = document.getElementById('ProfileId');
+            const btnRefresh = document.getElementById('btnRefreshProfiles');
+            const linkCreate = document.getElementById('linkCreateProfile');
+            const loadHint = document.getElementById('profileLoadHint');
+            const profilesUrl = '@Url.Action("GetProfilesByServer", "NewSubscriberWizard", new { area = ViewContext.RouteData.Values["area"] })';
+            const profileCreateBase = '@Url.Action("Create", "Profile")';
+
+            if (!serverSelect || !profileSelect) {
+                return;
+            }
+
+            function profileOptionId(profile) {
+                return profile.id ?? profile.Id;
+            }
+
+            function profileOptionName(profile) {
+                return profile.name ?? profile.Name ?? '';
+            }
+
+            function countRealProfileOptions() {
+                return Array.from(profileSelect.options).filter(function (o) { return o.value; }).length;
+            }
+
+            function updateProfileCreateLink(serverId) {
+                if (!linkCreate) return;
+                if (!serverId) {
+                    linkCreate.style.display = 'none';
+                    return;
+                }
+                linkCreate.style.display = '';
+                linkCreate.href = profileCreateBase + '?serverId=' + encodeURIComponent(serverId);
+            }
+
+            function setHint(text, isError) {
+                if (!loadHint) return;
+                loadHint.textContent = text || '';
+                loadHint.className = isError ? 'text-danger' : 'text-muted';
+            }
+
+            async function loadProfilesByServer(serverId, forceReload) {
+                if (!serverId) {
+                    profileSelect.innerHTML = '<option value="">— اختر —</option>';
+                    if (btnRefresh) btnRefresh.disabled = true;
+                    updateProfileCreateLink(null);
+                    setHint('اختر السيرفر أولاً لعرض البروفايلات.');
+                    return;
+                }
+
+                if (btnRefresh) btnRefresh.disabled = false;
+                updateProfileCreateLink(serverId);
+
+                const selectedProfileId = profileSelect.value;
+                const existingCount = countRealProfileOptions();
+                if (!forceReload && existingCount > 0) {
+                    setHint(existingCount + ' بروفايل — اضغط تحديث بعد إضافة بروفايل جديد.');
+                    return;
+                }
+
+                profileSelect.innerHTML = '<option value="">جاري تحميل البروفايلات...</option>';
+                setHint('جاري التحميل...', false);
+                try {
+                    const response = await fetch(profilesUrl + '?serverId=' + encodeURIComponent(serverId), {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!response.ok) {
+                        throw new Error('Request failed');
+                    }
+
+                    const profiles = await response.json();
+                    profileSelect.innerHTML = '<option value="">— اختر —</option>';
+                    if (!profiles || profiles.length === 0) {
+                        profileSelect.innerHTML = '<option value="">لا توجد بروفايلات لهذا السيرفر</option>';
+                        setHint('لا بروفايلات — أنشئ بروفايلاً ثم حدّث القائمة.', true);
+                        return;
+                    }
+
+                    for (const profile of profiles) {
+                        const option = document.createElement('option');
+                        const id = profileOptionId(profile);
+                        option.value = id;
+                        option.textContent = profileOptionName(profile);
+                        if (String(id) === String(selectedProfileId)) {
+                            option.selected = true;
+                        }
+                        profileSelect.appendChild(option);
+                    }
+                    setHint(profiles.length + ' بروفايل متاح.');
+                } catch {
+                    if (existingCount > 0) {
+                        setHint('تعذر التحديث — القائمة الحالية من الصفحة ما زالت معروضة.', true);
+                    } else {
+                        profileSelect.innerHTML = '<option value="">تعذر تحميل البروفايلات</option>';
+                        setHint('تعذر التحميل — جرّب تحديث الصفحة.', true);
+                    }
+                }
+            }
+
+            serverSelect.addEventListener('change', function () {
+                loadProfilesByServer(serverSelect.value, true);
+            });
+
+            btnRefresh?.addEventListener('click', function () {
+                loadProfilesByServer(serverSelect.value, true);
+            });
+
+            window.addEventListener('focus', function () {
+                if (serverSelect.value) {
+                    loadProfilesByServer(serverSelect.value, true);
+                }
+            });
+
+            if (serverSelect.value) {
+                loadProfilesByServer(serverSelect.value, false);
+            } else {
+                updateProfileCreateLink(null);
+                setHint('اختر السيرفر أولاً لعرض البروفايلات.');
+            }
+        })();
+    </script>
+}
+

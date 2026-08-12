@@ -1,0 +1,137 @@
+@model RadaTik.ViewModels.UI.OperationsHubViewModel
+@{
+    ViewData["Title"] = "مركز العمليات";
+    ViewBag.OperationalHeroIcon = "fas fa-bolt";
+    ViewBag.OperationalHeroSubtitle = "مهام اليوم: اشتراكات، طلبات، تجديد، ومشتركون جدد";
+    ViewBag.OperationalHeroTheme = "dashboard";
+}
+
+<div class="radtk-page-dashboard nm-dashboard-v2">
+<div class="operational-page company-dashboard-page">
+    <partial name="_OperationalSysHero" />
+
+    <nav class="nm-quick-actions" aria-label="إجراءات سريعة">
+        <a class="nm-quick-action" asp-route="networkManager-dashboard">
+            <i class="fas fa-gauge-high" aria-hidden="true"></i>
+            <span>لوحة التحكم</span>
+        </a>
+        <a class="nm-quick-action nm-quick-action--primary" asp-route="networkManager-new-subscriber-wizard" asp-route-action="Index" asp-route-id="">
+            <i class="fas fa-user-plus" aria-hidden="true"></i>
+            <span>مشترك جديد</span>
+        </a>
+        <a class="nm-quick-action" asp-route="networkManager-requestsManagement" asp-route-action="Index" asp-route-id="">
+            <i class="fas fa-inbox" aria-hidden="true"></i>
+            <span>الطلبات</span>
+        </a>
+        <a class="nm-quick-action" asp-route="networkManager-clients" asp-route-action="ExpiredAccounts" asp-route-id="">
+            <i class="fas fa-ban" aria-hidden="true"></i>
+            <span>المنتهية</span>
+        </a>
+    </nav>
+
+    <section class="nm-ops-grid" aria-label="مهام العمليات">
+        <article class="nm-ops-card @(Model.ExpiredSubscriptions > 0 ? "nm-ops-card--alert" : "")">
+            <header class="nm-ops-card__head">
+                <span class="nm-kpi-card__icon tone-danger"><i class="fas fa-exclamation-circle" aria-hidden="true"></i></span>
+                <h3>اشتراكات منتهية</h3>
+            </header>
+            <div class="nm-ops-card__metric">@Model.ExpiredSubscriptions</div>
+            <p class="nm-ops-card__meta">@Model.ExpiringInWeek تنتهي خلال 7 أيام</p>
+            <div class="nm-ops-card__actions">
+                <a class="nm-ops-btn nm-ops-btn--danger" asp-route="networkManager-clients" asp-route-action="ExpiredAccounts" asp-route-id="">
+                    المنتهية
+                </a>
+                <a class="nm-ops-btn" asp-route="networkManager-clients" asp-route-action="ExpiringIn3Days" asp-route-id="">
+                    قريبة الانتهاء
+                </a>
+            </div>
+        </article>
+
+        <article class="nm-ops-card @(Model.PendingRequests > 0 ? "nm-ops-card--active" : "")">
+            <header class="nm-ops-card__head">
+                <span class="nm-kpi-card__icon"><i class="fas fa-clipboard-list" aria-hidden="true"></i></span>
+                <h3>الطلبات المعلقة</h3>
+            </header>
+            <div class="nm-ops-card__metric">@Model.PendingRequests</div>
+            <p class="nm-ops-card__meta">@Model.PendingEmployeeApprovals موافقات موظفين</p>
+            <div class="nm-ops-card__actions">
+                <a class="nm-ops-btn nm-ops-btn--primary" asp-route="networkManager-requestsManagement" asp-route-action="Index" asp-route-id="">
+                    لوحة الطلبات
+                </a>
+                <a class="nm-ops-btn" asp-route="networkManager-employee-approvals" asp-route-action="Index" asp-route-id="">
+                    موافقات
+                </a>
+            </div>
+        </article>
+
+        <article class="nm-ops-card">
+            <header class="nm-ops-card__head">
+                <span class="nm-kpi-card__icon tone-cyan"><i class="fas fa-sync-alt" aria-hidden="true"></i></span>
+                <h3>تجديد وتحصيل</h3>
+            </header>
+            <div class="nm-ops-card__metric">@Model.PendingRenewalRequests</div>
+            <p class="nm-ops-card__meta">@Model.PendingClientTopUps طلبات تغذية رصيد</p>
+            <div class="nm-ops-card__actions">
+                <a class="nm-ops-btn nm-ops-btn--info" asp-route="networkManager-renewalRequests" asp-route-action="Index" asp-route-id="">
+                    تجديد نقاط التحصيل
+                </a>
+                <a class="nm-ops-btn" asp-route="networkManager-client-wallet-topups" asp-route-action="Index" asp-route-id="">
+                    تغذية المشتركين
+                </a>
+            </div>
+        </article>
+
+        <article class="nm-ops-card nm-ops-card--success">
+            <header class="nm-ops-card__head">
+                <span class="nm-kpi-card__icon tone-success"><i class="fas fa-user-plus" aria-hidden="true"></i></span>
+                <h3>مشترك جديد</h3>
+            </header>
+            <p class="nm-ops-card__meta mb-2">ابدأ معالج إضافة مشترك أو افتح قائمة المشتركين.</p>
+            <div class="nm-ops-card__actions">
+                <a class="nm-ops-btn nm-ops-btn--success" asp-route="networkManager-new-subscriber-wizard" asp-route-action="Index" asp-route-id="">
+                    معالج المشترك
+                </a>
+                <a class="nm-ops-btn" asp-route="networkManager-clients" asp-route-action="Index" asp-route-id="">
+                    قائمة المشتركين
+                </a>
+            </div>
+        </article>
+    </section>
+
+    <section class="nm-section">
+        <header class="nm-section__head">
+            <h2 class="nm-section__title"><i class="fas fa-chart-simple" aria-hidden="true"></i> ملخص سريع</h2>
+        </header>
+        <div class="nm-subscription-strip nm-subscription-strip--4">
+            <article class="nm-sub-pill @(Model.ExpiredSubscriptions > 0 ? "nm-sub-pill--alert" : "")">
+                <i class="fas fa-ban" aria-hidden="true"></i>
+                <div>
+                    <strong>@Model.ExpiredSubscriptions</strong>
+                    <span>منتهية</span>
+                </div>
+            </article>
+            <article class="nm-sub-pill @(Model.PendingRequests > 0 ? "nm-sub-pill--warn" : "")">
+                <i class="fas fa-inbox" aria-hidden="true"></i>
+                <div>
+                    <strong>@Model.PendingRequests</strong>
+                    <span>طلبات</span>
+                </div>
+            </article>
+            <article class="nm-sub-pill nm-sub-pill--growth">
+                <i class="fas fa-cash-register" aria-hidden="true"></i>
+                <div>
+                    <strong>@Model.PendingRenewalRequests</strong>
+                    <span>تجديد نقاط</span>
+                </div>
+            </article>
+            <article class="nm-sub-pill">
+                <i class="fas fa-wallet" aria-hidden="true"></i>
+                <div>
+                    <strong>@Model.PendingClientTopUps</strong>
+                    <span>تغذية رصيد</span>
+                </div>
+            </article>
+        </div>
+    </section>
+</div>
+</div>

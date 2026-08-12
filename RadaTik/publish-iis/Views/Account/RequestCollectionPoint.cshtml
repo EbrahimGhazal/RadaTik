@@ -1,0 +1,155 @@
+@model RadaTik.ViewModels.CollectionPoints.CreateCollectionPointViewModel
+@{
+    ViewData["Title"] = "طلب إنشاء حساب نقطة تحصيل";
+    ViewData["BodyClass"] = "login-page login-page--radatik-spa-identity";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <style>
+        #cpLocationMap { height: 300px; border-radius: 12px; margin-top: 10px; }
+        .map-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    </style>
+}
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h2 class="mb-2">طلب إنشاء حساب نقطة تحصيل</h2>
+            <p class="login-subtitle login-subtitle--muted">سيتم إرسال الطلب إلى مدير النظام للمراجعة والموافقة.</p>
+        </div>
+
+        <div class="login-body">
+            <form asp-action="RequestCollectionPoint" asp-controller="Account" asp-area="" method="post" novalidate>
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="validation-error"></div>
+
+                <div class="form-group">
+                    <label asp-for="FullName" class="form-label"></label>
+                    <input asp-for="FullName" class="form-control rt-input" />
+                    <span asp-validation-for="FullName" class="validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="UserName" class="form-label"></label>
+                    <input asp-for="UserName" class="form-control rt-input" />
+                    <span asp-validation-for="UserName" class="validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control rt-input" />
+                    <span asp-validation-for="Email" class="validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="PhoneNumber" class="form-label"></label>
+                    <input asp-for="PhoneNumber" class="form-control rt-input" />
+                    <span asp-validation-for="PhoneNumber" class="validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Address" class="form-label"></label>
+                    <input asp-for="Address" class="form-control rt-input" />
+                    <span asp-validation-for="Address" class="validation-error"></span>
+                    <input asp-for="Latitude" type="hidden" id="Latitude" />
+                    <input asp-for="Longitude" type="hidden" id="Longitude" />
+                    <div id="cpLocationMap"></div>
+                    <div class="map-actions">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="useCurrentLocationBtn">
+                            <i class="fas fa-location-crosshairs"></i> استخدام موقعي الحالي
+                        </button>
+                        <small class="text-muted">يمكنك اختيار الموقع على الخريطة لملء العنوان بدقة، أو كتابة العنوان يدويًا.</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Password" class="form-label"></label>
+                    <input asp-for="Password" class="form-control rt-input" />
+                    <span asp-validation-for="Password" class="validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="ConfirmPassword" class="form-label"></label>
+                    <input asp-for="ConfirmPassword" class="form-control rt-input" />
+                    <span asp-validation-for="ConfirmPassword" class="validation-error"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary rt-btn-submit">
+                    <span class="btn-content"><i class="fas fa-paper-plane"></i> إرسال الطلب</span>
+                </button>
+            </form>
+        </div>
+
+        <div class="login-footer">
+            <a asp-route="reglog-login" class="back-link">
+                <i class="fas fa-arrow-right"></i>
+                العودة لتسجيل الدخول
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        (function() {
+            const addressInput = document.getElementById('Address');
+            const latInput = document.getElementById('Latitude');
+            const lngInput = document.getElementById('Longitude');
+            const useCurrentBtn = document.getElementById('useCurrentLocationBtn');
+
+            const defaultLat = 33.5138;
+            const defaultLng = 36.2765;
+            const map = L.map('cpLocationMap').setView([defaultLat, defaultLng], 11);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+
+            const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+            async function reverseGeocode(lat, lng) {
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    if (data && data.display_name) {
+                        addressInput.value = data.display_name;
+                    }
+                } catch (_) {
+                    // Keep manual address when reverse geocoding fails.
+                }
+            }
+
+            function setLocation(lat, lng, shouldUpdateAddress) {
+                marker.setLatLng([lat, lng]);
+                map.setView([lat, lng], Math.max(map.getZoom(), 14));
+                latInput.value = lat.toFixed(6);
+                lngInput.value = lng.toFixed(6);
+                if (shouldUpdateAddress) {
+                    reverseGeocode(lat, lng);
+                }
+            }
+
+            map.on('click', function(e) {
+                setLocation(e.latlng.lat, e.latlng.lng, true);
+            });
+
+            marker.on('dragend', function(e) {
+                const pos = e.target.getLatLng();
+                setLocation(pos.lat, pos.lng, true);
+            });
+
+            useCurrentBtn.addEventListener('click', function() {
+                if (!navigator.geolocation) return;
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    setLocation(pos.coords.latitude, pos.coords.longitude, true);
+                });
+            });
+        })();
+    </script>
+}

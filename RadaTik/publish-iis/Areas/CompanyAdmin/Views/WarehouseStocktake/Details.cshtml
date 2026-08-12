@@ -1,0 +1,34 @@
+@using RadaTik.Models.Business
+@model WarehouseStocktake
+@{
+    ViewData["Title"] = $"جرد #{Model.Id}";
+}
+
+<div class="financial-page financial-hub-page">
+    <partial name="_WarehouseSubNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-clipboard-check";
+        ViewBag.FinancialHeroTheme = "warehouse";
+        ViewBag.FinancialHeroSubtitle = $"جرد #{Model.Id} — {Model.StocktakeDate:yyyy-MM-dd}";
+    }
+    <partial name="_FinancialSysHero" />
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table mb-0 radtk-data-table radtk-data-table--cards">
+                <thead><tr><th>الصنف</th><th>النظام</th><th>المعدّ</th><th>الفرق</th></tr></thead>
+                <tbody>
+                @foreach (var line in Model.Lines)
+                {
+                    <tr>
+                        <td>@line.WarehouseItem?.Name</td>
+                        <td>@line.SystemQuantity.ToString("N3")</td>
+                        <td>@line.CountedQuantity.ToString("N3")</td>
+                        <td class="@(line.Difference == 0 ? "" : "text-warning fw-semibold")">@line.Difference.ToString("N3")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <a class="btn btn-outline-secondary mt-3 micro-btn" asp-action="Index">رجوع</a>
+</div>

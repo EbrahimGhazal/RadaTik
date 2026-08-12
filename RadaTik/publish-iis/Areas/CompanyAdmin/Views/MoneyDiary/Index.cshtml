@@ -1,0 +1,240 @@
+@model RadaTik.Areas.CompanyAdmin.ViewModels.MoneyDiaryIndexViewModel
+@using RadaTik.Helpers
+@using RadaTik.Models
+@using RadaTik.Models.Business
+@{
+    ViewData["Title"] = "دفتر الإيراد والمصروف";
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var monthNames = new[] { "", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
+}
+
+<div class="financial-page financial-hub-page">
+    @{
+        ViewBag.FinancialNavShowWarehouse = false;
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-book";
+        ViewBag.FinancialHeroTheme = "diary";
+        ViewBag.FinancialHeroSubtitle = companyName + " — " + monthNames[Model.Month] + " " + Model.Year;
+    }
+    <partial name="_FinancialSysHero" />
+
+    <div class="card material-invoice-section border-0 shadow-sm mb-3">
+        <div class="card-body py-2">
+            <form method="get" class="d-flex flex-wrap gap-2 align-items-end">
+                <div>
+                    <label class="form-label form-label-sm mb-0">السنة</label>
+                    <input type="number" name="year" class="form-control form-control-sm" value="@Model.Year" min="2000" max="2100" style="width:5.5rem" />
+                </div>
+                <div>
+                    <label class="form-label form-label-sm mb-0">الشهر</label>
+                    <select name="month" class="form-select form-select-sm">
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            <option value="@i" selected="@(i == Model.Month)">@monthNames[i]</option>
+                        }
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-outline-primary btn-sm micro-btn">عرض</button>
+                <a class="btn btn-outline-secondary btn-sm micro-btn" asp-action="Print" asp-route-year="@Model.Year" asp-route-month="@Model.Month" target="_blank">
+                    <i class="fas fa-print"></i> طباعة
+                </a>
+                <a class="btn btn-outline-success btn-sm micro-btn" asp-action="ExportExcel" asp-route-year="@Model.Year" asp-route-month="@Model.Month">
+                    <i class="fas fa-file-excel"></i> Excel
+                </a>
+            </form>
+        </div>
+    </div>
+
+    <partial name="_FinancialSeparationFromWallet" />
+
+    @if (ViewBag.ShowPayrollDiaryHint == true)
+    {
+        <div class="alert alert-info">يمكنك تسجيل مبلغ الراتب كمصروف في النموذج أدناه (مُعبّأ مسبقاً).</div>
+    }
+    @if (ViewBag.ShowMaintenanceDiaryHint == true)
+    {
+        <div class="alert alert-info">تسجيل اختياري من فاتورة صيانة — لا يغيّر محفظة RadaTik. راجع المبلغ ثم احفظ القيد.</div>
+    }
+
+    @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+    @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-6">
+            <div class="card financial-stat-card h-100 border-primary border-opacity-25">
+                <div class="card-body">
+                    <div class="financial-stat-label text-primary mb-2">ل.س.ج — هذا الشهر</div>
+                    <div class="small">إيراد: <span class="text-success fw-bold">@CurrencyHelper.FormatAmount(Model.TotalIncomeSyp, PricingCurrency.SYP_New)</span></div>
+                    <div class="small">مصروف: <span class="text-danger fw-bold">@CurrencyHelper.FormatAmount(Model.TotalExpenseSyp, PricingCurrency.SYP_New)</span></div>
+                    <div class="small mt-1">صافي: <span class="@(Model.NetSyp >= 0 ? "text-success" : "text-danger") fw-bold">@CurrencyHelper.FormatAmount(Model.NetSyp, PricingCurrency.SYP_New)</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card financial-stat-card h-100 border-success border-opacity-25">
+                <div class="card-body">
+                    <div class="financial-stat-label text-success mb-2">$ — هذا الشهر</div>
+                    <div class="small">إيراد: <span class="text-success fw-bold">@CurrencyHelper.FormatAmount(Model.TotalIncomeUsd, PricingCurrency.USD)</span></div>
+                    <div class="small">مصروف: <span class="text-danger fw-bold">@CurrencyHelper.FormatAmount(Model.TotalExpenseUsd, PricingCurrency.USD)</span></div>
+                    <div class="small mt-1">صافي: <span class="@(Model.NetUsd >= 0 ? "text-success" : "text-danger") fw-bold">@CurrencyHelper.FormatAmount(Model.NetUsd, PricingCurrency.USD)</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p class="small text-muted mb-3">
+        <a asp-route="networkManager-cashbox">رصيد الصندوق الحالي</a> يُعرض في صفحة الصندوق — لا يُحسب من صافي الدفتر تلقائياً.
+    </p>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card financial-form-card">
+                <div class="card-header"><h6 class="mb-0">تسجيل قيد جديد</h6></div>
+                <div class="card-body">
+                    <form asp-action="AddEntry" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-2">
+                            <label class="form-label">النوع</label>
+                            <select name="entryType" id="entryTypeSelect" class="form-select" required>
+                                <option value="@((int)MoneyDiaryEntryType.Income)">إيراد — مال دخل</option>
+                                <option value="@((int)MoneyDiaryEntryType.Expense)">مصروف — مال خرج</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">التصنيف</label>
+                            <select name="categoryKey" id="categorySelect" class="form-select" required></select>
+                            <div id="warehousePurchaseHint" class="small text-info mt-1" style="display:none">
+                                بعد الشراء، سجّل الكمية في <a asp-route="networkManager-warehouse">المستودع</a> (حركة وارد).
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">العملة</label>
+                            <select name="currency" class="form-select">
+                                <option value="@((int)PricingCurrency.SYP_New)">ل.س.ج</option>
+                                <option value="@((int)PricingCurrency.USD)">$</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">المبلغ</label>
+                            <input name="amount" id="amountInput" type="number" step="0.01" min="0.01" class="form-control" required
+                                   value="@(ViewBag.PrefillAmount != null ? ViewBag.PrefillAmount : "")" />
+                        </div>
+                        <div class="mb-2 form-check">
+                            <input type="checkbox" name="syncWithCashBox" value="true" class="form-check-input" id="syncWithCashBox" />
+                            <label class="form-check-label" for="syncWithCashBox">
+                                تحديث الصندوق النقدي بنفس المبلغ (اختياري — لا يمس المحفظة)
+                            </label>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">التاريخ</label>
+                            <input name="entryDate" type="date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">وصف (اختياري)</label>
+                            <input name="description" id="descriptionInput" class="form-control" maxlength="500"
+                                   value="@(ViewBag.PrefillDescription as string ?? "")" />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 micro-btn">حفظ القيد</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header"><h6 class="mb-0">قيود الشهر</h6></div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle radtk-data-table radtk-data-table--cards">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>النوع</th>
+                                <th>التصنيف</th>
+                                <th>المبلغ</th>
+                                <th>العملة</th>
+                                <th>الوصف</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (!Model.Entries.Any())
+                        {
+                                    <tr><td colspan="7" class="text-center text-muted py-4">لا توجد قيود لهذا الشهر.</td></tr>
+                        }
+                        @foreach (var e in Model.Entries)
+                        {
+                            var isIncome = e.EntryType == MoneyDiaryEntryType.Income;
+                            <tr>
+                                <td>@e.EntryDate.ToString("yyyy-MM-dd")</td>
+                                <td>
+                                    <span class="badge @(isIncome ? "bg-success" : "bg-danger")">
+                                        @(isIncome ? "إيراد" : "مصروف")
+                                    </span>
+                                </td>
+                                <td>@MoneyDiaryCategories.GetLabel(e.CategoryKey)</td>
+                                <td class="@(isIncome ? "text-success" : "text-danger") fw-bold">
+                                    @(isIncome ? "+" : "−")@CurrencyHelper.FormatAmount(e.Amount, e.Currency)
+                                </td>
+                                <td class="small">@CurrencyHelper.GetSymbol(e.Currency)</td>
+                                <td>@(e.Description ?? "—")</td>
+                                <td>
+                                    <form asp-action="DeleteEntry" method="post" class="d-inline" onsubmit="return confirm('حذف هذا القيد؟');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@e.Id" />
+                                        <input type="hidden" name="year" value="@Model.Year" />
+                                        <input type="hidden" name="month" value="@Model.Month" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">حذف</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const categories = {
+        income: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            MoneyDiaryCategories.ForType(MoneyDiaryEntryType.Income).Select(c => new { c.Key, c.Label }))),
+        expense: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            MoneyDiaryCategories.ForType(MoneyDiaryEntryType.Expense).Select(c => new { c.Key, c.Label })))
+    };
+    const typeSelect = document.getElementById('entryTypeSelect');
+    const catSelect = document.getElementById('categorySelect');
+    function refreshCategories() {
+        const isIncome = typeSelect.value === '@((int)MoneyDiaryEntryType.Income)';
+        const list = isIncome ? categories.income : categories.expense;
+        catSelect.innerHTML = '';
+        list.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.key;
+            opt.textContent = c.label;
+            catSelect.appendChild(opt);
+        });
+    }
+    typeSelect.addEventListener('change', refreshCategories);
+    catSelect.addEventListener('change', togglePurchaseHint);
+    function togglePurchaseHint() {
+        const hint = document.getElementById('warehousePurchaseHint');
+        if (!hint) return;
+        hint.style.display = (!typeSelect.value || typeSelect.value === '@((int)MoneyDiaryEntryType.Expense)') && catSelect.value === 'expense_purchase' ? 'block' : 'none';
+    }
+    refreshCategories();
+    togglePurchaseHint();
+
+    const prefillType = '@(ViewBag.PrefillEntryType ?? "")';
+    const prefillCategory = '@(ViewBag.PrefillCategoryKey ?? "")';
+    if (prefillType) {
+        typeSelect.value = prefillType;
+        refreshCategories();
+        if (prefillCategory) catSelect.value = prefillCategory;
+    }
+})();
+</script>
+}

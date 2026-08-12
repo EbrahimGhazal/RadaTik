@@ -1,0 +1,256 @@
+<div class="radtk-page-emp-maint-req">
+<div class="radtk-page-emp-maint-req">
+@model IEnumerable<RadaTik.Models.MaintenanceRequest>
+@using RadaTik.Models
+@using RadaTik.Helpers
+@{
+    ViewData["Title"] = "طلبات الصيانة";
+    var currentStatus = ViewBag.CurrentStatus as string;
+    var pendingRequestsCount = (int?)ViewBag.PendingRequestsCount ?? 0;
+    ViewBag.PageHeroIcon = "fas fa-tools";
+    ViewBag.PageHeroBackUrl = Url.RouteUrl("employee-requestsManagement", new { action = "Index" });
+    ViewBag.PageHeroBackText = "العودة";
+}
+
+<partial name="_CrudPageHero" />
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Success"]</div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Error"]</div>
+    </div>
+}
+
+<div id="pendingMaintenanceAlert" class="alert alert-warning pending-alert" style="@(pendingRequestsCount > 0 ? "" : "display:none;")">
+    <i class="fas fa-bell alert-icon"></i>
+    <div class="alert-content">
+        يوجد <strong id="pendingMaintenanceCount">@pendingRequestsCount</strong> <span id="pendingMaintenanceText">طلب @(pendingRequestsCount == 1 ? "صيانة" : "طلبات صيانة")</span> قيد الانتظار وتحتاج متابعة.
+        @if (!string.Equals(currentStatus, "Pending", StringComparison.OrdinalIgnoreCase))
+        {
+            <a href="@Url.RouteUrl("employee-requestsManagement", new { action = "MaintenanceRequests", status = "Pending" })" class="alert-link ms-2">
+                عرض الطلبات المعلقة
+            </a>
+        }
+    </div>
+</div>
+
+<div id="pendingToast" class="pending-toast" style="display:none;">
+    <i class="fas fa-bell"></i>
+    <span id="pendingToastText"></span>
+</div>
+
+<!-- فلتر الحالة -->
+<div class="filter-bar">
+    <a href="@Url.RouteUrl("employee-requestsManagement", new { action = "MaintenanceRequests" })" class="filter-btn @(string.IsNullOrEmpty(currentStatus) ? "active" : "")">
+        الكل
+    </a>
+    <a href="@Url.RouteUrl("employee-requestsManagement", new { action = "MaintenanceRequests", status = "Pending" })" class="filter-btn @(currentStatus == "Pending" ? "active" : "")">
+        <i class="fas fa-clock"></i> في الانتظار
+    </a>
+    <a href="@Url.RouteUrl("employee-requestsManagement", new { action = "MaintenanceRequests", status = "Accepted" })" class="filter-btn @(currentStatus == "Accepted" ? "active" : "")">
+        <i class="fas fa-check"></i> مقبول
+    </a>
+    <a href="@Url.RouteUrl("employee-requestsManagement", new { action = "MaintenanceRequests", status = "InProgress" })" class="filter-btn @(currentStatus == "InProgress" ? "active" : "")">
+        <i class="fas fa-spinner"></i> قيد التنفيذ
+    </a>
+    <a href="@Url.RouteUrl("employee-requestsManagement", new { action = "MaintenanceRequests", status = "Completed" })" class="filter-btn @(currentStatus == "Completed" ? "active" : "")">
+        <i class="fas fa-check-double"></i> مكتمل
+    </a>
+    <a href="@Url.RouteUrl("employee-requestsManagement", new { action = "MaintenanceRequests", status = "Rejected" })" class="filter-btn @(currentStatus == "Rejected" ? "active" : "")">
+        <i class="fas fa-times"></i> مرفوض
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover radtk-data-table radtk-data-table--cards" id="maintenanceTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>العميل</th>
+                            <th>نوع المشكلة</th>
+                            <th>الأولوية</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الطلب</th>
+                            <th>المسؤول</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var request in Model)
+                        {
+                            var statusClass = PricingDisplay.MaintenanceRequestStatusClass(request.Status);
+
+                            var priorityClass = request.Priority switch
+                            {
+                                RequestPriority.High => "priority-high",
+                                RequestPriority.Urgent => "priority-urgent",
+                                _ => ""
+                            };
+
+                            <tr class="@(request.Status == MaintenanceRequestStatus.Pending ? "row-highlight" : "")">
+                                <td>@request.Id</td>
+                                <td>
+                                    <div class="client-info">
+                                        <div class="client-avatar">
+                                            @(request.Client?.Name?.Substring(0, 1).ToUpper() ?? "?")
+                                        </div>
+                                        <div>
+                                            <div class="client-name">@request.Client?.Name</div>
+                                            <div class="client-phone">@request.Client?.PhoneNumber</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="type-badge">
+                                        <i class="fas @GetTypeIcon(request.Type)"></i>
+                                        @GetMaintenanceTypeName(request.Type)
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="priority-badge @priorityClass">
+                                        @GetPriorityName(request.Priority)
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge @statusClass">
+                                        @GetStatusName(request.Status)
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="date-info">
+                                        <div>@request.RequestDate.ToString("yyyy/MM/dd")</div>
+                                        <div class="time-ago">@request.RequestDate.ToString("HH:mm")</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (request.AssignedTo != null)
+                                    {
+                                        <span class="badge badge-info">@request.AssignedTo.FullName</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">غير معين</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a asp-route="employee-requestsManagement" asp-route-action="MaintenanceRequestDetails" asp-route-id="@request.Id" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> عرض
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <h3>لا توجد طلبات</h3>
+                <p>لا توجد طلبات صيانة @(string.IsNullOrEmpty(currentStatus) ? "" : "بهذه الحالة")</p>
+            </div>
+        }
+    </div>
+</div>
+@functions {
+    string GetMaintenanceTypeName(MaintenanceType type) => MaintenanceCatalog.GetDisplayName(type);
+
+    string GetTypeIcon(MaintenanceType type) => MaintenanceCatalog.GetIcon(type);
+
+    string GetStatusName(MaintenanceRequestStatus status) => PricingDisplay.MaintenanceRequestStatusLabel(status);
+
+    string GetPriorityName(RequestPriority priority) => PricingDisplay.RequestPriorityLabel(priority);
+}
+
+
+</div>
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            let currentPendingCount = @pendingRequestsCount;
+            let toastTimer = null;
+            const alertBox = document.getElementById('pendingMaintenanceAlert');
+            const countEl = document.getElementById('pendingMaintenanceCount');
+            const textEl = document.getElementById('pendingMaintenanceText');
+            const toastEl = document.getElementById('pendingToast');
+            const toastTextEl = document.getElementById('pendingToastText');
+
+            function getLabel(value) {
+                return value === 1 ? 'طلب صيانة' : 'طلبات صيانة';
+            }
+
+            function showToast(message) {
+                if (!toastEl || !toastTextEl) return;
+                toastTextEl.textContent = message;
+                toastEl.style.display = 'inline-flex';
+                if (toastTimer) {
+                    clearTimeout(toastTimer);
+                }
+                toastTimer = setTimeout(() => {
+                    toastEl.style.display = 'none';
+                }, 3500);
+            }
+
+            function syncPendingUi(nextCount) {
+                if (!alertBox || !countEl || !textEl) return;
+                if (nextCount > 0) {
+                    alertBox.style.display = '';
+                    countEl.textContent = String(nextCount);
+                    textEl.textContent = getLabel(nextCount);
+                } else {
+                    alertBox.style.display = 'none';
+                }
+            }
+
+            async function refreshPendingCount() {
+                try {
+                    const response = await fetch('@Url.Action("GetPendingRequestsCount", "RequestsManagement")', {
+                        method: 'GET',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!response.ok) return;
+
+                    const data = await response.json();
+                    const nextCount = Number(data?.maintenance ?? 0);
+                    if (!Number.isFinite(nextCount)) return;
+
+                    if (nextCount > currentPendingCount) {
+                        const delta = nextCount - currentPendingCount;
+                        showToast(`يوجد ${delta} ${delta === 1 ? 'طلب جديد' : 'طلبات جديدة'} بانتظار المعالجة`);
+                    }
+
+                    currentPendingCount = nextCount;
+                    syncPendingUi(nextCount);
+                } catch {
+                    // Ignore transient polling errors.
+                }
+            }
+
+            $('#maintenanceTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+                },
+                order: [[5, 'desc']],
+                pageLength: 25
+            });
+
+            setInterval(refreshPendingCount, 60000);
+        });
+    </script>
+}

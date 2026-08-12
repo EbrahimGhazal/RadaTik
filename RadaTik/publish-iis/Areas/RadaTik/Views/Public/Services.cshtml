@@ -1,0 +1,180 @@
+@{
+    ViewData["Title"] = "خدماتنا";
+}
+
+@section Styles {
+<style>
+    .rt-page-hero {
+        background: var(--rt-gradient);
+        padding: 140px 0 80px;
+        text-align: center;
+        color: #fff;
+    }
+
+    .rt-page-hero h1 { font-size: 2.8rem; margin-bottom: 12px; }
+    .rt-page-hero p { color: rgba(255,255,255,0.82); font-size: 1.1rem; max-width: 760px; margin: 0 auto; }
+
+    .rt-services {
+        padding: 80px 0;
+    }
+
+    .rt-services-inner {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    .rt-services-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 22px;
+    }
+
+    .rt-service {
+        background: #fff;
+        border: 1px solid var(--rt-border);
+        border-radius: var(--rt-radius);
+        padding: 28px;
+        display: flex;
+        gap: 20px;
+        transition: box-shadow 0.25s ease, transform 0.25s ease;
+    }
+
+    .rt-service:hover {
+        box-shadow: var(--rt-shadow);
+        transform: translateY(-3px);
+    }
+
+    .rt-service-icon {
+        width: 58px;
+        height: 58px;
+        border-radius: 16px;
+        background: var(--rt-gradient-accent);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+
+    .rt-service h3 {
+        font-size: 1.15rem;
+        margin-bottom: 8px;
+    }
+
+    .rt-service p {
+        color: var(--rt-muted);
+        font-size: 0.95rem;
+        margin-bottom: 10px;
+    }
+
+    .rt-service-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .rt-service-tags span {
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--rt-bg);
+        color: var(--rt-muted);
+    }
+
+    @@media (max-width: 900px) {
+        .rt-services-grid { grid-template-columns: 1fr; }
+    }
+</style>
+}
+
+<section class="rt-page-hero">
+    <h1>خدماتنا</h1>
+    <p>وحدات RadaTik التي تغطي دورة حياة مزود الإنترنت — من الاشتراك إلى التحصيل والتقارير.</p>
+</section>
+
+<section class="rt-services">
+    <div class="rt-services-inner">
+        <div class="rt-services-grid">
+            <article class="rt-service">
+                <div class="rt-service-icon"><i class="fas fa-network-wired"></i></div>
+                <div>
+                    <h3>إدارة الشبكات والبنية</h3>
+                    <p>شبكة رئيسية وشبكات فرعية، قطاعات، مستقبلات، وربط MikroTik.</p>
+                    <div class="rt-service-tags"><span>Networks</span><span>Sectors</span><span>Receivers</span><span>MikroTik</span></div>
+                </div>
+            </article>
+            <article class="rt-service">
+                <div class="rt-service-icon"><i class="fas fa-user-group"></i></div>
+                <div>
+                    <h3>المشتركون والبروفايلات</h3>
+                    <p>إضافة عملاء، بروفايلات سرعة، تجديد، تعليق، واستيراد جماعي.</p>
+                    <div class="rt-service-tags"><span>Clients</span><span>Profiles</span><span>Renewals</span></div>
+                </div>
+            </article>
+            <article class="rt-service">
+                <div class="rt-service-icon"><i class="fas fa-coins"></i></div>
+                <div>
+                    <h3>المالية والتحصيل</h3>
+                    <p>محفظة الشركة، نقاط التحصيل، عمولات، صندوق، وتسويات.</p>
+                    <div class="rt-service-tags"><span>Wallet</span><span>CashBox</span><span>Collection</span></div>
+                </div>
+            </article>
+            <article class="rt-service">
+                <div class="rt-service-icon"><i class="fas fa-screwdriver-wrench"></i></div>
+                <div>
+                    <h3>الصيانة والتركيب</h3>
+                    <p>طلبات صيانة، فواتير، تسعير تركيب مشترك، وأجور نقل.</p>
+                    <div class="rt-service-tags"><span>Maintenance</span><span>Installation</span></div>
+                </div>
+            </article>
+            <article class="rt-service">
+                <div class="rt-service-icon"><i class="fas fa-boxes-stacked"></i></div>
+                <div>
+                    <h3>المخازن والمشتريات</h3>
+                    <p>أصناف، حركات، جرد، فواتير شراء وبيع مواد.</p>
+                    <div class="rt-service-tags"><span>Warehouse</span><span>Stocktake</span></div>
+                </div>
+            </article>
+            <article class="rt-service">
+                <div class="rt-service-icon"><i class="fas fa-id-badge"></i></div>
+                <div>
+                    <h3>الموظفون والرواتب</h3>
+                    <p>إدارة مستخدمين، صلاحيات، موافقات خدمات، ورواتب.</p>
+                    <div class="rt-service-tags"><span>Users</span><span>Payroll</span><span>Approvals</span></div>
+                </div>
+            </article>
+            <article class="rt-service">
+                <div class="rt-service-icon"><i class="fas fa-chart-pie"></i></div>
+                <div>
+                    <h3>التقارير ودفتر اليومية</h3>
+                    <p>تقارير تشغيلية، تصدير، ودفتر إيراد ومصروف.</p>
+                    <div class="rt-service-tags"><span>Reports</span><span>MoneyDiary</span></div>
+                </div>
+            </article>
+            <article class="rt-service">
+                <div class="rt-service-icon"><i class="fas fa-mobile-screen"></i></div>
+                <div>
+                    <h3>بوابات الأدوار</h3>
+                    <p>مدير شركة، موظف، نقطة تحصيل، عميل — كل دور بواجهته.</p>
+                    <div class="rt-service-tags"><span>CompanyAdmin</span><span>ClientPortal</span><span>CollectionPoint</span></div>
+                </div>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="rt-section" style="padding-top: 0; padding-bottom: 80px;">
+    <div class="rt-section-inner" style="max-width: 1280px; margin: 0 auto; padding: 0 24px;">
+        <div class="rt-cta" style="background: var(--rt-gradient); border-radius: 24px; padding: 40px; color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;">
+            <div>
+                <h3 style="font-size: 1.5rem; margin-bottom: 8px;">فعّل الخدمات التي تحتاجها</h3>
+                <p style="color: rgba(255,255,255,0.8);">اشترك كمدير شركة واختر الوحدات المناسبة لشبكتك.</p>
+            </div>
+            <a href="/Account/RegisterNetworkAdmin" class="rt-btn rt-btn-primary" style="display:inline-flex;align-items:center;gap:10px;padding:14px 24px;border-radius:12px;background:var(--rt-gradient-accent);color:#fff;text-decoration:none;font-weight:700;">
+                <i class="fas fa-rocket"></i> سجّل شركتك
+            </a>
+        </div>
+    </div>
+</section>

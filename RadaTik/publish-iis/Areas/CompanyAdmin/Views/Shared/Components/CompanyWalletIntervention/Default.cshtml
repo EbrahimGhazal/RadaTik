@@ -1,0 +1,41 @@
+@model RadaTik.Areas.CompanyAdmin.ViewModels.CompanyWalletInterventionViewModel
+@if (Model.ShowModal)
+{
+    <div class="modal fade nm-balance-block-modal" id="nmCompanyBalanceBlockModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-modal="true" role="dialog" aria-labelledby="nmCompanyBalanceBlockTitle">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-danger text-white border-0">
+                    <h5 class="modal-title w-100 text-center" id="nmCompanyBalanceBlockTitle">
+                        <i class="fas fa-wallet ms-2"></i>
+                        الرجاء تغذية الرصيد
+                    </h5>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <p class="mb-3 lead fs-6">
+                        حان موعد تجديد إحدى خدماتك وليس لديك رصيد كافٍ لاستكمال التجديد.
+                        تبقى هذه النافذة ظاهرة حتى يتم تغذية رصيد الشركة واعتمادها، ثم يُحسم مبلغ التجديد المطلوب تلقائياً عند توفر الرصيد.
+                    </p>
+                    <p class="text-muted small mb-0">
+                        اشتراكات بانتظار السداد (تجديد متأخر): <strong>@Model.SuspendedRenewalCount</strong>
+                    </p>
+                </div>
+                <div class="modal-footer border-0 pt-0 pb-4 px-4 justify-content-center flex-column gap-2">
+                    <a href="@Model.TopUpUrl" class="btn btn-primary btn-lg px-5 rounded-pill">
+                        <i class="fas fa-circle-dollar-to-slot ms-2"></i>
+                        الانتقال لتغذية الرصيد
+                    </a>
+                    <span class="text-muted small">لا يمكن إغلاق هذه النافذة قبل تنفيذ التغذية وحسم المبلغ.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            document.addEventListener('DOMContentLoaded', function () {
+                var el = document.getElementById('nmCompanyBalanceBlockModal');
+                if (!el || typeof bootstrap === 'undefined') return;
+                new bootstrap.Modal(el).show();
+            });
+        })();
+    </script>
+}

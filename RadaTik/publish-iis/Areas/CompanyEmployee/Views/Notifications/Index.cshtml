@@ -1,0 +1,63 @@
+@model IEnumerable<RadaTik.Models.UserNotification>
+@{
+    ViewData["Title"] = ViewData["Title"] ?? "التنبيهات";
+    var unreadOnly = (bool?)ViewBag.UnreadOnly ?? true;
+}
+
+<div class="page-header mb-3">
+    <h1 class="h4 mb-1"><i class="fas fa-bell"></i> @ViewData["Title"]</h1>
+    <p class="text-muted small mb-0">تنبيهات المهام والمكافآت والعقوبات.</p>
+</div>
+
+<div class="d-flex gap-2 mb-3">
+    <a class="btn btn-sm @(unreadOnly ? "btn-primary" : "btn-outline-primary")"
+       asp-route="employee-notifications" asp-route-unreadOnly="true">
+        غير مقروءة
+    </a>
+    <a class="btn btn-sm @(!unreadOnly ? "btn-primary" : "btn-outline-primary")"
+       asp-route="employee-notifications" asp-route-unreadOnly="false">
+        الكل
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (Model != null && Model.Any())
+        {
+            <div class="d-flex flex-column gap-3">
+                @foreach (var n in Model)
+                {
+                    var isUnread = !n.IsRead;
+                    <div class="border rounded-3 p-3 @(isUnread ? "bg-light" : "bg-white")">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                                <a asp-area="CompanyEmployee" asp-controller="Notifications" asp-action="Open" asp-route-id="@n.Id"
+                                   class="@(isUnread ? "fw-bold" : "") text-decoration-none text-body">
+                                    @n.Title
+                                </a>
+                                <div class="text-muted small">@n.Message</div>
+                                <div class="text-muted small mt-1">@n.CreatedAt.ToString("yyyy/MM/dd HH:mm")</div>
+                            </div>
+                            @if (isUnread)
+                            {
+                                <form method="post" asp-action="MarkRead">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@n.Id" />
+                                    <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                    <button type="submit" class="btn btn-sm btn-link text-success p-0">تعليم كمقروء</button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center text-muted py-4">
+                <i class="far fa-bell-slash fa-2x mb-2"></i>
+                <div>لا توجد تنبيهات حالياً</div>
+            </div>
+        }
+    </div>
+</div>

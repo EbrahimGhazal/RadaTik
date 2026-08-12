@@ -1,0 +1,65 @@
+@{
+    var requireChoice = (ViewData["MaterialInvoiceRequireExplicitChoice"] as bool?) ?? false;
+    var paymentStatus = ViewData["PaymentStatus"] as string;
+    if (string.IsNullOrEmpty(paymentStatus) && !requireChoice)
+    {
+        var isPaid = ViewData["IsPaid"] as bool?;
+        paymentStatus = isPaid == true ? "paid" : isPaid == false ? "unpaid" : null;
+    }
+    var isPaidSelected = paymentStatus == "paid";
+    var isUnpaidSelected = paymentStatus == "unpaid";
+    var kind = ViewData["MaterialInvoiceKind"] as string ?? "purchase";
+    var isSales = string.Equals(kind, "sales", StringComparison.OrdinalIgnoreCase);
+    var paidHint = isSales
+        ? "يُسجَّل في الدفتر الشهري ويُودَع في <strong>الصندوق النقدي</strong> بنفس عملة الفاتورة (ل.س.ج أو $)."
+        : "يُسجَّل في الدفتر الشهري ويُخصم من <strong>الصندوق النقدي</strong> بنفس عملة الفاتورة (ل.س.ج أو $).";
+    var unpaidHint = isSales
+        ? "لا حركة على الصندوق — الفاتورة تُسجَّل دون تحصيل نقدي."
+        : "لا خصم من الصندوق — الفاتورة تُسجَّل دون دفع نقدي.";
+}
+<div class="material-invoice-choice-panel material-invoice-choice-panel--payment" data-material-payment-panel>
+    <div class="material-invoice-choice-panel__header">
+        <span class="material-invoice-choice-panel__icon" aria-hidden="true">
+            <i class="fas fa-hand-holding-dollar"></i>
+        </span>
+        <div>
+            <h2 class="material-invoice-choice-panel__title">حالة الدفع</h2>
+            <p class="material-invoice-choice-panel__subtitle mb-0">
+                @(requireChoice ? "اختر حالة الدفع — مطلوب قبل الحفظ. الدفع عبر الصندوق النقدي فقط." : "الدفع عبر الصندوق النقدي فقط — المحفظة غير مستخدمة.")
+            </p>
+        </div>
+        <span class="material-invoice-choice-panel__badge material-invoice-choice-panel__badge--unset"
+              data-payment-badge-unset @(string.IsNullOrEmpty(paymentStatus) ? null : "hidden")>لم يُحدَّد</span>
+        <span class="material-invoice-choice-panel__badge material-invoice-choice-panel__badge--pending"
+              data-payment-badge-unpaid @(isUnpaidSelected ? null : "hidden")>غير مدفوعة</span>
+        <span class="material-invoice-choice-panel__badge material-invoice-choice-panel__badge--paid"
+              data-payment-badge-paid @(isPaidSelected ? null : "hidden")>مدفوعة</span>
+    </div>
+    <div class="material-invoice-choice-grid" role="radiogroup" aria-label="حالة الدفع" aria-required="@(requireChoice ? "true" : "false")">
+        <label class="material-invoice-choice @(isUnpaidSelected ? "is-selected" : "")">
+            <input type="radio"
+                   class="material-invoice-choice__input"
+                   name="paymentStatus"
+                   value="unpaid"
+                   @(isUnpaidSelected ? "checked" : null)
+                   @(requireChoice ? "required" : null)
+                   data-payment-choice="unpaid" />
+            <span class="material-invoice-choice__body">
+                <span class="material-invoice-choice__title">غير مدفوعة</span>
+                <span class="material-invoice-choice__desc">@Html.Raw(unpaidHint)</span>
+            </span>
+        </label>
+        <label class="material-invoice-choice @(isPaidSelected ? "is-selected" : "")">
+            <input type="radio"
+                   class="material-invoice-choice__input"
+                   name="paymentStatus"
+                   value="paid"
+                   @(isPaidSelected ? "checked" : null)
+                   data-payment-choice="paid" />
+            <span class="material-invoice-choice__body">
+                <span class="material-invoice-choice__title">مدفوعة</span>
+                <span class="material-invoice-choice__desc">@Html.Raw(paidHint)</span>
+            </span>
+        </label>
+    </div>
+</div>

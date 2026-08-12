@@ -1,0 +1,10 @@
+@model RadaTik.ViewModels.UI.StatCardViewModel
+<div class="radtk-stat-card__icon"><i class="@Model.IconClass"></i></div>
+<div class="radtk-stat-card__body">
+    <span class="radtk-stat-card__label">@Model.Label</span>
+    <span class="radtk-stat-card__value">@Model.Value</span>
+    @if (!string.IsNullOrWhiteSpace(Model.Subtext))
+    {
+        <span class="radtk-stat-card__sub">@Model.Subtext</span>
+    }
+</div>

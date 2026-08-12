@@ -1,0 +1,248 @@
+@model RadaTik.ViewModels.CompanyAdmin.CompanyWalletTopUpViewModel
+@using RadaTik.Helpers
+@using RadaTik.Models
+@{
+    ViewData["Title"] = ViewData["Title"] ?? "طلب تعبئة رصيد";
+    var paymentMethods = ViewBag.PaymentMethods as IEnumerable<PaymentMethod> ?? Enumerable.Empty<PaymentMethod>();
+    var pmList = paymentMethods.ToList();
+}
+
+<div class="financial-page financial-hub-page wallet-topup-page">
+    @{
+        ViewBag.FinancialNavShowWarehouse = false;
+        ViewBag.FinancialNavCurrent = "wallet";
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-plus-circle";
+        ViewBag.FinancialHeroTheme = "wallet";
+        ViewBag.FinancialHeroSubtitle = Model.EffectiveCompanyNetworkName + " — يُرسل الطلب إلى مدير النظام ولا يتغيّر الرصيد حتى الموافقة";
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-secondary micro-btn"" href=""" + Url.RouteUrl("networkManager-wallet-index") + @"""><i class=""fas fa-wallet""></i> المحفظة</a>
+<a class=""btn btn-outline-secondary micro-btn"" href=""" + Url.RouteUrl("networkManager-wallet-transactions") + @"""><i class=""fas fa-list""></i> سجل الحركات</a>";
+    }
+    <partial name="_FinancialSysHero" />
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success border-success shadow-sm" role="status">
+            <i class="fas fa-check-circle me-1"></i>
+            @TempData["Success"]
+        </div>
+    }
+    @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+    @if (TempData["Info"] != null) { <div class="alert alert-info">@TempData["Info"]</div> }
+
+    @if (TempData["WalletOnboardingStep"] != null || Model.IsOnboardingFundingRequired)
+    {
+        <div class="alert alert-primary border-primary-subtle mb-4 wallet-topup-onboarding-hint" role="note">
+            <i class="fas fa-route me-1"></i>
+            <strong>الخطوة 2 من 2 — تغذية الرصيد:</strong>
+            أكمل الطلب أدناه بمبلغ لا يقل عن سعر إنشاء الشركة
+            @if (Model.MinimumRequiredSyp > 0m)
+            {
+                <span>(@SyrianCurrencyHelper.FormatNew(Model.MinimumRequiredSyp) ل.س.ج)</span>
+            }
+            .
+            يُراجعه مدير النظام ثم يُضاف الرصيد إلى محفظة الشركة — أو يكفي وجود طلب معلّق بهذا المبلغ للانتقال للنظام.
+        </div>
+    }
+
+    @if (Model.IsOnboardingFundingRequired && Model.MinimumRequiredSyp > 0m)
+    {
+        <div class="alert alert-warning border-warning-subtle mb-4" role="status">
+            <i class="fas fa-exclamation-triangle me-1"></i>
+            <strong>تمويل إلزامي عند أول دخول:</strong>
+            يجب ألا يقل مبلغ التعبئة عن
+            <strong>@SyrianCurrencyHelper.FormatNew(Model.MinimumRequiredSyp) ل.س.ج</strong>
+            (قيمة إنشاء شركة جديدة).
+        </div>
+    }
+
+    <div class="topup-balance-strip card mb-4">
+        <div class="card-body py-3">
+            <div class="row g-3 text-center text-md-start">
+                <div class="col-md-6 col-6">
+                    <div class="topup-balance-strip__label">محفظة ل.س.ج</div>
+                    <div class="topup-balance-strip__value text-primary">@CurrencyHelper.FormatAmount(Model.CompanyBalance, PricingCurrency.SYP_New)</div>
+                </div>
+                <div class="col-md-6 col-6">
+                    <div class="topup-balance-strip__label">محفظة $</div>
+                    <div class="topup-balance-strip__value text-success">@CurrencyHelper.FormatAmount(Model.CompanyBalanceUsd, PricingCurrency.USD)</div>
+                </div>
+            </div>
+            <p class="small text-muted mb-0 mt-2 text-center text-md-start">
+                الشبكة: @Model.SelectedNetworkName · التعبئة تُضاف لمحفظة <strong>ل.س.ج</strong> بعد موافقة مدير النظام فقط — <strong>بدون ربط بالصندوق النقدي</strong>.
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-4 align-items-start">
+        <div class="col-xl-8">
+            <div class="card wallet-form-card shadow-sm">
+                <div class="card-header bg-transparent border-bottom">
+                    <h2 class="h5 mb-1"><i class="fas fa-file-invoice-dollar text-primary"></i> بيانات طلب التعبئة</h2>
+                    <p class="text-muted small mb-0">جميع الحقول مطلوبة للمراجعة السريعة من مدير النظام.</p>
+                </div>
+                <div class="card-body">
+                    <form asp-area="CompanyAdmin" asp-controller="Wallet" asp-action="TopUp" method="post" enctype="multipart/form-data" id="topup-form">
+                        @Html.AntiForgeryToken()
+
+                        <div class="topup-form-section mb-4">
+                            <h3 class="topup-form-section__title">① تفاصيل الدفع</h3>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    @{
+                                        var amountMin = Model.MinimumRequiredSyp > 0m
+                                            ? Model.MinimumRequiredSyp.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                                            : "0.01";
+                                        var amountField = new ViewDataDictionary(ViewData)
+                                        {
+                                            ["FieldName"] = "Amount",
+                                            ["Label"] = "المبلغ",
+                                            ["Placeholder"] = amountMin,
+                                            ["Min"] = amountMin,
+                                            ["Required"] = true,
+                                            ["ShowOldHint"] = true,
+                                            ["CssClass"] = "topup-amount-field",
+                                            ["InitialValue"] = Model.Amount > 0m ? Model.Amount : (decimal?)null
+                                        };
+                                    }
+                                    <partial name="_SypAmountInput" view-data="amountField" />
+                                    @if (Model.MinimumRequiredSyp > 0m)
+                                    {
+                                        <div class="form-text">الحد الأدنى: @SyrianCurrencyHelper.FormatNew(Model.MinimumRequiredSyp) ل.س.ج</div>
+                                    }
+                                    <span asp-validation-for="Amount" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="ReferenceNumber" class="form-label fw-semibold"></label>
+                                    <input asp-for="ReferenceNumber" class="form-control form-control-lg" required placeholder="رقم إشعار أو مرجع التحويل" />
+                                    <span asp-validation-for="ReferenceNumber" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="PaymentMethodId" class="form-label fw-semibold">طريقة الدفع</label>
+                                    @if (pmList.Any())
+                                    {
+                                        <select asp-for="PaymentMethodId" class="form-select form-select-lg" data-placeholder="اختر طريقة الدفع...">
+                                            <option value=""></option>
+                                            @foreach (var m in pmList)
+                                            {
+                                                <option value="@m.Id">@m.Name</option>
+                                            }
+                                        </select>
+                                        <span asp-validation-for="PaymentMethodId" class="text-danger small"></span>
+                                    }
+                                    else
+                                    {
+                                        <input asp-for="Method" class="form-control form-control-lg" placeholder="مثال: تحويل بنكي" />
+                                        <span asp-validation-for="Method" class="text-danger small"></span>
+                                        <div class="text-muted small mt-1">لا توجد طرق دفع معرّفة — يمكن لمدير النظام إضافتها.</div>
+                                    }
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="ReceiptImage" class="form-label fw-semibold"></label>
+                                    <div class="topup-file-wrap">
+                                        <input asp-for="ReceiptImage" class="form-control" type="file" required accept="image/*"
+                                               data-max-bytes="3145728" data-size-message="حجم صورة الإيصال يجب ألا يتجاوز 3 ميغابايت." />
+                                    </div>
+                                    <span asp-validation-for="ReceiptImage" class="text-danger small"></span>
+                                    <div class="text-muted small mt-1">JPG · PNG · WebP — حتى 3 ميغابايت</div>
+                                </div>
+                                <div class="col-12">
+                                    <label asp-for="Notes" class="form-label fw-semibold"></label>
+                                    <textarea asp-for="Notes" class="form-control" rows="3" placeholder="ملاحظات تساعد مدير النظام (اختياري)"></textarea>
+                                    <span asp-validation-for="Notes" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="wallet-form-actions d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top">
+                            <span class="small text-muted"><i class="fas fa-lock"></i> الطلب يذهب لمدير النظام فقط</span>
+                            <div class="d-flex gap-2">
+                                <a class="btn btn-outline-secondary micro-btn" asp-route="networkManager-wallet-index">إلغاء</a>
+                                <button type="submit" class="btn btn-success micro-btn px-4">
+                                    <i class="fas fa-paper-plane"></i> إرسال الطلب
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card wallet-help-card shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h2 class="h6 mb-0"><i class="fas fa-route text-info"></i> خطوات التعبئة</h2>
+                </div>
+                <div class="card-body">
+                    <ul class="wallet-help-steps">
+                        <li><span class="step-dot">1</span><div>أدخل المبلغ <strong>بل.س.ج</strong> ورقم المرجع وطريقة الدفع.</div></li>
+                        <li><span class="step-dot">2</span><div>ارفع صورة الإيصال.</div></li>
+                        <li><span class="step-dot">3</span><div>مدير النظام يراجع ويوافق أو يرفض.</div></li>
+                        <li><span class="step-dot">4</span><div>بعد الموافقة يظهر الرصيد في المحفظة وعمليات التعبئة.</div></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card border-warning border-opacity-50 shadow-sm mb-4">
+                <div class="card-body small">
+                    <p class="mb-2 fw-semibold text-warning-emphasis"><i class="fas fa-info-circle"></i> الفرق باختصار</p>
+                    <ul class="mb-0 ps-3">
+                        <li><strong>محفظة ل.س.ج:</strong> رصيد داخل RadaTik (تحصيل، منصة، مواد).</li>
+                        <li><strong>الصندوق والدفتر:</strong> مسار منفصل — لا يُربطان بتعبئة المحفظة.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card wallet-actions-card shadow-sm">
+                <div class="card-body d-grid gap-2">
+                    <a class="btn btn-outline-primary micro-btn" asp-route="networkManager-cashbox">
+                        <i class="fas fa-cash-register"></i> فتح الصندوق النقدي
+                    </a>
+                    <a class="btn btn-outline-secondary micro-btn" asp-route="networkManager-receipts" asp-route-action="Index" asp-route-id="">
+                        <i class="fas fa-receipt"></i> سجل القبض
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var receiptInput = document.getElementById('ReceiptImage');
+            if (receiptInput) {
+                var maxBytes = Number(receiptInput.getAttribute('data-max-bytes') || (3 * 1024 * 1024));
+                var sizeMessage = receiptInput.getAttribute('data-size-message') || 'حجم الصورة يجب ألا يتجاوز 3 ميغابايت.';
+                receiptInput.addEventListener('change', function () {
+                    var file = receiptInput.files && receiptInput.files.length ? receiptInput.files[0] : null;
+                    if (!file) { receiptInput.setCustomValidity(''); return; }
+                    if (file.size > maxBytes) {
+                        receiptInput.value = '';
+                        receiptInput.setCustomValidity(sizeMessage);
+                        receiptInput.reportValidity();
+                    } else {
+                        receiptInput.setCustomValidity('');
+                    }
+                });
+            }
+
+            if (window.jQuery && jQuery.fn.select2) {
+                var $pm = jQuery('#PaymentMethodId');
+                if ($pm.length) {
+                    if ($pm.hasClass('select2-hidden-accessible')) $pm.select2('destroy');
+                    $pm.select2({
+                        theme: 'bootstrap-5',
+                        dir: 'rtl',
+                        width: '100%',
+                        allowClear: true,
+                        placeholder: $pm.data('placeholder') || 'اختر طريقة الدفع...'
+                    });
+                }
+            }
+        });
+    </script>
+}

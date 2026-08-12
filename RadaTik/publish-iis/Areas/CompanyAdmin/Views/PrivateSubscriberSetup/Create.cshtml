@@ -1,0 +1,149 @@
+@model RadaTik.Models.Client
+@{
+    ViewData["Title"] = "تركيب مشترك — لاقط خاص";
+}
+
+<div class="financial-page financial-hub-page">
+    @{
+        ViewBag.FinancialNavCurrent = "installation";
+        ViewBag.FinancialNavShowWarehouse = false;
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-user-plus";
+        ViewBag.FinancialHeroTheme = "default";
+        ViewBag.FinancialHeroSubtitle = "مسار دراسة: تحديد اللاقط → MikroTik → فاتورة مسودة → تثبيت نهائي";
+    }
+    <partial name="_FinancialSysHero" />
+
+    <div class="alert alert-info">
+        <strong>الخطوات التالية تلقائياً:</strong> إنشاء حساب PPPoE، فاتورة تشمل المواد + أجور التركيب + المواصلات + أجور إنشاء الحساب (مسودة). بعد الحفظ ستُوجَّه لتثبيت الفاتورة وخصم المستودع.
+        <div class="mt-2">
+            <a asp-area="CompanyAdmin" asp-controller="SubscriberInstallationPricing" asp-action="Index" class="alert-link">
+                <i class="fas fa-link"></i> ربط أصناف المستودع في تسعير التجهيز
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <form asp-action="Create" method="post" class="card">
+        <div class="card-body">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">المستقبل (مكان اللاقط) <span class="text-danger">*</span></label>
+                    <select asp-for="ReceiverId" class="form-select" asp-items="ViewBag.Receivers" required>
+                        <option value="">— اختر المستقبل —</option>
+                    </select>
+                    <span asp-validation-for="ReceiverId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">خادم MikroTik</label>
+                    <select asp-for="MikroTikServerId" class="form-select" asp-items="ViewBag.MikroTikServers" id="mikrotikServerSelect">
+                        <option value="">— اختياري —</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الاسم الكامل</label>
+                    <input asp-for="Name" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">اسم مستخدم PPPoE <span class="text-danger">*</span></label>
+                    <input asp-for="UserName" class="form-control" required />
+                    <span asp-validation-for="UserName" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">كلمة المرور</label>
+                    <input asp-for="Password" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الباقة (Profile) <span class="text-danger">*</span></label>
+                    <select asp-for="ProfileId" class="form-select" asp-items="ViewBag.Profiles" required id="profileSelect">
+                        <option value="">— اختر الباقة —</option>
+                    </select>
+                    <small class="text-muted">تظهر فقط بروفايلات السيرفر المحدد.</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">الهاتف</label>
+                    <input asp-for="PhoneNumber" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">العنوان</label>
+                    <input asp-for="ResidenceAddress" class="form-control" />
+                </div>
+            </div>
+
+            <input type="hidden" asp-for="IsActive" value="true" />
+
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-check"></i> إنشاء المشترك والفاتورة
+                </button>
+                <a asp-route="networkManager-clients" class="btn btn-outline-secondary">إلغاء</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        (function () {
+            const serverSelect = document.getElementById('mikrotikServerSelect');
+            const profileSelect = document.getElementById('profileSelect');
+            if (!serverSelect || !profileSelect) {
+                return;
+            }
+
+            async function loadProfiles(serverId) {
+                const selectedProfileId = profileSelect.value;
+                if (!serverId) {
+                    profileSelect.innerHTML = '<option value="">— اختر الباقة —</option>';
+                    return;
+                }
+
+                profileSelect.innerHTML = '<option value="">جاري تحميل الباقات...</option>';
+                try {
+                    const response = await fetch('@Url.Action("GetProfilesByServer", "Clients", new { area = "CompanyAdmin" })?serverId=' + encodeURIComponent(serverId));
+                    if (!response.ok) {
+                        throw new Error('Request failed');
+                    }
+
+                    const profiles = await response.json();
+                    profileSelect.innerHTML = '<option value="">— اختر الباقة —</option>';
+                    if (!profiles || profiles.length === 0) {
+                        profileSelect.innerHTML = '<option value="">لا توجد باقات لهذا السيرفر</option>';
+                        return;
+                    }
+
+                    for (const profile of profiles) {
+                        const option = document.createElement('option');
+                        option.value = profile.id;
+                        option.textContent = profile.name;
+                        if (String(profile.id) === String(selectedProfileId)) {
+                            option.selected = true;
+                        }
+
+                        profileSelect.appendChild(option);
+                    }
+                } catch {
+                    profileSelect.innerHTML = '<option value="">تعذر تحميل الباقات</option>';
+                }
+            }
+
+            serverSelect.addEventListener('change', function () {
+                loadProfiles(serverSelect.value);
+            });
+
+            if (serverSelect.value) {
+                loadProfiles(serverSelect.value);
+            }
+        })();
+    </script>
+}

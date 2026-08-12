@@ -1,0 +1,85 @@
+@model RadaTik.Models.Receiver
+
+@{
+    ViewData["Title"] = "تعديل مستقبل";
+    ViewBag.PageHeroIcon = "fas fa-edit";
+    ViewBag.PageHeroSubtitle = $"تحديث بيانات المستقبل: {Model.Name}";
+    ViewBag.PageHeroBackUrl = Url.Action("Index");
+    ViewBag.PageHeroExtraActions = new List<RadaTik.ViewModels.UI.PageHeroActionViewModel>
+    {
+        new() { Text = "تفاصيل", Url = Url.Action("Details", new { id = Model.Id }) ?? "#", CssClass = "btn btn-outline-info btn-sm", IconClass = "fas fa-eye" }
+    };
+}
+
+<div class="employee-receiver-page">
+<partial name="_CrudPageHero" />
+
+<div class="card radtk-section-card border-0 shadow-sm">
+    <div class="card-body">
+        <div class="alert alert-info mb-3">
+            <i class="fas fa-user-check me-1"></i>
+            تعديل بيانات المستقبل من حساب الموظف يُرسل كطلب موافقة لمدير الشركة.
+            <span class="d-block mt-1">لا يتم تنفيذ التعديل ولا أي حسم مالي قبل اعتماد مدير الشركة.</span>
+        </div>
+
+        <form asp-action="Edit" method="post" class="radtk-form">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Name" class="form-label">اسم المستقبل</label>
+                    <input asp-for="Name" class="form-control elegant-input" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="SectorId" class="form-label">القطاع</label>
+                    <select asp-for="SectorId" class="form-select elegant-input" asp-items="@(ViewData["SectorId"] as SelectList)">
+                        <option value="">-- اختر قطاع --</option>
+                    </select>
+                    <span asp-validation-for="SectorId" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="IPAddress" class="form-label">IP</label>
+                    <input asp-for="IPAddress" class="form-control elegant-input" />
+                    <span asp-validation-for="IPAddress" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="NetworkMask" class="form-label">قناع الشبكة</label>
+                    <input asp-for="NetworkMask" class="form-control elegant-input" />
+                    <span asp-validation-for="NetworkMask" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Latitude" class="form-label">Latitude</label>
+                    <input asp-for="Latitude" class="form-control elegant-input" type="number" step="0.000001" />
+                    <span asp-validation-for="Latitude" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Longitude" class="form-label">Longitude</label>
+                    <input asp-for="Longitude" class="form-control elegant-input" type="number" step="0.000001" />
+                    <span asp-validation-for="Longitude" class="text-danger"></span>
+                </div>
+
+                <input asp-for="IsActive" type="hidden" />
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-warning action-btn">
+                    <i class="fas fa-save"></i> حفظ
+                </button>
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info action-btn">تفاصيل</a>
+                <a asp-action="Index" class="btn btn-outline-secondary action-btn">إلغاء</a>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+

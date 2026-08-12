@@ -1,0 +1,199 @@
+<div class="radtk-page--companyadmin-views-sector-delete">
+<div class="radtk-page--companyadmin-views-sector-delete">
+@model RadaTik.Models.Sector
+
+@{
+    ViewData["Title"] = "حذف القطاع";
+    ViewBag.PageHeroIcon = "fas fa-trash-alt";
+    ViewBag.PageHeroTheme = "danger";
+    ViewBag.PageHeroBackUrl = Url.Action("Index");
+    ViewBag.PageHeroBackText = "إلغاء والعودة";
+}
+
+<partial name="_CrudPageHero" />
+
+<div class="delete-container">
+    <!-- Warning Alert -->
+    <div class="alert alert-danger">
+        <div class="alert-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="alert-content">
+            <h4>تنبيه مهم!</h4>
+            <p>هل أنت متأكد من رغبتك في حذف هذا القطاع؟</p>
+            <p class="mb-0"><strong>سيتم حذف جميع المستقبلات والعملاء المرتبطين بهذا القطاع أيضاً!</strong></p>
+        </div>
+    </div>
+
+    <div class="delete-grid">
+        <!-- Map Card -->
+        <div class="card map-card">
+            <div class="card-header card-header-danger">
+                <h3 class="card-title">
+                    <i class="fas fa-map-marker-alt"></i>
+                    موقع القطاع
+                </h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="card">
+            <div class="card-header card-header-danger">
+                <h3 class="card-title">
+                    <i class="fas fa-info-circle"></i>
+                    بيانات القطاع
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="info-list">
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-tag"></i> اسم القطاع</span>
+                        <span class="info-value"><strong>@Model.Name</strong></span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-server"></i> خادم MikroTik</span>
+                        <span class="info-value">
+                            @if (Model.MikroTikServer != null)
+                            {
+                                <span>@Model.MikroTikServer.Host</span>
+                                <small class="text-muted">(@Model.MikroTikServer.User)</small>
+                            }
+                            else
+                            {
+                                <span class="text-muted">غير مرتبط</span>
+                            }
+                        </span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-network-wired"></i> عنوان IP</span>
+                        <span class="info-value"><code>@Model.IPAddress</code></span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-map-marker-alt"></i> الموقع</span>
+                        <span class="info-value">@Model.Latitude.ToString("F6"), @Model.Longitude.ToString("F6")</span>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-compass"></i> الاتجاه</span>
+                        <span class="info-value">@Model.Direction°</span>
+                    </div>
+                </div>
+
+                <!-- Warning Stats -->
+                <div class="delete-stats">
+                    <div class="delete-stat stat-danger">
+                        <div class="stat-icon"><i class="fas fa-satellite-dish"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-value">@Model.ReceiverCount</span>
+                            <span class="stat-label">مستقبل سيتم حذفه</span>
+                        </div>
+                    </div>
+                    
+                    <div class="delete-stat stat-danger">
+                        <div class="stat-icon"><i class="fas fa-users"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-value">@Model.UserCount</span>
+                            <span class="stat-label">مستخدم سيتم حذفه</span>
+                        </div>
+                    </div>
+
+                    <div class="delete-stat">
+                        <div class="stat-icon"><i class="fas fa-toggle-@(Model.IsActive ? "on" : "off")"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-value">@(Model.IsActive ? "نشط" : "غير نشط")</span>
+                            <span class="stat-label">الحالة الحالية</span>
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.ProfileNames))
+                {
+                    <div class="info-item" style="margin-top: var(--spacing-md);">
+                        <span class="info-label"><i class="fas fa-database"></i> البروفايلات</span>
+                        <span class="info-value"><span class="badge badge-info">@Model.ProfileNames</span></span>
+                    </div>
+                }
+
+                <div class="info-item" style="margin-top: var(--spacing-md);">
+                    <span class="info-label"><i class="fas fa-calendar-plus"></i> تاريخ الإضافة</span>
+                    <span class="info-value">@Model.CreatedDate.ToString("yyyy-MM-dd hh:mm tt")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Form -->
+    <form asp-action="Delete" class="delete-form">
+        <input type="hidden" asp-for="Id" />
+        <div class="form-actions">
+            <button type="submit" class="btn btn-danger btn-lg">
+                <i class="fas fa-trash"></i> تأكيد الحذف
+            </button>
+            <a asp-action="Index" class="btn btn-secondary btn-lg">
+                <i class="fas fa-times"></i> إلغاء والعودة
+            </a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var lat = @Model.Latitude;
+            var lng = @Model.Longitude;
+
+            var map = L.map('map').setView([lat, lng], 15);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            var wifiIcon = L.AwesomeMarkers.icon({
+                icon: 'wifi',
+                markerColor: 'red',
+                prefix: 'fa',
+                iconColor: 'white'
+            });
+
+            L.marker([lat, lng], {icon: wifiIcon}).addTo(map)
+                .bindPopup('<strong>@Model.Name</strong><br><span style="color:red;">سيتم حذفه</span>')
+                .openPopup();
+
+            // Draw coverage area in red
+            var direction = @Model.Direction;
+            var angle = @Model.CoverageAngle;
+            var range = @Model.CoverageRange;
+
+            var startAngleRad = (direction - angle/2) * Math.PI / 180;
+            var endAngleRad = (direction + angle/2) * Math.PI / 180;
+
+            var points = [[lat, lng]];
+            for (var i = 0; i <= 20; i++) {
+                var a = startAngleRad + (endAngleRad - startAngleRad) * i / 20;
+                var point = calculatePoint([lat, lng], range * 1000, a);
+                points.push(point);
+            }
+            points.push([lat, lng]);
+
+            L.polygon(points, {
+                color: '#dc3545',
+                fillColor: '#dc3545',
+                fillOpacity: 0.2,
+                weight: 2
+            }).addTo(map);
+
+            /** 0 = الشمال، باتجاه عقارب الساعة — يطابق خريطة لوحة التحكم */
+            function calculatePoint(center, radius, bearingRad) {
+                var lat = center[0] + (radius / 111320) * Math.cos(bearingRad);
+                var lng = center[1] + (radius / (111320 * Math.cos(center[0] * Math.PI / 180))) * Math.sin(bearingRad);
+                return [lat, lng];
+            }
+        });
+    </script>
+}

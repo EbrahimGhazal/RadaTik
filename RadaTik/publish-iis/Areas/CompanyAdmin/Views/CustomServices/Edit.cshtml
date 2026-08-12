@@ -1,0 +1,44 @@
+@model RadaTik.Models.CustomServiceItem
+@{
+    var service = ViewBag.Service as RadaTik.Models.SystemService;
+    var serviceKey = ViewBag.ServiceKey as string ?? Model.ServiceKey ?? "";
+    ViewData["Title"] = ViewData["Title"] ?? "تعديل";
+    ViewBag.PageHeroIcon = "fas fa-edit";
+    ViewBag.PageHeroSubtitle = service?.DisplayName;
+    ViewBag.PageHeroBackUrl = Url.Action("Index", new { serviceKey });
+}
+
+<partial name="_CrudPageHero" />
+
+<div class="content-grid">
+    <div class="card radtk-section-card">
+        <div class="card-body">
+            <form method="post" asp-area="CompanyAdmin" asp-controller="CustomServices" asp-action="Edit" class="radtk-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="ServiceKey" />
+
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label"></label>
+                    <input asp-for="Title" class="form-control form-control-sm" />
+                    <span asp-validation-for="Title" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Body" class="form-label"></label>
+                    <textarea asp-for="Body" class="form-control form-control-sm" rows="4"></textarea>
+                    <span asp-validation-for="Body" class="text-danger"></span>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a class="btn btn-outline-secondary" asp-route="networkManager-customService-index" asp-route-serviceKey="@serviceKey">رجوع</a>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

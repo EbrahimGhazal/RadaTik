@@ -1,0 +1,94 @@
+@model RadaTik.ViewModels.CompanyAdmin.CompanyWalletOverviewViewModel
+@using RadaTik.Helpers
+@using RadaTik.Models
+@{
+    ViewData["Title"] = "محفظة الشركة";
+}
+
+<div class="financial-page financial-hub-page">
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialNavShowWarehouse = false;
+        ViewBag.FinancialHeroIcon = "fas fa-wallet";
+        ViewBag.FinancialHeroTheme = "wallet";
+        ViewBag.FinancialHeroSubtitle = Model.EffectiveCompanyNetworkName + " — رصيد RadaTik (منفصل عن الصندوق)";
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-secondary micro-btn"" href=""" + Url.RouteUrl("networkManager-cashbox", new { action = "Index", id = "" }) + @"""><i class=""fas fa-cash-register""></i> الصندوق</a>
+<a class=""btn btn-primary micro-btn"" href=""" + Url.RouteUrl("networkManager-wallet-topup") + @"""><i class=""fas fa-plus-circle""></i> تعبئة</a>";
+    }
+    <partial name="_FinancialSysHero" />
+
+    <partial name="_WalletVsCashBoxGuide" />
+
+    @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+    @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+    <div class="row g-3 mb-2">
+        <div class="col-md-4">
+            <div class="card financial-stat-card financial-stat-accent h-100">
+                <div class="card-body">
+                    <div class="financial-stat-label"><i class="fas fa-wallet text-primary"></i> محفظة ل.س.ج</div>
+                    <div class="financial-stat-value">@CurrencyHelper.FormatAmount(Model.CompanyBalanceSyp, PricingCurrency.SYP_New)</div>
+                    <div class="financial-stat-meta">تحصيل · منصة · مواد ل.س</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card financial-stat-card financial-stat-accent h-100">
+                <div class="card-body">
+                    <div class="financial-stat-label"><i class="fas fa-wallet text-success"></i> محفظة $</div>
+                    <div class="financial-stat-value">@CurrencyHelper.FormatAmount(Model.CompanyBalanceUsd, PricingCurrency.USD)</div>
+                    <div class="financial-stat-meta">فواتير مواد وإيراد $</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card financial-stat-card h-100">
+                <div class="card-body">
+                    <div class="financial-stat-label"><i class="fas fa-clock text-warning"></i> طلبات تعبئة معلّقة</div>
+                    <div class="financial-stat-value">@Model.PendingTopUpRequests</div>
+                    <div class="financial-stat-meta">بانتظار مدير النظام</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-light border mb-4 py-3">
+        <span class="small">
+            <i class="fas fa-cash-register text-muted"></i>
+            الصندوق النقدي ودفتر الإيراد/المصروف <strong>منفصلان</strong> عن المحفظة — لا يُحدَّثان تلقائياً منها.
+            <a class="ms-2" asp-route="networkManager-cashbox">الصندوق</a>
+            ·
+            <a asp-route="networkManager-money-diary">الدفتر الشهري</a>
+        </span>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="fas fa-list text-secondary"></i> سجل المحفظة</h6>
+                    <p class="small text-muted">كل الخصومات والإضافات على محفظة ل.س.ج و $.</p>
+                    <a class="btn btn-outline-secondary w-100 micro-btn" asp-route="networkManager-wallet-transactions">عرض الحركات</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="fas fa-user-check text-info"></i> طلبات تغذية المشتركين</h6>
+                    <p class="small text-muted">طلبات من بوابة المشترك بانتظار موافقتك (@Model.PendingClientTopUpRequests معلّقة).</p>
+                    <a class="btn btn-outline-info w-100 micro-btn" asp-route="networkManager-client-wallet-topups">مراجعة الطلبات</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="fas fa-cloud-upload-alt text-success"></i> طلب تعبئة رصيد</h6>
+                    <p class="small text-muted">إرسال طلب لمدير النظام مع إيصال الدفع.</p>
+                    <a class="btn btn-success w-100 micro-btn" asp-route="networkManager-wallet-topup">إنشاء طلب تعبئة</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

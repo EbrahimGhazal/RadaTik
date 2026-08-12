@@ -1,0 +1,68 @@
+@model RadaTik.ViewModels.Profile.ProfileCatalogDeployViewModel
+@{
+    ViewData["Title"] = $"نشر البروفايل — {Model.CatalogName}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-share-alt text-primary"></i> @ViewData["Title"]</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="fas fa-arrow-right"></i> رجوع</a>
+</div>
+
+<div class="alert alert-info">
+    <i class="fas fa-info-circle"></i>
+    اختر السيرفرات التي تريد نشر البروفايل <strong>@Model.CatalogName</strong> عليها.
+    السيرفرات المعلّمة «منشور مسبقاً» لن تُعاد نشرها.
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form asp-action="Deploy" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" value="@Model.CatalogId" />
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">سيرفرات الشركة</div>
+        <div class="card-body">
+            @if (!Model.Servers.Any())
+            {
+                <p class="text-muted mb-0">لا توجد سيرفرات نشطة في نطاق شركتك.</p>
+            }
+            else
+            {
+                <div class="row g-2">
+                    @foreach (var server in Model.Servers)
+                    {
+                        <div class="col-md-6">
+                            <div class="form-check border rounded p-3 @(server.AlreadyDeployed ? "bg-light" : "")">
+                                @if (server.AlreadyDeployed)
+                                {
+                                    <input class="form-check-input" type="checkbox" disabled />
+                                    <label class="form-check-label text-muted">
+                                        <strong>@server.ServerName</strong>
+                                        <span class="badge bg-success ms-1">منشور مسبقاً</span>
+                                    </label>
+                                }
+                                else
+                                {
+                                    <input class="form-check-input" type="checkbox" name="deployToServerIds" value="@server.ServerId" id="srv_@server.ServerId" />
+                                    <label class="form-check-label" for="srv_@server.ServerId">
+                                        <strong>@server.ServerName</strong>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+        <div class="card-footer d-flex gap-2">
+            <button type="submit" class="btn btn-primary" @(Model.Servers.Any(s => !s.AlreadyDeployed) ? null : "disabled")>
+                <i class="fas fa-cloud-upload-alt"></i> نشر على السيرفرات المحددة
+            </button>
+            <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+        </div>
+    </div>
+</form>

@@ -1,0 +1,53 @@
+@using RadaTik.Models
+@{
+    var selected = ViewData["CurrencySelected"] as PricingCurrency?;
+    var requireChoice = (ViewData["MaterialInvoiceRequireExplicitChoice"] as bool?) ?? false;
+    var sypSelected = selected == PricingCurrency.SYP_New;
+    var usdSelected = selected == PricingCurrency.USD;
+}
+<div class="material-invoice-choice-panel material-invoice-choice-panel--currency" data-material-currency-panel>
+    <div class="material-invoice-choice-panel__header">
+        <span class="material-invoice-choice-panel__icon" aria-hidden="true">
+            <i class="fas fa-coins"></i>
+        </span>
+        <div>
+            <h2 class="material-invoice-choice-panel__title">عملة الفاتورة</h2>
+            <p class="material-invoice-choice-panel__subtitle mb-0">
+                @(requireChoice ? "اختر العملة التي سُجِّلت بها أسعار البنود — مطلوب قبل الحفظ." : "عملة تسجيل الفاتورة والصندوق عند الدفع.")
+            </p>
+        </div>
+        <span class="material-invoice-choice-panel__badge material-invoice-choice-panel__badge--unset"
+              data-currency-badge-unset @(selected.HasValue ? "hidden" : null)>لم يُحدَّد</span>
+        <span class="material-invoice-choice-panel__badge material-invoice-choice-panel__badge--syp"
+              data-currency-badge-syp @(sypSelected ? null : "hidden")>ل.س.ج</span>
+        <span class="material-invoice-choice-panel__badge material-invoice-choice-panel__badge--usd"
+              data-currency-badge-usd @(usdSelected ? null : "hidden")>$</span>
+    </div>
+    <div class="material-invoice-choice-grid" role="radiogroup" aria-label="عملة الفاتورة" aria-required="@(requireChoice ? "true" : "false")">
+        <label class="material-invoice-choice @(sypSelected ? "is-selected" : "")">
+            <input type="radio"
+                   class="material-invoice-choice__input"
+                   name="currency"
+                   value="@((int)PricingCurrency.SYP_New)"
+                   @(sypSelected ? "checked" : null)
+                   @(requireChoice ? "required" : null)
+                   data-currency-choice="syp" />
+            <span class="material-invoice-choice__body">
+                <span class="material-invoice-choice__title">ل.س.ج</span>
+                <span class="material-invoice-choice__desc">ليرة سورية جديدة — حقول الجملة/المفرق بالليرة الجديدة.</span>
+            </span>
+        </label>
+        <label class="material-invoice-choice @(usdSelected ? "is-selected" : "")">
+            <input type="radio"
+                   class="material-invoice-choice__input"
+                   name="currency"
+                   value="@((int)PricingCurrency.USD)"
+                   @(usdSelected ? "checked" : null)
+                   data-currency-choice="usd" />
+            <span class="material-invoice-choice__body">
+                <span class="material-invoice-choice__title">$ (دولار)</span>
+                <span class="material-invoice-choice__desc">تُسجَّل المبالغ بالدولار وتُخصم من صندوق الدولار عند الدفع.</span>
+            </span>
+        </label>
+    </div>
+</div>

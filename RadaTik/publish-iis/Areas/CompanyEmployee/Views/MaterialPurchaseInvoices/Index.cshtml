@@ -1,0 +1,33 @@
+@using RadaTik.Helpers
+@using RadaTik.Models.Business
+@{
+    ViewData["Title"] = "فواتير شراء المواد";
+    var invoices = ViewBag.Invoices as List<MaterialPurchaseInvoice> ?? new();
+    var companyName = ViewBag.CompanyName as string ?? "";
+}
+
+<div class="page-header mb-3">
+    <h1 class="page-title"><i class="fas fa-file-invoice"></i> @ViewData["Title"]</h1>
+    <p class="text-muted mb-0">@companyName</p>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-sm mb-0 radtk-data-table radtk-data-table--cards">
+            <thead><tr><th>#</th><th>التاريخ</th><th>المورد</th><th>الإجمالي</th><th>مدفوعة</th></tr></thead>
+            <tbody>
+            @if (!invoices.Any()) { <tr><td colspan="5" class="text-center text-muted py-3">لا توجد فواتير.</td></tr> }
+            @foreach (var inv in invoices)
+            {
+                <tr>
+                    <td>@inv.Id</td>
+                    <td>@inv.InvoiceDate.ToString("yyyy-MM-dd")</td>
+                    <td>@(inv.SupplierName ?? "—")</td>
+                    <td>@CurrencyHelper.FormatAmount(inv.TotalAmount, inv.Currency)</td>
+                    <td>@(inv.IsPaid ? "نعم" : "لا")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

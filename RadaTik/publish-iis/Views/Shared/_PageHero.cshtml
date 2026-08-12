@@ -1,0 +1,58 @@
+@model RadaTik.ViewModels.UI.PageHeroViewModel
+@{
+    var hero = Model ?? new RadaTik.ViewModels.UI.PageHeroViewModel
+    {
+        Title = ViewData["Title"] as string ?? "",
+        Subtitle = ViewBag.OperationalHeroSubtitle as string ?? ViewBag.CompanyName as string,
+        IconClass = ViewBag.OperationalHeroIcon as string ?? "fas fa-layer-group",
+        Theme = ViewBag.OperationalHeroTheme as string ?? "default"
+    };
+    var title = string.IsNullOrWhiteSpace(hero.Title)
+        ? ViewData["Title"] as string ?? ""
+        : hero.Title;
+}
+@if (!string.IsNullOrWhiteSpace(title))
+{
+    <div class="sys-hero operational-sys-hero radtk-page-hero operational-sys-hero--@hero.Theme mb-3">
+        <div class="sys-hero-main">
+            <div class="sys-hero-icon"><i class="@hero.IconClass"></i></div>
+            <div>
+                <h1 class="sys-hero-title mb-1">@title</h1>
+                @if (!string.IsNullOrWhiteSpace(hero.Subtitle))
+                {
+                    <p class="sys-hero-subtitle mb-0">@hero.Subtitle</p>
+                }
+            </div>
+        </div>
+        @if (hero.Chips.Any())
+        {
+            <div class="sys-hero-chips">
+                @foreach (var chip in hero.Chips)
+                {
+                    <span class="sys-hero-chip"><i class="@chip.IconClass"></i> @chip.Text</span>
+                }
+            </div>
+        }
+        @if (hero.Actions.Any())
+        {
+            <div class="sys-hero-actions d-flex flex-wrap gap-2">
+                @foreach (var action in hero.Actions)
+                {
+                    <a href="@action.Url" class="@action.CssClass">
+                        @if (!string.IsNullOrWhiteSpace(action.IconClass))
+                        {
+                            <i class="@action.IconClass"></i>
+                        }
+                        @action.Text
+                    </a>
+                }
+            </div>
+        }
+        else if (ViewBag.OperationalHeroActions != null)
+        {
+            <div class="sys-hero-actions d-flex flex-wrap gap-2">
+                @Html.Raw(ViewBag.OperationalHeroActions)
+            </div>
+        }
+    </div>
+}

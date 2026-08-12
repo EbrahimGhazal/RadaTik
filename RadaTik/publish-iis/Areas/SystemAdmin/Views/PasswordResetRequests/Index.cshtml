@@ -1,0 +1,198 @@
+@model IEnumerable<RadaTik.Models.PasswordResetRequest>
+@{
+    ViewData["Title"] = ViewData["Title"] ?? "طلبات إعادة تعيين كلمة المرور";
+    var selectedStatus = ViewBag.SelectedStatus as RadaTik.Models.PasswordResetStatus?;
+}
+
+<div class="sys-hero mb-3">
+    <div class="sys-hero-main">
+        <div class="sys-hero-icon"><i class="fas fa-key"></i></div>
+        <div>
+            <h1 class="sys-hero-title">@ViewData["Title"]</h1>
+            <p class="sys-hero-subtitle">مراجعة طلبات الاستعادة القادمة من صفحة "نسيت كلمة المرور".</p>
+        </div>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+<div id="ajaxResult" class="alert d-none"></div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+        <span class="text-muted small">تصفية الحالة:</span>
+        <a class="btn btn-sm @(selectedStatus == null ? "btn-primary" : "btn-outline-primary")" asp-route="systemAdmin-passwordResetRequests">الكل</a>
+        <a class="btn btn-sm @(selectedStatus == RadaTik.Models.PasswordResetStatus.Pending ? "btn-primary" : "btn-outline-primary")"
+           asp-route="systemAdmin-passwordResetRequests" asp-route-status="@((int)RadaTik.Models.PasswordResetStatus.Pending)">قيد الانتظار</a>
+        <a class="btn btn-sm @(selectedStatus == RadaTik.Models.PasswordResetStatus.Completed ? "btn-primary" : "btn-outline-primary")"
+           asp-route="systemAdmin-passwordResetRequests" asp-route-status="@((int)RadaTik.Models.PasswordResetStatus.Completed)">مكتمل</a>
+        <a class="btn btn-sm @(selectedStatus == RadaTik.Models.PasswordResetStatus.Cancelled ? "btn-primary" : "btn-outline-primary")"
+           asp-route="systemAdmin-passwordResetRequests" asp-route-status="@((int)RadaTik.Models.PasswordResetStatus.Cancelled)">ملغي</a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>المستخدم</th>
+                    <th>الحالة</th>
+                    <th>تاريخ الطلب</th>
+                    <th>ملاحظات</th>
+                    <th style="width: 380px;">الإجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var r in Model)
+                    {
+                        <tr data-request-id="@r.Id">
+                            <td>#@r.Id</td>
+                            <td class="status-cell">
+                                <div><strong>@(r.User?.FullName ?? r.User?.UserName ?? "غير معروف")</strong></div>
+                                <div class="text-muted small">@r.Email</div>
+                            </td>
+                            <td>
+                                @if (r.Status == RadaTik.Models.PasswordResetStatus.Pending)
+                                {
+                                    <span class="badge bg-warning text-dark">قيد الانتظار</span>
+                                }
+                                else if (r.Status == RadaTik.Models.PasswordResetStatus.Completed)
+                                {
+                                    <span class="badge bg-success">مكتمل</span>
+                                }
+                                else if (r.Status == RadaTik.Models.PasswordResetStatus.Cancelled)
+                                {
+                                    <span class="badge bg-danger">ملغي</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@r.Status</span>
+                                }
+                            </td>
+                            <td class="text-muted small">@r.CreatedDate.ToString("yyyy/MM/dd HH:mm")</td>
+                            <td class="text-muted small notes-cell">@(string.IsNullOrWhiteSpace(r.Notes) ? "—" : r.Notes)</td>
+                            <td class="action-cell">
+                                @if (r.Status == RadaTik.Models.PasswordResetStatus.Pending)
+                                {
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <form method="post" asp-route="systemAdmin-passwordResetRequests" asp-route-action="ResetUserPassword" class="d-flex gap-2 js-ajax-form" data-after-state="completed">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="requestId" value="@r.Id" />
+                                            <input type="password" class="form-control form-control-sm" name="newPassword" minlength="6" required placeholder="كلمة المرور الجديدة" />
+                                            <button type="submit" class="btn btn-sm btn-success">حفظ</button>
+                                        </form>
+                                        <form method="post" asp-route="systemAdmin-passwordResetRequests" asp-route-action="Reject" class="d-flex gap-2 js-ajax-form" data-after-state="cancelled">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="requestId" value="@r.Id" />
+                                            <input type="text" class="form-control form-control-sm" name="notes" placeholder="سبب الرفض (اختياري)" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">رفض</button>
+                                        </form>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">تمت المعالجة</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">لا توجد طلبات ضمن التصفية الحالية.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const resultBox = document.getElementById('ajaxResult');
+            const showResult = (ok, message) => {
+                if (!resultBox) return;
+                resultBox.classList.remove('d-none', 'alert-success', 'alert-danger');
+                resultBox.classList.add(ok ? 'alert-success' : 'alert-danger');
+                resultBox.textContent = message || (ok ? 'تمت العملية بنجاح.' : 'حدث خطأ غير متوقع.');
+            };
+
+            const statusMarkup = (state) => {
+                if (state === 'completed') return '<span class="badge bg-success">مكتمل</span>';
+                if (state === 'cancelled') return '<span class="badge bg-danger">ملغي</span>';
+                return '<span class="badge bg-secondary">تمت المعالجة</span>';
+            };
+
+            document.querySelectorAll('.js-ajax-form').forEach((form) => {
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    let originalBtnHtml = '';
+                    if (submitBtn) {
+                        const isReject = (form.dataset.afterState || '').toLowerCase() === 'cancelled';
+                        const loadingText = isReject ? 'جاري الرفض...' : 'جاري الحفظ...';
+                        originalBtnHtml = submitBtn.innerHTML;
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>${loadingText}`;
+                    }
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok || !data?.ok) {
+                            showResult(false, data?.message || 'تعذر تنفيذ العملية.');
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = originalBtnHtml;
+                            }
+                            return;
+                        }
+
+                        showResult(true, data.message);
+                        const row = form.closest('tr');
+                        if (!row) return;
+
+                        const state = form.dataset.afterState || '';
+                        const statusCell = row.querySelector('.status-cell');
+                        const actionCell = row.querySelector('.action-cell');
+                        const notesCell = row.querySelector('.notes-cell');
+                        if (statusCell) statusCell.innerHTML = statusMarkup(state);
+                        if (actionCell) actionCell.innerHTML = '<span class="text-muted small">تمت المعالجة</span>';
+
+                        if (notesCell && state === 'completed') {
+                            notesCell.textContent = 'تم تغيير كلمة المرور بواسطة مدير النظام.';
+                        } else if (notesCell && state === 'cancelled') {
+                            const notesInput = form.querySelector('input[name="notes"]');
+                            notesCell.textContent = (notesInput?.value || '').trim() || 'تم رفض الطلب من مدير النظام.';
+                        }
+                    } catch {
+                        showResult(false, 'تعذر الاتصال بالخادم.');
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalBtnHtml;
+                        }
+                    }
+                });
+            });
+        })();
+    </script>
+}
+

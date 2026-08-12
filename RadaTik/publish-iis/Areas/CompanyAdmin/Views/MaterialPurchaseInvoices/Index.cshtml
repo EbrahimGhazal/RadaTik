@@ -1,0 +1,71 @@
+@using RadaTik.Helpers
+@using RadaTik.Models
+@using RadaTik.Models.Business
+@{
+    ViewData["Title"] = "فواتير شراء المواد";
+    var invoices = ViewBag.Invoices as List<MaterialPurchaseInvoice> ?? new();
+    var companyName = ViewBag.CompanyName as string ?? "";
+    ViewBag.FinancialHeroIcon = "fas fa-cart-plus";
+    ViewBag.FinancialHeroTheme = "purchase";
+    ViewBag.FinancialHeroSubtitle = companyName;
+    ViewBag.FinancialHeroChips = new[] { ("fas fa-warehouse", "شراء / إدخال") };
+    ViewBag.FinancialHeroActions = @"<a class=""btn btn-primary micro-btn"" href=""" + Url.Action("Create") + @"""><i class=""fas fa-plus""></i> فاتورة شراء</a>";
+}
+
+<div class="financial-page financial-hub-page material-invoice-page material-invoice-page--purchase">
+    <partial name="_WarehouseSubNav" />
+    <partial name="_FinancialSysHero" />
+
+    @if (TempData["Success"] != null) { <div class="alert alert-success mb-3">@TempData["Success"]</div> }
+    @if (TempData["Error"] != null) { <div class="alert alert-danger mb-3">@TempData["Error"]</div> }
+
+    <div class="card material-invoice-section financial-table-card border-0 shadow-sm">
+        <div class="card-header material-invoice-section__header py-2">
+            <h2 class="h6 mb-0"><i class="fas fa-list me-1"></i> آخر الفواتير</h2>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0 material-invoice-lines-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>التاريخ</th>
+                            <th>المورد</th>
+                            <th>الإجمالي</th>
+                            <th>العملة</th>
+                            <th>الدفع</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var inv in invoices)
+                    {
+                        <tr>
+                            <td>@inv.Id</td>
+                            <td>@inv.InvoiceDate.ToString("yyyy-MM-dd")</td>
+                            <td>@(inv.SupplierName ?? "—")</td>
+                            <td>@CurrencyHelper.FormatAmount(inv.TotalAmount, inv.Currency)</td>
+                            <td>@CurrencyHelper.GetSymbol(inv.Currency)</td>
+                            <td>
+                                @if (inv.IsPaid)
+                                {
+                                    <span class="badge bg-success">مدفوعة</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">غير مدفوعة</span>
+                                }
+                            </td>
+                            <td><a asp-action="Details" asp-route-id="@inv.Id">تفاصيل</a></td>
+                        </tr>
+                    }
+                    @if (!invoices.Any())
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-4">لا توجد فواتير بعد.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

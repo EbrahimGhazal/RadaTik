@@ -1,0 +1,44 @@
+@model RadaTik.Areas.CompanyAdmin.ViewModels.MaterialSalesInvoiceEditViewModel
+@{
+    ViewData["Title"] = $"تعديل فاتورة بيع #{Model.Id}";
+}
+
+<div class="financial-page material-invoice-page material-invoice-page--sales">
+    <partial name="_WarehouseSubNav" />
+    <h1 class="mb-3">تعديل فاتورة بيع #@Model.Id</h1>
+    <p class="text-muted">الإجمالي: <strong>@SyrianCurrencyHelper.FormatNew(Model.TotalAmount)</strong> ل.س — تعديل الرأس فقط</p>
+    <form method="post" class="card financial-form-card border-0 shadow-sm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+        <div class="card-body row g-3">
+            <div class="col-md-4"><label class="form-label">التاريخ</label><input type="date" name="invoiceDate" class="form-control" value="@Model.InvoiceDate.ToString("yyyy-MM-dd")" required /></div>
+            <div class="col-md-4">
+                <label class="form-label">عميل ERP</label>
+                @{
+                    var erpCustomers = ViewBag.ErpCustomers as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+                }
+                <select name="erpCustomerId" class="form-select mb-2">
+                    <option value="">— من سجل ERP —</option>
+                    @foreach (var c in erpCustomers)
+                    {
+                        <option value="@c.Value" selected="@(Model.ErpCustomerId?.ToString() == c.Value)">@c.Text</option>
+                    }
+                </select>
+                <label class="form-label small text-muted">أو اسم حر</label>
+                <input name="customerName" class="form-control" value="@Model.CustomerName" />
+            </div>
+            <div class="col-md-4"><label class="form-label">ملاحظات</label><input name="notes" class="form-control" value="@Model.Notes" /></div>
+            <div class="col-12">
+                @{
+                    ViewData["IsPaid"] = Model.IsPaid;
+                    ViewData["MaterialInvoiceKind"] = "sales";
+                }
+                <partial name="_MaterialInvoicePaymentPanel" />
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-success micro-btn">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary micro-btn">إلغاء</a>
+        </div>
+    </form>
+</div>

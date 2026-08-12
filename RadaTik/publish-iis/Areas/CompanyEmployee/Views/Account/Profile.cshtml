@@ -1,0 +1,138 @@
+@model RadaTik.ViewModels.Account.ProfileViewModel
+@using RadaTik.Security
+@{
+    ViewData["Title"] = "بروفايلي";
+    string initial = "م";
+    if (!string.IsNullOrWhiteSpace(Model.FullName))
+    {
+        initial = Model.FullName.Trim()[0].ToString().ToUpper();
+    }
+    else if (!string.IsNullOrWhiteSpace(Model.UserName))
+    {
+        initial = Model.UserName.Trim()[0].ToString().ToUpper();
+    }
+}
+
+@section Styles {
+    <partial name="_StrongPasswordRulesStyles" />
+}
+
+<div class="page-header mb-3">
+    <h1 class="page-title"><i class="fas fa-user-cog"></i> @ViewData["Title"]</h1>
+    <p class="text-muted mb-0">تحديث بياناتك الشخصية وكلمة مرور الدخول</p>
+</div>
+
+<partial name="_TempDataAlerts" />
+
+<div class="row g-3">
+    <div class="col-12 col-lg-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-3 bg-primary text-white fw-bold"
+                     style="width:80px;height:80px;font-size:2rem;">@initial</div>
+                <div class="fw-bold">@(Model.FullName ?? Model.UserName)</div>
+                <div class="text-muted small">@Model.UserName</div>
+                <hr />
+                <div class="text-start small">
+                    @foreach (var role in Model.Roles)
+                    {
+                        <span class="badge bg-secondary me-1">@role</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white"><h6 class="mb-0">البيانات الشخصية</h6></div>
+            <div class="card-body">
+                <form asp-action="UpdateProfile" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">اسم المستخدم</label>
+                            <input class="form-control" value="@Model.UserName" disabled />
+                            <div class="form-text">لا يمكن تغيير اسم المستخدم.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="FullName" class="form-label">الاسم الكامل</label>
+                            <input asp-for="FullName" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label"></label>
+                            <input asp-for="PhoneNumber" class="form-control" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3">
+                        <i class="fas fa-save"></i> حفظ البيانات
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white"><h6 class="mb-0">تغيير كلمة المرور</h6></div>
+            <div class="card-body">
+                <form asp-action="ChangePassword" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label" for="empCurrentPassword">كلمة المرور الحالية</label>
+                        <div class="sp-password-field-wrap">
+                            <span class="sp-password-field-icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
+                            <input type="password" name="CurrentPassword" id="empCurrentPassword" class="form-control" autocomplete="current-password" required />
+                            <button type="button" class="sp-password-toggle" data-sp-toggle-password="empCurrentPassword" aria-label="إظهار كلمة المرور الحالية" aria-pressed="false">
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="empNewPassword">كلمة المرور الجديدة</label>
+                        <div class="sp-password-field-wrap">
+                            <span class="sp-password-field-icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
+                            <input type="password" name="NewPassword" id="empNewPassword" class="form-control" autocomplete="new-password" minlength="@StrongPasswordRules.MinimumLength" required />
+                            <button type="button" class="sp-password-toggle" data-sp-toggle-password="empNewPassword" aria-label="إظهار كلمة المرور الجديدة" aria-pressed="false">
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="empConfirmPassword">تأكيد كلمة المرور الجديدة</label>
+                        <div class="sp-password-field-wrap">
+                            <span class="sp-password-field-icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
+                            <input type="password" name="ConfirmNewPassword" id="empConfirmPassword" class="form-control" autocomplete="new-password" minlength="@StrongPasswordRules.MinimumLength" required />
+                            <button type="button" class="sp-password-toggle" data-sp-toggle-password="empConfirmPassword" aria-label="إظهار تأكيد كلمة المرور" aria-pressed="false">
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    @{
+                        ViewData["SpRulesMinLength"] = StrongPasswordRules.MinimumLength;
+                        ViewData["SpRulesPasswordFieldId"] = "empNewPassword";
+                        ViewData["SpRulesUserNameFieldId"] = null;
+                        ViewData["SpRulesEmailFieldId"] = "Email";
+                        ViewData["SpRulesInteractive"] = true;
+                        ViewData["SpRulesPanelId"] = "employeeProfilePasswordRules";
+                        ViewData["SpRulesSubtitle"] = "اتبع المعايير أدناه عند تحديث كلمة مرور الدخول";
+                    }
+                    <partial name="_StrongPasswordRulesPanel" />
+                    <button type="submit" class="btn btn-outline-primary mt-3">
+                        <i class="fas fa-key"></i> تحديث كلمة المرور
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <partial name="_StrongPasswordRulesScripts" />
+}

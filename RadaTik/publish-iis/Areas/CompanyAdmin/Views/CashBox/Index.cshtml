@@ -1,0 +1,408 @@
+@using RadaTik.Models
+@using RadaTik.Helpers
+@{
+    ViewData["Title"] = "الصندوق النقدي";
+    var cashBox = ViewBag.CashBox as CashBox;
+    var ownerName = ViewBag.OwnerName as string ?? "الشبكة";
+    var withdrawals = ViewBag.Withdrawals as List<CashBoxWithdrawal> ?? new List<CashBoxWithdrawal>();
+    var deposits = ViewBag.Deposits as List<CashBoxDeposit> ?? new List<CashBoxDeposit>();
+    var balanceSyp = cashBox?.Balance ?? 0m;
+    var balanceUsd = cashBox?.BalanceUsd ?? 0m;
+    var exchanges = ViewBag.Exchanges as List<CashBoxCurrencyExchange> ?? new List<CashBoxCurrencyExchange>();
+    var defaultRate = ViewBag.DefaultExchangeRate as decimal?;
+
+    string CashRowClass(PricingCurrency currency) =>
+        currency == PricingCurrency.USD ? "cashbox-row-currency--usd" : "cashbox-row-currency--syp";
+
+    string ExchangeRowClass(PricingCurrency from, PricingCurrency to) =>
+        from == PricingCurrency.SYP_New && to == PricingCurrency.USD ? "cashbox-row-currency--fx-syp-usd"
+        : from == PricingCurrency.USD && to == PricingCurrency.SYP_New ? "cashbox-row-currency--fx-usd-syp"
+        : CashRowClass(from);
+}
+<div class="radtk-page--companyadmin-views-cashbox-index">
+
+<div class="financial-page financial-hub-page financial-cashbox-page">
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-cash-register";
+        ViewBag.FinancialHeroTheme = "cashbox";
+        ViewBag.FinancialHeroSubtitle = ownerName + " — نقد باليد (ل.س.ج و $)";
+        ViewBag.FinancialHeroChips = new[] { ("fas fa-coins", "صندوق نقدي") };
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-secondary micro-btn"" href=""" + Url.RouteUrl("networkManager-money-diary", new { action = "Index", id = "" }) + @"""><i class=""fas fa-book""></i> الدفتر</a>
+<a class=""btn btn-outline-secondary micro-btn"" href=""" + Url.RouteUrl("networkManager-receipts", new { action = "Index", id = "" }) + @"""><i class=""fas fa-receipt""></i> القبض</a>";
+    }
+    <partial name="_FinancialSysHero" />
+
+    @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+    @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+    <div class="row g-3 mb-4 cashbox-balance-row">
+        <div class="col-md-6">
+            <div class="cashbox-balance-hero cashbox-balance-hero--syp">
+                <div class="cashbox-balance-hero__label">رصيد الصندوق</div>
+                <div class="cashbox-balance-hero__currency">ل.س.ج</div>
+                <div class="cashbox-balance-hero__amount">@CurrencyHelper.FormatAmount(balanceSyp, PricingCurrency.SYP_New)</div>
+                <div class="cashbox-balance-hero__meta">نقد ليرة باليد</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="cashbox-balance-hero cashbox-balance-hero--usd">
+                <div class="cashbox-balance-hero__label">رصيد الصندوق</div>
+                <div class="cashbox-balance-hero__currency">$</div>
+                <div class="cashbox-balance-hero__amount">@CurrencyHelper.FormatAmount(balanceUsd, PricingCurrency.USD)</div>
+                <div class="cashbox-balance-hero__meta">نقد دولار باليد</div>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_FinancialSeparationFromWallet" />
+
+    <section class="mb-4">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <h2 class="h5 mb-0"><i class="fas fa-exchange-alt text-primary"></i> تحويل بين العملتين</h2>
+            <span class="badge bg-light text-dark border">سعر الصرف: 1 $ = ل.س.ج</span>
+        </div>
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <div class="card cashbox-section-card h-100 shadow-sm">
+                    <div class="card-header cashbox-section-card__header cashbox-section-card__header--syp">
+                        <strong>من ل.س.ج إلى $</strong>
+                    </div>
+                    <div class="card-body">
+                        @{
+                            var sypPanel = new ViewDataDictionary(ViewData) {
+                                ["Direction"] = "SypToUsd",
+                                ["AvailableBalance"] = balanceSyp,
+                                ["DefaultExchangeRate"] = defaultRate
+                            };
+                        }
+                        <partial name="_CashBoxExchangePanel" view-data="sypPanel" />
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card cashbox-section-card h-100 shadow-sm">
+                    <div class="card-header cashbox-section-card__header cashbox-section-card__header--usd">
+                        <strong>من $ إلى ل.س.ج</strong>
+                    </div>
+                    <div class="card-body">
+                        @{
+                            var usdPanel = new ViewDataDictionary(ViewData) {
+                                ["Direction"] = "UsdToSyp",
+                                ["AvailableBalance"] = balanceUsd,
+                                ["DefaultExchangeRate"] = defaultRate
+                            };
+                        }
+                        <partial name="_CashBoxExchangePanel" view-data="usdPanel" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mb-4">
+        <h2 class="h5 mb-3"><i class="fas fa-hand-holding-usd text-secondary"></i> إيداع أو سحب نقدي</h2>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card financial-form-card h-100">
+                    <div class="card-header bg-success bg-opacity-10">
+                        <h6 class="mb-0 text-success"><i class="fas fa-plus-circle"></i> إيداع في الصندوق</h6>
+                    </div>
+                    <div class="card-body">
+                        <form asp-area="CompanyAdmin" asp-controller="CashBox" asp-action="Deposit" method="post" class="cashbox-ops-form" data-op="deposit">
+                            @Html.AntiForgeryToken()
+                            <div class="btn-group w-100 mb-3 cashbox-currency-pills" role="group">
+                                <input type="radio" class="btn-check" name="currency" id="dep-syp" value="@((int)PricingCurrency.SYP_New)" checked autocomplete="off" />
+                                <label class="btn btn-outline-secondary" for="dep-syp">ل.س.ج</label>
+                                <input type="radio" class="btn-check" name="currency" id="dep-usd" value="@((int)PricingCurrency.USD)" autocomplete="off" />
+                                <label class="btn btn-outline-secondary" for="dep-usd">$</label>
+                            </div>
+                            <div class="mb-2 cashbox-ops-amount-syp">
+                                @{
+                                    var depSyp = new ViewDataDictionary(ViewData) {
+                                        ["FieldName"] = "amount", ["Label"] = "مبلغ الإيداع", ["Placeholder"] = "1,000,000"
+                                    };
+                                }
+                                <partial name="_SypAmountInput" view-data="depSyp" />
+                            </div>
+                            <div class="mb-2 cashbox-ops-amount-usd d-none">
+                                <label class="form-label">مبلغ الإيداع ($)</label>
+                                <input type="number" class="form-control cashbox-usd-field" step="0.01" min="0.01" placeholder="500" disabled />
+                            </div>
+                            <div class="mb-2">
+                                <input type="text" name="notes" class="form-control" placeholder="ملاحظات (اختياري)" />
+                            </div>
+                            <button type="submit" class="btn btn-success w-100 micro-btn">إيداع</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card financial-form-card h-100">
+                    <div class="card-header bg-danger bg-opacity-10">
+                        <h6 class="mb-0 text-danger"><i class="fas fa-minus-circle"></i> سحب من الصندوق</h6>
+                    </div>
+                    <div class="card-body">
+                        <form asp-area="CompanyAdmin" asp-controller="CashBox" asp-action="Withdraw" method="post" class="cashbox-ops-form" data-op="withdraw">
+                            @Html.AntiForgeryToken()
+                            <div class="btn-group w-100 mb-3 cashbox-currency-pills" role="group">
+                                <input type="radio" class="btn-check" name="currency" id="wd-syp" value="@((int)PricingCurrency.SYP_New)" checked autocomplete="off" />
+                                <label class="btn btn-outline-secondary" for="wd-syp">ل.س.ج</label>
+                                <input type="radio" class="btn-check" name="currency" id="wd-usd" value="@((int)PricingCurrency.USD)" autocomplete="off" />
+                                <label class="btn btn-outline-secondary" for="wd-usd">$</label>
+                            </div>
+                            <div class="mb-2 cashbox-ops-amount-syp">
+                                @{
+                                    var wdSyp = new ViewDataDictionary(ViewData) {
+                                        ["FieldName"] = "amount", ["Label"] = "مبلغ السحب", ["Placeholder"] = "500,000"
+                                    };
+                                }
+                                <partial name="_SypAmountInput" view-data="wdSyp" />
+                            </div>
+                            <div class="mb-2 cashbox-ops-amount-usd d-none">
+                                <label class="form-label">مبلغ السحب ($)</label>
+                                <input type="number" class="form-control cashbox-usd-field" step="0.01" min="0.01" placeholder="100" disabled />
+                            </div>
+                            <div class="mb-2">
+                                <input type="text" name="notes" class="form-control" placeholder="سبب السحب (اختياري)" />
+                            </div>
+                            <button type="submit" class="btn btn-danger w-100 micro-btn">سحب</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="h5 mb-3"><i class="fas fa-list-alt text-secondary"></i> سجل الحركات</h2>
+        <div class="cashbox-currency-legend mb-3" aria-label="دليل ألوان العملات">
+            <span class="cashbox-currency-legend__item cashbox-currency-legend__item--syp"><i class="fas fa-circle"></i> ل.س.ج</span>
+            <span class="cashbox-currency-legend__item cashbox-currency-legend__item--usd"><i class="fas fa-circle"></i> $</span>
+            <span class="cashbox-currency-legend__item cashbox-currency-legend__item--fx"><i class="fas fa-circle"></i> تحويل (لونان)</span>
+        </div>
+        <ul class="nav nav-tabs cashbox-log-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-exchanges" type="button">
+                    تحويلات <span class="badge bg-primary ms-1">@exchanges.Count</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-deposits" type="button">
+                    إيداع <span class="badge bg-secondary ms-1">@deposits.Count</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-withdrawals" type="button">
+                    سحب <span class="badge bg-secondary ms-1">@withdrawals.Count</span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="tab-exchanges">
+                <div class="card financial-table-card">
+                    <div class="card-body p-0">
+                        @if (exchanges.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0 financial-table radtk-data-table radtk-data-table--cards">
+                                    <thead>
+                                        <tr>
+                                            <th>التاريخ</th>
+                                            <th>من</th>
+                                            <th>إلى</th>
+                                            <th>السعر</th>
+                                            <th>بواسطة</th>
+                                            <th>ملاحظات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach (var ex in exchanges)
+                                    {
+                                        var fromC = CashBoxHelper.NormalizeOperatingCurrency(ex.FromCurrency);
+                                        var toC = CashBoxHelper.NormalizeOperatingCurrency(ex.ToCurrency);
+                                        <tr class="financial-row @ExchangeRowClass(fromC, toC)">
+                                            <td class="small">@ex.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                            <td class="text-danger">
+                                                <span class="cashbox-currency-chip cashbox-currency-chip--@((int)fromC)">@CurrencyHelper.GetSymbol(fromC)</span>
+                                                @CurrencyHelper.FormatAmount(ex.SourceAmount, fromC)
+                                            </td>
+                                            <td class="text-success">
+                                                <span class="cashbox-currency-chip cashbox-currency-chip--@((int)toC)">@CurrencyHelper.GetSymbol(toC)</span>
+                                                @CurrencyHelper.FormatAmount(ex.TargetAmount, toC)
+                                            </td>
+                                            <td class="small">@ex.ExchangeRate.ToString("N0")</td>
+                                            <td class="small">@(ex.CreatedByUser?.FullName ?? ex.CreatedByUser?.UserName ?? "—")</td>
+                                            <td class="text-muted small">@(ex.Notes ?? "—")</td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted p-4 mb-0 text-center">لا توجد تحويلات بعد.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-deposits">
+                <div class="card financial-table-card">
+                    <div class="card-body p-0">
+                        @if (deposits.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0 financial-table radtk-data-table radtk-data-table--cards">
+                                    <thead>
+                                        <tr><th>التاريخ</th><th>العملة</th><th>المبلغ</th><th>قبل</th><th>بعد</th><th>بواسطة</th><th>ملاحظات</th></tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach (var d in deposits.Take(50))
+                                    {
+                                        var cur = CashBoxHelper.NormalizeOperatingCurrency(d.Currency);
+                                        <tr class="financial-row @CashRowClass(cur)">
+                                            <td class="small">@d.DepositedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                            <td><span class="cashbox-currency-chip cashbox-currency-chip--@((int)cur)">@CurrencyHelper.GetSymbol(cur)</span></td>
+                                            <td class="text-success">+@CurrencyHelper.FormatAmount(d.Amount, cur)</td>
+                                            <td>@CurrencyHelper.FormatAmount(d.BalanceBefore, cur)</td>
+                                            <td>@CurrencyHelper.FormatAmount(d.BalanceAfter, cur)</td>
+                                            <td class="small">@(d.DepositedByUser?.FullName ?? d.DepositedByUser?.UserName ?? "—")</td>
+                                            <td class="text-muted small">@(d.Notes ?? "—")</td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else { <p class="text-muted p-4 mb-0 text-center">لا توجد إيداعات.</p> }
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-withdrawals">
+                <div class="card financial-table-card">
+                    <div class="card-body p-0">
+                        @if (withdrawals.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0 financial-table radtk-data-table radtk-data-table--cards">
+                                    <thead>
+                                        <tr><th>التاريخ</th><th>العملة</th><th>المبلغ</th><th>قبل</th><th>بعد</th><th>بواسطة</th><th>ملاحظات</th></tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach (var w in withdrawals.Take(50))
+                                    {
+                                        var cur = CashBoxHelper.NormalizeOperatingCurrency(w.Currency);
+                                        <tr class="financial-row @CashRowClass(cur)">
+                                            <td class="small">@w.WithdrawnAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                            <td><span class="cashbox-currency-chip cashbox-currency-chip--@((int)cur)">@CurrencyHelper.GetSymbol(cur)</span></td>
+                                            <td class="text-danger">-@CurrencyHelper.FormatAmount(w.Amount, cur)</td>
+                                            <td>@CurrencyHelper.FormatAmount(w.BalanceBefore, cur)</td>
+                                            <td>@CurrencyHelper.FormatAmount(w.BalanceAfter, cur)</td>
+                                            <td class="small">@(w.WithdrawnByUser?.FullName ?? w.WithdrawnByUser?.UserName ?? "—")</td>
+                                            <td class="text-muted small">@(w.Notes ?? "—")</td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else { <p class="text-muted p-4 mb-0 text-center">لا توجد عمليات سحب.</p> }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+@section Styles {
+}
+
+
+</div>
+@section Scripts {
+<script>
+(function () {
+    const usdVal = '@((int)PricingCurrency.USD)';
+
+    function fmtNum(n, dec) {
+        if (!isFinite(n)) return '—';
+        const f = n.toFixed(dec);
+        const p = f.split('.');
+        p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return p.join('.');
+    }
+
+    function bindExchangeForm(form) {
+        const isUsd = form.dataset.direction === 'UsdToSyp';
+        const src = form.querySelector('.cashbox-exchange-source');
+        const rates = form.querySelectorAll('.cashbox-exchange-rate');
+        const targetEl = form.querySelector('.cashbox-exchange-target');
+        const hintEl = form.querySelector('.cashbox-exchange-target-hint');
+
+        function getRate() {
+            const r = form.querySelector('.cashbox-exchange-rate');
+            return r ? parseFloat(r.value) : NaN;
+        }
+
+        function update() {
+            const s = parseFloat(src && src.value);
+            const rate = getRate();
+            if (!targetEl || !isFinite(s) || s <= 0 || !isFinite(rate) || rate <= 0) {
+                if (targetEl) targetEl.textContent = '—';
+                return;
+            }
+            const t = isUsd ? s * rate : s / rate;
+            targetEl.textContent = fmtNum(t, 2);
+            if (hintEl) hintEl.textContent = isUsd ? 'ل.س.ج' : '$';
+        }
+
+        if (src) src.addEventListener('input', update);
+        rates.forEach(function (r) {
+            r.addEventListener('input', function () {
+                document.querySelectorAll('.cashbox-exchange-rate').forEach(function (other) {
+                    if (other !== r) other.value = r.value;
+                });
+                update();
+            });
+        });
+        update();
+    }
+
+    document.querySelectorAll('.cashbox-exchange-form').forEach(bindExchangeForm);
+
+    document.querySelectorAll('.cashbox-ops-form').forEach(function (form) {
+        const pills = form.querySelectorAll('input[name="currency"]');
+        const sypWrap = form.querySelector('.cashbox-ops-amount-syp');
+        const usdWrap = form.querySelector('.cashbox-ops-amount-usd');
+        const usdInput = form.querySelector('.cashbox-usd-field');
+        const sypHidden = form.querySelector('.fmt-number-value');
+        const sypDisplay = form.querySelector('.fmt-number-display');
+
+        function sync() {
+            const checked = form.querySelector('input[name="currency"]:checked');
+            const isUsd = checked && checked.value === usdVal;
+            if (sypWrap) sypWrap.classList.toggle('d-none', isUsd);
+            if (usdWrap) usdWrap.classList.toggle('d-none', !isUsd);
+            if (usdInput) {
+                usdInput.disabled = !isUsd;
+                if (isUsd) {
+                    usdInput.setAttribute('name', 'amount');
+                    if (sypHidden) { sypHidden.removeAttribute('name'); sypHidden.disabled = true; }
+                    if (sypDisplay) sypDisplay.disabled = true;
+                } else {
+                    usdInput.removeAttribute('name');
+                    if (sypHidden) { sypHidden.setAttribute('name', 'amount'); sypHidden.disabled = false; }
+                    if (sypDisplay) sypDisplay.disabled = false;
+                }
+            }
+        }
+        pills.forEach(function (p) { p.addEventListener('change', sync); });
+        sync();
+    });
+})();
+</script>
+}

@@ -1,0 +1,383 @@
+/* CompanyEmployee Area CSS */
+
+/* Preserve previous sidebar theme (CompanyEmployee) */
+.sidebar.sidebar-pro {
+    background: linear-gradient(180deg, #2E1065 0%, #6D28D9 55%, #312E81 100%) !important;
+    --sidebar-sub-rail: rgba(167, 139, 250, 0.35);
+    --sidebar-sub-bg: rgba(46, 16, 101, 0.35);
+    --sidebar-sub-border: rgba(167, 139, 250, 0.18);
+}
+
+/* Employee wallet page: align with app visual identity */
+.employee-wallet-page .page-header {
+    border: 1px solid rgba(79, 70, 229, 0.16);
+    border-radius: 16px;
+    padding: 0.95rem 1.05rem;
+    background:
+        radial-gradient(700px 200px at 0% -20%, rgba(79, 70, 229, 0.14), transparent 55%),
+        radial-gradient(560px 180px at 100% 0%, rgba(109, 40, 217, 0.12), transparent 52%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.9));
+}
+
+.employee-wallet-page .page-header h1 {
+    margin-bottom: 0.25rem;
+    font-size: 1.3rem;
+    font-weight: 800;
+}
+
+.employee-wallet-page .card {
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.employee-wallet-page .employee-wallet-table-card {
+    overflow: hidden;
+}
+
+.employee-wallet-page .employee-wallet-table th {
+    font-size: 0.79rem;
+    font-weight: 800;
+    color: var(--text-muted);
+}
+
+.employee-wallet-page .employee-wallet-table td {
+    font-size: 0.88rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.employee-wallet-page .employee-wallet-table tbody td:nth-child(3),
+.employee-wallet-page .employee-wallet-table tbody td:nth-child(4) {
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 991.98px) {
+    .employee-wallet-page .employee-wallet-table-card .table-responsive {
+        padding: 0.2rem;
+        border-radius: 14px;
+    }
+
+    .employee-wallet-page .employee-wallet-table {
+        min-width: 100%;
+    }
+
+    .employee-wallet-page .employee-wallet-table thead {
+        display: none;
+    }
+
+    .employee-wallet-page .employee-wallet-table tbody tr {
+        display: block;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 14px;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+        background: rgba(255, 255, 255, 0.92);
+    }
+
+    .employee-wallet-page .employee-wallet-table tbody td {
+        display: grid;
+        grid-template-columns: minmax(110px, 38%) 1fr;
+        align-items: center;
+        gap: 0.55rem;
+        width: 100%;
+        border: 0;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.3);
+        border-radius: 0 !important;
+        text-align: start !important;
+        padding: 0.68rem 0.82rem;
+    }
+
+    .employee-wallet-page .employee-wallet-table tbody td::before {
+        content: attr(data-label);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+
+    .employee-wallet-page .employee-wallet-table tbody td:first-child {
+        border-radius: 14px 14px 0 0 !important;
+    }
+
+    .employee-wallet-page .employee-wallet-table tbody td:last-child {
+        border-bottom: 0;
+        border-radius: 0 0 14px 14px !important;
+    }
+}
+
+[data-theme="dark"] .employee-wallet-page .page-header {
+    border-color: rgba(129, 140, 248, 0.24);
+    background:
+        radial-gradient(700px 200px at 0% -20%, rgba(79, 70, 229, 0.2), transparent 55%),
+        radial-gradient(560px 180px at 100% 0%, rgba(109, 40, 217, 0.18), transparent 52%),
+        linear-gradient(145deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.94));
+}
+
+[data-theme="dark"] .employee-wallet-page .card {
+    background: linear-gradient(160deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.92));
+    border-color: rgba(148, 163, 184, 0.24);
+    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.4);
+}
+
+[data-theme="dark"] .employee-wallet-page .employee-wallet-table tbody td {
+    border-bottom-color: rgba(148, 163, 184, 0.18);
+}
+
+[data-theme="dark"] .employee-wallet-page .employee-wallet-table tbody tr {
+    background: rgba(30, 41, 59, 0.86);
+    border-color: rgba(148, 163, 184, 0.3);
+}
+
+/* ——— صفحة راتبي ومحفظتي ——— */
+.employee-payroll-page {
+    --epay-primary: #5b21b6;
+    --epay-primary-light: #7c3aed;
+    --epay-mint: #0d9488;
+    --epay-surface: rgba(255, 255, 255, 0.92);
+}
+
+.employee-payroll-page .epay-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.35rem;
+    margin-bottom: 1.25rem;
+    border-radius: 18px;
+    background: linear-gradient(125deg, #4c1d95 0%, #6d28d9 45%, #312e81 100%);
+    color: #fff;
+    box-shadow: 0 14px 32px rgba(76, 29, 149, 0.28);
+}
+
+.employee-payroll-page .epay-hero-main {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.employee-payroll-page .epay-hero-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.16);
+    font-size: 1.35rem;
+}
+
+.employee-payroll-page .epay-title {
+    font-size: 1.45rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.employee-payroll-page .epay-subtitle {
+    opacity: 0.88;
+    font-size: 0.9rem;
+}
+
+.employee-payroll-page .epay-back {
+    font-weight: 600;
+}
+
+.employee-payroll-page .epay-alert {
+    border-radius: 12px;
+}
+
+.employee-payroll-page .epay-stat-card {
+    border-radius: 16px;
+    padding: 1.1rem 1.2rem;
+    background: var(--epay-surface);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.employee-payroll-page .epay-stat-primary {
+    background: linear-gradient(145deg, rgba(124, 58, 237, 0.12), rgba(255, 255, 255, 0.95));
+    border-color: rgba(124, 58, 237, 0.25);
+}
+
+.employee-payroll-page .epay-stat-withdraw {
+    background: linear-gradient(145deg, rgba(13, 148, 136, 0.1), rgba(255, 255, 255, 0.95));
+    border-color: rgba(13, 148, 136, 0.22);
+}
+
+.employee-payroll-page .epay-stat-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.employee-payroll-page .epay-stat-value {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.employee-payroll-page .epay-stat-unit {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.employee-payroll-page .epay-stat-hint {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+}
+
+.employee-payroll-page .epay-stat-badge {
+    display: inline-block;
+    margin-top: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    width: fit-content;
+}
+
+.employee-payroll-page .epay-stat-badge.paid {
+    background: rgba(16, 185, 129, 0.15);
+    color: #047857;
+}
+
+.employee-payroll-page .epay-stat-badge.pending-pay {
+    background: rgba(245, 158, 11, 0.18);
+    color: #b45309;
+}
+
+.employee-payroll-page .epay-stat-badge.pending-setup {
+    background: rgba(148, 163, 184, 0.2);
+    color: #475569;
+}
+
+.employee-payroll-page .epay-toolbar {
+    border-radius: 14px;
+    margin-bottom: 1rem;
+}
+
+.employee-payroll-page .epay-year-input {
+    width: 5.5rem;
+}
+
+.employee-payroll-page .epay-proration-pill {
+    font-size: 0.82rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(124, 58, 237, 0.1);
+    color: #5b21b6;
+    font-weight: 600;
+}
+
+.employee-payroll-page .epay-proration-none {
+    background: rgba(148, 163, 184, 0.15);
+    color: #64748b;
+}
+
+.employee-payroll-page .epay-panel {
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.employee-payroll-page .epay-panel-head {
+    background: #f8fafc;
+    font-weight: 800;
+    font-size: 0.9rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.employee-payroll-page .epay-profile-list > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px dashed rgba(148, 163, 184, 0.25);
+    font-size: 0.88rem;
+}
+
+.employee-payroll-page .epay-profile-list > div:last-child {
+    border-bottom: 0;
+}
+
+.employee-payroll-page .epay-profile-list span {
+    color: #64748b;
+}
+
+.employee-payroll-page .epay-metric {
+    text-align: center;
+    padding: 0.75rem 0.5rem;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.employee-payroll-page .epay-metric span {
+    display: block;
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.employee-payroll-page .epay-metric strong {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.employee-payroll-page .epay-metric-up strong { color: #059669; }
+.employee-payroll-page .epay-metric-down strong { color: #dc2626; }
+
+.employee-payroll-page .epay-metric-total {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(79, 70, 229, 0.08));
+    border-color: rgba(124, 58, 237, 0.25);
+}
+
+.employee-payroll-page .epay-metric-total strong {
+    color: #5b21b6;
+    font-size: 1.25rem;
+}
+
+.employee-payroll-page .epay-table thead th {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #64748b;
+    background: #f8fafc;
+}
+
+.employee-payroll-page .epay-withdraw-list .badge {
+    font-weight: 700;
+}
+
+.employee-payroll-page .epay-status-pending {
+    background: rgba(245, 158, 11, 0.2);
+    color: #b45309;
+}
+
+.employee-payroll-page .epay-status-approved {
+    background: rgba(16, 185, 129, 0.2);
+    color: #047857;
+}
+
+.employee-payroll-page .epay-status-rejected,
+.employee-payroll-page .epay-status-cancelled {
+    background: rgba(148, 163, 184, 0.25);
+    color: #475569;
+}
+
+.employee-payroll-page .epay-modal .modal-content {
+    border-radius: 16px;
+    border: 0;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+}
+

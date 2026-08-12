@@ -1,0 +1,88 @@
+@model RadaTik.Models.Profile
+
+@{
+    ViewData["Title"] = "حذف البروفايل";
+}
+
+<div class="container">
+    <h1>حذف البروفايل</h1>
+
+    @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+    {
+        <div class="alert alert-danger">
+            @ViewBag.ErrorMessage
+        </div>
+    }
+
+    <h3 class="text-danger">هل أنت متأكد من أنك تريد حذف هذا البروفايل؟</h3>
+
+    <div class="alert alert-warning">
+        <strong>تحذير!</strong> هذه العملية لا يمكن التراجع عنها.
+    </div>
+
+    <div>
+        <hr />
+        <dl class="row">
+            <dt class="col-sm-3">اسم البروفايل</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+
+            <dt class="col-sm-3">النوع</dt>
+            <dd class="col-sm-9">@Model.Type</dd>
+
+            <dt class="col-sm-3">السعر</dt>
+            <dd class="col-sm-9">@Model.PriceWithVAT.ToString("C")</dd>
+
+            <dt class="col-sm-3">سرعة التنزيل</dt>
+            <dd class="col-sm-9">@Model.DownloadSpeedDisplay</dd>
+
+            <dt class="col-sm-3">محدد البيانات</dt>
+            <dd class="col-sm-9">@(Model.IsDataCapped ? $"نعم ({Model.DataLimit} GB)" : "لا")</dd>
+
+            <dt class="col-sm-3">الحالة</dt>
+            <dd class="col-sm-9">
+                @if (Model.IsActive)
+                {
+                    <span class="badge bg-success">مفعل</span>
+                }
+                else
+                {
+                    <span class="badge bg-danger">غير مفعل</span>
+                }
+            </dd>
+
+            <dt class="col-sm-3">تاريخ الإنشاء</dt>
+            <dd class="col-sm-9">@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</dd>
+
+            <dt class="col-sm-3">عدد العملاء</dt>
+            <dd class="col-sm-9">
+                @{
+                    var clientsCount = ViewData["ClientsCount"] as int? ?? 0;
+                }
+                @clientsCount عميل
+            </dd>
+        </dl>
+
+        @if (clientsCount > 0)
+        {
+            <div class="alert alert-danger mt-4">
+                <h5>لا يمكن حذف هذا البروفايل لأنه مرتبط بـ @clientsCount عميل</h5>
+                <p>يجب عليك تغيير بروفايل هؤلاء العملاء أولاً قبل حذف هذا البروفايل.</p>
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل البروفايل بدلاً من ذلك</a>
+            </div>
+        }
+        else
+        {
+            <form asp-action="Delete" class="mt-4">
+                <input type="hidden" asp-for="Id" />
+                <button type="submit" class="btn btn-danger">حذف نهائي</button>
+                <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+            </form>
+        }
+
+        <div class="mt-3">
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-info">عرض التفاصيل</a>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">تعديل</a>
+            <a asp-action="Index" class="btn btn-secondary">العودة إلى القائمة</a>
+        </div>
+    </div>
+</div>

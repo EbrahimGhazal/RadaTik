@@ -1,0 +1,171 @@
+@using RadaTik.Helpers
+@using RadaTik.Models
+@model RadaTik.Areas.CompanyAdmin.ViewModels.SubscriberInstallationInvoiceDetailsViewModel
+@{
+    ViewData["Title"] = $"فاتورة تجهيز #{Model.Id}";
+}
+
+<div class="financial-page financial-hub-page">
+    @{
+        ViewBag.FinancialNavCurrent = "installation";
+        ViewBag.FinancialNavShowWarehouse = false;
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-file-invoice";
+        ViewBag.FinancialHeroTheme = "default";
+        ViewBag.FinancialHeroSubtitle = Model.ClientName + " — " + SubscriberInstallationInvoiceStatusLabels.Get(Model.Status);
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-secondary micro-btn"" href=""" + Url.RouteUrl("networkManager-subscriber-installation-invoices", new { action = "Index", id = "" }) + @"""><i class=""fas fa-arrow-right""></i> قائمة الفواتير</a>";
+    }
+    <partial name="_FinancialSysHero" />
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card h-100"><div class="card-body">
+            <div class="text-muted small">العميل</div>
+            <div class="fw-semibold">@Model.ClientName</div>
+            <div class="text-muted small mt-2">رصيد محفظة العميل</div>
+            <div class="fw-semibold @(Model.ClientWalletBalance < 0 ? "text-danger" : "text-success")">@Model.ClientWalletBalance.ToString("N0") ل.س</div>
+        </div></div>
+    </div>
+    <div class="col-md-8">
+        <div class="card h-100"><div class="card-body">
+            <div class="row g-2">
+                <div class="col-md-3"><span class="text-muted small">الحالة</span><div class="fw-semibold">@SubscriberInstallationInvoiceStatusLabels.Get(Model.Status)</div></div>
+                <div class="col-md-3"><span class="text-muted small">النوع</span><div class="fw-semibold">@(Model.ReceiverMode == SubscriberReceiverMode.Private ? "لاقط خاص" : "لاقط مشترك")</div></div>
+                <div class="col-md-3"><span class="text-muted small">الإجمالي</span><div class="fw-semibold">@Model.TotalAmount.ToString("N0")</div></div>
+                <div class="col-md-3"><span class="text-muted small">المتبقي</span><div class="fw-semibold text-danger">@Model.RemainingAmount.ToString("N0")</div></div>
+                @if (Model.FinalizedAt.HasValue)
+                {
+                    <div class="col-12"><span class="text-muted small">تاريخ التثبيت</span> @Model.FinalizedAt.Value.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</div>
+                }
+            </div>
+        </div></div>
+    </div>
+</div>
+
+@if (Model.CanFinalize)
+{
+    <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <span><i class="fas fa-warehouse"></i> الفاتورة مسودة — التثبيت النهائي يخصم المواد من المستودع (يجب ربط الأصناف في أسعار التركيب).</span>
+        <form asp-action="Finalize" method="post" class="m-0">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button type="submit" class="btn btn-warning" onclick="return confirm('تأكيد التثبيت النهائي وخصم المستودع؟');">
+                <i class="fas fa-check-double"></i> تثبيت نهائي
+            </button>
+        </form>
+    </div>
+}
+
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">تفاصيل الفاتورة</h5></div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0 align-middle radtk-data-table radtk-data-table--cards">
+                <thead>
+                    <tr>
+                        <th>البند</th>
+                        <th>مستودع</th>
+                        <th>السعر</th>
+                        <th>الكمية</th>
+                        <th>المبلغ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@item.ItemName</td>
+                        <td>@(item.IsStockItem ? (item.WarehouseItemId.HasValue ? $"صنف #{item.WarehouseItemId}" : "غير مربوط") : "—")</td>
+                        <td>@item.UnitPrice.ToString("N0")</td>
+                        <td>@item.Quantity.ToString("0.##")</td>
+                        <td>@item.LineTotal.ToString("N0")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (Model.CanCollectPayment)
+{
+    <div class="card mb-3">
+        <div class="card-header"><h5 class="mb-0">تحصيل المبلغ</h5></div>
+        <div class="card-body">
+            <form asp-action="RegisterPayment" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">المبلغ</label>
+                        <input type="number" step="0.01" min="0.01" max="@Model.RemainingAmount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" name="amount" class="form-control" value="@Model.RemainingAmount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">طريقة التحصيل</label>
+                        <select name="paymentMethod" class="form-select">
+                            <option value="@((int)SubscriberInstallationPaymentMethod.Cash)">نقدي (دفتر إيراد)</option>
+                            <option value="@((int)SubscriberInstallationPaymentMethod.Wallet)">محفظة التطبيق</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">ملاحظات</label>
+                        <input type="text" class="form-control" name="notes" maxlength="500" />
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">تسجيل</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">سجل الدفعات</h5></div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0 align-middle radtk-data-table radtk-data-table--cards">
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>المبلغ</th>
+                        <th>الطريقة</th>
+                        <th>المُوظّف</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Payments.Count == 0)
+                {
+                    <tr><td colspan="5" class="text-center py-3 text-muted">لا توجد دفعات بعد.</td></tr>
+                }
+                else
+                {
+                    foreach (var payment in Model.Payments)
+                    {
+                        <tr>
+                            <td>@payment.PaidAt.ToString("yyyy/MM/dd HH:mm")</td>
+                            <td>@payment.Amount.ToString("N0")</td>
+                            <td>@payment.PaymentMethodLabel</td>
+                            <td>@payment.ReceivedByName</td>
+                            <td>@payment.Notes</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div>

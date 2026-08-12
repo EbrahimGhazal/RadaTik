@@ -1,0 +1,465 @@
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using RadaTik.Data
+@using RadaTik.Helpers
+@using RadaTik.Models
+@inject ApplicationDbContext Db
+@inject UserManager<ApplicationUser> UserManager
+@{
+    var userRole = "Guest";
+    var userName = "زائر";
+    var userInitials = "ز";
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+
+    // Roles (migration):
+    // - CompanyEmployee: الموظف التابع للشركة (الدور الجديد)
+    // - Employee: الدور القديم (Legacy) ونُعامله كموظف شركة مؤقتاً للتوافق
+    var isCompanyEmployee = User.IsInRole("CompanyEmployee") || User.IsInRole("Employee");
+    var isSystemEmployee = User.IsInRole("SystemEmployee");
+    var isAnyEmployee = isCompanyEmployee || isSystemEmployee;
+    
+    if (isAuthenticated)
+    {
+        userName = User.Identity?.Name ?? "مستخدم";
+        userInitials = userName.Length > 0 ? userName.Substring(0, 1).ToUpper() : "م";
+        
+        if (User.IsInRole("SystemAdministrator"))
+        {
+            userRole = "مدير النظام";
+        }
+        else if (User.IsInRole("NetworkAdministrator"))
+        {
+            userRole = "مدير الشركة";
+        }
+        else if (isCompanyEmployee)
+        {
+            userRole = "موظف";
+        }
+        else if (isSystemEmployee)
+        {
+            userRole = "موظف النظام";
+        }
+        else if (User.IsInRole("CollectionPoint"))
+        {
+            userRole = "نقطة مبيع";
+        }
+        else if (User.IsInRole("Client"))
+        {
+            userRole = "عميل";
+        }
+    }
+    
+    var isClientOnly = User.IsInRole("Client") && !isAnyEmployee && !User.IsInRole("NetworkAdministrator") && !User.IsInRole("SystemAdministrator");
+    var isCollectionPointOnly = User.IsInRole("CollectionPoint") && !isAnyEmployee && !User.IsInRole("NetworkAdministrator") && !User.IsInRole("SystemAdministrator") && !User.IsInRole("Client");
+    string? employeeNetworkName = null;
+
+    if (isAuthenticated && isCompanyEmployee)
+    {
+        var currentUser = await UserManager.GetUserAsync(User);
+        var employeeNetworkId = NetworkHelper.GetCurrentNetworkId(Context, Db, currentUser);
+        if (employeeNetworkId.HasValue)
+        {
+            employeeNetworkName = await Db.Networks
+                .AsNoTracking()
+                .Where(n => n.Id == employeeNetworkId.Value)
+                .Select(n => n.Name)
+                .FirstOrDefaultAsync();
+        }
+    }
+
+    // Expose common values for layouts/partials (enables area-specific sidebar partials).
+    ViewData["Layout_IsAuthenticated"] = isAuthenticated;
+    ViewData["Layout_UserName"] = userName;
+    ViewData["Layout_UserInitials"] = userInitials;
+    ViewData["Layout_UserRole"] = userRole;
+    ViewData["Layout_IsCompanyEmployee"] = isCompanyEmployee;
+    ViewData["Layout_IsSystemEmployee"] = isSystemEmployee;
+    ViewData["Layout_IsAnyEmployee"] = isAnyEmployee;
+    ViewData["Layout_IsClientOnly"] = isClientOnly;
+    ViewData["Layout_IsCollectionPointOnly"] = isCollectionPointOnly;
+    ViewData["Layout_EmployeeNetworkName"] = employeeNetworkName;
+}
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <partial name="_ThemeHeadBootstrap" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="نظام RadaTik لإدارة مزود خدمة الإنترنت" />
+    <title>@ViewData["Title"] - RadaTik</title>
+    
+    <!-- Fonts — نفس /app/admin: Cairo + Poppins + Tajawal -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Tajawal:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Bootstrap 5.3.8 (required for modals/buttons/layout) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css">
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    
+    <!-- Custom Theme - Modular CSS -->
+    <link rel="stylesheet" href="~/css/main.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brand-identity.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "SystemAdmin" ? "admin-dashboard-page" : "") @(ViewContext.RouteData.Values["area"]?.ToString() == "CompanyAdmin" ? "company-dashboard-page" : "") @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" && User.IsInRole("NetworkAdministrator") ? "company-dashboard-page" : "") @(ViewData["BodyClass"]?.ToString() ?? "")">
+    <div class="app-container">
+        <!-- Sidebar (Area-specific override supported) -->
+        @if (IsSectionDefined("Sidebar"))
+        {
+            @await RenderSectionAsync("Sidebar", required: false)
+        }
+        else
+        {
+            <partial name="_Sidebar" />
+        }
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-right">
+                    <button class="header-btn d-lg-none" id="sidebarToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    
+                    @if (isAuthenticated && !isClientOnly && !isCollectionPointOnly)
+                    {
+                        <div class="header-search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="بحث..." id="globalSearch">
+                        </div>
+                    }
+                </div>
+                
+                <div class="header-left">
+                    <div class="header-actions">
+                        <button class="header-btn" id="themeToggle" title="تبديل الوضع">
+                            <i class="fas fa-moon" id="themeIcon"></i>
+                        </button>
+                        
+                        @if (isAuthenticated && !isClientOnly && !isCollectionPointOnly)
+                        {
+                            @* مدير النظام: الانتقال لطلبات مديري الشركات *@
+                            @if (User.IsInRole("SystemAdministrator"))
+                            {
+                                <div class="header-notification-wrapper dropdown">
+                                    <button type="button" class="header-btn dropdown-toggle" title="الإشعارات" id="notificationBtn"
+                                            data-pending-counts-url="/systemAdmin/notifications/pendingCounts"
+                                            data-view-all-url="@Url.RouteUrl("systemAdmin-joinRequests", new { type = "NetworkAdministrator" })">
+                                        <i class="fas fa-bell"></i>
+                                        <span class="badge" id="notificationBadge" style="display: none;">0</span>
+                                    </button>
+                                    <div class="dropdown-menu header-notification-dropdown" id="notificationDropdown">
+                                        <div class="notification-dropdown-header">
+                                            <strong>آخر الإشعارات</strong>
+                                            <span class="notification-dropdown-subtitle">آخر 5 عناصر</span>
+                                        </div>
+                                        <div class="notification-dropdown-body" id="notificationDropdownBody">
+                                            <div class="notification-dropdown-empty">لا توجد إشعارات جديدة</div>
+                                        </div>
+                                        <div class="notification-dropdown-footer">
+                                            <a class="notification-dropdown-view-all" asp-route="systemAdmin-joinRequests" asp-route-type="NetworkAdministrator">
+                                                عرض الكل
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <a class="header-btn" title="الطلبات المعلقة" id="notificationBtn"
+                                   asp-controller="RequestsManagement" asp-action="Index">
+                                    <i class="fas fa-bell"></i>
+                                    <span class="badge" id="notificationBadge" style="display: none;">0</span>
+                                </a>
+                            }
+                        }
+                    </div>
+
+                    @if (isAuthenticated)
+                    {
+                        @if (!isCompanyEmployee)
+                        {
+                            @await Component.InvokeAsync("WalletBalance")
+                        }
+                        <partial name="_HeaderUserDropdown" />
+                    }
+                    else
+                    {
+                        <a asp-route="reglog-login" class="btn btn-primary btn-sm">
+                            <i class="fas fa-sign-in-alt"></i>
+                            تسجيل الدخول
+                        </a>
+                    }
+                </div>
+            </header>
+            
+            <!-- Page Content -->
+            <main class="page-content">
+                <!-- Alerts -->
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success animate-fadeIn">
+                        <i class="fas fa-check-circle alert-icon"></i>
+                        <div class="alert-content">
+                            <div class="alert-message">@TempData["Success"]</div>
+                        </div>
+                        <button type="button" class="alert-close" title="إغلاق" aria-label="إغلاق" onclick="this.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                }
+                
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger animate-fadeIn">
+                        <i class="fas fa-exclamation-circle alert-icon"></i>
+                        <div class="alert-content">
+                            <div class="alert-message">@TempData["Error"]</div>
+                        </div>
+                        <button type="button" class="alert-close" title="إغلاق" aria-label="إغلاق" onclick="this.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                }
+                
+                @if (TempData["Info"] != null)
+                {
+                    <div class="alert alert-info animate-fadeIn">
+                        <i class="fas fa-info-circle alert-icon"></i>
+                        <div class="alert-content">
+                            <div class="alert-message">@TempData["Info"]</div>
+                        </div>
+                        <button type="button" class="alert-close" title="إغلاق" aria-label="إغلاق" onclick="this.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                }
+                
+                @RenderBody()
+            </main>
+            
+            <!-- Footer -->
+            <footer style="padding: var(--spacing-lg); text-align: center; color: var(--text-muted); font-size: var(--font-sm); border-top: 1px solid var(--border-light);">
+                <p style="margin: 0;">© @DateTime.Now.Year RadaTik - نظام إدارة مزود خدمة الإنترنت</p>
+            </footer>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <!-- Bootstrap 5.3.8 bundle (Modal, Dropdown, etc.) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.min.js"></script>
+    <script src="https://unpkg.com/leaflet-semicircle@2.0.0/leaflet-semicircle.js"></script>
+    
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <!-- Custom JS - Modular -->
+    <script src="~/js/common.js" asp-append-version="true"></script>
+    <script src="~/js/theme.js" asp-append-version="true"></script>
+    <script src="~/js/layout.js" asp-append-version="true"></script>
+    
+    <script>
+        // Auto-hide alerts
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    alert.style.opacity = '0';
+                    alert.style.transition = 'opacity 0.3s ease';
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 300);
+                }, 5000);
+            });
+        });
+        
+        // Initialize Select2 with enhanced RTL support
+        $(document).ready(function() {
+            if (typeof CommonUtils !== 'undefined') {
+                CommonUtils.initSelect2();
+            }
+            
+            // Enhanced Select2 initialization with Arabic language support
+            $('select.form-select, select.form-control').not('.no-select2').each(function() {
+                if (!$(this).hasClass('select2-hidden-accessible')) {
+                    var $select = $(this);
+                    var placeholder = $select.find('option[value=""]').text() || 'اختر...';
+                    
+                    $select.select2({
+                        theme: 'bootstrap-5',
+                        dir: 'rtl',
+                        language: {
+                            noResults: function() { return "لا توجد نتائج"; },
+                            searching: function() { return "جاري البحث..."; },
+                            inputTooShort: function() { return "أدخل حرفاً واحداً على الأقل"; },
+                            inputTooLong: function() { return "النص طويل جداً"; },
+                            loadingMore: function() { return "جاري تحميل المزيد..."; }
+                        },
+                        width: '100%',
+                        placeholder: placeholder,
+                        allowClear: true,
+                        minimumResultsForSearch: 5,
+                        closeOnSelect: true,
+                        dropdownAutoWidth: false,
+                        dropdownParent: $select.parent()
+                    });
+                    
+                    $select.on('select2:open', function() {
+                        $('.select2-search__field').attr('placeholder', 'ابحث...');
+                    });
+                    
+                    $select.on('change', function() {
+                        if ($(this).hasClass('is-invalid')) {
+                            $(this).removeClass('is-invalid');
+                        }
+                    });
+                }
+            });
+        });
+
+        // تحديث إشعارات الطلبات المعلقة
+        @if (User.IsInRole("NetworkAdministrator") || isCompanyEmployee)
+        {
+            var pendingRequestsUrl = User.IsInRole("NetworkAdministrator")
+                ? Url.Action("GetPendingRequestsCount", "RequestsManagement")
+                : Url.RouteUrl("employee-requestsManagement", new { action = "GetPendingRequestsCount" });
+            <text>
+            function updatePendingRequestsCount() {
+                fetch('@pendingRequestsUrl')
+                    .then(response => response.json())
+                    .then(data => {
+                        // تحديث شارة الإشعارات في الهيدر
+                        const badge = document.getElementById('notificationBadge');
+                        const sidebarBadge = document.getElementById('pendingRequestsBadge');
+                        
+                        if (badge) {
+                            const notificationBtn = document.getElementById('notificationBtn');
+                            if (data.total > 0) {
+                                badge.textContent = data.total > 99 ? '99+' : String(data.total);
+                                badge.style.display = 'flex';
+                                if (notificationBtn) notificationBtn.classList.add('has-notifications');
+                            } else {
+                                badge.style.display = 'none';
+                                if (notificationBtn) notificationBtn.classList.remove('has-notifications');
+                            }
+                        }
+                        
+                        if (sidebarBadge) {
+                            if (data.total > 0) {
+                                sidebarBadge.textContent = data.total > 99 ? '99+' : String(data.total);
+                                sidebarBadge.style.display = 'inline-flex';
+                            } else {
+                                sidebarBadge.style.display = 'none';
+                            }
+                        }
+                    })
+                    .catch(error => console.log('Error fetching pending requests:', error));
+            }
+            
+            // تحديث عند تحميل الصفحة
+            document.addEventListener('DOMContentLoaded', updatePendingRequestsCount);
+            
+            // تحديث كل 30 ثانية
+            setInterval(updatePendingRequestsCount, 30000);
+            </text>
+        }
+    </script>
+    
+    <style>
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: background 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            cursor: pointer;
+            font-size: var(--font-sm);
+        }
+        
+        .dropdown-item:hover {
+            background: var(--bg-hover);
+        }
+        
+        .dropdown-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 4px 0;
+        }
+        
+        .text-danger {
+            color: var(--danger) !important;
+        }
+        
+        .d-lg-none {
+            display: none;
+        }
+        
+        @@media (max-width: 1024px) {
+            .d-lg-none {
+                display: flex;
+            }
+        }
+
+        .nav-badge {
+            background: var(--danger);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-right: auto;
+            min-width: 18px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .header-btn .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--danger);
+            color: white;
+            font-size: 10px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        
+        .header-btn {
+            position: relative;
+        }
+
+    </style>
+    
+    @await RenderSectionAsync("Scripts", required: false)
+    <script src="~/js/syp-global.js" asp-append-version="true"></script>
+</body>
+</html>

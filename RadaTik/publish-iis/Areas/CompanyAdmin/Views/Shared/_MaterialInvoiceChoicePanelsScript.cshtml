@@ -1,0 +1,134 @@
+<script>
+(function () {
+    function syncChoicePanel(panel, config) {
+        if (!panel) return;
+        var inputs = panel.querySelectorAll(config.inputSelector);
+        var selected = null;
+        inputs.forEach(function (inp) {
+            if (inp.checked) selected = inp;
+            inp.closest(config.choiceLabelSelector)?.classList.toggle('is-selected', inp.checked);
+        });
+        config.badges.forEach(function (b) {
+            b.el?.toggleAttribute('hidden', b.showWhen !== (selected ? selected.getAttribute(config.dataAttr) : null));
+        });
+        if (config.panelStateClass) {
+            panel.classList.toggle(config.panelStateClass, !!selected);
+            if (config.panelStateValue) {
+                panel.classList.toggle(config.panelStateClass + '--' + config.panelStateValue, selected?.getAttribute(config.dataAttr) === config.panelStateValue);
+            }
+        }
+    }
+
+    var currencyPanel = document.querySelector('[data-material-currency-panel]');
+    if (currencyPanel) {
+        currencyPanel.querySelectorAll('[data-currency-choice]').forEach(function (inp) {
+            inp.addEventListener('change', function () {
+                syncChoicePanel(currencyPanel, {
+                    inputSelector: '[data-currency-choice]',
+                    choiceLabelSelector: '.material-invoice-choice',
+                    dataAttr: 'data-currency-choice',
+                    badges: [
+                        { el: currencyPanel.querySelector('[data-currency-badge-unset]'), showWhen: null },
+                        { el: currencyPanel.querySelector('[data-currency-badge-syp]'), showWhen: 'syp' },
+                        { el: currencyPanel.querySelector('[data-currency-badge-usd]'), showWhen: 'usd' }
+                    ],
+                    panelStateClass: 'is-currency-set'
+                });
+            });
+        });
+        syncChoicePanel(currencyPanel, {
+            inputSelector: '[data-currency-choice]',
+            choiceLabelSelector: '.material-invoice-choice',
+            dataAttr: 'data-currency-choice',
+            badges: [
+                { el: currencyPanel.querySelector('[data-currency-badge-unset]'), showWhen: null },
+                { el: currencyPanel.querySelector('[data-currency-badge-syp]'), showWhen: 'syp' },
+                { el: currencyPanel.querySelector('[data-currency-badge-usd]'), showWhen: 'usd' }
+            ],
+            panelStateClass: 'is-currency-set'
+        });
+    }
+
+    var paymentPanel = document.querySelector('[data-material-payment-panel]');
+    if (paymentPanel) {
+        paymentPanel.querySelectorAll('[data-payment-choice]').forEach(function (inp) {
+            inp.addEventListener('change', function () {
+                var val = inp.getAttribute('data-payment-choice');
+                paymentPanel.classList.toggle('is-paid', val === 'paid');
+                paymentPanel.classList.toggle('is-unpaid', val === 'unpaid');
+                syncChoicePanel(paymentPanel, {
+                    inputSelector: '[data-payment-choice]',
+                    choiceLabelSelector: '.material-invoice-choice',
+                    dataAttr: 'data-payment-choice',
+                    badges: [
+                        { el: paymentPanel.querySelector('[data-payment-badge-unset]'), showWhen: null },
+                        { el: paymentPanel.querySelector('[data-payment-badge-unpaid]'), showWhen: 'unpaid' },
+                        { el: paymentPanel.querySelector('[data-payment-badge-paid]'), showWhen: 'paid' }
+                    ]
+                });
+            });
+        });
+        var checked = paymentPanel.querySelector('[data-payment-choice]:checked');
+        if (checked) checked.dispatchEvent(new Event('change'));
+        else syncChoicePanel(paymentPanel, {
+            inputSelector: '[data-payment-choice]',
+            choiceLabelSelector: '.material-invoice-choice',
+            dataAttr: 'data-payment-choice',
+            badges: [
+                { el: paymentPanel.querySelector('[data-payment-badge-unset]'), showWhen: null },
+                { el: paymentPanel.querySelector('[data-payment-badge-unpaid]'), showWhen: 'unpaid' },
+                { el: paymentPanel.querySelector('[data-payment-badge-paid]'), showWhen: 'paid' }
+            ]
+        });
+    }
+
+    var priceModePanel = document.querySelector('[data-material-price-mode-panel]');
+    if (priceModePanel) {
+        priceModePanel.querySelectorAll('[data-price-mode-choice]').forEach(function (inp) {
+            inp.addEventListener('change', function () {
+                syncChoicePanel(priceModePanel, {
+                    inputSelector: '[data-price-mode-choice]',
+                    choiceLabelSelector: '.material-invoice-choice',
+                    dataAttr: 'data-price-mode-choice',
+                    badges: [
+                        { el: priceModePanel.querySelector('[data-price-mode-badge-unset]'), showWhen: null },
+                        { el: priceModePanel.querySelector('[data-price-mode-badge-wholesale]'), showWhen: 'wholesale' },
+                        { el: priceModePanel.querySelector('[data-price-mode-badge-retail]'), showWhen: 'retail' },
+                        { el: priceModePanel.querySelector('[data-price-mode-badge-custom]'), showWhen: 'custom' }
+                    ],
+                    panelStateClass: 'is-price-mode-set'
+                });
+                document.dispatchEvent(new CustomEvent('material-price-mode-changed'));
+            });
+        });
+        syncChoicePanel(priceModePanel, {
+            inputSelector: '[data-price-mode-choice]',
+            choiceLabelSelector: '.material-invoice-choice',
+            dataAttr: 'data-price-mode-choice',
+            badges: [
+                { el: priceModePanel.querySelector('[data-price-mode-badge-unset]'), showWhen: null },
+                { el: priceModePanel.querySelector('[data-price-mode-badge-wholesale]'), showWhen: 'wholesale' },
+                { el: priceModePanel.querySelector('[data-price-mode-badge-retail]'), showWhen: 'retail' },
+                { el: priceModePanel.querySelector('[data-price-mode-badge-custom]'), showWhen: 'custom' }
+            ],
+            panelStateClass: 'is-price-mode-set'
+        });
+    }
+
+    var form = document.getElementById('purchase-form') || document.getElementById('sales-form');
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            var currencyOk = !currencyPanel || !!currencyPanel.querySelector('[data-currency-choice]:checked');
+            var paymentOk = !paymentPanel || !!paymentPanel.querySelector('[data-payment-choice]:checked');
+            var priceModeOk = !priceModePanel || !!priceModePanel.querySelector('[data-price-mode-choice]:checked');
+            if (!currencyOk || !paymentOk || !priceModeOk) {
+                e.preventDefault();
+                if (!currencyOk) currencyPanel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                else if (!paymentOk) paymentPanel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                else if (!priceModeOk) priceModePanel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                alert('يرجى اختيار عملة الفاتورة ونوع السعر وحالة الدفع قبل الحفظ.');
+            }
+        });
+    }
+})();
+</script>

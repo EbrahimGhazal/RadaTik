@@ -1,0 +1,461 @@
+@using RadaTik.ViewModels.Onboarding
+@{
+    ViewData["Title"] = "لوحة تحكم مدير النظام";
+    var activeTab = ViewData["ActiveTab"]?.ToString() ?? "dashboard";
+    var activeTabLabel = activeTab switch
+    {
+        "maintenance" => "طلبات الصيانة",
+        "collectionpoints" => "نقاط التحصيل",
+        _ => "لوحة التحكم"
+    };
+}
+
+<div class="sys-hero mb-4">
+    <div class="sys-hero-main">
+        <div class="sys-hero-icon rt-hero-logo-wrap">
+            @{
+                ViewData["RtBrandVariant"] = "hero";
+            }
+            <partial name="_RadaTikBrandLogo" />
+        </div>
+        <div>
+            <h1 class="sys-hero-title">@ViewData["Title"]</h1>
+            <p class="sys-hero-subtitle">
+                @if (activeTab == "dashboard")
+                {
+                    @:إحصائيات شاملة للنظام — استخدم القائمة الجانبية للتنقل بين الأقسام.
+                }
+                else
+                {
+                    @:@activeTabLabel — التنقل عبر القائمة الجانبية فقط.
+                }
+            </p>
+        </div>
+    </div>
+    <div class="sys-hero-chips">
+        @if (activeTab != "dashboard")
+        {
+            <span class="sys-hero-chip"><i class="fas fa-compass"></i> @activeTabLabel</span>
+        }
+        <a class="sys-hero-chip text-decoration-none" asp-route="systemAdmin-actions" asp-route-tab="dashboard">
+            <i class="fas fa-gauge-high"></i> لوحة التحكم
+        </a>
+    </div>
+</div>
+
+@if (activeTab == "dashboard")
+{
+    <div class="radtk-stat-grid mb-4">
+        <partial name="_StatCard" model='new RadaTik.ViewModels.UI.StatCardViewModel { Label = "طلبات الصيانة", Value = "عرض", Subtext = "إحصائيات SLA لكل شركة", IconClass = "fas fa-wrench", Tone = "warning", Url = Url.Action("Index", "SystemAdmin", new { tab = "maintenance" }) }' />
+        <partial name="_StatCard" model='new RadaTik.ViewModels.UI.StatCardViewModel { Label = "نقاط التحصيل", Value = "عرض", Subtext = "بيانات نقاط البيع", IconClass = "fas fa-map-marker-alt", Tone = "info", Url = Url.Action("Index", "SystemAdmin", new { tab = "collectionpoints" }) }' />
+        <partial name="_StatCard" model='new RadaTik.ViewModels.UI.StatCardViewModel { Label = "طلبات الانضمام", Value = "عرض", Subtext = "مدراء شركات ونقاط بيع", IconClass = "fas fa-user-plus", Tone = "primary", Url = Url.RouteUrl("systemAdmin-joinRequests") }' />
+        <partial name="_StatCard" model='new RadaTik.ViewModels.UI.StatCardViewModel { Label = "تغذية الرصيد", Value = "عرض", Subtext = "طلبات الشركات", IconClass = "fas fa-wallet", Tone = "success", Url = Url.RouteUrl("systemAdmin-fundingRequests") }' />
+    </div>
+}
+
+@if (activeTab == "dashboard")
+{
+    @if (ViewBag.OnboardingChecklist is OnboardingChecklistViewModel sysOnboarding)
+    {
+        <partial name="_OnboardingChecklist" model="sysOnboarding" />
+    }
+
+    <!-- محتوى لوحة التحكم - إحصائيات كاملة -->
+    var totalCompanies = ViewBag.TotalCompanies ?? 0;
+    var totalMainNetworks = ViewBag.TotalMainNetworks ?? 0;
+    var totalSubNetworks = ViewBag.TotalSubNetworks ?? 0;
+    var totalClients = ViewBag.TotalClients ?? 0;
+    var totalSectors = ViewBag.TotalSectors ?? 0;
+    var totalReceivers = ViewBag.TotalReceivers ?? 0;
+    var totalServers = ViewBag.TotalServers ?? 0;
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">عدد الشركات</p>
+                            <h3 class="mb-0">@totalCompanies</h3>
+                        </div>
+                        <div class="stats-icon bg-primary bg-opacity-10 rounded-3 p-3">
+                            <i class="fas fa-building text-primary fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">الشبكات الرئيسية</p>
+                            <h3 class="mb-0">@totalMainNetworks</h3>
+                        </div>
+                        <div class="stats-icon bg-info bg-opacity-10 rounded-3 p-3">
+                            <i class="fas fa-network-wired text-info fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">الشبكات الفرعية</p>
+                            <h3 class="mb-0">@totalSubNetworks</h3>
+                        </div>
+                        <div class="stats-icon bg-secondary bg-opacity-10 rounded-3 p-3">
+                            <i class="fas fa-sitemap text-secondary fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">إجمالي السيرفرات</p>
+                            <h3 class="mb-0">@totalServers</h3>
+                        </div>
+                        <div class="stats-icon bg-dark bg-opacity-10 rounded-3 p-3">
+                            <i class="fas fa-server text-dark fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card stats-card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">إجمالي العملاء</p>
+                            <h3 class="mb-0">@totalClients</h3>
+                        </div>
+                        <div class="stats-icon bg-success bg-opacity-10 rounded-3 p-3">
+                            <i class="fas fa-users text-success fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stats-card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">إجمالي القطاعات (المرسلات)</p>
+                            <h3 class="mb-0">@totalSectors</h3>
+                        </div>
+                        <div class="stats-icon bg-warning bg-opacity-10 rounded-3 p-3">
+                            <i class="fas fa-broadcast-tower text-warning fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stats-card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">إجمالي المستقبلات</p>
+                            <h3 class="mb-0">@totalReceivers</h3>
+                        </div>
+                        <div class="stats-icon bg-danger bg-opacity-10 rounded-3 p-3">
+                            <i class="fas fa-satellite-dish text-danger fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جداول التفصيل -->
+    <div class="row">
+        <div class="col-12 col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 py-3">
+                    <h5 class="mb-0"><i class="fas fa-users text-primary me-2"></i> عدد العملاء لكل شركة</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 radtk-data-table radtk-data-table--cards">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الشركة</th>
+                                    <th class="text-center">عدد العملاء</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    var clientByCompany = ViewBag.ClientCountByCompany as IEnumerable<RadaTik.Controllers.StatRowItem>;
+                                    if (clientByCompany != null && clientByCompany.Any())
+                                    {
+                                        foreach (var item in clientByCompany)
+                                        {
+                                            <tr>
+                                                <td>@item.Name</td>
+                                                <td class="text-center">@item.Count</td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr><td colspan="2" class="text-center text-muted">لا توجد بيانات</td></tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 py-3">
+                    <h5 class="mb-0"><i class="fas fa-broadcast-tower text-warning me-2"></i> عدد القطاعات لكل شركة</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 radtk-data-table radtk-data-table--cards">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الشركة</th>
+                                    <th class="text-center">عدد القطاعات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    var sectorByCompany = ViewBag.SectorCountByCompany as IEnumerable<RadaTik.Controllers.StatRowItem>;
+                                    if (sectorByCompany != null && sectorByCompany.Any())
+                                    {
+                                        foreach (var item in sectorByCompany)
+                                        {
+                                            <tr>
+                                                <td>@item.Name</td>
+                                                <td class="text-center">@item.Count</td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr><td colspan="2" class="text-center text-muted">لا توجد بيانات</td></tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 py-3">
+                    <h5 class="mb-0"><i class="fas fa-server text-dark me-2"></i> عدد السيرفرات لكل شركة</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 radtk-data-table radtk-data-table--cards">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الشركة</th>
+                                    <th class="text-center">عدد السيرفرات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    var serversByCompany = ViewBag.ServerCountByCompany as IEnumerable<RadaTik.Controllers.StatRowItem>;
+                                    if (serversByCompany != null && serversByCompany.Any())
+                                    {
+                                        foreach (var item in serversByCompany)
+                                        {
+                                            <tr>
+                                                <td>@item.Name</td>
+                                                <td class="text-center">@item.Count</td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr><td colspan="2" class="text-center text-muted">لا توجد بيانات</td></tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 py-3">
+                    <h5 class="mb-0"><i class="fas fa-satellite-dish text-danger me-2"></i> عدد المستقبلات لكل شركة</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 radtk-data-table radtk-data-table--cards">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الشركة</th>
+                                    <th class="text-center">عدد المستقبلات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    var receiverByCompany = ViewBag.ReceiverCountByCompany as IEnumerable<RadaTik.Controllers.StatRowItem>;
+                                    if (receiverByCompany != null && receiverByCompany.Any())
+                                    {
+                                        foreach (var item in receiverByCompany)
+                                        {
+                                            <tr>
+                                                <td>@item.Name</td>
+                                                <td class="text-center">@item.Count</td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr><td colspan="2" class="text-center text-muted">لا توجد بيانات</td></tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (activeTab == "maintenance")
+{
+    <!-- محتوى طلبات الصيانة - عدد الطلبات لكل شركة ونسبة الصيانات للمشتركين -->
+    var slaHours = (double?)(ViewBag.MaintenanceSlaHours) ?? 24;
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body d-flex flex-wrap gap-2 align-items-center justify-content-between">
+            <div class="text-muted small">
+                <i class="fas fa-stopwatch me-1"></i>
+                إعداد زمن التلبية (SLA) يُستخدم لحساب نسبة الالتزام.
+            </div>
+            <form method="get" asp-route="systemAdmin-actions" class="d-flex flex-wrap gap-2 align-items-center m-0">
+                <input type="hidden" name="tab" value="maintenance" />
+                <div class="input-group" style="max-width: 260px;">
+                    <span class="input-group-text">SLA</span>
+                    <input type="number" name="slaHours" class="form-control" min="0.25" step="0.25" value="@slaHours" />
+                    <span class="input-group-text">ساعة</span>
+                </div>
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fas fa-check me-1"></i> تطبيق
+                </button>
+                <a class="btn btn-outline-secondary" asp-route="systemAdmin-actions" asp-route-tab="maintenance">
+                    <i class="fas fa-undo me-1"></i> افتراضي
+                </a>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 py-3">
+            <h5 class="mb-0"><i class="fas fa-tools me-2"></i> طلبات الصيانة لكل شركة ونسبة الصيانات للمشتركين</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 radtk-data-table radtk-data-table--cards">
+                    <thead class="table-light">
+                        <tr>
+                            <th>الشركة</th>
+                            <th class="text-center">عدد المشتركين</th>
+                            <th class="text-center">إجمالي طلبات الصيانة</th>
+                            <th class="text-center">طلبات مكتملة</th>
+                            <th class="text-center">نسبة الصيانات للمشتركين (%)</th>
+                            <th class="text-center">متوسط زمن التلبية (ساعة)</th>
+                            <th class="text-center">نسبة الالتزام (≤@slaHours ساعة)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var maintenanceStats = ViewBag.MaintenanceStats as IEnumerable<RadaTik.Controllers.MaintenanceStatItem>;
+                            if (maintenanceStats != null && maintenanceStats.Any())
+                            {
+                                foreach (var item in maintenanceStats)
+                                {
+                                    <tr>
+                                        <td>@item.CompanyName</td>
+                                        <td class="text-center">@item.SubscribersCount</td>
+                                        <td class="text-center">@item.TotalRequests</td>
+                                        <td class="text-center">@item.CompletedRequests</td>
+                                        <td class="text-center">@item.RatioPercent.ToString("0.##")%</td>
+                                        <td class="text-center">@(item.AvgFulfillmentHours.HasValue ? item.AvgFulfillmentHours.Value.ToString("0.##") : "-")</td>
+                                        <td class="text-center">@(item.SlaCompliancePercent.HasValue ? (item.SlaCompliancePercent.Value.ToString("0.##") + "%") : "-")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="7" class="text-center text-muted">لا توجد بيانات</td></tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@if (activeTab == "collectionpoints")
+{
+    <!-- محتوى نقاط التحصيل - الاسم، العنوان، الجوال -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 py-3">
+            <h5 class="mb-0"><i class="fas fa-cash-register me-2"></i> بيانات نقاط التحصيل</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 radtk-data-table radtk-data-table--cards">
+                    <thead class="table-light">
+                        <tr>
+                            <th>الاسم</th>
+                            <th>العنوان</th>
+                            <th>الجوال</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var collectionPoints = ViewBag.CollectionPoints as IEnumerable<RadaTik.Controllers.CollectionPointDisplayItem>;
+                            if (collectionPoints != null && collectionPoints.Any())
+                            {
+                                foreach (var item in collectionPoints)
+                                {
+                                    <tr>
+                                        <td>@item.Name</td>
+                                        <td>@item.Address</td>
+                                        <td>@item.Mobile</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="3" class="text-center text-muted">لا توجد نقاط تحصيل مسجلة</td></tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+

@@ -1,0 +1,210 @@
+@using RadaTik.Models
+@using RadaTik.Security
+@using RadaTik.Helpers
+@{
+    ViewData["Title"] = ViewData["Title"] ?? "طلبات خدمات الشركات";
+
+    var items = ViewBag.Items as IEnumerable<NetworkServiceRequest> ?? Enumerable.Empty<NetworkServiceRequest>();
+    var list = items.ToList();
+    var selectedStatus = ViewBag.SelectedStatus as NetworkServiceRequestStatus?;
+    var pendingCount = (int?)ViewBag.PendingCount ?? 0;
+
+    var featureNameByKey = FeatureCatalog.All.ToDictionary(f => f.Key, f => f.DisplayName, StringComparer.OrdinalIgnoreCase);
+    string FeatureName(string key) => featureNameByKey.TryGetValue(key, out var n) ? n : key;
+}
+
+<div class="sys-hero mb-4">
+    <div class="sys-hero-main">
+        <div class="sys-hero-icon"><i class="fas fa-tasks"></i></div>
+        <div>
+            <h1 class="sys-hero-title">@ViewData["Title"]</h1>
+            <p class="sys-hero-subtitle">مراجعة طلبات الخدمات التاريخية للشركات مع متابعة الحالات لحظياً.</p>
+        </div>
+    </div>
+    <div class="sys-hero-chips">
+        <span class="sys-hero-chip"><i class="fas fa-hourglass-half"></i> المعلقة: @pendingCount</span>
+        <span class="sys-hero-chip"><i class="fas fa-wallet"></i> الخصم المقدّم يُسترد عند رفض الطلب</span>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="content-grid">
+    <div class="card">
+        <div class="card-body d-flex flex-wrap gap-2 align-items-center justify-content-between">
+            <div class="text-muted small">
+                الطلبات المعلّقة: <strong>@pendingCount</strong>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-outline-secondary btn-sm" asp-area="SystemAdmin" asp-controller="ServiceRequests" asp-action="Index">الكل</a>
+                <a class="btn btn-outline-primary btn-sm" asp-area="SystemAdmin" asp-controller="ServiceRequests" asp-action="Index" asp-route-status="@NetworkServiceRequestStatus.Pending">@PricingDisplay.NetworkServiceRequestStatusLabel(NetworkServiceRequestStatus.Pending)</a>
+                <a class="btn btn-outline-success btn-sm" asp-area="SystemAdmin" asp-controller="ServiceRequests" asp-action="Index" asp-route-status="@NetworkServiceRequestStatus.Approved">@PricingDisplay.NetworkServiceRequestStatusLabel(NetworkServiceRequestStatus.Approved)</a>
+                <a class="btn btn-outline-danger btn-sm" asp-area="SystemAdmin" asp-controller="ServiceRequests" asp-action="Index" asp-route-status="@NetworkServiceRequestStatus.Rejected">@PricingDisplay.NetworkServiceRequestStatusLabel(NetworkServiceRequestStatus.Rejected)</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-list"></i>
+                القائمة
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive sys-requests-shell">
+                <table class="table align-middle sys-requests-table radtk-data-table radtk-data-table--cards">
+                    <thead>
+                        <tr>
+                            <th style="width: 160px;">التاريخ</th>
+                            <th>الشركة</th>
+                            <th>الخدمة</th>
+                            <th style="width: 130px;">المدة</th>
+                            <th class="text-center" style="width: 140px;">المبلغ (ل.س.ج)</th>
+                            <th style="width: 160px;">الطالب</th>
+                            <th style="width: 120px;" class="text-center">الحالة</th>
+                            <th style="width: 160px;">إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (list.Any())
+                        {
+                            foreach (var r in list)
+                            {
+                                <tr>
+                                    <td data-label="التاريخ">@r.RequestedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                    <td data-label="الشركة">@(r.Network?.Name ?? $"#{r.NetworkId}")</td>
+                                    <td data-label="الخدمة">
+                                        <div><strong>@FeatureName(r.FeatureKey)</strong></div>
+                                        <div class="text-muted small"><code>@r.FeatureKey</code></div>
+                                    </td>
+                                    <td data-label="المدة">@PricingDisplay.BillingPeriodLabel(r.BillingPeriod)</td>
+                                    <td class="text-center" data-label="المبلغ (ل.س.ج)">@SyrianCurrencyHelper.FormatNew(r.AmountSYP)</td>
+                                    <td data-label="الطالب">@(r.RequestedByUser?.FullName ?? r.RequestedByUser?.UserName ?? r.RequestedByUserId)</td>
+                                    <td class="text-center" data-label="الحالة">
+                                        @if (r.Status == NetworkServiceRequestStatus.Pending)
+                                        {
+                                            <span class="badge bg-warning text-dark">@PricingDisplay.NetworkServiceRequestStatusLabel(r.Status)</span>
+                                        }
+                                        else if (r.Status == NetworkServiceRequestStatus.Approved)
+                                        {
+                                            <span class="badge bg-success">@PricingDisplay.NetworkServiceRequestStatusLabel(r.Status)</span>
+                                        }
+                                        else if (r.Status == NetworkServiceRequestStatus.Rejected)
+                                        {
+                                            <span class="badge bg-danger">@PricingDisplay.NetworkServiceRequestStatusLabel(r.Status)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">@PricingDisplay.NetworkServiceRequestStatusLabel(r.Status)</span>
+                                        }
+                                    </td>
+                                    <td data-label="إجراء">
+                                        @if (r.Status == NetworkServiceRequestStatus.Pending)
+                                        {
+                                            <div class="sys-requests-actions">
+                                                <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#approveModal_@r.Id">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal_@r.Id">
+                                                    <i class="fas fa-xmark"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="8" class="text-center text-muted py-4">لا توجد طلبات</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@foreach (var r in list.Where(x => x.Status == NetworkServiceRequestStatus.Pending))
+{
+    <div class="modal fade" id="approveModal_@r.Id" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="post" asp-area="SystemAdmin" asp-controller="ServiceRequests" asp-action="Approve">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@r.Id" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">موافقة على طلب #@r.Id</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-2">
+                            الشركة: <strong>@(r.Network?.Name ?? $"#{r.NetworkId}")</strong>
+                        </div>
+                        <div class="mb-2">
+                            الخدمة: <strong>@FeatureName(r.FeatureKey)</strong> — <span class="text-muted">@PricingDisplay.BillingPeriodLabel(r.BillingPeriod)</span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">ملاحظات (اختياري)</label>
+                            <textarea name="notes" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="alert alert-info mb-0">
+                            سيتم تفعيل أو تمديد اشتراك الشركة للخدمة المطلوبة وفق التسعير المسجّل في الطلب.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-success">موافقة</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="rejectModal_@r.Id" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="post" asp-area="SystemAdmin" asp-controller="ServiceRequests" asp-action="Reject">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@r.Id" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">رفض طلب #@r.Id</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-2">
+                            الشركة: <strong>@(r.Network?.Name ?? $"#{r.NetworkId}")</strong>
+                        </div>
+                        <div class="mb-2">
+                            الخدمة: <strong>@FeatureName(r.FeatureKey)</strong> — <span class="text-muted">@PricingDisplay.BillingPeriodLabel(r.BillingPeriod)</span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">سبب الرفض (اختياري)</label>
+                            <textarea name="notes" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="alert alert-warning mb-0">
+                            سيتم رفض الطلب واسترجاع المبلغ المخصوم مقدّماً إلى محفظة الشركة إن وُجد خصم.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-danger">رفض</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+

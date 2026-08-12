@@ -1,0 +1,358 @@
+@model RadaTik.Areas.CompanyAdmin.ViewModels.NewSubscriberWizardInvoiceViewModel
+
+@{
+
+    var area = ViewContext.RouteData.Values["area"]?.ToString() ?? "CompanyAdmin";
+
+}
+
+
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <h2><i class="fas fa-file-invoice text-warning"></i> @ViewData["Title"]</h2>
+
+</div>
+
+
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+@if (TempData["Info"] != null) { <div class="alert alert-info">@TempData["Info"]</div> }
+
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+
+
+@if (Model.RequiresManagerApproval)
+
+{
+
+    <div class="alert alert-warning">
+
+        المشترك معلّق بانتظار موافقة المدير. احفظ الكميات ثم أنهِ المعالج؛ الإصدار والتحصيل بعد الاعتماد.
+
+    </div>
+
+}
+
+else if (!Model.WarehousePricingReady && Model.UnlinkedStockLineCount > 0)
+
+{
+
+    <div class="alert alert-danger">
+
+        <i class="fas fa-warehouse"></i>
+
+        يوجد <strong>@Model.UnlinkedStockLineCount</strong> مادة غير مربوطة بالمستودع.
+
+        <a asp-route="networkManager-subscriber-installation-pricing" asp-route-action="Index" asp-route-id="" class="alert-link">
+
+            اذهب إلى تسعير التركيب
+
+        </a>
+
+        واضغط «ربط تلقائي بالمستودع» أو اختر الموديلات يدوياً قبل إصدار الفاتورة.
+
+    </div>
+
+}
+
+else if (Model.WarehousePricingReady)
+
+{
+
+    <div class="alert alert-success py-2">
+
+        <i class="fas fa-check-circle"></i> ربط المستودع مكتمل — يمكنك إصدار الفاتورة وخصم الكميات.
+
+    </div>
+
+}
+
+
+
+<div class="card mb-3">
+
+    <div class="card-body">
+
+        <strong>العميل:</strong> @Model.ClientName
+
+        <span class="text-muted ms-2">(#@Model.ClientId)</span>
+
+    </div>
+
+</div>
+
+
+
+<form asp-action="Invoice" method="post">
+
+    @Html.AntiForgeryToken()
+
+    <input type="hidden" name="invoiceId" value="@Model.InvoiceId" />
+
+
+
+    <div class="card">
+
+        <div class="card-header">الخطوة 3 — المواد والكميات</div>
+
+        <div class="card-body p-0">
+
+            <table class="table table-sm mb-0 radtk-data-table radtk-data-table--cards">
+
+                <thead>
+
+                    <tr>
+
+                        <th>البند</th>
+
+                        <th>موديل المستودع</th>
+
+                        <th>السعر</th>
+
+                        <th style="width:120px">الكمية</th>
+
+                        <th>المبلغ</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                @for (var i = 0; i < Model.Lines.Count; i++)
+
+                {
+
+                    var line = Model.Lines[i];
+
+                    <tr>
+
+                        <td>
+
+                            @line.ItemName
+
+                            <input type="hidden" name="lines[@i].ItemId" value="@line.ItemId" />
+
+                        </td>
+
+                        <td>
+
+                            @if (line.IsStockItem)
+
+                            {
+
+                                if (line.AvailableModels.Count > 1)
+
+                                {
+
+                                    <select name="lines[@i].WarehouseItemId" class="form-select form-select-sm" style="max-width:220px">
+
+                                        @foreach (var m in line.AvailableModels)
+
+                                        {
+
+                                            <option value="@m.WarehouseItemId"
+
+                                                    selected="@(line.WarehouseItemId == m.WarehouseItemId || (line.WarehouseItemId == null && m.IsDefault))">
+
+                                                @m.DisplayLabel
+
+                                            </option>
+
+                                        }
+
+                                    </select>
+
+                                }
+
+                                else if (line.AvailableModels.Count == 1)
+
+                                {
+
+                                    var m = line.AvailableModels[0];
+
+                                    <span class="small">@m.DisplayLabel</span>
+
+                                    <input type="hidden" name="lines[@i].WarehouseItemId" value="@m.WarehouseItemId" />
+
+                                }
+
+                                else if (line.WarehouseItemId.HasValue)
+
+                                {
+
+                                    <span class="text-success small">مربوط (#@line.WarehouseItemId)</span>
+
+                                    <input type="hidden" name="lines[@i].WarehouseItemId" value="@line.WarehouseItemId" />
+
+                                }
+
+                                else
+
+                                {
+
+                                    <span class="text-danger small">غير مربوط</span>
+
+                                }
+
+                            }
+
+                            else
+
+                            {
+
+                                <span class="text-muted">—</span>
+
+                            }
+
+                        </td>
+
+                        <td>@line.UnitPrice.ToString("N0")</td>
+
+                        <td>
+
+                            <input type="number" step="0.01" min="0" class="form-control form-control-sm qty-input"
+
+                                   name="lines[@i].Quantity" value="@line.Quantity.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+
+                                   data-price="@line.UnitPrice.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+
+                        </td>
+
+                        <td class="line-total">@line.LineTotal.ToString("N0")</td>
+
+                    </tr>
+
+                }
+
+                </tbody>
+
+                <tfoot>
+
+                    <tr class="table-light">
+
+                        <th colspan="4" class="text-end">الإجمالي</th>
+
+                        <th id="invoiceGrandTotal">@Model.TotalAmount.ToString("N0")</th>
+
+                    </tr>
+
+                </tfoot>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+
+    @if (!Model.RequiresManagerApproval)
+
+    {
+
+        <div class="alert alert-warning mt-3">
+
+            <i class="fas fa-warehouse"></i>
+
+            عند <strong>إصدار الفاتورة</strong> يُخصم المستودع ثم تنتقل لخطوة التحصيل.
+
+            <a asp-route="networkManager-subscriber-installation-pricing" asp-route-action="Index" asp-route-id="">تسعير التركيب</a>.
+
+        </div>
+
+    }
+
+
+
+    <div class="d-flex flex-wrap gap-2 mt-3">
+
+        <button type="submit" name="finalize" value="false" class="btn btn-outline-primary">
+
+            <i class="fas fa-save"></i> حفظ الكميات
+
+        </button>
+
+        @if (!Model.RequiresManagerApproval)
+
+        {
+
+            <button type="submit" name="finalize" value="true" class="btn btn-warning"
+
+                    @(Model.WarehousePricingReady ? "" : "disabled")
+
+                    onclick="return confirm('تأكيد إصدار الفاتورة وخصم المستودع؟');">
+
+                <i class="fas fa-check-double"></i> إصدار الفاتورة والمتابعة للتحصيل
+
+            </button>
+
+        }
+
+        else
+
+        {
+
+            <a asp-action="Complete" asp-route-invoiceId="@Model.InvoiceId" class="btn btn-success">
+
+                <i class="fas fa-check"></i> إنهاء (بانتظار موافقة المدير)
+
+            </a>
+
+        }
+
+        <a asp-route="networkManager-subscriber-installation-invoices" asp-route-action="Details" asp-route-id="@Model.InvoiceId" class="btn btn-secondary">
+
+            تفاصيل الفاتورة لاحقاً
+
+        </a>
+
+    </div>
+
+</form>
+
+
+
+@section Scripts {
+
+<script>
+
+function recalcGrandTotal() {
+
+    let sum = 0;
+
+    document.querySelectorAll('.qty-input').forEach(inp => {
+
+        sum += (parseFloat(inp.dataset.price) || 0) * (parseFloat(inp.value) || 0);
+
+    });
+
+    const el = document.getElementById('invoiceGrandTotal');
+
+    if (el) el.textContent = Math.round(sum).toLocaleString('ar-SY');
+
+}
+
+document.querySelectorAll('.qty-input').forEach(inp => {
+
+    inp.addEventListener('input', function () {
+
+        const price = parseFloat(this.dataset.price) || 0;
+
+        const qty = parseFloat(this.value) || 0;
+
+        this.closest('tr').querySelector('.line-total').textContent = Math.round(price * qty).toLocaleString('ar-SY');
+
+        recalcGrandTotal();
+
+    });
+
+});
+
+</script>
+
+}
+

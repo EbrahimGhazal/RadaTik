@@ -1,0 +1,983 @@
+<div class="radtk-page-sector-index">
+@model IEnumerable<RadaTik.Models.Sector>
+
+@{
+    ViewData["Title"] = "القطاعات";
+    var totalSectors = Model.Count();
+    var activeSectors = Model.Count(s => s.IsActive);
+    var totalReceivers = (int?)(ViewBag.TotalReceivers) ?? 0;
+    var totalUsers = (int?)(ViewBag.TotalUsers) ?? 0;
+    var sectorReceiverCounts = ViewBag.SectorReceiverCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
+    var sectorUserCounts = ViewBag.SectorUserCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
+    var importServers = ViewBag.SectorImportServers as List<RadaTik.Models.MikroTikServer> ?? new List<RadaTik.Models.MikroTikServer>();
+    var sectorImportUnitPrice = (decimal?)(ViewBag.SectorImportUnitPrice) ?? 0m;
+}
+
+<!-- Page Header -->
+<div class="operational-page sector-index-page">
+    @{
+        ViewBag.OperationalHeroIcon = "fas fa-broadcast-tower";
+        ViewBag.OperationalHeroSubtitle = $"إجمالي {totalSectors} قطاع — نشط {activeSectors} — {totalReceivers} مستقبل";
+    }
+    <partial name="_OperationalSysHero" />
+    <div class="page-actions-toolbar d-flex flex-wrap gap-2 mb-3 justify-content-end align-items-center">
+            <button type="button" class="btn btn-sm btn-icon sector-toolbar-refresh" id="btnRefresh" title="تحديث">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            @if (importServers.Any())
+            {
+                <form asp-action="ImportFromMikroTik" method="post" class="sector-import-form d-flex flex-wrap align-items-center gap-1">
+                    @Html.AntiForgeryToken()
+                    <select class="form-select form-select-sm sector-import-server-select" name="mikroTikServerId" id="sectorImportServerSelect">
+                        @foreach (var srv in importServers)
+                        {
+                            <option value="@srv.Id"
+                                    data-server-name="@srv.Name"
+                                    data-preview-loaded="0"
+                                    data-total-interfaces="0"
+                                    data-importable="0"
+                                    data-existing="0"
+                                    data-missing-ip="0"
+                                    data-unsupported="0"
+                                    data-preview-note=""
+                                    data-unit-price="0"
+                                    data-total-charge="0"
+                                    data-wallet="0">
+                                @srv.Name
+                            </option>
+                        }
+                    </select>
+                    <div class="sector-import-form-actions">
+                        <button type="submit" class="btn btn-outline-success btn-sm"
+                                id="sectorImportSubmitBtn"
+                                onclick="return confirmSectorImportPreview();">
+                            <i class="fas fa-download"></i> <span class="sector-btn-text">استيراد القطاعات</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                id="sectorImportPreviewReloadBtn"
+                                title="تحديث معاينة الاستيراد">
+                            <i class="fas fa-rotate"></i>
+                        </button>
+                    </div>
+                </form>
+            }
+            <div class="sector-page-nav-actions">
+                <a asp-route="networkManager-sector" asp-route-action="RadioEngineering" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-flask-vial"></i> <span class="sector-btn-text">دراسة التحكم الراديوي</span>
+                </a>
+                <a asp-route="networkManager-sector" asp-route-action="RadioMonitoring" class="btn btn-outline-info btn-sm">
+                    <i class="fas fa-wave-square"></i> <span class="sector-btn-text">مراقبة القطاعات</span>
+                </a>
+                <a asp-action="Create" class="btn btn-success btn-sm">
+                    <i class="fas fa-plus"></i> <span class="sector-btn-text">إضافة قطاع</span>
+                </a>
+            </div>
+    </div>
+
+<div class="small text-muted mb-2">
+    سعر الوحدة الفعال لاستيراد كل قطاع: <strong>@SyrianCurrencyHelper.FormatNew(sectorImportUnitPrice)</strong> ل.س.ج
+</div>
+
+@if (importServers.Any())
+{
+    <div class="card border-0 shadow-sm mb-3 border-start border-4 border-success" id="sectorImportPreviewCard">
+        <div class="card-body py-2">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <div class="fw-semibold" id="sipServerName">—</div>
+                    <div class="small text-muted mt-1 sector-import-preview-stats">
+                        إجمالي الواجهات: <strong id="sipTotal">0</strong> |
+                        قابل للاستيراد: <strong id="sipImportable">0</strong> |
+                        موجود مسبقاً: <strong id="sipExisting">0</strong> |
+                        بدون IP: <strong id="sipMissingIp">0</strong>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="small text-muted">سعر الوحدة / الإجمالي / الرصيد</div>
+                    <div class="fw-bold text-success">
+                        <span id="sipUnitPrice">0.00</span> / <span id="sipTotalCharge">0.00</span> / <span id="sipWallet">0.00</span> ل.س.ج
+                    </div>
+                    <div class="small text-danger mt-1 d-none" id="sipWarningText">
+                        <span id="sipWarningMessage"></span>
+                        <a href="#" id="sipWarningHelpLink" class="ms-1" onclick="return showSectorImportHelpModal();">تفاصيل الحل</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (TempData["ImportSectorWarnings"] is string importWarnings && !string.IsNullOrWhiteSpace(importWarnings))
+{
+    <div class="alert alert-warning mb-3">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        @importWarnings
+    </div>
+}
+
+@if (importServers.Any())
+{
+    <div class="modal fade" id="sectorImportHelpModal" tabindex="-1" aria-labelledby="sectorImportHelpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sectorImportHelpModalLabel">
+                        <i class="fas fa-circle-info text-primary me-1"></i> تفاصيل حل دعم واجهات الراديو
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">السيرفر الحالي لا يدعم أوامر الواجهات التالية:</p>
+                    <ul class="mb-3">
+                        <li><code>/interface/wireless/print</code></li>
+                        <li><code>/interface/wifi/print</code></li>
+                        <li><code>/interface/wifiwave2/print</code></li>
+                    </ul>
+                    <p class="mb-1">الحل المقترح على RouterOS:</p>
+                    <ol class="mb-0">
+                        <li>التحقق من نوع الجهاز وإصدار RouterOS.</li>
+                        <li>تفعيل/تثبيت حزمة الراديو المناسبة (wireless أو wifi).</li>
+                        <li>إعادة تشغيل الراوتر بعد تفعيل الحزمة إذا لزم.</li>
+                        <li>التأكد من ظهور الواجهات عبر Terminal ثم إعادة المحاولة من RadaTik.</li>
+                    </ol>
+                    <hr />
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong class="small">أوامر CLI مقترحة:</strong>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="copySectorImportCliSnippets()">
+                            <i class="fas fa-copy"></i> نسخ الأوامر
+                        </button>
+                    </div>
+                    <ul class="nav nav-tabs nav-sm mb-2" id="sectorImportCliTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="sector-cli-v6-tab" data-bs-toggle="tab" data-bs-target="#sector-cli-v6" type="button" role="tab">RouterOS v6</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="sector-cli-v7-tab" data-bs-toggle="tab" data-bs-target="#sector-cli-v7" type="button" role="tab">RouterOS v7</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="sector-cli-v6" role="tabpanel">
+                            <pre class="small p-2 bg-light rounded border mb-1"># RouterOS v6
+# 1) التحقق من الحزم المثبتة
+/system/package/print
+
+# 2) التحقق من وجود الواجهات
+/interface/wireless/print
+
+# 3) بعد التفعيل/التثبيت (عند الحاجة) أعد التشغيل
+/system/reboot</pre>
+                        </div>
+                        <div class="tab-pane fade" id="sector-cli-v7" role="tabpanel">
+                            <pre class="small p-2 bg-light rounded border mb-1"># RouterOS v7
+# 1) التحقق من الحزم/الوحدات
+/system/package/print
+
+# 2) التحقق من الواجهات (wifi أو wifiwave2 حسب الجهاز)
+/interface/wifi/print
+/interface/wifiwave2/print
+
+# 3) تحقق إضافي لبعض الأجهزة
+/interface/wireless/print
+
+# 4) بعد أي تغيير على الحزم أعد التشغيل
+/system/reboot</pre>
+                        </div>
+                    </div>
+                    <div id="sectorImportCliCopyOk" class="small text-success d-none">تم نسخ الأوامر.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Compact Statistics Bar -->
+<div class="stats-bar">
+    <div class="stat-item stat-primary">
+        <div class="stat-icon-mini"><i class="fas fa-broadcast-tower"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalSectors</span>
+            <span class="stat-label">إجمالي</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-success">
+        <div class="stat-icon-mini"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@activeSectors</span>
+            <span class="stat-label">نشط</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-info">
+        <div class="stat-icon-mini"><i class="fas fa-satellite-dish"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalReceivers</span>
+            <span class="stat-label">مستقبلات</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-warning">
+        <div class="stat-icon-mini"><i class="fas fa-users"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalUsers</span>
+            <span class="stat-label">مستخدمين</span>
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Map -->
+<div class="card map-card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-map-marked-alt"></i>
+            خريطة توزيع القطاعات
+        </h3>
+        <div class="card-actions">
+            <div class="map-controls-wrapper">
+                <div class="map-type-controls">
+                    <button type="button" class="map-type-btn active" data-map-type="streets">شوارع</button>
+                    <button type="button" class="map-type-btn" data-map-type="satellite">قمر صناعي</button>
+                    <button type="button" class="map-type-btn" data-map-type="terrain">تضاريس</button>
+                </div>
+                <div class="map-action-buttons">
+                    <button type="button" class="btn btn-sm btn-icon" id="btnZoomToAll" title="عرض الكل">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-icon" id="btnToggleCoverage" title="إظهار/إخفاء التغطية">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body" style="padding: 0; position: relative;">
+        <div id="map"></div>
+        <div class="map-legend">
+            <div class="legend-title">مفتاح الخريطة</div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #28a745;"></span>
+                <span>قطاع نشط</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #dc3545;"></span>
+                <span>قطاع متوقف</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #00ff00;"></span>
+                <span>تغطية ممتازة</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #ff0000;"></span>
+                <span>تغطية ضعيفة</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sectors Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            قائمة القطاعات
+        </h3>
+        <span class="badge badge-primary">@totalSectors قطاع</span>
+    </div>
+    <div class="card-body sector-table-card-body">
+        <div class="table-container radtk-data-table-wrap">
+            <table class="table radtk-data-table radtk-data-table--cards" id="sectorsTable">
+                <thead>
+                    <tr>
+                        <th>القطاع</th>
+                        <th>IP</th>
+                        <th>السيرفر</th>
+                        <th>الموقع</th>
+                        <th>AGL (م)</th>
+                        <th>المستقبلات</th>
+                        <th>المستخدمين</th>
+                        <th>الحالة</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr class="sector-row"
+                            data-sector-id="@item.Id"
+                            data-latitude="@item.Latitude"
+                            data-longitude="@item.Longitude"
+                            data-direction="@item.Direction"
+                            data-coverage-angle="@item.CoverageAngle"
+                            data-coverage-range="@item.CoverageRange"
+                            data-name="@item.Name"
+                            data-ip="@item.IPAddress"
+                            data-is-active="@item.IsActive"
+                            data-antenna-height-agl="@item.AntennaHeightAglMeters"
+                            data-receiver-count="@(sectorReceiverCounts.GetValueOrDefault(item.Id))"
+                            data-user-count="@(sectorUserCounts.GetValueOrDefault(item.Id))">
+                            <td data-label="القطاع">
+                                <div class="sector-info">
+                                    <div class="sector-icon @(item.IsActive ? "active" : "inactive")">
+                                        <i class="fas fa-broadcast-tower"></i>
+                                    </div>
+                                    <div>
+                                        <div class="sector-name">@item.Name</div>
+                                        <div class="sector-mask">@item.NetworkMask</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td data-label="IP"><code>@item.IPAddress</code></td>
+                            <td data-label="السيرفر">
+                                @if (item.MikroTikServer != null)
+                                {
+                                    <span class="badge badge-primary">
+                                        <i class="fas fa-server"></i> @item.MikroTikServer.Name
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td data-label="الموقع">
+                                <div class="location-info">
+                                    <span class="location-coord">
+                                        <i class="fas fa-map-marker-alt text-danger"></i>
+                                        @item.Latitude.ToString("F4")
+                                    </span>
+                                    <span class="location-coord">@item.Longitude.ToString("F4")</span>
+                                </div>
+                            </td>
+                            <td data-label="AGL (م)">
+                                @if (!item.AntennaHeightAglMeters.HasValue)
+                                {
+                                    <span class="badge badge-secondary" title="الارتفاع عن سطح الأرض غير مُدخل">-</span>
+                                }
+                                else if (item.AntennaHeightAglMeters.Value >= 20)
+                                {
+                                    <span class="badge badge-warning" title="ارتفاع مرتفع (20م فأكثر)">
+                                        <i class="fas fa-arrow-up"></i> @item.AntennaHeightAglMeters.Value.ToString("F2")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-info" title="الارتفاع عن سطح الأرض">
+                                        @item.AntennaHeightAglMeters.Value.ToString("F2")
+                                    </span>
+                                }
+                            </td>
+                            <td data-label="المستقبلات">
+                                <a asp-action="Receivers" asp-route-id="@item.Id" class="count-badge count-info" title="عرض المستقبلات">
+                                    <i class="fas fa-satellite-dish"></i>
+                                    <span>@sectorReceiverCounts.GetValueOrDefault(item.Id)</span>
+                                </a>
+                            </td>
+                            <td data-label="المستخدمين">
+                                <a asp-action="Users" asp-route-id="@item.Id" class="count-badge count-warning" title="عرض المستخدمين">
+                                    <i class="fas fa-users"></i>
+                                    <span>@sectorUserCounts.GetValueOrDefault(item.Id)</span>
+                                </a>
+                            </td>
+                            <td data-label="الحالة">
+                                @if (item.IsActive)
+                                {
+                                    <span class="status-badge status-active">
+                                        <i class="fas fa-check-circle"></i> نشط
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-inactive">
+                                        <i class="fas fa-times-circle"></i> متوقف
+                                    </span>
+                                }
+                            </td>
+                            <td data-label="إجراءات" class="radtk-col-actions">
+                                <div class="action-buttons">
+                                    <button type="button" class="btn btn-sm btn-icon btn-info btn-zoom-sector" 
+                                            data-sector-id="@item.Id" title="عرض على الخريطة">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </button>
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-icon btn-secondary" title="تفاصيل">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-icon btn-warning" title="تعديل">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-icon btn-danger" title="حذف">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div>
+
+@section Scripts {
+    <script>
+        function showSectorImportHelpModal() {
+            const modalEl = document.getElementById('sectorImportHelpModal');
+            if (!modalEl || typeof bootstrap === 'undefined') {
+                return false;
+            }
+
+            const instance = bootstrap.Modal.getOrCreateInstance(modalEl);
+            instance.show();
+            return false;
+        }
+
+        function copySectorImportCliSnippets() {
+            const activePane = document.querySelector('#sectorImportHelpModal .tab-pane.active');
+            const text = activePane?.querySelector('pre')?.textContent || '';
+            if (!text) return;
+
+            const ok = document.getElementById('sectorImportCliCopyOk');
+            const showOk = () => {
+                if (!ok) return;
+                ok.classList.remove('d-none');
+                setTimeout(() => ok.classList.add('d-none'), 1800);
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(showOk);
+                return;
+            }
+
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showOk();
+        }
+
+        function confirmSectorImportPreview() {
+            const selected = document.getElementById('sectorImportServerSelect')?.selectedOptions?.[0];
+            if (!selected) {
+                return confirm('سيتم تنفيذ الاستيراد. متابعة؟');
+            }
+
+            const serverName = selected.getAttribute('data-server-name') || 'غير معروف';
+            const total = Number(selected.getAttribute('data-total-interfaces') || 0);
+            const importable = Number(selected.getAttribute('data-importable') || 0);
+            const existing = Number(selected.getAttribute('data-existing') || 0);
+            const missingIp = Number(selected.getAttribute('data-missing-ip') || 0);
+            const unitPrice = Number(selected.getAttribute('data-unit-price') || 0);
+            const totalCharge = Number(selected.getAttribute('data-total-charge') || 0);
+            const wallet = Number(selected.getAttribute('data-wallet') || 0);
+            const unsupported = selected.getAttribute('data-unsupported') === '1';
+            const previewNote = selected.getAttribute('data-preview-note') || '';
+
+            if (unsupported) {
+                alert(previewNote || 'هذا السيرفر لا يدعم أوامر واجهات الراديو المعروفة.');
+                return false;
+            }
+
+            if (importable <= 0) {
+                alert('لا توجد قطاعات جديدة قابلة للاستيراد من هذا السيرفر حالياً.');
+                return false;
+            }
+
+            const msg =
+                `تنبيه واضح قبل استيراد القطاعات\n\n` +
+                `السيرفر: ${serverName}\n` +
+                `إجمالي الواجهات اللاسلكية: ${total}\n` +
+                `قابلة للاستيراد: ${importable}\n` +
+                `موجودة مسبقاً: ${existing}\n` +
+                `بدون IP صالح: ${missingIp}\n` +
+                `سعر استيراد كل قطاع: ${unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n` +
+                `إجمالي مبلغ الاستيراد المتوقع: ${totalCharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n` +
+                `رصيد المحفظة الحالي: ${wallet.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n\n` +
+                `هل تريد المتابعة؟`;
+
+            return confirm(msg);
+        }
+
+        function sectorImportPick(obj, camel, pascal) {
+            if (!obj) return undefined;
+            return obj[camel] ?? obj[pascal];
+        }
+
+        function applySectorImportPreviewPayload(data) {
+            if (!data || !data.ok || !Array.isArray(data.servers)) return false;
+            const select = document.getElementById('sectorImportServerSelect');
+            if (!select) return false;
+            data.servers.forEach(function (s) {
+                const serverId = sectorImportPick(s, 'serverId', 'ServerId');
+                const opt = select.querySelector('option[value="' + serverId + '"]');
+                if (!opt) return;
+                opt.setAttribute('data-preview-loaded', '1');
+                opt.setAttribute('data-total-interfaces', String(sectorImportPick(s, 'totalInterfaces', 'TotalInterfaces') ?? 0));
+                opt.setAttribute('data-importable', String(sectorImportPick(s, 'importable', 'Importable') ?? 0));
+                opt.setAttribute('data-existing', String(sectorImportPick(s, 'existing', 'Existing') ?? 0));
+                opt.setAttribute('data-missing-ip', String(sectorImportPick(s, 'missingIp', 'MissingIp') ?? 0));
+                opt.setAttribute('data-unsupported', sectorImportPick(s, 'unsupported', 'Unsupported') ? '1' : '0');
+                opt.setAttribute('data-preview-note', sectorImportPick(s, 'previewNote', 'PreviewNote') || '');
+                opt.setAttribute('data-unit-price', String(sectorImportPick(s, 'unitPrice', 'UnitPrice') ?? 0));
+                opt.setAttribute('data-total-charge', String(sectorImportPick(s, 'totalCharge', 'TotalCharge') ?? 0));
+                opt.setAttribute('data-wallet', String(sectorImportPick(s, 'wallet', 'Wallet') ?? 0));
+            });
+            return true;
+        }
+
+        function updateSectorImportPreviewCard() {
+            const selected = document.getElementById('sectorImportServerSelect')?.selectedOptions?.[0];
+            if (!selected) return;
+
+            const serverName = selected.getAttribute('data-server-name') || '—';
+            const total = Number(selected.getAttribute('data-total-interfaces') || 0);
+            const importable = Number(selected.getAttribute('data-importable') || 0);
+            const existing = Number(selected.getAttribute('data-existing') || 0);
+            const missingIp = Number(selected.getAttribute('data-missing-ip') || 0);
+            const unitPrice = Number(selected.getAttribute('data-unit-price') || 0);
+            const totalCharge = Number(selected.getAttribute('data-total-charge') || 0);
+            const wallet = Number(selected.getAttribute('data-wallet') || 0);
+            const unsupported = selected.getAttribute('data-unsupported') === '1';
+            const previewNote = selected.getAttribute('data-preview-note') || '';
+            const previewLoaded = selected.getAttribute('data-preview-loaded') === '1';
+
+            const setText = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = val;
+            };
+
+            setText('sipServerName', serverName);
+            setText('sipTotal', total);
+            setText('sipImportable', importable);
+            setText('sipExisting', existing);
+            setText('sipMissingIp', missingIp);
+            setText('sipUnitPrice', unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            setText('sipTotalCharge', totalCharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            setText('sipWallet', wallet.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+            const warningEl = document.getElementById('sipWarningText');
+            const warningMsgEl = document.getElementById('sipWarningMessage');
+            const helpLinkEl = document.getElementById('sipWarningHelpLink');
+            if (warningEl) {
+                let warningMessage = '';
+                if (!previewLoaded) {
+                    warningMessage = 'جاري تحميل معاينة الاستيراد…';
+                } else if (unsupported) {
+                    warningMessage = previewNote || 'السيرفر لا يدعم أوامر واجهات الراديو المعروفة.';
+                } else if (importable <= 0 && previewNote) {
+                    warningMessage = previewNote;
+                } else if (importable <= 0 && total > 0 && missingIp > 0) {
+                    warningMessage = 'لا توجد واجهات جديدة بعناوين IP — ربط IP بالواجهات اللاسلكية على MikroTik ثم أعد المعاينة.';
+                } else if (importable <= 0 && total > 0) {
+                    warningMessage = 'جميع الواجهات اللاسلكية موجودة مسبقاً في RadaTik.';
+                } else if (importable <= 0) {
+                    warningMessage = 'لا توجد واجهات لاسلكية قابلة للاستيراد على هذا السيرفر.';
+                }
+
+                if (warningMessage) {
+                    if (warningMsgEl) warningMsgEl.textContent = warningMessage;
+                    if (helpLinkEl) helpLinkEl.classList.toggle('d-none', !unsupported);
+                    warningEl.classList.remove('d-none');
+                } else {
+                    if (warningMsgEl) warningMsgEl.textContent = '';
+                    warningEl.classList.add('d-none');
+                }
+            }
+
+            const submitBtn = document.getElementById('sectorImportSubmitBtn');
+            if (submitBtn) {
+                const shouldDisable = previewLoaded && (unsupported || importable <= 0);
+                submitBtn.disabled = shouldDisable;
+                submitBtn.classList.toggle('btn-outline-success', !shouldDisable);
+                submitBtn.classList.toggle('btn-secondary', shouldDisable);
+                submitBtn.title = !previewLoaded
+                    ? 'جاري تحميل المعاينة…'
+                    : unsupported
+                        ? 'السيرفر غير مدعوم حالياً'
+                        : importable <= 0
+                            ? 'لا يوجد عناصر قابلة للاستيراد'
+                            : 'استيراد القطاعات من السيرفر المحدد';
+            }
+        }
+
+        function loadSectorImportPreview(showLoadingHint) {
+            const previewUrl = '@Url.RouteUrl("networkManager-sector", new { action = "GetImportPreviewsData" })';
+            const importSelect = document.getElementById('sectorImportServerSelect');
+            if (!importSelect || importSelect.options.length === 0 || !previewUrl) {
+                updateSectorImportPreviewCard();
+                return Promise.resolve(false);
+            }
+
+            Array.from(importSelect.options).forEach(function (opt) {
+                opt.setAttribute('data-preview-loaded', '0');
+            });
+
+            const sipName = document.getElementById('sipServerName');
+            const prevName = sipName ? sipName.textContent : '';
+            if (showLoadingHint && sipName) {
+                sipName.textContent = (importSelect.selectedOptions[0]?.getAttribute('data-server-name') || '') + ' — جاري تحميل المعاينة…';
+            }
+
+            updateSectorImportPreviewCard();
+
+            return fetch(previewUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (data) {
+                    const applied = applySectorImportPreviewPayload(data);
+                    if (!applied && sipName) {
+                        sipName.textContent = prevName || '—';
+                    }
+                    return applied;
+                })
+                .catch(function () {
+                    if (sipName) sipName.textContent = prevName || '—';
+                    const warningMsgEl = document.getElementById('sipWarningMessage');
+                    const warningEl = document.getElementById('sipWarningText');
+                    if (warningMsgEl && warningEl) {
+                        warningMsgEl.textContent = 'تعذر تحميل معاينة الاستيراد. تحقق من الاتصال بالسيرفر ثم اضغط تحديث المعاينة.';
+                        warningEl.classList.remove('d-none');
+                    }
+                    return false;
+                })
+                .finally(function () {
+                    updateSectorImportPreviewCard();
+                });
+        }
+
+        // Map Variables
+        var map;
+        var markers = [];
+        var coverageLayers = [];
+        var showCoverage = true;
+        var streetLayer, satelliteLayer, terrainLayer;
+
+        $(document).ready(function() {
+            document.getElementById('sectorImportServerSelect')?.addEventListener('change', updateSectorImportPreviewCard);
+            document.getElementById('sectorImportPreviewReloadBtn')?.addEventListener('click', function () {
+                loadSectorImportPreview(true);
+            });
+
+            if (document.getElementById('sectorImportServerSelect')?.options.length > 0) {
+                loadSectorImportPreview(true);
+            } else {
+                updateSectorImportPreviewCard();
+            }
+
+            // Initialize DataTable
+            var table = $('#sectorsTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+                },
+                order: [[0, 'asc']],
+                pageLength: 15,
+                responsive: false,
+                autoWidth: false
+            });
+
+            // Initialize Map
+            initializeMap();
+
+            window.addEventListener('resize', function () {
+                if (map) {
+                    map.invalidateSize();
+                }
+            });
+
+            // Refresh button
+            $('#btnRefresh').click(function() {
+                location.reload();
+            });
+
+            // Zoom to sector button
+            $(document).on('click', '.btn-zoom-sector', function() {
+                var sectorId = $(this).data('sector-id');
+                zoomToSector(sectorId);
+                highlightSectorOnMap(sectorId);
+            });
+
+            // Click on table row
+            $('#sectorsTable tbody').on('click', 'tr', function() {
+                var sectorId = $(this).data('sector-id');
+                if (sectorId) {
+                    highlightSectorOnMap(sectorId);
+                }
+            });
+        });
+
+        function initializeMap() {
+            try {
+                var sectors = getSectorsData();
+                var centerLat = 35.5200;
+                var centerLng = 35.7800;
+
+                if (sectors.length > 0) {
+                    centerLat = sectors[0].latitude || centerLat;
+                    centerLng = sectors[0].longitude || centerLng;
+                }
+
+                map = L.map('map').setView([centerLat, centerLng], 12);
+
+                streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap',
+                    maxZoom: 19
+                });
+
+                satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                    maxZoom: 20,
+                    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+                });
+
+                terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 17
+                });
+
+                streetLayer.addTo(map);
+
+                // Map type controls
+                document.querySelectorAll('.map-type-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        document.querySelectorAll('.map-type-btn').forEach(btn => btn.classList.remove('active'));
+                        this.classList.add('active');
+                        changeMapType(this.getAttribute('data-map-type'));
+                    });
+                });
+
+                // Zoom to all button
+                document.getElementById('btnZoomToAll').addEventListener('click', zoomToAllSectors);
+
+                // Toggle coverage button
+                document.getElementById('btnToggleCoverage').addEventListener('click', toggleCoverageVisibility);
+
+                // Draw sectors
+                drawAllSectors();
+
+                setTimeout(function () {
+                    if (map) {
+                        map.invalidateSize();
+                    }
+                }, 150);
+
+            } catch (error) {
+                console.error('Map initialization error:', error);
+                document.getElementById('map').innerHTML = 
+                    '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);">' +
+                    '<i class="fas fa-exclamation-triangle" style="margin-left:10px;"></i> خطأ في تحميل الخريطة</div>';
+            }
+        }
+
+        function changeMapType(type) {
+            map.removeLayer(streetLayer);
+            map.removeLayer(satelliteLayer);
+            map.removeLayer(terrainLayer);
+
+            switch(type) {
+                case 'satellite': satelliteLayer.addTo(map); break;
+                case 'terrain': terrainLayer.addTo(map); break;
+                default: streetLayer.addTo(map);
+            }
+        }
+
+        function getSectorsData() {
+            var sectors = [];
+            $('#sectorsTable tbody tr').each(function() {
+                var $row = $(this);
+                var lat = parseFloat($row.data('latitude'));
+                var lng = parseFloat($row.data('longitude'));
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    sectors.push({
+                        id: $row.data('sector-id'),
+                        name: $row.data('name'),
+                        latitude: lat,
+                        longitude: lng,
+                        direction: parseFloat($row.data('direction')) || 0,
+                        coverageAngle: parseFloat($row.data('coverage-angle')) || 60,
+                        coverageRange: parseFloat($row.data('coverage-range')) || 5,
+                        ip: $row.data('ip'),
+                        isActive: $row.data('is-active') === true || $row.data('is-active') === 'True',
+                        antennaHeightAglMeters: (function() {
+                            const rawValue = $row.data('antenna-height-agl');
+                            if (rawValue === undefined || rawValue === null || rawValue === '') {
+                                return null;
+                            }
+                            const parsed = parseFloat(rawValue);
+                            return isNaN(parsed) ? null : parsed;
+                        })(),
+                        receiverCount: parseInt($row.data('receiver-count')) || 0,
+                        userCount: parseInt($row.data('user-count')) || 0
+                    });
+                }
+            });
+            return sectors;
+        }
+
+        function drawAllSectors() {
+            var sectors = getSectorsData();
+            clearMapLayers();
+
+            sectors.forEach(function(sector) {
+                drawSectorOnMap(sector);
+            });
+
+            if (sectors.length > 0) {
+                zoomToAllSectors();
+            }
+        }
+
+        function drawSectorOnMap(sector) {
+            var markerColor = sector.isActive ? 'green' : 'red';
+
+            var sectorIcon = L.AwesomeMarkers.icon({
+                icon: 'wifi',
+                markerColor: markerColor,
+                prefix: 'fa',
+                iconColor: 'white'
+            });
+
+            var marker = L.marker([sector.latitude, sector.longitude], {
+                icon: sectorIcon,
+                title: sector.name
+            }).addTo(map);
+
+            var popupContent = `
+                <div class="sector-popup">
+                    <h6><i class="fas fa-broadcast-tower"></i> ${sector.name}</h6>
+                    <p><small><strong>IP:</strong> <code>${sector.ip}</code></small></p>
+                    <p><small><strong>الاتجاه:</strong> ${sector.direction}°</small></p>
+                    <p><small><strong>الارتفاع عن سطح الأرض:</strong> ${sector.antennaHeightAglMeters !== null ? sector.antennaHeightAglMeters.toFixed(2) + ' م' : '-'}</small></p>
+                    <p><small><strong>المستقبلات:</strong> ${sector.receiverCount}</small></p>
+                    <p><small><strong>المستخدمين:</strong> ${sector.userCount}</small></p>
+                    <p><span class="badge ${sector.isActive ? 'badge-success' : 'badge-danger'}">${sector.isActive ? 'نشط' : 'متوقف'}</span></p>
+                    <div style="margin-top:8px;">
+                        <a href="/Sector/Details/${sector.id}" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
+                        <a href="/Sector/Edit/${sector.id}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
+                    </div>
+                </div>
+            `;
+
+            marker.bindPopup(popupContent);
+            marker.sectorId = sector.id;
+            markers.push(marker);
+
+            if (showCoverage) {
+                drawCoverageArea(sector);
+            }
+
+            marker.on('click', function() {
+                highlightSectorInTable(sector.id);
+            });
+        }
+
+        function drawCoverageArea(sector) {
+            var direction = sector.direction || 0;
+            var angle = sector.coverageAngle || 60;
+            var range = sector.coverageRange || 5;
+            var lat = sector.latitude;
+            var lng = sector.longitude;
+
+            var layersCount = 8;
+            var startAngleRad = (direction - angle/2) * Math.PI / 180;
+            var endAngleRad = (direction + angle/2) * Math.PI / 180;
+
+            for (var i = 0; i < layersCount; i++) {
+                var innerRadius = (i / layersCount) * range * 1000;
+                var outerRadius = ((i + 1) / layersCount) * range * 1000;
+
+                var colorRatio = i / (layersCount - 1);
+                var red = Math.floor(255 * colorRatio);
+                var green = Math.floor(255 * (1 - colorRatio));
+                var color = 'rgb(' + red + ',' + green + ',0)';
+
+                var sectorPolygon = createSector([lat, lng], innerRadius, outerRadius, startAngleRad, endAngleRad, color);
+                sectorPolygon.sectorId = sector.id;
+                coverageLayers.push(sectorPolygon);
+                sectorPolygon.addTo(map);
+            }
+        }
+
+        function createSector(center, innerRadius, outerRadius, startAngle, endAngle, color) {
+            var points = [];
+
+            for (var i = 0; i <= 20; i++) {
+                var angle = startAngle + (endAngle - startAngle) * i / 20;
+                points.push(calculatePoint(center, innerRadius, angle));
+            }
+
+            for (var i = 20; i >= 0; i--) {
+                var angle = startAngle + (endAngle - startAngle) * i / 20;
+                points.push(calculatePoint(center, outerRadius, angle));
+            }
+
+            return L.polygon(points, {
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.2,
+                weight: 1
+            });
+        }
+
+        /** نقطة على قوس مسافة radius (م) من المركز باتجاه ملاحي (زاوية بالراديان، 0 = الشمال، باتجاه عقارب الساعة) — يطابق منطق خريطة لوحة التحكم وإنشاء المستقبل */
+        function calculatePoint(center, radius, bearingRad) {
+            var lat = center[0] + (radius / 111320) * Math.cos(bearingRad);
+            var lng = center[1] + (radius / (111320 * Math.cos(center[0] * Math.PI / 180))) * Math.sin(bearingRad);
+            return [lat, lng];
+        }
+
+        function clearMapLayers() {
+            markers.forEach(m => { if (map.hasLayer(m)) map.removeLayer(m); });
+            markers = [];
+            coverageLayers.forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+            coverageLayers = [];
+        }
+
+        function zoomToAllSectors() {
+            var sectors = getSectorsData();
+            if (sectors.length === 0) return;
+
+            var bounds = L.latLngBounds();
+            sectors.forEach(s => bounds.extend([s.latitude, s.longitude]));
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+
+        function zoomToSector(sectorId) {
+            var sector = getSectorsData().find(s => s.id === sectorId);
+            if (sector) {
+                map.setView([sector.latitude, sector.longitude], 15);
+                markers.forEach(m => { if (m.sectorId === sectorId) m.openPopup(); });
+            }
+        }
+
+        function highlightSectorOnMap(sectorId) {
+            markers.forEach(function(marker) {
+                var sector = getSectorsData().find(s => s.id === marker.sectorId);
+                var color = marker.sectorId === sectorId ? 'blue' : (sector && sector.isActive ? 'green' : 'red');
+                marker.setIcon(L.AwesomeMarkers.icon({
+                    icon: 'wifi',
+                    markerColor: color,
+                    prefix: 'fa',
+                    iconColor: 'white'
+                }));
+            });
+        }
+
+        function highlightSectorInTable(sectorId) {
+            $('#sectorsTable tbody tr').removeClass('highlighted');
+            $('#sectorsTable tbody tr[data-sector-id="' + sectorId + '"]').addClass('highlighted');
+        }
+
+        function toggleCoverageVisibility() {
+            showCoverage = !showCoverage;
+            var btn = document.getElementById('btnToggleCoverage');
+            var icon = btn.querySelector('i');
+
+            if (showCoverage) {
+                getSectorsData().forEach(s => drawCoverageArea(s));
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                coverageLayers.forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+                coverageLayers = [];
+                icon.className = 'fas fa-eye';
+            }
+        }
+    </script>
+}

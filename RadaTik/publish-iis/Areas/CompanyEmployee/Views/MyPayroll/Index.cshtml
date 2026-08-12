@@ -1,0 +1,439 @@
+@model RadaTik.Areas.CompanyEmployee.ViewModels.EmployeeMyPayrollPageViewModel
+@using RadaTik.Models.Business
+@{
+    ViewData["Title"] = "راتبي ومحفظتي";
+    var d = Model.Details;
+    var s = d.MonthSummary;
+    var p = Model.EmploymentPeriod;
+    var monthNames = new[] { "", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
+    var monthLabel = monthNames[d.Month];
+    var statusClass = d.MonthPayment?.IsPaid == true ? "paid" : d.MonthPayment == null ? "pending-setup" : "pending-pay";
+    var statusText = d.MonthPayment?.IsPaid == true
+        ? $"مُصروف — {d.MonthPayment.PaidAt?.ToLocalTime():yyyy-MM-dd}"
+        : d.MonthPayment == null ? "لم يُجهَّز بعد" : "قيد الصرف";
+}
+
+<div class="employee-payroll-page">
+    <header class="epay-hero">
+        <div class="epay-hero-main">
+            <div class="epay-hero-icon"><i class="fas fa-wallet"></i></div>
+            <div>
+                <h1 class="epay-title">راتبي ومحفظتي</h1>
+                <p class="epay-subtitle mb-0">@Model.CompanyName · @monthLabel @d.Year</p>
+            </div>
+        </div>
+        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-sm btn-light epay-back">
+            <i class="fas fa-arrow-right"></i> لوحة التحكم
+        </a>
+    </header>
+
+    @if (TempData["Success"] != null) { <div class="alert alert-success epay-alert">@TempData["Success"]</div> }
+    @if (TempData["Error"] != null) { <div class="alert alert-danger epay-alert">@TempData["Error"]</div> }
+
+    <div class="row g-3 epay-stats-row">
+        <div class="col-md-4">
+            <div class="epay-stat-card epay-stat-wallet">
+                <span class="epay-stat-label">رصيد المحفظة</span>
+                <span class="epay-stat-value">@Model.WalletBalance.ToString("N0")</span>
+                <span class="epay-stat-unit">ل.س.ج</span>
+                <span class="epay-stat-hint">يُعبَّأ فقط بموافقة مدير الشركة</span>
+                @if (Model.CanRequestWalletTopUp && d.IsActive)
+                {
+                    <button type="button" class="btn btn-sm btn-light mt-2" data-bs-toggle="modal" data-bs-target="#walletTopUpModal">
+                        <i class="fas fa-plus"></i> طلب تغذية
+                    </button>
+                }
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="epay-stat-card epay-stat-primary">
+                <span class="epay-stat-label">مستحق هذا الشهر</span>
+                <span class="epay-stat-value">@s.NetPayable.ToString("N0")</span>
+                <span class="epay-stat-unit">ل.س.ج</span>
+                <span class="epay-stat-badge @statusClass">@statusText</span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="epay-stat-card">
+                <span class="epay-stat-label">إجمالي غير مُصروف</span>
+                <span class="epay-stat-value">@Model.OutstandingNetPayable.ToString("N0")</span>
+                <span class="epay-stat-unit">ل.س.ج</span>
+                <span class="epay-stat-hint">مجموع الدفعات المعلّقة في النظام</span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="epay-stat-card epay-stat-withdraw">
+                <span class="epay-stat-label">متاح لطلب سحب</span>
+                <span class="epay-stat-value">@Model.AvailableWithdrawal.ToString("N0")</span>
+                <span class="epay-stat-unit">ل.س.ج</span>
+                @if (Model.AvailableWithdrawal > 0 && d.IsActive)
+                {
+                    <button type="button" class="btn btn-sm btn-light mt-2" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+                        <i class="fas fa-hand-holding-usd"></i> طلب سحب
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="epay-toolbar card border-0 shadow-sm">
+        <div class="card-body d-flex flex-wrap gap-3 align-items-center justify-content-between">
+            <form method="get" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="text-muted small fw-semibold">عرض شهر:</span>
+                <input type="number" name="year" class="form-control form-control-sm epay-year-input" value="@d.Year" min="2000" max="2100" />
+                <select name="month" class="form-select form-select-sm">
+                    @for (int i = 1; i <= 12; i++)
+                    {
+                        if (i == d.Month)
+                        {
+                            <option value="@i" selected>@monthNames[i]</option>
+                        }
+                        else
+                        {
+                            <option value="@i">@monthNames[i]</option>
+                        }
+                    }
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm">عرض</button>
+            </form>
+            @if (p.WasEmployed)
+            {
+                <div class="epay-proration-pill">
+                    <i class="fas fa-calendar-day"></i>
+                    احتساب الراتب: <strong>@p.WorkedDays</strong> من <strong>@p.DaysInMonth</strong> يوم
+                    (@p.PeriodStart.ToString("dd/MM") — @p.PeriodEnd.ToString("dd/MM"))
+                </div>
+            }
+            else
+            {
+                <div class="epay-proration-pill epay-proration-none">
+                    <i class="fas fa-info-circle"></i> لا يوجد استحقاق راتب في هذا الشهر
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-4">
+            <div class="card epay-panel h-100 border-0 shadow-sm">
+                <div class="card-header epay-panel-head"><i class="fas fa-id-badge"></i> بياناتي</div>
+                <div class="card-body epay-profile-list">
+                    <div><span>الاسم</span><strong>@d.FullName</strong></div>
+                    <div><span>الدوام</span><strong>@d.EmploymentLabel · @d.WeeklyWorkHours س/أسبوع</strong></div>
+                    <div><span>الراتب المتفق</span><strong>@d.MonthlySalary.ToString("N0") ل.س/شهر</strong></div>
+                    <div><span>الأساسي المحتسب</span><strong class="text-primary">@s.AccruedBase.ToString("N0") ل.س</strong></div>
+                    @if (d.HireDate.HasValue)
+                    {
+                        <div><span>تاريخ التعيين</span><strong>@d.HireDate.Value.ToString("yyyy-MM-dd")</strong></div>
+                    }
+                    @if (Model.TerminationDate.HasValue)
+                    {
+                        <div><span>تاريخ الفصل</span><strong class="text-danger">@Model.TerminationDate.Value.ToString("yyyy-MM-dd")</strong></div>
+                    }
+                    <div><span>الحالة</span><strong>@(d.IsActive ? "نشط" : "منتهي الخدمة")</strong></div>
+                </div>
+            </div>
+
+            <div class="card epay-panel border-0 shadow-sm mt-3">
+                <div class="card-header epay-panel-head"><i class="fas fa-paper-plane"></i> طلبات السحب</div>
+                <div class="card-body p-0">
+                    @if (!Model.WithdrawalRequests.Any())
+                    {
+                        <p class="text-muted small text-center py-4 mb-0">لا توجد طلبات سحب بعد.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush epay-withdraw-list">
+                            @foreach (var w in Model.WithdrawalRequests)
+                            {
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start gap-2">
+                                        <div>
+                                            <div class="fw-bold">@w.Amount.ToString("N0") ل.س</div>
+                                            <div class="small text-muted">@monthNames[w.Month] @w.Year · @w.CreatedAt.ToLocalTime():yyyy-MM-dd</div>
+                                            @if (!string.IsNullOrWhiteSpace(w.Notes))
+                                            {
+                                                <div class="small">@w.Notes</div>
+                                            }
+                                        </div>
+                                        <span class="badge epay-status-@w.Status.ToString().ToLowerInvariant()">@w.StatusLabel</span>
+                                    </div>
+                                    @if (w.CanCancel)
+                                    {
+                                        <form asp-action="CancelWithdrawalRequest" method="post" class="mt-2 mb-0">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="requestId" value="@w.Id" />
+                                            <input type="hidden" name="year" value="@d.Year" />
+                                            <input type="hidden" name="month" value="@d.Month" />
+                                            <button type="submit" class="btn btn-link btn-sm text-danger p-0">إلغاء الطلب</button>
+                                        </form>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-8">
+            <div class="card epay-panel border-0 shadow-sm mb-3">
+                <div class="card-header epay-panel-head"><i class="fas fa-chart-pie"></i> ملخص @monthLabel</div>
+                <div class="card-body">
+                    <div class="row g-2 epay-summary-grid">
+                        <div class="col-6 col-md-4">
+                            <div class="epay-metric">
+                                <span>أساسي</span>
+                                <strong>@s.AccruedBase.ToString("N0")</strong>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="epay-metric epay-metric-up">
+                                <span>مكافآت</span>
+                                <strong>@((s.PaymentBonus + s.TransactionBonus).ToString("N0"))</strong>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="epay-metric epay-metric-down">
+                                <span>حسومات</span>
+                                <strong>@((s.PaymentDeduction + s.TransactionDeduction).ToString("N0"))</strong>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="epay-metric">
+                                <span>سحوبات</span>
+                                <strong>@s.Withdrawals.ToString("N0")</strong>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="epay-metric">
+                                <span>سلف</span>
+                                <strong>@s.Advances.ToString("N0")</strong>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="epay-metric epay-metric-total">
+                                <span>الصافي</span>
+                                <strong>@s.NetPayable.ToString("N0")</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-3">
+                        <i class="fas fa-clock"></i>
+                        يُجهَّز الراتب الأساسي تلقائياً في <strong>الساعة 23</strong> من آخر يوم في الشهر (مع احتساب يومي من تاريخ التعيين أو حتى الفصل).
+                        المكافآت والحسومات تظهر فور تسجيلها من الموارد البشرية.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card epay-panel border-0 shadow-sm mb-3">
+                <div class="card-header epay-panel-head"><i class="fas fa-wallet"></i> حركات المحفظة النقدية</div>
+                <div class="table-responsive">
+                    <table class="table table-hover epay-table mb-0 radtk-data-table radtk-data-table--cards">
+                        <thead>
+                            <tr><th>التاريخ</th><th>المبلغ</th><th>الرصيد بعد</th><th>المصدر</th><th>ملاحظات</th></tr>
+                        </thead>
+                        <tbody>
+                        @if (!Model.WalletTransactions.Any())
+                        {
+                            <tr><td colspan="5" class="text-center text-muted py-4">لا توجد حركات محفظة بعد.</td></tr>
+                        }
+                        @foreach (var wt in Model.WalletTransactions)
+                        {
+                            <tr>
+                                <td>@wt.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                                <td class="text-success fw-semibold">+@wt.Amount.ToString("N0")</td>
+                                <td>@wt.NewBalance.ToString("N0")</td>
+                                <td>@wt.SourceLabel</td>
+                                <td class="small text-muted">@(wt.Notes ?? "—")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            @if (Model.WalletTopUpRequests.Any())
+            {
+                <div class="card epay-panel border-0 shadow-sm mb-3">
+                    <div class="card-header epay-panel-head"><i class="fas fa-inbox"></i> طلبات تغذية المحفظة</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm epay-table mb-0 radtk-data-table radtk-data-table--cards">
+                            <thead><tr><th>#</th><th>المبلغ</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+                            <tbody>
+                            @foreach (var wr in Model.WalletTopUpRequests)
+                            {
+                                <tr>
+                                    <td>@wr.Id</td>
+                                    <td>@wr.Amount.ToString("N0")</td>
+                                    <td>@wr.StatusLabel</td>
+                                    <td>@wr.RequestedAt.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                                    <td>
+                                        @if (wr.CanCancel)
+                                        {
+                                            <form asp-action="CancelWalletTopUpRequest" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="requestId" value="@wr.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary" onclick="return confirm('إلغاء الطلب؟');">إلغاء</button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+
+            <div class="card epay-panel border-0 shadow-sm mb-3">
+                <div class="card-header epay-panel-head"><i class="fas fa-exchange-alt"></i> حركات الشهر (راتب)</div>
+                <div class="table-responsive">
+                    <table class="table table-hover epay-table mb-0 radtk-data-table radtk-data-table--cards">
+                        <thead>
+                            <tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>ملاحظات</th></tr>
+                        </thead>
+                        <tbody>
+                        @if (!d.Transactions.Any())
+                        {
+                            <tr><td colspan="4" class="text-center text-muted py-4">لا توجد حركات.</td></tr>
+                        }
+                        @foreach (var t in d.Transactions)
+                        {
+                            var rowClass = t.Type == PayrollTransactionType.Bonus ? "text-success"
+                                : t.Type == PayrollTransactionType.Deduction ? "text-danger" : "";
+                            <tr class="@rowClass">
+                                <td>@t.TransactionDate.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                                <td>@t.TypeLabel</td>
+                                <td class="fw-semibold">@t.Amount.ToString("N0")</td>
+                                <td class="small text-muted">@(t.Notes ?? "—")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="card epay-panel border-0 shadow-sm h-100">
+                        <div class="card-header epay-panel-head"><i class="fas fa-history"></i> آخر الدفعات</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm epay-table mb-0 radtk-data-table radtk-data-table--cards">
+                                <thead><tr><th>الشهر</th><th>المستحق</th><th>الحالة</th></tr></thead>
+                                <tbody>
+                                @if (!Model.RecentPayments.Any())
+                                {
+                                    <tr><td colspan="3" class="text-center text-muted py-3">—</td></tr>
+                                }
+                                @foreach (var pay in Model.RecentPayments)
+                                {
+                                    <tr>
+                                        <td>@monthNames[pay.Month] @pay.Year</td>
+                                        <td>@pay.NetAmount.ToString("N0")</td>
+                                        <td>
+                                            @if (pay.IsPaid)
+                                            {
+                                                <span class="badge bg-success-subtle text-success">مُصروف</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning-subtle text-warning">معلق</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card epay-panel border-0 shadow-sm h-100">
+                        <div class="card-header epay-panel-head"><i class="fas fa-chart-line"></i> زيادات الراتب</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm epay-table mb-0 radtk-data-table radtk-data-table--cards">
+                                <thead><tr><th>التاريخ</th><th>التعديل</th><th>بعد</th></tr></thead>
+                                <tbody>
+                                @if (!d.SalaryRevisions.Any())
+                                {
+                                    <tr><td colspan="3" class="text-center text-muted py-3">—</td></tr>
+                                }
+                                @foreach (var r in d.SalaryRevisions)
+                                {
+                                    <tr>
+                                        <td>@r.EffectiveDate.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                                        <td>@r.AdjustmentDescription</td>
+                                        <td class="fw-bold">@r.NewSalary.ToString("N0")</td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="withdrawModal" tabindex="-1" aria-labelledby="withdrawModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content epay-modal">
+            <form asp-action="SubmitWithdrawalRequest" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="year" value="@d.Year" />
+                <input type="hidden" name="month" value="@d.Month" />
+                <div class="modal-header border-0">
+                    <h5 class="modal-title" id="withdrawModalLabel"><i class="fas fa-hand-holding-usd"></i> طلب سحب من المحفظة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">الحد الأقصى المتاح: <strong>@Model.AvailableWithdrawal.ToString("N0")</strong> ل.س.ج — يحتاج موافقة قسم الرواتب.</p>
+                    <div class="mb-3">
+                        <label class="form-label">المبلغ (ل.س)</label>
+                        <input type="number" name="amount" class="form-control" min="1" step="1"
+                               max="@Model.AvailableWithdrawal.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)" required />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">ملاحظات (اختياري)</label>
+                        <textarea name="notes" class="form-control" rows="2" maxlength="500"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إرسال الطلب</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="walletTopUpModal" tabindex="-1" aria-labelledby="walletTopUpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content epay-modal">
+            <form asp-action="SubmitWalletTopUpRequest" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header border-0">
+                    <h5 class="modal-title" id="walletTopUpModalLabel"><i class="fas fa-wallet"></i> طلب تغذية المحفظة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">يُراجع الطلب من مدير الشركة. عند الموافقة يُخصم المبلغ (+ عمولة المنصة إن وُجدت) من محفظة الشركة.</p>
+                    <div class="mb-3">
+                        <label class="form-label">المبلغ (ل.س.ج)</label>
+                        <input type="number" name="amount" class="form-control" min="1" step="1" required />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">ملاحظات (اختياري)</label>
+                        <textarea name="notes" class="form-control" rows="2" maxlength="500"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إرسال الطلب</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

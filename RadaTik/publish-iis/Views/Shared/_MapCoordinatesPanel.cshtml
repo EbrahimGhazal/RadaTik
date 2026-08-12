@@ -1,0 +1,107 @@
+@{
+    var panelTitle = ViewData["CoordsPanelTitle"] as string ?? "إحداثيات الموقع";
+    var latitudeLabel = ViewData["CoordsLatitudeLabel"] as string ?? "خط العرض";
+    var longitudeLabel = ViewData["CoordsLongitudeLabel"] as string ?? "خط الطول";
+    var latValue = ViewData["CoordsLatitude"];
+    var lngValue = ViewData["CoordsLongitude"];
+    var latDisplay = latValue != null && Convert.ToDouble(latValue) != 0
+        ? Convert.ToDouble(latValue).ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)
+        : "";
+    var lngDisplay = lngValue != null && Convert.ToDouble(lngValue) != 0
+        ? Convert.ToDouble(lngValue).ToString("0.######", System.Globalization.CultureInfo.InvariantCulture)
+        : "";
+}
+
+<div class="map-coords-panel mb-3">
+    <div class="map-coords-panel__header">
+        <div class="map-coords-panel__title">
+            <i class="fas fa-crosshairs"></i>
+            <span>@panelTitle</span>
+        </div>
+        <div class="map-coords-panel__modes" role="group" aria-label="طريقة تحديد الموقع">
+            <button type="button" class="map-coords-mode-btn active" data-coord-mode="map" title="انقر على الخريطة">
+                <i class="fas fa-hand-pointer"></i>
+                <span class="d-sm-none">خريطة</span>
+                <span class="d-none d-sm-inline">نقرة على الخريطة</span>
+            </button>
+            <button type="button" class="map-coords-mode-btn" data-coord-mode="manual" title="إدخال أو لصق الإحداثيات">
+                <i class="fas fa-keyboard"></i>
+                <span class="d-sm-none">يدوي</span>
+                <span class="d-none d-sm-inline">إدخال يدوي</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="map-coords-paste-row">
+        <label class="form-label form-label-sm mb-1" for="coordsPasteInput">
+            <i class="fas fa-paste me-1"></i> لصق سريع
+        </label>
+        <div class="map-coords-paste-tools input-group input-group-sm">
+            <span class="input-group-text"><i class="fas fa-map-pin"></i></span>
+            <input type="text"
+                   class="form-control form-control-sm"
+                   id="coordsPasteInput"
+                   dir="ltr"
+                   inputmode="decimal"
+                   placeholder="35.520000, 35.780000"
+                   autocomplete="off" />
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnPasteFromClipboard" title="لصق من الحافظة">
+                <i class="fas fa-clipboard"></i><span class="d-none d-sm-inline ms-1">لصق</span>
+            </button>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btnApplyCoordsPaste">
+                <i class="fas fa-location-crosshairs"></i><span class="d-none d-sm-inline ms-1">تحديد</span>
+            </button>
+        </div>
+        <div class="field-hint">يدعم: <code dir="ltr">35.52, 35.78</code> · <code dir="ltr">35.52 35.78</code> · رابط Google Maps</div>
+    </div>
+
+    <div class="row g-2 align-items-end map-coords-manual-row">
+        <div class="col-6 col-md-4 col-lg-3">
+            <label class="form-label form-label-sm mb-1" for="latitudeInput">@latitudeLabel</label>
+            <div class="input-group input-group-sm">
+                <input name="Latitude"
+                       id="latitudeInput"
+                       class="form-control form-control-sm font-monospace rtk-w-coord"
+                       type="number"
+                       step="0.000001"
+                       inputmode="decimal"
+                       dir="ltr"
+                       value="@latDisplay"
+                       autocomplete="off" />
+                <button type="button" class="btn btn-outline-secondary btn-sm btn-copy-coord" data-copy="latitudeInput" title="نسخ خط العرض">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <span class="text-danger small field-validation-valid" data-valmsg-for="Latitude" data-valmsg-replace="true"></span>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <label class="form-label form-label-sm mb-1" for="longitudeInput">@longitudeLabel</label>
+            <div class="input-group input-group-sm">
+                <input name="Longitude"
+                       id="longitudeInput"
+                       class="form-control form-control-sm font-monospace rtk-w-coord"
+                       type="number"
+                       step="0.000001"
+                       inputmode="decimal"
+                       dir="ltr"
+                       value="@lngDisplay"
+                       autocomplete="off" />
+                <button type="button" class="btn btn-outline-secondary btn-sm btn-copy-coord" data-copy="longitudeInput" title="نسخ خط الطول">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <span class="text-danger small field-validation-valid" data-valmsg-for="Longitude" data-valmsg-replace="true"></span>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="map-coords-actions">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnApplyManualCoords">
+                    <i class="fas fa-map-marker-alt"></i> تحديد على الخريطة
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopyCoordsPair" title="نسخ الإحداثيات معاً">
+                    <i class="fas fa-copy"></i> نسخ الزوج
+                </button>
+                <span class="map-coords-status field-hint" id="coordsStatus" aria-live="polite"></span>
+            </div>
+        </div>
+    </div>
+</div>

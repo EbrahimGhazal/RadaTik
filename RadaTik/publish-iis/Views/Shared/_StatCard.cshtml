@@ -1,0 +1,17 @@
+@model RadaTik.ViewModels.UI.StatCardViewModel
+@{
+    var card = Model!;
+    var toneClass = $"radtk-stat-card--{card.Tone}";
+}
+@if (!string.IsNullOrWhiteSpace(card.Url))
+{
+    <a href="@card.Url" class="radtk-stat-card @toneClass radtk-stat-card--link">
+        <partial name="_StatCardInner" model="card" />
+    </a>
+}
+else
+{
+    <div class="radtk-stat-card @toneClass">
+        <partial name="_StatCardInner" model="card" />
+    </div>
+}

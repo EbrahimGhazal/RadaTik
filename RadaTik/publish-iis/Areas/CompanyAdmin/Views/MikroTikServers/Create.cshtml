@@ -1,0 +1,151 @@
+@model RadaTik.Models.MikroTikServer
+
+@{
+    ViewData["Title"] = "إضافة خادم مايكروتك جديد";
+    var isFirstServerFree = (ViewBag.ServerPricingIsFirstFree as bool?) ?? true;
+    var shouldChargeNow = (ViewBag.ServerPricingShouldChargeNow as bool?) ?? false;
+    var companyName = ViewBag.ServerPricingCompanyName as string ?? "غير محدد";
+    var totalServers = (ViewBag.ServerPricingTotalServers as int?) ?? 0;
+    var hasInitialPricing = (ViewBag.ServerPricingHasInitial as bool?) ?? false;
+    var hasRenewalPricing = (ViewBag.ServerPricingHasRenewal as bool?) ?? false;
+    var freeInitialUnits = (ViewBag.ServerPricingFreeInitialUnits as int?) ?? 0;
+    var freeRenewalUnits = (ViewBag.ServerPricingFreeRenewalUnits as int?) ?? 0;
+    var initialPriceSyp = (ViewBag.ServerPricingInitialSyp as decimal?) ?? 0m;
+    var renewalPriceSyp = (ViewBag.ServerPricingRenewalSyp as decimal?) ?? 0m;
+    var renewalPeriodLabel = ViewBag.ServerPricingRenewalPeriodLabel as string ?? "غير محدد";
+    var requiresExplicitNetworkSelection = (ViewBag.RequiresExplicitNetworkSelection as bool?) ?? false;
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create" class="radtk-form">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            @if (!shouldChargeNow)
+            {
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    @if (isFirstServerFree)
+                    {
+                        <div>أول سيرفر للشركة <strong>@companyName</strong> مجاني.</div>
+                    }
+                    <ul class="mb-0 mt-2 ms-3">
+                        <li>يتم احتساب مبلغ قدره <strong>@SyrianCurrencyHelper.FormatNew(initialPriceSyp) ل.س.ج</strong>.</li>
+                        <li>يتم تجديد الخدمة بمبلغ قدره <strong>@SyrianCurrencyHelper.FormatNew(renewalPriceSyp) ل.س.ج</strong> كل <strong>@renewalPeriodLabel</strong>.</li>
+                        <li>عدد المرات المجانية قبل بدء احتساب الإنشاء: <strong>@freeInitialUnits</strong>.</li>
+                        <li>عدد المرات المجانية قبل بدء احتساب التجديد: <strong>@freeRenewalUnits</strong>.</li>
+                    </ul>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    <i class="fas fa-coins"></i>
+                    <div>هذا سيرفر إضافي للشركة <strong>@companyName</strong> (عدد السيرفرات الحالية: @totalServers).</div>
+                    <ul class="small mb-0 mt-2 ms-3">
+                        <li>يتم احتساب مبلغ قدره <strong>@SyrianCurrencyHelper.FormatNew(initialPriceSyp) ل.س.ج</strong>.</li>
+                        <li>يتم تجديد الخدمة بمبلغ قدره <strong>@SyrianCurrencyHelper.FormatNew(renewalPriceSyp) ل.س.ج</strong> كل <strong>@renewalPeriodLabel</strong>.</li>
+                        <li>عدد المرات المجانية قبل بدء احتساب الإنشاء: <strong>@freeInitialUnits</strong>.</li>
+                        <li>عدد المرات المجانية قبل بدء احتساب التجديد: <strong>@freeRenewalUnits</strong>.</li>
+                    </ul>
+                </div>
+            }
+
+            @if (!hasInitialPricing || !hasRenewalPricing)
+            {
+                <div class="alert alert-danger">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    إعدادات تسعير/تجديد السيرفرات غير مكتملة من مدير النظام (تبويب الأسعار والتجديد).
+                </div>
+            }
+
+            @if (requiresExplicitNetworkSelection)
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-diagram-project"></i>
+                    لديك أكثر من شبكة (رئيسية/فرعية). الرجاء تحديد الشبكة الهدف قبل حفظ السيرفر.
+                </div>
+            }
+
+            <div class="form-group mb-3">
+                <label asp-for="Name" class="control-label">اسم الخادم</label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Host" class="control-label">اسم المضيف (IP)</label>
+                <input asp-for="Host" class="form-control" />
+                <span asp-validation-for="Host" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Port" class="control-label">المنفذ</label>
+                <input asp-for="Port" type="number" min="1" max="65535" step="1" class="form-control" value="8728" inputmode="numeric" data-syp-skip-format="true" />
+                <span asp-validation-for="Port" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="User" class="control-label">اسم المستخدم</label>
+                <input asp-for="User" class="form-control" />
+                <span asp-validation-for="User" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Pass" class="control-label">كلمة المرور</label>
+                <input asp-for="Pass" type="password" class="form-control" />
+                <span asp-validation-for="Pass" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="NetworkId" class="control-label">الشبكة <span class="text-danger">*</span></label>
+                <select asp-for="NetworkId" class="form-control" asp-items="ViewBag.Networks" required>
+                    <option value="">-- اختر الشبكة --</option>
+                </select>
+                <span asp-validation-for="NetworkId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Notes" class="control-label">ملاحظات</label>
+                <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="UserID" class="control-label">معرف المستخدم (اختياري)</label>
+                <input asp-for="UserID" class="form-control" />
+                <span asp-validation-for="UserID" class="text-danger"></span>
+            </div>
+
+            <input type="hidden" asp-for="IsActive" value="true" />
+
+            <div class="form-group">
+                <input type="submit" value="حفظ" class="btn btn-success" />
+                @if (!shouldChargeNow)
+                {
+                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle d-inline-flex align-items-center px-3 ms-2">
+                        <i class="fas fa-check-circle me-1"></i>
+                        الخصم المتوقع الآن: 0.00 ل.س.ج (ضمن الوحدات المعفاة)
+                    </span>
+                }
+                else if (hasInitialPricing)
+                {
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle d-inline-flex align-items-center px-3 ms-2">
+                        <i class="fas fa-wallet me-1"></i>
+                        الخصم المتوقع الآن: @SyrianCurrencyHelper.FormatNew(initialPriceSyp) ل.س.ج
+                    </span>
+                }
+                <a asp-action="Index" class="btn btn-secondary">العودة للقائمة</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

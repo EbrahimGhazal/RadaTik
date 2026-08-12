@@ -1,0 +1,115 @@
+@model RadaTik.Areas.CompanyAdmin.ViewModels.NewSubscriberWizardStartViewModel
+@using RadaTik.Models
+@using RadaTik.ViewModels.UI
+
+@{
+    ViewData["Title"] = ViewData["Title"] ?? "إضافة مشترك جديد";
+    var stepper = new UnifiedStepperViewModel
+    {
+        CurrentStep = 1,
+        Steps =
+        [
+            new UnifiedStepperStepViewModel { Number = 1, Title = "نوع الاتصال", Subtitle = "مسار التجهيز" },
+            new UnifiedStepperStepViewModel { Number = 2, Title = "البيانات", Subtitle = "مشترك · لاقط" },
+            new UnifiedStepperStepViewModel { Number = 3, Title = "التفعيل", Subtitle = "مراجعة وحفظ" }
+        ]
+    };
+}
+
+<partial name="~/Views/Shared/_UnifiedStepper.cshtml" model="stepper" />
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h4 mb-0"><i class="fas fa-route text-primary"></i> @ViewData["Title"]</h2>
+    <a asp-action="Cancel" class="btn btn-secondary"><i class="fas fa-times"></i> إلغاء</a>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">الخطوة 1 — نوع الاتصال</div>
+    <div class="card-body">
+        <form asp-action="Start" method="post" id="wizardStartForm">
+            @Html.AntiForgeryToken()
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label d-block">من البرج / السيرفر مباشرة</label>
+                    <input type="radio" class="btn-check" name="path" id="pathTower" value="@((int)NewSubscriberWizardPath.TowerDirect)" autocomplete="off" />
+                    <label class="btn btn-outline-primary w-100 text-start" for="pathTower">
+                        <i class="fas fa-broadcast-tower me-2"></i>
+                        بدون لاقط — اتصال مباشر
+                    </label>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label d-block">لاقط خاص (جديد)</label>
+                    <input type="radio" class="btn-check" name="path" id="pathPrivate" value="@((int)NewSubscriberWizardPath.PrivateNewReceiver)" autocomplete="off" />
+                    <label class="btn btn-outline-success w-100 text-start" for="pathPrivate">
+                        <i class="fas fa-satellite-dish me-2"></i>
+                        إضافة لاقط خاص ثم المشترك
+                    </label>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label d-block">لاقط مشترك</label>
+                    <input type="radio" class="btn-check" name="path" id="pathShared" value="@((int)NewSubscriberWizardPath.SharedSelectReceiver)" autocomplete="off" />
+                    <label class="btn btn-outline-info w-100 text-start" for="pathShared">
+                        <i class="fas fa-users me-2"></i>
+                        اختيار لاقط مشترك (سيرفر + مرسل + اسم)
+                    </label>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label d-block">من القائمة</label>
+                    <input type="radio" class="btn-check" name="path" id="pathList" value="@((int)NewSubscriberWizardPath.ExistingReceiverFromList)" autocomplete="off" />
+                    <label class="btn btn-outline-secondary w-100 text-start" for="pathList">
+                        <i class="fas fa-list me-2"></i>
+                        اختيار لاقط موجود من القائمة
+                    </label>
+                </div>
+            </div>
+
+            <div id="existingReceiverBlock" class="mt-3" style="display:none;">
+                <label class="form-label">اللاقط</label>
+                <select name="existingReceiverId" class="form-select" id="existingReceiverId">
+                    <option value="">— اختر —</option>
+                    @foreach (var r in Model.Receivers)
+                    {
+                        <option value="@r.Id">@r.Name — @r.ServerName / @r.SectorName @(r.IsShared ? "(مشترك)" : "(خاص)")</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary" id="btnContinue" disabled>
+                    <i class="fas fa-arrow-left"></i> متابعة
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    const form = document.getElementById('wizardStartForm');
+    const block = document.getElementById('existingReceiverBlock');
+    const btn = document.getElementById('btnContinue');
+    const listPath = '@((int)NewSubscriberWizardPath.ExistingReceiverFromList)';
+
+    function refresh() {
+        const selected = form.querySelector('input[name="path"]:checked');
+        btn.disabled = !selected;
+        const isList = selected && selected.value === listPath;
+        block.style.display = isList ? 'block' : 'none';
+        if (isList) {
+            const sel = document.getElementById('existingReceiverId');
+            btn.disabled = !sel.value;
+        }
+    }
+
+    form.querySelectorAll('input[name="path"]').forEach(r => r.addEventListener('change', refresh));
+    document.getElementById('existingReceiverId')?.addEventListener('change', refresh);
+})();
+</script>
+}

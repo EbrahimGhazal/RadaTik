@@ -1,0 +1,741 @@
+@using RadaTik.Security
+@using RadaTik.Helpers
+@using RadaTik.Data
+@using RadaTik.Models
+@using Microsoft.EntityFrameworkCore
+@inject RadaTik.Services.IFeatureAccessService FeatureAccess
+@inject ApplicationDbContext Db
+@inject Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> UserManager
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var currentType = ViewContext.HttpContext.Request.Query["type"].ToString();
+    if (string.IsNullOrWhiteSpace(currentType))
+    {
+        currentType = ViewContext.RouteData.Values["type"]?.ToString() ?? "";
+    }
+
+    var canUseNetworks = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.Networks);
+    var canUseMikroTikServers = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.MikroTikServers);
+    var canUseProfiles = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.Profiles);
+    var canUseUsers = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.Users);
+    var canUseClients = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.Clients);
+    var canUseSectors = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.Sectors);
+    var canUseReceivers = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.Receivers);
+    var canUseRequests = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.Requests);
+    var canUseReports = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.Reports);
+    var canUseWarehouse = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.Warehouse);
+    var canUseMoneyDiary = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.MoneyDiary);
+    var canUsePayroll = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.Payroll);
+    var canUseErp = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.Erp);
+
+    var pendingEmployeeApprovalsCount = 0;
+    try
+    {
+        var currentUser = await UserManager.GetUserAsync(User);
+        var selectedNetworkId = NetworkHelper.GetCurrentNetworkId(ViewContext.HttpContext, Db, currentUser);
+        if (selectedNetworkId.HasValue)
+        {
+            var selectedNetwork = await Db.Networks.AsNoTracking()
+                .Where(n => n.Id == selectedNetworkId.Value)
+                .Select(n => new { n.ParentNetworkId })
+                .FirstOrDefaultAsync();
+            var companyNetworkId = selectedNetwork?.ParentNetworkId ?? selectedNetworkId.Value;
+            var companyScope = await PricingChargeHelper.GetCompanyScopeNetworkIdsAsync(Db, companyNetworkId);
+            pendingEmployeeApprovalsCount = await Db.NetworkServiceRequests.AsNoTracking()
+                .Where(r => companyScope.Contains(r.NetworkId) &&
+                            r.Status == NetworkServiceRequestStatus.Pending &&
+                            ((r.Notes != null && r.Notes.StartsWith("EMP_REQ:")) ||
+                             (r.Notes != null && r.Notes.Contains("SECTOR_CREATE_PENDING:"))))
+                .CountAsync();
+        }
+    }
+    catch { /* stable sidebar */ }
+
+    var customServicesMenu = new List<SystemService>();
+    try
+    {
+        customServicesMenu = await Db.SystemServices.AsNoTracking()
+            .Where(s => s.IsActive && s.Key.StartsWith("CUSTOM:"))
+            .OrderBy(s => s.DisplayName)
+            .ToListAsync();
+    }
+    catch { /* stable sidebar */ }
+
+    var hasCompanyBooks = canUseWarehouse || canUseMoneyDiary || canUsePayroll;
+    var hasInfrastructure = canUseNetworks || canUseProfiles || canUseMikroTikServers || canUseSectors || canUseReceivers;
+
+    var subscribersOpen = controller is "Clients" or "NewSubscriberWizard"
+        or "SubscriberInstallationPricing" or "SubscriberInstallationInvoices" or "PrivateSubscriberSetup";
+    var supportOpen = controller is "RequestsManagement" or "EmployeeServiceApprovals" or "MaintenanceInvoices" or "MaintenancePricing";
+    var infraOpen = controller is "Network" or "Profile" or "MikroTikServers" or "MikroTikTraffic" or "Sector" or "Receiver";
+    var mikrotikOpen = controller is "MikroTikServers" or "MikroTikTraffic";
+    var sectorsOpen = controller == "Sector";
+    var financeOpen = controller is "Wallet" or "ClientWalletTopUpRequests" or "CashBox" or "Receipts"
+        or "CompanyBusiness" or "Warehouse" or "MaterialPurchaseInvoices" or "MaterialSalesInvoices"
+        or "WarehouseStocktake" or "MoneyDiary" or "Payroll" or "FinancialReconciliation" or "RenewalRequests";
+    var financeWalletOpen = controller is "Wallet" or "ClientWalletTopUpRequests";
+    var financeCashOpen = controller is "CashBox" or "Receipts";
+    var financeBooksOpen = controller is "CompanyBusiness" or "Warehouse" or "MaterialPurchaseInvoices"
+        or "MaterialSalesInvoices" or "WarehouseStocktake" or "MoneyDiary" or "Payroll" or "FinancialReconciliation";
+    var erpOpen = controller is "ErpHub" or "ErpCustomers" or "ErpSuppliers" or "CompanyEmployeeTasks"
+        or "EmployeeRewardPenalties" or "CompanyAccounting" or "ErpReports";
+    var maintenanceOpen = controller == "MaintenanceInvoices" || (controller == "RequestsManagement" && action == "MaintenanceRequests") || controller == "MaintenancePricing";
+    var teamOpen = controller == "Admin";
+}
+
+@* ——— 1. الرئيسية ——— *@
+<div class="nav-section nav-section-home" data-section-key="home">
+    <ul class="nav-list nav-list--flat">
+        <li class="nav-item">
+            <a class="nav-link @(controller == "Dashboard" && action != "Operations" ? "active" : "")"
+               asp-route="networkManager-dashboard">
+                <span class="nav-icon"><i class="fas fa-gauge-high"></i></span>
+                <span>لوحة التحكم</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link nav-link-featured @(controller == "Dashboard" && action == "Operations" ? "active" : "")"
+               asp-route="networkManager-operations-hub">
+                <span class="nav-icon"><i class="fas fa-bolt"></i></span>
+                <span>مركز العمليات</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(controller == "Notifications" ? "active" : "")"
+               asp-route="networkManager-notifications">
+                <span class="nav-icon"><i class="fas fa-bell"></i></span>
+                <span>التنبيهات</span>
+                <span class="nav-badge" id="notificationsUnreadBadge" style="display: none;">0</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+@* ——— 2. المشتركون ——— *@
+@if (canUseClients)
+{
+    <div class="nav-section nav-section-subscribers @(subscribersOpen ? "is-expanded" : "")" data-section-key="subscribers">
+        <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="@(subscribersOpen ? "true" : "false")">
+            <i class="fas fa-users"></i>
+            <span>المشتركون</span>
+            <i class="fas fa-chevron-down nav-section-chevron"></i>
+        </div>
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a class="nav-link nav-link-featured @(controller == "NewSubscriberWizard" ? "active" : "")"
+                   asp-route="networkManager-new-subscriber-wizard"
+                   asp-route-action="Index"
+                   asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-user-plus"></i></span>
+                    <span>إضافة مشترك</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(controller == "Clients" && action != "ContractTemplateSettings" ? "active" : "")"
+                   asp-route="networkManager-clients" asp-route-action="Index" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-list"></i></span>
+                    <span>قائمة المشتركين</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(controller == "Clients" && action == "ContractTemplateSettings" ? "active" : "")"
+                   asp-route="networkManager-clients" asp-route-action="ContractTemplateSettings" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-file-signature"></i></span>
+                    <span>عقد الانضمام</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(controller == "SubscriberInstallationInvoices" ? "active" : "")"
+                   asp-route="networkManager-subscriber-installation-invoices" asp-route-action="Index" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-receipt"></i></span>
+                    <span>فواتير التجهيز</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(controller == "SubscriberInstallationPricing" ? "active" : "")"
+                   asp-route="networkManager-subscriber-installation-pricing" asp-route-action="Index" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-tags"></i></span>
+                    <span>تسعير التجهيز</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+}
+
+@* ——— 3. الطلبات والدعم ——— *@
+@if (canUseRequests)
+{
+    <div class="nav-section @(supportOpen ? "is-expanded" : "")" data-section-key="support">
+        <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="@(supportOpen ? "true" : "false")">
+            <i class="fas fa-headset"></i>
+            <span>الطلبات والدعم</span>
+            <i class="fas fa-chevron-down nav-section-chevron"></i>
+        </div>
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a class="nav-link @(controller == "RequestsManagement" && action == "Index" ? "active" : "")"
+                   asp-route="networkManager-requestsManagement" asp-route-action="Index" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-clipboard-list"></i></span>
+                    <span>لوحة الطلبات</span>
+                    <span class="nav-badge" id="pendingRequestsBadge" style="display: none;">0</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(controller == "EmployeeServiceApprovals" ? "active" : "")"
+                   asp-route="networkManager-employee-approvals" asp-route-action="Index" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-user-check"></i></span>
+                    <span>موافقات الموظفين</span>
+                    @if (pendingEmployeeApprovalsCount > 0)
+                    {
+                        <span class="nav-badge">@pendingEmployeeApprovalsCount</span>
+                    }
+                </a>
+            </li>
+            <li class="nav-item has-dropdown @(maintenanceOpen ? "open" : "")">
+                <div class="nav-link-toggle" role="button" tabindex="0">
+                    <span class="nav-icon"><i class="fas fa-wrench"></i></span>
+                    <span>الصيانة</span>
+                    <i class="fas fa-chevron-down nav-chevron"></i>
+                </div>
+                <ul class="nav-sublist">
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-sub @(controller == "RequestsManagement" && action == "MaintenanceRequests" ? "active" : "")"
+                           asp-route="networkManager-requestsManagement" asp-route-action="MaintenanceRequests" asp-route-id="">
+                            <i class="fas fa-tools"></i>
+                            <span>طلبات الصيانة</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-sub @(controller == "MaintenanceInvoices" ? "active" : "")"
+                           asp-route="networkManager-maintenance-invoices" asp-route-action="Index" asp-route-id="">
+                            <i class="fas fa-file-invoice"></i>
+                            <span>فواتير الصيانة</span>
+                        </a>
+                    </li>
+                    @if (canUseNetworks)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "MaintenancePricing" ? "active" : "")"
+                               asp-route="networkManager-maintenance-pricing" asp-route-action="Index" asp-route-id="">
+                                <i class="fas fa-tags"></i>
+                                <span>تسعير الصيانة</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(controller == "RequestsManagement" && action == "SpeedChangeRequests" ? "active" : "")"
+                   asp-route="networkManager-requestsManagement" asp-route-action="SpeedChangeRequests" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-tachometer-alt"></i></span>
+                    <span>تغيير السرعة</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+}
+
+@* ——— 4. البنية التحتية ——— *@
+@if (hasInfrastructure)
+{
+    <div class="nav-section nav-section-infra @(infraOpen ? "is-expanded" : "")" data-section-key="infrastructure">
+        <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="@(infraOpen ? "true" : "false")">
+            <i class="fas fa-network-wired"></i>
+            <span>البنية التحتية</span>
+            <i class="fas fa-chevron-down nav-section-chevron"></i>
+        </div>
+        <ul class="nav-list">
+            @if (canUseNetworks)
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "Network" ? "active" : "")"
+                       asp-route="networkManager-network" asp-route-action="Index" asp-route-id="">
+                        <span class="nav-icon"><i class="fas fa-sitemap"></i></span>
+                        <span>إعدادات الشبكة</span>
+                    </a>
+                </li>
+            }
+            @if (canUseProfiles)
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "Profile" ? "active" : "")"
+                       asp-route="networkManager-profile" asp-route-action="Index" asp-route-id="">
+                        <span class="nav-icon"><i class="fas fa-boxes"></i></span>
+                        <span>باقات السرعة</span>
+                    </a>
+                </li>
+            }
+            @if (canUseMikroTikServers)
+            {
+                <li class="nav-item has-dropdown @(mikrotikOpen ? "open" : "")">
+                    <div class="nav-link-toggle" role="button" tabindex="0">
+                        <span class="nav-icon"><i class="fas fa-server"></i></span>
+                        <span>MikroTik</span>
+                        <i class="fas fa-chevron-down nav-chevron"></i>
+                    </div>
+                    <ul class="nav-sublist">
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "MikroTikServers" ? "active" : "")"
+                               asp-route="networkManager-mikrotikservers" asp-route-action="Index" asp-route-id="">
+                                <i class="fas fa-server"></i>
+                                <span>الخوادم</span>
+                            </a>
+                        </li>
+                        @if (User.IsInRole(RoleNames.NetworkAdministrator))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-sub @(controller == "MikroTikTraffic" ? "active" : "")"
+                                   asp-route="networkManager-mikrotik-traffic" asp-route-action="Index" asp-route-id="">
+                                    <i class="fas fa-chart-area"></i>
+                                    <span>مراقبة الترافك</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </li>
+            }
+            @if (canUseSectors)
+            {
+                <li class="nav-item has-dropdown @(sectorsOpen ? "open" : "")">
+                    <div class="nav-link-toggle" role="button" tabindex="0">
+                        <span class="nav-icon"><i class="fas fa-broadcast-tower"></i></span>
+                        <span>المرسلات</span>
+                        <i class="fas fa-chevron-down nav-chevron"></i>
+                    </div>
+                    <ul class="nav-sublist">
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "Sector" && (action == "Index" || action == "Details" || action == "Create" || action == "Edit") ? "active" : "")"
+                               asp-route="networkManager-sector" asp-route-action="Index" asp-route-id="">
+                                <i class="fas fa-broadcast-tower"></i>
+                                <span>قائمة المرسلات</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "Sector" && action == "RadioEngineering" ? "active" : "")"
+                               asp-route="networkManager-sector" asp-route-action="RadioEngineering" asp-route-id="">
+                                <i class="fas fa-flask-vial"></i>
+                                <span>التحكم الراديوي</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "Sector" && action == "RadioMonitoring" ? "active" : "")"
+                               asp-route="networkManager-sector" asp-route-action="RadioMonitoring" asp-route-id="">
+                                <i class="fas fa-signal"></i>
+                                <span>مراقبة القطاعات</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            }
+            @if (canUseReceivers)
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "Receiver" ? "active" : "")"
+                       asp-route="networkManager-receiver" asp-route-action="Index" asp-route-id="">
+                        <span class="nav-icon"><i class="fas fa-satellite-dish"></i></span>
+                        <span>المستقبلات</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@* ——— 5. المالية ——— *@
+<div class="nav-section @(financeOpen ? "is-expanded" : "")" data-section-key="finance">
+    <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="@(financeOpen ? "true" : "false")">
+        <i class="fas fa-coins"></i>
+        <span>المالية</span>
+        <i class="fas fa-chevron-down nav-section-chevron"></i>
+    </div>
+    <ul class="nav-list">
+        <li class="nav-item has-dropdown @(financeWalletOpen ? "open" : "")">
+            <div class="nav-link-toggle" role="button" tabindex="0">
+                <span class="nav-icon"><i class="fas fa-wallet"></i></span>
+                <span>محفظة RadaTik</span>
+                <i class="fas fa-chevron-down nav-chevron"></i>
+            </div>
+            <ul class="nav-sublist">
+                <li class="nav-item">
+                    <a class="nav-link nav-link-sub @(controller == "Wallet" && action == "Index" ? "active" : "")"
+                       asp-route="networkManager-wallet-index">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>نظرة عامة</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link nav-link-sub @(controller == "Wallet" && action == "TopUp" ? "active" : "")"
+                       asp-route="networkManager-wallet-topup">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>طلب تعبئة رصيد</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link nav-link-sub @(controller == "Wallet" && action == "Transactions" ? "active" : "")"
+                       asp-route="networkManager-wallet-transactions">
+                        <i class="fas fa-list"></i>
+                        <span>سجل الحركات</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link nav-link-sub @(controller == "ClientWalletTopUpRequests" ? "active" : "")"
+                       asp-route="networkManager-client-wallet-topups" asp-route-action="Index" asp-route-id="">
+                        <i class="fas fa-user-check"></i>
+                        <span>تغذية المشتركين</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        <li class="nav-item has-dropdown @(financeCashOpen ? "open" : "")">
+            <div class="nav-link-toggle" role="button" tabindex="0">
+                <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
+                <span>النقد والقبض</span>
+                <i class="fas fa-chevron-down nav-chevron"></i>
+            </div>
+            <ul class="nav-sublist">
+                <li class="nav-item">
+                    <a class="nav-link nav-link-sub @(controller == "CashBox" ? "active" : "")"
+                       asp-route="networkManager-cashbox" asp-route-action="Index" asp-route-id="">
+                        <i class="fas fa-cash-register"></i>
+                        <span>الصندوق النقدي</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link nav-link-sub @(controller == "Receipts" ? "active" : "")"
+                       asp-route="networkManager-receipts" asp-route-action="Index" asp-route-id="">
+                        <i class="fas fa-receipt"></i>
+                        <span>سجل القبض</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        @if (hasCompanyBooks && !canUseErp)
+        {
+            <li class="nav-item has-dropdown @(financeBooksOpen ? "open" : "")">
+                <div class="nav-link-toggle" role="button" tabindex="0">
+                    <span class="nav-icon"><i class="fas fa-building"></i></span>
+                    <span>دفاتر الشركة</span>
+                    <i class="fas fa-chevron-down nav-chevron"></i>
+                </div>
+                <ul class="nav-sublist">
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-sub @(controller == "CompanyBusiness" ? "active" : "")"
+                           asp-route="networkManager-company-business" asp-route-action="Index" asp-route-id="">
+                            <i class="fas fa-chart-pie"></i>
+                            <span>نظرة عامة</span>
+                        </a>
+                    </li>
+                    @if (canUseWarehouse)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "Warehouse" ? "active" : "")"
+                               asp-route="networkManager-warehouse" asp-route-action="Index" asp-route-id="">
+                                <i class="fas fa-warehouse"></i>
+                                <span>المستودع</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "MaterialPurchaseInvoices" ? "active" : "")"
+                               asp-route="networkManager-material-purchase" asp-route-action="Index" asp-route-id="">
+                                <i class="fas fa-cart-plus"></i>
+                                <span>شراء مواد</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "MaterialSalesInvoices" ? "active" : "")"
+                               asp-route="networkManager-material-sales" asp-route-action="Index" asp-route-id="">
+                                <i class="fas fa-receipt"></i>
+                                <span>بيع مواد</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "WarehouseStocktake" ? "active" : "")"
+                               asp-route="networkManager-warehouse-stocktake" asp-route-action="Index" asp-route-id="">
+                                <i class="fas fa-clipboard-check"></i>
+                                <span>جرد المستودع</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canUseMoneyDiary)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "MoneyDiary" ? "active" : "")"
+                               asp-route="networkManager-money-diary" asp-route-action="Index" asp-route-id="">
+                                <i class="fas fa-book"></i>
+                                <span>دفتر الإيراد والمصروف</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "FinancialReconciliation" ? "active" : "")"
+                               asp-route="networkManager-financial-reconciliation" asp-route-action="Index" asp-route-id="">
+                                <i class="fas fa-balance-scale"></i>
+                                <span>جرد مالي</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canUsePayroll)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "Payroll" ? "active" : "")"
+                               asp-route="networkManager-payroll" asp-route-action="Index" asp-route-id="">
+                                <i class="fas fa-hand-holding-usd"></i>
+                                <span>رواتب الموظفين</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </li>
+        }
+        else if (hasCompanyBooks && canUseErp)
+        {
+            @* عند تفعيل ERP: الدفاتر البسيطة فقط — المستودع والمحاسبة ضمن ERP *@
+            <li class="nav-item has-dropdown @(financeBooksOpen ? "open" : "")">
+                <div class="nav-link-toggle" role="button" tabindex="0">
+                    <span class="nav-icon"><i class="fas fa-book-open"></i></span>
+                    <span>دفاتر يومية</span>
+                    <i class="fas fa-chevron-down nav-chevron"></i>
+                </div>
+                <ul class="nav-sublist">
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-sub @(controller == "CompanyBusiness" ? "active" : "")"
+                           asp-route="networkManager-company-business" asp-route-action="Index" asp-route-id="">
+                            <i class="fas fa-chart-pie"></i>
+                            <span>نظرة عامة</span>
+                        </a>
+                    </li>
+                    @if (canUseMoneyDiary)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "MoneyDiary" ? "active" : "")"
+                               asp-route="networkManager-money-diary" asp-route-action="Index" asp-route-id="">
+                                <i class="fas fa-book"></i>
+                                <span>دفتر الإيراد والمصروف</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "FinancialReconciliation" ? "active" : "")"
+                               asp-route="networkManager-financial-reconciliation" asp-route-action="Index" asp-route-id="">
+                                <i class="fas fa-balance-scale"></i>
+                                <span>جرد مالي</span>
+                            </a>
+                        </li>
+                    }
+                    @if (canUsePayroll)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-sub @(controller == "Payroll" ? "active" : "")"
+                               asp-route="networkManager-payroll" asp-route-action="Index" asp-route-id="">
+                                <i class="fas fa-hand-holding-usd"></i>
+                                <span>رواتب الموظفين</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </li>
+        }
+        @if (canUseNetworks)
+        {
+            <li class="nav-item">
+                <a class="nav-link @(controller == "RenewalRequests" ? "active" : "")"
+                   asp-route="networkManager-renewalRequests" asp-route-action="Index" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-sync-alt"></i></span>
+                    <span>تجديد نقاط التحصيل</span>
+                </a>
+            </li>
+        }
+    </ul>
+</div>
+
+@* ——— 6. ERP ——— *@
+@if (canUseErp)
+{
+    <div class="nav-section nav-section-erp @(erpOpen ? "is-expanded" : "")" data-section-key="erp">
+        <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="@(erpOpen ? "true" : "false")">
+            <i class="fas fa-sitemap"></i>
+            <span>نظام ERP</span>
+            <i class="fas fa-chevron-down nav-section-chevron"></i>
+        </div>
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a class="nav-link nav-link-featured @(controller == "ErpHub" ? "active" : "")"
+                   asp-route="networkManager-erp">
+                    <span class="nav-icon"><i class="fas fa-gauge-high"></i></span>
+                    <span>لوحة ERP</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(controller == "ErpCustomers" ? "active" : "")"
+                   asp-route="networkManager-erp-customers" asp-route-action="Index" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-handshake"></i></span>
+                    <span>عملاء ERP</span>
+                </a>
+            </li>
+            @if (canUseWarehouse)
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "Warehouse" ? "active" : "")"
+                       asp-route="networkManager-warehouse" asp-route-action="Index" asp-route-id="">
+                        <span class="nav-icon"><i class="fas fa-warehouse"></i></span>
+                        <span>المستودع</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "ErpSuppliers" ? "active" : "")"
+                       asp-route="networkManager-erp-suppliers" asp-route-action="Index" asp-route-id="">
+                        <span class="nav-icon"><i class="fas fa-truck"></i></span>
+                        <span>الموردون</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "MaterialPurchaseInvoices" ? "active" : "")"
+                       asp-route="networkManager-material-purchase" asp-route-action="Index" asp-route-id="">
+                        <span class="nav-icon"><i class="fas fa-cart-plus"></i></span>
+                        <span>شراء مواد</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "MaterialSalesInvoices" ? "active" : "")"
+                       asp-route="networkManager-material-sales" asp-route-action="Index" asp-route-id="">
+                        <span class="nav-icon"><i class="fas fa-receipt"></i></span>
+                        <span>بيع مواد</span>
+                    </a>
+                </li>
+            }
+            <li class="nav-item">
+                <a class="nav-link @(controller == "CompanyEmployeeTasks" ? "active" : "")"
+                   asp-route="networkManager-erp-tasks" asp-route-action="Index" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-tasks"></i></span>
+                    <span>مهام الموظفين</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(controller == "EmployeeRewardPenalties" ? "active" : "")"
+                   asp-route="networkManager-erp-rewards" asp-route-action="Index" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-award"></i></span>
+                    <span>مكافآت وعقوبات</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(controller == "CompanyAccounting" ? "active" : "")"
+                   asp-route="networkManager-erp-accounting" asp-route-action="Index" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-calculator"></i></span>
+                    <span>المحاسبة</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(controller == "ErpReports" ? "active" : "")"
+                   asp-route="networkManager-erp-reports" asp-route-action="Index" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-chart-bar"></i></span>
+                    <span>تقارير ERP</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+}
+
+@* ——— 7. التقارير والنظام ——— *@
+<div class="nav-section" data-section-key="reports-system">
+    <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="true">
+        <i class="fas fa-chart-line"></i>
+        <span>التقارير والنظام</span>
+        <i class="fas fa-chevron-down nav-section-chevron"></i>
+    </div>
+    <ul class="nav-list">
+        @if (canUseReports)
+        {
+            <li class="nav-item">
+                <a class="nav-link @(controller == "Reports" ? "active" : "")"
+                   asp-route="networkManager-reports" asp-route-action="Index" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-chart-bar"></i></span>
+                    <span>تقارير الشبكة</span>
+                </a>
+            </li>
+        }
+        <li class="nav-item">
+            <a class="nav-link @(controller == "Features" ? "active" : "")"
+               asp-route="networkManager-features">
+                <span class="nav-icon"><i class="fas fa-puzzle-piece"></i></span>
+                <span>الخدمات والاشتراك</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+@* ——— 8. الفريق ——— *@
+@if (canUseUsers)
+{
+    <div class="nav-section @(teamOpen ? "is-expanded" : "")" data-section-key="team">
+        <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="@(teamOpen ? "true" : "false")">
+            <i class="fas fa-users-cog"></i>
+            <span>الفريق</span>
+            <i class="fas fa-chevron-down nav-section-chevron"></i>
+        </div>
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a class="nav-link @(controller == "Admin" && currentType == "employees" ? "active" : "")"
+                   asp-route="networkManager-users-employees">
+                    <span class="nav-icon"><i class="fas fa-user-tie"></i></span>
+                    <span>الموظفون</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(controller == "Admin" && currentType == "points" ? "active" : "")"
+                   asp-route="networkManager-users-collectionPoints">
+                    <span class="nav-icon"><i class="fas fa-store"></i></span>
+                    <span>نقاط التحصيل</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(controller == "Admin" && currentType == "clients" ? "active" : "")"
+                   asp-route="networkManager-users-clients">
+                    <span class="nav-icon"><i class="fas fa-user-friends"></i></span>
+                    <span>حسابات البوابة</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-route="networkManager-addnewEmployee">
+                    <span class="nav-icon"><i class="fas fa-user-plus"></i></span>
+                    <span>إضافة موظف</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+}
+
+@* ——— 9. خدمات إضافية ——— *@
+@if (customServicesMenu.Any())
+{
+    <div class="nav-section" data-section-key="custom-services">
+        <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="false">
+            <i class="fas fa-layer-group"></i>
+            <span>خدمات إضافية</span>
+            <i class="fas fa-chevron-down nav-section-chevron"></i>
+        </div>
+        <ul class="nav-list">
+            @foreach (var s in customServicesMenu)
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "CustomServices" && (ViewContext.HttpContext.Request.Path.Value?.Contains(s.Key, StringComparison.OrdinalIgnoreCase) == true) ? "active" : "")"
+                       asp-route="networkManager-customService-index" asp-route-serviceKey="@s.Key">
+                        <span class="nav-icon"><i class="@(string.IsNullOrWhiteSpace(s.IconClass) ? "fas fa-layer-group" : s.IconClass)"></i></span>
+                        <span>@s.DisplayName</span>
+                    </a>
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@* ——— 10. حسابي ——— *@
+<div class="nav-section nav-section-account" data-section-key="account">
+    <ul class="nav-list nav-list--flat">
+        <li class="nav-item">
+            <a class="nav-link @(controller == "Account" && action == "Profile" ? "active" : "")"
+               asp-route="networkManager-account-profile">
+                <span class="nav-icon"><i class="fas fa-user-circle"></i></span>
+                <span>الملف الشخصي</span>
+            </a>
+        </li>
+    </ul>
+</div>

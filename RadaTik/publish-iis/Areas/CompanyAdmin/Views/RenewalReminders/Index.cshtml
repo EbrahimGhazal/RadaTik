@@ -1,0 +1,193 @@
+@model RadaTik.ViewModels.CompanyAdmin.RenewalRemindersPageViewModel
+@{
+    ViewData["Title"] = ViewData["Title"] ?? "تذكير تجديد المشتركين";
+    var verifyTg = Url.Action("VerifyTelegramBot", "RenewalReminders", new { area = "CompanyAdmin" });
+    var confirmWa = Url.Action("ConfirmWhatsAppNumber", "RenewalReminders", new { area = "CompanyAdmin" });
+    var testTg = Url.Action("SendTestTelegram", "RenewalReminders", new { area = "CompanyAdmin" });
+    var testWa = Url.Action("SendTestWhatsApp", "RenewalReminders", new { area = "CompanyAdmin" });
+}
+
+<div class="page-header">
+    <h1><i class="fab fa-whatsapp text-success"></i> <i class="fab fa-telegram text-info"></i> @ViewData["Title"]</h1>
+    <p class="text-muted mb-0">
+        إرسال تلقائي للمشتركين قبل انتهاء صلاحية اشتراكهم بـ <strong>5 أو 4 أو 3</strong> أيام (حسب ما تختار).
+        يُستخدم تاريخ انتهاء الصلاحية في بطاقة العميل.
+    </p>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form asp-area="CompanyAdmin" asp-controller="RenewalReminders" asp-action="Index" method="post" class="content-grid">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="EffectiveCompanyNetworkId" />
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-8">
+                    <span class="text-muted">الشركة / الشبكة المصدر للإعدادات</span>
+                    <div><strong>@Model.EffectiveCompanyNetworkName</strong> <span class="text-muted">(#@Model.EffectiveCompanyNetworkId)</span></div>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <small class="text-muted">تلغرام: سجّل <strong>chat id</strong> في بطاقة العميل بعد أن يتواصل مع البوت.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h3 class="card-title mb-0"><i class="fas fa-toggle-on"></i> التفعيل والأيام</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" asp-for="IsEnabled" />
+                <label class="form-check-label" asp-for="IsEnabled"></label>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" asp-for="RemindDaysBefore5" />
+                        <label class="form-check-label" asp-for="RemindDaysBefore5"></label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" asp-for="RemindDaysBefore4" />
+                        <label class="form-check-label" asp-for="RemindDaysBefore4"></label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" asp-for="RemindDaysBefore3" />
+                        <label class="form-check-label" asp-for="RemindDaysBefore3"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h3 class="card-title mb-0"><i class="fas fa-align-right"></i> نص الرسالة</h3>
+        </div>
+        <div class="card-body">
+            <label class="form-label" asp-for="MessageTemplate"></label>
+            <textarea class="form-control" asp-for="MessageTemplate" rows="5" dir="rtl"></textarea>
+            <small class="form-text text-muted">
+                المتغيرات: <code>{Name}</code> <code>{Profile}</code> <code>{Amount}</code> <code>{Days}</code> <code>{ExpiryDate}</code>
+            </small>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h3 class="card-title mb-0"><i class="fab fa-whatsapp text-success"></i> واتساب</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" asp-for="SendWhatsApp" />
+                <label class="form-check-label" asp-for="SendWhatsApp"></label>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="WhatsAppDisplayNumber"></label>
+                    <input class="form-control" asp-for="WhatsAppDisplayNumber" placeholder="للعرض والتأكيد" dir="ltr" />
+                </div>
+                <div class="col-md-6 d-flex align-items-end flex-wrap gap-2">
+                    @if (Model.WhatsAppVerifiedAt.HasValue)
+                    {
+                        <span class="badge bg-success"><i class="fas fa-check"></i> مُؤكَّد @Model.WhatsAppVerifiedAt.Value.ToString("yyyy/MM/dd HH:mm") UTC</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">غير مُؤكَّد</span>
+                    }
+                    <button type="submit" class="btn btn-outline-success btn-sm" formaction="@confirmWa" formmethod="post">
+                        تأكيد رقم واتساب
+                    </button>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" asp-for="WhatsAppApiUrl"></label>
+                    <input class="form-control" asp-for="WhatsAppApiUrl" placeholder="https://..." dir="ltr" />
+                    <small class="text-muted d-block">
+                        يجب أن يكون الرابط <strong>واجهة برمجية (API)</strong> يزودك بها مزوّد الإرسال — وليس <code>wa.me</code> ولا <code>web.whatsapp.com</code> ولا أي صفحة تفتح في المتصفح.
+                        بدون قالب مخصّص يُرسل الجسم: <code>{"phone":"...","message":"..."}</code>
+                    </small>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" asp-for="WhatsAppApiBodyTemplate"></label>
+                    <textarea class="form-control font-monospace" asp-for="WhatsAppApiBodyTemplate" rows="4" dir="ltr" placeholder='{"to":"{phone}","text":{message}}'></textarea>
+                    <small class="text-muted d-block">
+                        اختياري. استخدم <code>{phone}</code> للرقم (أرقام فقط) و<code>{message}</code> لنص التذكير (يُرمّز تلقائياً كقيمة JSON).
+                        مثال لمزوّد يتوقع <code>to</code> و<code>text</code>:
+                        <code>{"to":"{phone}","text":{message}}</code>
+                    </small>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" asp-for="WhatsAppApiAuthorizationHeader"></label>
+                    <input class="form-control" asp-for="WhatsAppApiAuthorizationHeader" placeholder="Bearer ... (اختياري)" dir="ltr" autocomplete="off" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="WhatsAppTestPhone"></label>
+                    <input class="form-control" asp-for="WhatsAppTestPhone" placeholder="أرقام فقط" dir="ltr" />
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm" formaction="@testWa" formmethod="post">
+                        <i class="fab fa-whatsapp"></i> اختبار الإرسال
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h3 class="card-title mb-0"><i class="fab fa-telegram text-info"></i> تلغرام</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" asp-for="SendTelegram" />
+                <label class="form-check-label" asp-for="SendTelegram"></label>
+            </div>
+            <div class="row g-3 align-items-end">
+                <div class="col-12">
+                    <label class="form-label" asp-for="TelegramBotToken"></label>
+                    <input class="form-control" asp-for="TelegramBotToken" type="password" autocomplete="new-password" dir="ltr" placeholder="@(string.IsNullOrWhiteSpace(Model.TelegramBotToken) ? "" : "•••• محفوظ — أدخل الرمز لتحديثه")" />
+                    <small class="text-muted">احفظ الإعدادات بعد إدخال الرمز. يمكن التحقق من البوت باستخدام الرمز المحفوظ دون إعادة الإدخال.</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="TelegramTestChatId"></label>
+                    <input class="form-control" asp-for="TelegramTestChatId" dir="ltr" />
+                </div>
+                <div class="col-md-6 d-flex flex-wrap gap-2 align-items-center">
+                    @if (Model.TelegramVerifiedAt.HasValue)
+                    {
+                        <span class="badge bg-success"><i class="fas fa-check"></i> مُتحقَّق @Model.TelegramVerifiedAt.Value.ToString("yyyy/MM/dd HH:mm") UTC</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">غير مُتحقَّق</span>
+                    }
+                    <button type="submit" class="btn btn-outline-info btn-sm" formaction="@verifyTg" formmethod="post">
+                        تحقق من البوت
+                    </button>
+                    <button type="submit" class="btn btn-outline-secondary btn-sm" formaction="@testTg" formmethod="post">
+                        <i class="fab fa-telegram"></i> اختبار إرسال
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> حفظ الإعدادات</button>
+    </div>
+</form>

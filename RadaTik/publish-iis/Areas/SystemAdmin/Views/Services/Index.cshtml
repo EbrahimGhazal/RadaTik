@@ -1,0 +1,1076 @@
+@using RadaTik.Models
+@using RadaTik.Security
+@{
+    ViewData["Title"] = ViewData["Title"] ?? "خدمات الشركات (التسعير)";
+
+    var items = ViewBag.Items as IEnumerable<FeaturePricing> ?? Enumerable.Empty<FeaturePricing>();
+    var list = items.ToList();
+
+    const decimal OldSypFactor = 100m; // 1 ل.س.ج ≈ 100 ل.س القديمة (للعرض كملاحظة)
+
+    var billingNames = new Dictionary<PricingBillingPeriod, string>
+    {
+        { PricingBillingPeriod.OneTime, "مرة واحدة" },
+        { PricingBillingPeriod.Daily, "يوم" },
+        { PricingBillingPeriod.Monthly, "شهر" },
+        { PricingBillingPeriod.Every3Months, "3 أشهر" },
+        { PricingBillingPeriod.Every6Months, "6 أشهر" },
+        { PricingBillingPeriod.Every12Months, "سنة" }
+    };
+
+    var unitNames = new Dictionary<PricingChargeUnit, string>
+    {
+        { PricingChargeUnit.Flat, "شبكة" },
+        { PricingChargeUnit.PerUser, "موظف" },
+        { PricingChargeUnit.PerSubscriber, "مشترك" },
+        { PricingChargeUnit.PerSector, "مرسل" },
+        { PricingChargeUnit.PerReceiver, "مستقبل" },
+        { PricingChargeUnit.PerServer, "خادم" },
+        { PricingChargeUnit.PerCollectionPoint, "نقطة تحصيل" },
+        { PricingChargeUnit.PerSpeedProfile, "سرعة/بروفايل" },
+        { PricingChargeUnit.PerRequest, "طلب" },
+        { PricingChargeUnit.PercentOfCollectedAmount, "% من مبلغ التحصيل" },
+        { PricingChargeUnit.PerReport, "تقرير" }
+    };
+
+    var featureNameByKey = FeatureCatalog.All
+        .ToDictionary(f => f.Key, f => f.DisplayName, StringComparer.OrdinalIgnoreCase);
+    featureNameByKey[FeatureKeys.ReportsExport] = "سعر توليد التقرير (لكل تصدير/طباعة)";
+    featureNameByKey[FeatureKeys.CollectionCommission] = "عمولة تحصيل من العملاء (نسبة من المبلغ)";
+    featureNameByKey[FeatureKeys.MaintenanceTransportFee] = "أجور نقل الصيانة (مبلغ ثابت)";
+    featureNameByKey[FeatureKeys.MaintenanceCommission] = "عمولة الصيانة (ثابت أو نسبة)";
+
+    var customServices = ViewBag.CustomServices as IEnumerable<RadaTik.Models.SystemService> ?? Enumerable.Empty<RadaTik.Models.SystemService>();
+    var publicInfos = ViewBag.FeaturePublicInfos as IEnumerable<RadaTik.Models.FeaturePublicInfo> ?? Enumerable.Empty<RadaTik.Models.FeaturePublicInfo>();
+    var activeCustomServices = customServices.Where(s => s.IsActive).ToList();
+    foreach (var cs in customServices)
+    {
+        if (!featureNameByKey.ContainsKey(cs.Key))
+        {
+            featureNameByKey[cs.Key] = cs.DisplayName;
+        }
+    }
+
+    var pricedFeatureKeys = new HashSet<string>(list.Select(p => p.FeatureKey), StringComparer.OrdinalIgnoreCase);
+
+    var catalogSorted = FeatureCatalog.All.OrderBy(x => x.Category).ThenBy(x => x.DisplayName).ToList();
+    var catalogUnpriced = catalogSorted.Where(f => !pricedFeatureKeys.Contains(f.Key)).ToList();
+    var catalogPriced = catalogSorted.Where(f => pricedFeatureKeys.Contains(f.Key)).ToList();
+
+    var customSorted = activeCustomServices.OrderBy(s => s.DisplayName).ToList();
+    var customUnpriced = customSorted.Where(s => !pricedFeatureKeys.Contains(s.Key)).ToList();
+    var customPriced = customSorted.Where(s => pricedFeatureKeys.Contains(s.Key)).ToList();
+
+    var reportBaseLabel = $"سعر توليد التقرير ({FeatureKeys.ReportsExport})";
+    var commissionBaseLabel = $"عمولة التحصيل — نسبة من المبلغ ({FeatureKeys.CollectionCommission})";
+    var maintenanceTransportLabel = $"أجور نقل الصيانة ({FeatureKeys.MaintenanceTransportFee})";
+    var maintenanceCommissionLabel = $"عمولة الصيانة ({FeatureKeys.MaintenanceCommission})";
+    var extraUnpriced = new List<(string Key, string BaseLabel)>();
+    var extraPriced = new List<(string Key, string BaseLabel)>();
+    if (!pricedFeatureKeys.Contains(FeatureKeys.ReportsExport))
+    {
+        extraUnpriced.Add((FeatureKeys.ReportsExport, reportBaseLabel));
+    }
+    else
+    {
+        extraPriced.Add((FeatureKeys.ReportsExport, reportBaseLabel));
+    }
+
+    if (!pricedFeatureKeys.Contains(FeatureKeys.CollectionCommission))
+    {
+        extraUnpriced.Add((FeatureKeys.CollectionCommission, commissionBaseLabel));
+    }
+    else
+    {
+        extraPriced.Add((FeatureKeys.CollectionCommission, commissionBaseLabel));
+    }
+
+    if (!pricedFeatureKeys.Contains(FeatureKeys.MaintenanceTransportFee))
+    {
+        extraUnpriced.Add((FeatureKeys.MaintenanceTransportFee, maintenanceTransportLabel));
+    }
+    else
+    {
+        extraPriced.Add((FeatureKeys.MaintenanceTransportFee, maintenanceTransportLabel));
+    }
+
+    if (!pricedFeatureKeys.Contains(FeatureKeys.MaintenanceCommission))
+    {
+        extraUnpriced.Add((FeatureKeys.MaintenanceCommission, maintenanceCommissionLabel));
+    }
+    else
+    {
+        extraPriced.Add((FeatureKeys.MaintenanceCommission, maintenanceCommissionLabel));
+    }
+
+    var allContentKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    foreach (var p in list) { allContentKeys.Add(p.FeatureKey); }
+    foreach (var f in FeatureCatalog.All) { allContentKeys.Add(f.Key); }
+    foreach (var cs in activeCustomServices) { allContentKeys.Add(cs.Key); }
+    allContentKeys.Add(FeatureKeys.ReportsExport);
+    allContentKeys.Add(FeatureKeys.CollectionCommission);
+    allContentKeys.Add(FeatureKeys.MaintenanceTransportFee);
+    allContentKeys.Add(FeatureKeys.MaintenanceCommission);
+    var sortedContentKeys = allContentKeys.OrderBy(k => k).ToList();
+
+    var fpJson = System.Text.Json.JsonSerializer.Serialize(
+        publicInfos.ToDictionary(
+            f => f.FeatureKey,
+            f => new { detailHtml = f.DetailHtml ?? "", pricingPolicyHtml = f.PricingPolicyHtml ?? "" },
+            StringComparer.OrdinalIgnoreCase));
+
+    var chargeUnitPercentInt = (int)PricingChargeUnit.PercentOfCollectedAmount;
+    var generatedPublicInfosJson = ViewBag.GeneratedPublicInfosJson as string ?? "{}";
+    var pricingSimulationJson = ViewBag.PricingSimulationJson as string ?? "{}";
+}
+
+
+<div class="sys-hero mb-4">
+    <div class="sys-hero-main">
+        <div class="sys-hero-icon"><i class="fas fa-tags"></i></div>
+        <div>
+            <h1 class="sys-hero-title">@ViewData["Title"]</h1>
+            <p class="sys-hero-subtitle">إدارة تسعير الخدمات ومدد الاستحقاق بسياسة موحدة وواضحة.</p>
+        </div>
+    </div>
+    <div class="sys-hero-chips">
+        <span class="sys-hero-chip"><i class="fas fa-layer-group"></i> التسعير حسب الوحدة والفترة</span>
+        <span class="sys-hero-chip"><i class="fas fa-circle-dollar-to-slot"></i> التسعير حالياً بالليرة السورية الجديدة فقط؛ أو <strong>%</strong> عند اختيار عمولة بالنسبة</span>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+<div id="servicesAjaxFeedback" class="alert d-none"></div>
+
+<div id="sysServicesRoot" class="content-grid sys-services">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-plus-circle text-primary"></i>
+                إضافة تسعير
+            </h3>
+        </div>
+        <div class="card-body">
+            <form id="createPricingForm" asp-area="SystemAdmin" asp-controller="Services" asp-action="CreatePricing" method="post" class="row g-3">
+                @Html.AntiForgeryToken()
+                <div class="col-md-3">
+                    <label class="form-label">الخدمة</label>
+                    <div class="form-text text-muted small mb-1">يُعرض أولاً ما لا يوجد له تسعير مسجّل، ثم الخدمات المُسعَّرة باللون الأخضر وعبارة «— مُسعَّر»؛ يمكن إضافة مدة استحقاق أو وحدة جديدة حتى للخدمات المُسعَّرة.</div>
+                    <select id="createPricingFeatureKey" name="featureKey" class="form-select form-select-md" required>
+                        <option value="" selected>اختر خدمة للإضافة</option>
+                        <optgroup label="الكتالوج">
+                            @foreach (var f in catalogUnpriced)
+                            {
+                                var optionLabel = $"{f.DisplayName} ({f.Key})";
+                                <option value="@f.Key" data-base-label="@optionLabel" data-priced="0">
+                                    @f.DisplayName (@f.Key)
+                                </option>
+                            }
+                            @foreach (var f in catalogPriced)
+                            {
+                                var optionLabel = $"{f.DisplayName} ({f.Key})";
+                                <option value="@f.Key" data-base-label="@optionLabel" data-priced="1" style="color:#198754;font-weight:600;">
+                                    @f.DisplayName (@f.Key) — مُسعَّر
+                                </option>
+                            }
+                        </optgroup>
+                        @if (activeCustomServices.Any())
+                        {
+                            <optgroup label="خدمات مخصصة">
+                                @foreach (var cs in customUnpriced)
+                                {
+                                    var customOptionLabel = $"{cs.DisplayName} ({cs.Key})";
+                                    <option value="@cs.Key" data-base-label="@customOptionLabel" data-priced="0">
+                                        @cs.DisplayName (@cs.Key)
+                                    </option>
+                                }
+                                @foreach (var cs in customPriced)
+                                {
+                                    var customOptionLabel = $"{cs.DisplayName} ({cs.Key})";
+                                    <option value="@cs.Key" data-base-label="@customOptionLabel" data-priced="1" style="color:#198754;font-weight:600;">
+                                        @cs.DisplayName (@cs.Key) — مُسعَّر
+                                    </option>
+                                }
+                            </optgroup>
+                        }
+                        <optgroup label="تسعير إضافي (بدون اشتراك منفصل)">
+                            @foreach (var ex in extraUnpriced)
+                            {
+                                <option value="@ex.Key" data-base-label="@ex.BaseLabel" data-priced="0">
+                                    @ex.BaseLabel
+                                </option>
+                            }
+                            @foreach (var ex in extraPriced)
+                            {
+                                <option value="@ex.Key" data-base-label="@ex.BaseLabel" data-priced="1" style="color:#198754;font-weight:600;">
+                                    @ex.BaseLabel — مُسعَّر
+                                </option>
+                            }
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">مدة الاستحقاق</label>
+                    <select name="billingPeriod" class="form-select form-select-md" required>
+                        @foreach (var bp in billingNames)
+                        {
+                            <option value="@((int)bp.Key)">@bp.Value</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">لكل</label>
+                    <select id="createChargeUnitSelect" name="chargeUnit" class="form-select form-select-md" required>
+                        @foreach (var u in unitNames)
+                        {
+                            <option value="@((int)u.Key)">@u.Value</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" id="createSypAmountLabel">السعر ل.س.ج</label>
+                    <input type="number" id="createSypAmountInput" name="amountSYP" class="form-control" value="0" min="0" step="0.01" required />
+                    <div class="form-text" id="createSypAmountHintCurrency">ملاحظة: يعرض النظام أيضاً قيمة الليرة القديمة (× @OldSypFactor.ToString("N0")).</div>
+                    <div class="form-text text-primary d-none" id="createSypAmountHintPercent">أدخل النسبة المئوية كرقم (مثال: <strong>3.5</strong> يعني 3.5٪). تُحفظ في الحقل نفسه الذي يُستخدم لليرة عند باقي الخيارات.</div>
+                </div>
+                <div class="col-md-2" id="createUsdAmountCol">
+                    <label class="form-label">USD (معطّل حالياً)</label>
+                    <input type="number" id="createUsdAmountInput" name="amountUSD" class="form-control" value="0" min="0" step="0.01" readonly />
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="isActive" value="true" checked />
+                        <label class="form-check-label">نشط</label>
+                    </div>
+                </div>
+                <div class="col-12 d-flex justify-content-end">
+                    <button id="createPricingBtn" type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        إضافة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title mb-0">
+                <i class="fas fa-book-open text-primary"></i>
+                محتوى نافذة «عرض التفاصيل» لمدير الشركة
+            </h3>
+            <p class="text-muted small mb-0 mt-2">يُعرض هذا النص في صفحة <code>/networkManager/features</code> عند النقر على «عرض التفاصيل». يدعم HTML بسيطاً.</p>
+        </div>
+        <div class="card-body">
+            <form asp-area="SystemAdmin" asp-controller="Services" asp-action="SaveFeaturePublicInfo" method="post" class="row g-3">
+                @Html.AntiForgeryToken()
+                <div class="col-md-12">
+                    <label class="form-label">الخدمة</label>
+                    <select name="featureKey" class="form-select" required id="featurePublicKeySelect">
+                        @foreach (var k in sortedContentKeys)
+                        {
+                            var nm = featureNameByKey.TryGetValue(k, out var fn) ? fn : k;
+                            <option value="@k">@nm — @k</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">شرح عمل الخدمة بالكامل</label>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="featurePublicAutoFillBtn">
+                            <i class="fas fa-wand-magic-sparkles"></i>
+                            تعبئة تلقائية من محرك السياسات
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success" id="featurePublicDynamicModeBtn">
+                            <i class="fas fa-arrows-rotate"></i>
+                            اعتماد نمط ديناميكي تلقائي
+                        </button>
+                    </div>
+                    <textarea name="detailHtml" class="form-control font-monospace" rows="8" id="featurePublicDetailHtml" placeholder="فقرة توضيحية، نقاط، جداول..."></textarea>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label">سياسة التسعير والفوترة</label>
+                    <textarea name="pricingPolicyHtml" class="form-control font-monospace" rows="6" id="featurePublicPricingHtml" placeholder="متى يُحسم المبلغ، تجديد تلقائي، استثناءات..."></textarea>
+                    <div class="form-text text-muted mt-2">
+                        عند حفظ القيمة <code>[[AUTO]]</code> سيستخدم النظام مولّد المحتوى الديناميكي ويحدّث الأرقام تلقائياً عند تغيير التسعير.
+                    </div>
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        حفظ المحتوى
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title mb-0">
+                <i class="fas fa-flask text-primary"></i>
+                محاكاة سيناريو التسعير حسب الدور
+            </h3>
+            <p class="text-muted small mb-0 mt-2">معاينة فورية: توقيت الخصم، الجهة المتأثرة، وطريقة الحساب (ثابت أو نسبة).</p>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-lg-4">
+                    <label class="form-label">الخدمة</label>
+                    <select id="pricingScenarioFeatureKey" class="form-select">
+                        @foreach (var k in sortedContentKeys)
+                        {
+                            var nm = featureNameByKey.TryGetValue(k, out var fn) ? fn : k;
+                            <option value="@k">@nm — @k</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-lg-3">
+                    <label class="form-label">الدور المنفّذ</label>
+                    <select id="pricingScenarioActorRole" class="form-select">
+                        <option value="CompanyManager">مدير الشركة</option>
+                        <option value="CompanyEmployee">موظف الشركة</option>
+                    </select>
+                </div>
+                <div class="col-lg-5">
+                    <label class="form-label">قيمة أساس العملية (للنسبة المئوية)</label>
+                    <input id="pricingScenarioBaseAmount" type="number" class="form-control" min="0" step="0.01" value="100000" />
+                    <div class="form-text">تُستخدم فقط إذا كان نوع الاحتساب نسبة مئوية.</div>
+                </div>
+            </div>
+
+            <div class="mt-3 border rounded p-3 bg-light-subtle" id="pricingScenarioResult">
+                <div class="text-muted">اختر الخدمة والدور لعرض نتيجة المحاكاة.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <h3 class="card-title mb-0">
+                <i class="fas fa-list text-primary"></i>
+                التسعيرات الحالية
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive services-pricing-shell">
+                <table class="table align-middle services-pricing-table">
+                    <thead>
+                        <tr>
+                            <th>الخدمة</th>
+                            <th style="width: 140px;">مدة الاستحقاق</th>
+                            <th style="width: 110px;">لكل</th>
+                            <th class="text-center" style="width: 140px;">ل.س.ج / النسبة %</th>
+                            <th class="text-center" style="width: 120px;">USD (معطّل)</th>
+                            <th class="text-center" style="width: 90px;">نشط</th>
+                            <th style="width: 140px;">إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pricingTableBody">
+                        @if (list.Any())
+                        {
+                            foreach (var item in list)
+                            {
+                                var featureName = featureNameByKey.TryGetValue(item.FeatureKey, out var n) ? n : item.FeatureKey;
+                                var billingName = billingNames.GetValueOrDefault(item.BillingPeriod, item.BillingPeriod.ToString());
+                                var unitName = unitNames.GetValueOrDefault(item.ChargeUnit, item.ChargeUnit.ToString());
+                                var oldSyp = item.AmountSYP * OldSypFactor;
+                                var isPercentRow = item.ChargeUnit == PricingChargeUnit.PercentOfCollectedAmount;
+                                <tr id="pricingRow_@item.Id" data-feature-key="@item.FeatureKey">
+                                    <td data-label="الخدمة">
+                                        <div><strong>@featureName</strong></div>
+                                        <div class="text-muted small"><code>@item.FeatureKey</code></div>
+                                    </td>
+                                    <td class="billing-cell" data-label="مدة الاستحقاق">@billingName</td>
+                                    <td class="unit-cell" data-label="لكل">@unitName</td>
+                                    <td class="text-center amount-syp-cell" data-label="ل.س.ج / النسبة %">
+                                        @if (isPercentRow)
+                                        {
+                                            <div>@item.AmountSYP.ToString("N2")%</div>
+                                            <div class="text-muted small">يُحسم من محفظة الشركة عند كل تحصيل</div>
+                                        }
+                                        else
+                                        {
+                                            <div>@item.AmountSYP.ToString("N2")</div>
+                                            <div class="text-muted small">الليرة القديمة: @oldSyp.ToString("N0")</div>
+                                        }
+                                    </td>
+                                    <td class="text-center amount-usd-cell" data-label="السعر $">
+                                        @if (isPercentRow)
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="text-center active-cell" data-label="نشط">
+                                        @if (item.IsActive)
+                                        {
+                                            <span class="badge bg-success">نعم</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">لا</span>
+                                        }
+                                    </td>
+                                    <td class="action-cell text-center" data-label="إجراء">
+                                        <div class="services-actions-inline">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editPricingModal_@item.Id">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletePricingModal_@item.Id">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr id="pricingEmptyRow"><td colspan="7" class="text-center text-muted py-4">لا توجد تسعيرات بعد</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Modals outside table *@
+@foreach (var item in list)
+{
+    var billingName = billingNames.GetValueOrDefault(item.BillingPeriod, item.BillingPeriod.ToString());
+    var editIsPercent = item.ChargeUnit == PricingChargeUnit.PercentOfCollectedAmount;
+    <div class="modal fade js-edit-pricing-modal" id="editPricingModal_@item.Id" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="post" asp-area="SystemAdmin" asp-controller="Services" asp-action="UpdatePricing" class="js-edit-pricing-form" data-row-id="pricingRow_@item.Id" data-initial-usd="@item.AmountUSD.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@item.Id" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">تعديل التسعير</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-2 text-muted small">
+                            <div>الخدمة: <strong>@item.FeatureKey</strong></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">مدة الاستحقاق</label>
+                            <select name="billingPeriod" class="form-select form-select-md" required>
+                                @foreach (var bp in billingNames)
+                                {
+                                    <option value="@((int)bp.Key)" selected="@(bp.Key == item.BillingPeriod ? "selected" : null)">@bp.Value</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">لكل</label>
+                            <select name="chargeUnit" class="form-select form-select-md" required>
+                                @foreach (var u in unitNames)
+                                {
+                                    <option value="@((int)u.Key)" selected="@(u.Key == item.ChargeUnit ? "selected" : null)">@u.Value</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label js-edit-syp-label">@(editIsPercent ? "النسبة المئوية (%)" : "السعر ل.س.ج")</label>
+                            <input type="number" name="amountSYP" class="form-control js-edit-syp-input" value="@item.AmountSYP.ToString(System.Globalization.CultureInfo.InvariantCulture)" min="0" step="0.01" @(editIsPercent ? Html.Raw("max=\"100\"") : null) required />
+                            <div class="form-text js-edit-syp-hint-currency" style="@(editIsPercent ? "display:none" : "display:block")">الليرة القديمة (تقريبي): @((item.AmountSYP * OldSypFactor).ToString("N0"))</div>
+                            <div class="form-text text-primary js-edit-syp-hint-percent" style="@(editIsPercent ? "display:block" : "display:none")">القيمة كنسبة مئوية من المبلغ (مثال: 5 = 5٪). حقل الدولار لا يُستخدم لهذا النوع.</div>
+                        </div>
+                        <div class="mb-3 js-edit-usd-wrap" style="@(editIsPercent ? "display:none" : "display:block")">
+                            <label class="form-label">USD (معطّل حالياً)</label>
+                            <input type="number"
+                                   class="form-control js-edit-usd-input"
+                                   value="@item.AmountUSD.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                   min="0"
+                                   step="0.01"
+                                   @if (!editIsPercent)
+                                   {
+                                       <text>name="amountUSD" required</text>
+                                   }
+                                   else
+                                   {
+                                       <text>readonly="readonly" tabindex="-1"</text>
+                                   } />
+                        </div>
+                        @if (editIsPercent)
+                        {
+                            <input type="hidden" name="amountUSD" value="0" class="js-edit-usd-zero-only" />
+                        }
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="isActive" value="true" checked="@(item.IsActive ? "checked" : null)" />
+                            <label class="form-check-label">نشط</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary">حفظ</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deletePricingModal_@item.Id" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="post" asp-area="SystemAdmin" asp-controller="Services" asp-action="DeletePricing" class="js-delete-pricing-form" data-row-id="pricingRow_@item.Id" data-feature-key="@item.FeatureKey">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@item.Id" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">تأكيد الحذف</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        هل أنت متأكد من حذف هذا التسعير؟<br />
+                        <span class="text-muted small">@item.FeatureKey — @billingName</span>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-danger">حذف</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            const feedback = document.getElementById('servicesAjaxFeedback');
+            let feedbackHideTimer = null;
+            const createForm = document.getElementById('createPricingForm');
+            const addServiceSelect = document.getElementById('createPricingFeatureKey');
+            const addButton = document.getElementById('createPricingBtn');
+            const pricingTableBody = document.getElementById('pricingTableBody');
+            const antiForgeryToken = createForm?.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            const CHARGE_UNIT_PERCENT = @chargeUnitPercentInt;
+
+            const syncCreateFormChargeUnitUi = () => {
+                const unitSel = document.getElementById('createChargeUnitSelect');
+                const sypLabel = document.getElementById('createSypAmountLabel');
+                const sypInput = document.getElementById('createSypAmountInput');
+                const hintCur = document.getElementById('createSypAmountHintCurrency');
+                const hintPct = document.getElementById('createSypAmountHintPercent');
+                const usdCol = document.getElementById('createUsdAmountCol');
+                const usdInput = document.getElementById('createUsdAmountInput');
+                if (!unitSel || !sypLabel || !sypInput || !hintCur || !hintPct || !usdCol || !usdInput || !createForm) return;
+                const isPct = parseInt(unitSel.value, 10) === CHARGE_UNIT_PERCENT;
+                if (isPct) {
+                    sypLabel.textContent = 'النسبة المئوية (%)';
+                    sypInput.setAttribute('max', '100');
+                    hintCur.classList.add('d-none');
+                    hintPct.classList.remove('d-none');
+                    usdCol.classList.add('d-none');
+                    usdInput.removeAttribute('name');
+                    usdInput.value = '0';
+                    let hid = document.getElementById('createUsdAmountHidden');
+                    if (!hid) {
+                        hid = document.createElement('input');
+                        hid.type = 'hidden';
+                        hid.id = 'createUsdAmountHidden';
+                        hid.name = 'amountUSD';
+                        createForm.appendChild(hid);
+                    }
+                    hid.value = '0';
+                } else {
+                    sypLabel.textContent = 'السعر ل.س.ج';
+                    sypInput.removeAttribute('max');
+                    hintCur.classList.remove('d-none');
+                    hintPct.classList.add('d-none');
+                    usdCol.classList.remove('d-none');
+                    usdInput.setAttribute('name', 'amountUSD');
+                    const hid = document.getElementById('createUsdAmountHidden');
+                    if (hid) hid.remove();
+                }
+            };
+
+            const syncEditFormChargeUnitUi = (form) => {
+                if (!form) return;
+                const unitSel = form.querySelector('select[name="chargeUnit"]');
+                const sypLabel = form.querySelector('.js-edit-syp-label');
+                const sypInput = form.querySelector('.js-edit-syp-input');
+                const hintCur = form.querySelector('.js-edit-syp-hint-currency');
+                const hintPct = form.querySelector('.js-edit-syp-hint-percent');
+                const usdWrap = form.querySelector('.js-edit-usd-wrap');
+                const usdInput = form.querySelector('.js-edit-usd-input');
+                if (!unitSel || !sypLabel || !sypInput || !usdWrap || !usdInput) return;
+                const isPct = parseInt(unitSel.value, 10) === CHARGE_UNIT_PERCENT;
+                if (isPct) {
+                    sypLabel.textContent = 'النسبة المئوية (%)';
+                    sypInput.setAttribute('max', '100');
+                    if (hintCur) hintCur.style.display = 'none';
+                    if (hintPct) hintPct.style.display = 'block';
+                    usdWrap.style.display = 'none';
+                    usdInput.removeAttribute('name');
+                    usdInput.removeAttribute('required');
+                    usdInput.setAttribute('readonly', 'readonly');
+                    usdInput.value = '0';
+                    if (!form.querySelector('input.js-edit-usd-zero-only[name="amountUSD"]')) {
+                        const h = document.createElement('input');
+                        h.type = 'hidden';
+                        h.name = 'amountUSD';
+                        h.value = '0';
+                        h.className = 'js-edit-usd-zero-only';
+                        form.appendChild(h);
+                    }
+                } else {
+                    sypLabel.textContent = 'السعر ل.س.ج';
+                    sypInput.removeAttribute('max');
+                    if (hintCur) hintCur.style.display = 'block';
+                    if (hintPct) hintPct.style.display = 'none';
+                    usdWrap.style.display = 'block';
+                    usdInput.setAttribute('name', 'amountUSD');
+                    usdInput.setAttribute('required', 'required');
+                    usdInput.removeAttribute('readonly');
+                    const initUsd = form.dataset.initialUsd || '0';
+                    usdInput.value = initUsd;
+                    form.querySelectorAll('input.js-edit-usd-zero-only[name="amountUSD"]').forEach((el) => el.remove());
+                }
+            };
+
+            const findPricingFormOption = (key) => {
+                if (!addServiceSelect || !key) return null;
+                return Array.from(addServiceSelect.options).find((o) => o.value === key) || null;
+            };
+
+            const markPricingOptionPriced = (opt) => {
+                if (!opt || opt.dataset.priced === '1') return;
+                opt.dataset.priced = '1';
+                opt.style.color = '#198754';
+                opt.style.fontWeight = '600';
+                const base = (opt.dataset.baseLabel || opt.textContent || '').replace(/\s*—\s*مُسعَّر\s*$/u, '').trim();
+                opt.textContent = base + ' — مُسعَّر';
+            };
+
+            const clearPricingOptionPriced = (opt) => {
+                if (!opt) return;
+                opt.dataset.priced = '0';
+                opt.style.color = '';
+                opt.style.fontWeight = '';
+                const base = (opt.dataset.baseLabel || '').replace(/\s*—\s*مُسعَّر\s*$/u, '').trim();
+                if (base) opt.textContent = base;
+            };
+
+            const countTableRowsForFeature = (key) =>
+                Array.from(document.querySelectorAll('#pricingTableBody tr[data-feature-key]')).filter(
+                    (tr) => tr.dataset.featureKey === key
+                ).length;
+
+            const showFeedback = (ok, message) => {
+                if (!feedback) return;
+                feedback.classList.remove('d-none', 'alert-success', 'alert-danger');
+                feedback.classList.add(ok ? 'alert-success' : 'alert-danger');
+                feedback.textContent = message || (ok ? 'تمت العملية بنجاح.' : 'حدث خطأ غير متوقع.');
+
+                if (feedbackHideTimer) {
+                    clearTimeout(feedbackHideTimer);
+                }
+                const hideAfterMs = ok ? 3000 : 6000;
+                feedbackHideTimer = window.setTimeout(() => {
+                    feedback.classList.add('d-none');
+                }, hideAfterMs);
+            };
+
+            const syncAddButtonState = () => {
+                if (!addButton) return;
+                addButton.disabled = false;
+                addButton.innerHTML = '<i class="fas fa-plus"></i> إضافة';
+            };
+
+            const bindEditForm = (form) => {
+                if (!form || form.dataset.boundAjaxEdit === '1') return;
+                form.dataset.boundAjaxEdit = '1';
+
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    let originalBtnHtml = '';
+                    if (submitBtn) {
+                        originalBtnHtml = submitBtn.innerHTML;
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>جاري الحفظ...';
+                    }
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok || !data?.ok || !data?.item) {
+                            showFeedback(false, data?.message || 'تعذر تحديث التسعير.');
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = originalBtnHtml;
+                            }
+                            return;
+                        }
+
+                        const rowId = form.dataset.rowId || '';
+                        const row = rowId ? document.getElementById(rowId) : null;
+                        if (row) {
+                            const billingText = form.querySelector('select[name="billingPeriod"] option:checked')?.textContent?.trim() || '';
+                            const unitText = form.querySelector('select[name="chargeUnit"] option:checked')?.textContent?.trim() || '';
+                            const amountSyp = Number(data.item.amountSYP || 0);
+                            const amountUsd = Number(data.item.amountUSD || 0);
+                            const oldSyp = amountSyp * @OldSypFactor;
+
+                            const billingCell = row.querySelector('.billing-cell');
+                            const unitCell = row.querySelector('.unit-cell');
+                            const amountSypCell = row.querySelector('.amount-syp-cell');
+                            const amountUsdCell = row.querySelector('.amount-usd-cell');
+                            const activeCell = row.querySelector('.active-cell');
+
+                            if (billingCell) billingCell.textContent = billingText;
+                            if (unitCell) unitCell.textContent = unitText;
+                            const isPct = Number(data.item.chargeUnit) === CHARGE_UNIT_PERCENT;
+                            if (amountSypCell) {
+                                amountSypCell.innerHTML = isPct
+                                    ? `<div>${formatMoney(amountSyp)}%</div><div class="text-muted small">قيمة مئوية من المبلغ</div>`
+                                    : `<div>${formatMoney(amountSyp)}</div><div class="text-muted small">الليرة القديمة: ${Math.round(oldSyp).toLocaleString('en-US')}</div>`;
+                            }
+                            if (amountUsdCell) {
+                                amountUsdCell.innerHTML = isPct
+                                    ? '<span class="text-muted">—</span>'
+                                    : '<span class="text-muted">—</span>';
+                            }
+                            if (activeCell) {
+                                activeCell.innerHTML = data.item.isActive
+                                    ? '<span class="badge bg-success">نعم</span>'
+                                    : '<span class="badge bg-secondary">لا</span>';
+                            }
+                        }
+
+                        showFeedback(true, data.message || 'تم تحديث تسعير الخدمة.');
+
+                        const modalEl = form.closest('.modal');
+                        if (modalEl && window.bootstrap) {
+                            const instance = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+                            instance.hide();
+                        }
+                    } catch {
+                        showFeedback(false, 'تعذر الاتصال بالخادم.');
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalBtnHtml;
+                        }
+                    } finally {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalBtnHtml;
+                        }
+                    }
+                });
+            };
+
+            const bindDeleteForm = (form) => {
+                if (!form || form.dataset.boundAjaxDelete === '1') return;
+                form.dataset.boundAjaxDelete = '1';
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    let originalBtnHtml = '';
+                    if (submitBtn) {
+                        originalBtnHtml = submitBtn.innerHTML;
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>جاري الحذف...';
+                    }
+
+                    try {
+                        if (form.dataset.requireConfirm === 'true') {
+                            const okConfirm = confirm('هل أنت متأكد من حذف هذا التسعير؟');
+                            if (!okConfirm) {
+                                if (submitBtn) {
+                                    submitBtn.disabled = false;
+                                    submitBtn.innerHTML = originalBtnHtml;
+                                }
+                                return;
+                            }
+                        }
+
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok || !data?.ok) {
+                            showFeedback(false, data?.message || 'تعذر حذف التسعير.');
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = originalBtnHtml;
+                            }
+                            return;
+                        }
+
+                        showFeedback(true, data.message || 'تم حذف تسعير الخدمة.');
+
+                        const rowId = form.dataset.rowId || '';
+                        const row = rowId ? document.getElementById(rowId) : null;
+                        if (row) row.remove();
+
+                        const featureKey = data.featureKey || form.dataset.featureKey || '';
+                        if (featureKey && countTableRowsForFeature(featureKey) === 0) {
+                            clearPricingOptionPriced(findPricingFormOption(featureKey));
+                        }
+                        syncAddButtonState();
+
+                        const modalEl = form.closest('.modal');
+                        if (modalEl && window.bootstrap) {
+                            const instance = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+                            instance.hide();
+                        }
+                    } catch {
+                        showFeedback(false, 'تعذر الاتصال بالخادم.');
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalBtnHtml;
+                        }
+                    }
+                });
+            };
+
+            document.querySelectorAll('.js-delete-pricing-form').forEach(bindDeleteForm);
+            document.querySelectorAll('.js-edit-pricing-form').forEach(bindEditForm);
+
+            document.getElementById('createChargeUnitSelect')?.addEventListener('change', syncCreateFormChargeUnitUi);
+            syncCreateFormChargeUnitUi();
+
+            document.querySelectorAll('.js-edit-pricing-modal').forEach((modalEl) => {
+                modalEl.addEventListener('shown.bs.modal', () => {
+                    const f = modalEl.querySelector('.js-edit-pricing-form');
+                    if (f) syncEditFormChargeUnitUi(f);
+                });
+                modalEl.addEventListener('change', (ev) => {
+                    if (ev.target && ev.target.name === 'chargeUnit') {
+                        const f = modalEl.querySelector('.js-edit-pricing-form');
+                        syncEditFormChargeUnitUi(f);
+                    }
+                });
+            });
+
+            const formatMoney = (value) => {
+                const n = Number(value || 0);
+                return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            };
+
+            const extractDisplayName = (option, key) => {
+                const base = option?.dataset?.baseLabel || option?.textContent || key;
+                const clean = base.replace(/\s*-\s*مضافة مسبقاً\s*$/u, '').trim();
+                return clean.replace(/\s*\([^)]*\)\s*$/, '').trim() || key;
+            };
+
+            if (createForm) {
+                createForm.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+
+                    if (!addServiceSelect || !pricingTableBody) return;
+
+                    const submitBtn = addButton;
+                    let originalBtnHtml = '';
+                    if (submitBtn) {
+                        originalBtnHtml = submitBtn.innerHTML;
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>جاري الإضافة...';
+                    }
+
+                    try {
+                        syncCreateFormChargeUnitUi();
+                        const formData = new FormData(createForm);
+                        const selectedOption = addServiceSelect.options[addServiceSelect.selectedIndex];
+                        const response = await fetch(createForm.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok || !data?.ok || !data?.item) {
+                            showFeedback(false, data?.message || 'تعذر إضافة التسعير.');
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = originalBtnHtml;
+                            }
+                            return;
+                        }
+
+                        showFeedback(true, data.message || 'تمت إضافة تسعير الخدمة بنجاح.');
+
+                        const emptyRow = document.getElementById('pricingEmptyRow');
+                        if (emptyRow) emptyRow.remove();
+
+                        const item = data.item;
+                        const featureKey = item.featureKey || '';
+                        const displayName = extractDisplayName(selectedOption, featureKey);
+                        const billingText = createForm.querySelector('select[name="billingPeriod"] option:checked')?.textContent?.trim() || '';
+                        const unitText = createForm.querySelector('select[name="chargeUnit"] option:checked')?.textContent?.trim() || '';
+                        const amountSyp = Number(item.amountSYP || 0);
+                        const amountUsd = Number(item.amountUSD || 0);
+                        const oldSyp = amountSyp * @OldSypFactor;
+                        const rowId = `pricingRow_${item.id}`;
+                        const isPctRow = Number(item.chargeUnit) === CHARGE_UNIT_PERCENT;
+                        const sypCellHtml = isPctRow
+                            ? `<div>${formatMoney(amountSyp)}%</div><div class="text-muted small">قيمة مئوية من المبلغ</div>`
+                            : `<div>${formatMoney(amountSyp)}</div><div class="text-muted small">الليرة القديمة: ${Math.round(oldSyp).toLocaleString('en-US')}</div>`;
+                        const usdCellHtml = '<span class="text-muted">—</span>';
+
+                        const tr = document.createElement('tr');
+                        tr.id = rowId;
+                        tr.dataset.featureKey = featureKey;
+                        tr.innerHTML = `
+                            <td data-label="الخدمة">
+                                <div><strong>${displayName}</strong></div>
+                                <div class="text-muted small"><code>${featureKey}</code></div>
+                            </td>
+                            <td class="billing-cell" data-label="مدة الاستحقاق">${billingText}</td>
+                            <td class="unit-cell" data-label="لكل">${unitText}</td>
+                            <td class="text-center amount-syp-cell" data-label="ل.س.ج / النسبة %">${sypCellHtml}</td>
+                            <td class="text-center amount-usd-cell" data-label="السعر $">${usdCellHtml}</td>
+                            <td class="text-center active-cell" data-label="نشط">${item.isActive ? '<span class="badge bg-success">نعم</span>' : '<span class="badge bg-secondary">لا</span>'}</td>
+                            <td class="action-cell text-center" data-label="إجراء">
+                                <div class="services-actions-inline">
+                                    <form method="post" action="@Url.Action("DeletePricing", "Services", new { area = "SystemAdmin" })" class="js-delete-pricing-form d-inline" data-row-id="${rowId}" data-feature-key="${featureKey}" data-require-confirm="true">
+                                        <input type="hidden" name="__RequestVerificationToken" value="${antiForgeryToken}">
+                                        <input type="hidden" name="id" value="${item.id}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        `;
+                        pricingTableBody.prepend(tr);
+                        const newDeleteForm = tr.querySelector('.js-delete-pricing-form');
+                        bindDeleteForm(newDeleteForm);
+
+                        markPricingOptionPriced(findPricingFormOption(featureKey));
+
+                        createForm.reset();
+                        addServiceSelect.value = '';
+                        syncCreateFormChargeUnitUi();
+                        syncAddButtonState();
+                    } catch {
+                        showFeedback(false, 'تعذر الاتصال بالخادم.');
+                    } finally {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalBtnHtml;
+                            syncAddButtonState();
+                        }
+                    }
+                });
+            }
+        })();
+    </script>
+    <script>
+        (function () {
+            const FP_DATA = @Html.Raw(fpJson);
+            const FP_AUTO_DATA = @Html.Raw(generatedPublicInfosJson);
+            const SIMULATION_DATA = @Html.Raw(pricingSimulationJson);
+            const sel = document.getElementById('featurePublicKeySelect');
+            const taD = document.getElementById('featurePublicDetailHtml');
+            const taP = document.getElementById('featurePublicPricingHtml');
+            const autoFillBtn = document.getElementById('featurePublicAutoFillBtn');
+            const dynamicModeBtn = document.getElementById('featurePublicDynamicModeBtn');
+            const scenarioFeature = document.getElementById('pricingScenarioFeatureKey');
+            const scenarioRole = document.getElementById('pricingScenarioActorRole');
+            const scenarioBase = document.getElementById('pricingScenarioBaseAmount');
+            const scenarioResult = document.getElementById('pricingScenarioResult');
+
+            if (!sel || !taD || !taP) return;
+
+            function load() {
+                const k = sel.value;
+                const row = FP_DATA && FP_DATA[k] ? FP_DATA[k] : null;
+                taD.value = row ? (row.detailHtml || '') : '';
+                taP.value = row ? (row.pricingPolicyHtml || '') : '';
+            }
+
+            function fillAutoContent() {
+                const k = sel.value;
+                const row = FP_AUTO_DATA && FP_AUTO_DATA[k] ? FP_AUTO_DATA[k] : null;
+                if (!row) return;
+                taD.value = row.detailHtml || '';
+                taP.value = row.pricingPolicyHtml || '';
+            }
+
+            function setDynamicMode() {
+                taD.value = '[[AUTO]]';
+                taP.value = '[[AUTO]]';
+            }
+
+            function renderSimulation() {
+                if (!scenarioFeature || !scenarioRole || !scenarioBase || !scenarioResult) return;
+                const key = scenarioFeature.value;
+                const sim = SIMULATION_DATA && SIMULATION_DATA[key] ? SIMULATION_DATA[key] : null;
+                if (!sim) {
+                    scenarioResult.innerHTML = '<div class="text-danger">لا توجد بيانات محاكاة لهذه الخدمة حالياً.</div>';
+                    return;
+                }
+
+                const actor = scenarioRole.value === 'CompanyEmployee' ? 'موظف الشركة' : 'مدير الشركة';
+                const baseAmount = Number(scenarioBase.value || 0);
+                const requiresApproval = !!sim.employeeActionRequiresApproval && scenarioRole.value === 'CompanyEmployee';
+
+                let chargeHtml = '<span class="text-muted">غير محدد</span>';
+                if (sim.chargeKind === 1) {
+                    const fixed = Number(sim.fixedAmountSyp || 0);
+                    chargeHtml = `<strong>${fixed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج</strong>`;
+                } else if (sim.chargeKind === 2) {
+                    const percent = Number(sim.percentValue || 0);
+                    const estimated = baseAmount > 0 ? (baseAmount * percent / 100) : 0;
+                    chargeHtml =
+                        `<strong>${percent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</strong>` +
+                        (baseAmount > 0
+                            ? ` <span class="text-muted">≈ ${estimated.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج</span>`
+                            : '');
+                }
+
+                scenarioResult.innerHTML = `
+                    <div class="row g-3">
+                        <div class="col-md-6"><strong>الخدمة:</strong> ${sim.displayName || key}</div>
+                        <div class="col-md-6"><strong>الدور المنفذ:</strong> ${actor}</div>
+                        <div class="col-md-6"><strong>طريقة الحساب:</strong> ${chargeHtml}</div>
+                        <div class="col-md-6"><strong>الاحتساب لكل:</strong> ${sim.chargeUnitLabel || '—'}</div>
+                        <div class="col-md-6"><strong>مدة الاستحقاق:</strong> ${sim.billingPeriodLabel || '—'}</div>
+                        <div class="col-md-6"><strong>المحفظة المتأثرة:</strong> ${sim.payerRoleLabel || 'محفظة مدير الشركة'}</div>
+                        <div class="col-12">
+                            <strong>توقيت الخصم:</strong>
+                            ${requiresApproval
+                                ? `بعد موافقة ${sim.approverRoleLabel || 'مدير النظام'}`
+                                : 'خصم مباشر بعد نجاح العملية'}
+                        </div>
+                        <div class="col-12"><strong>التجديد:</strong> ${sim.renewalSummary || '—'}</div>
+                        <div class="col-12 text-muted small">ملاحظة: التحويل التقريبي لليرة القديمة = السعر × 100.</div>
+                    </div>`;
+            }
+
+            sel.addEventListener('change', load);
+            autoFillBtn?.addEventListener('click', fillAutoContent);
+            dynamicModeBtn?.addEventListener('click', setDynamicMode);
+            scenarioFeature?.addEventListener('change', renderSimulation);
+            scenarioRole?.addEventListener('change', renderSimulation);
+            scenarioBase?.addEventListener('input', renderSimulation);
+            load();
+            renderSimulation();
+        })();
+    </script>
+}
+

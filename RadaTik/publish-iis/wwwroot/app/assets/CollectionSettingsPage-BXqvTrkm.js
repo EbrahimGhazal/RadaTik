@@ -1,0 +1,1 @@
+import{AdminSettingsPage as e}from"./AdminSettingsPage-_ggzeVZm.js";export{e as CollectionSettingsPage};

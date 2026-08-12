@@ -1,0 +1,1311 @@
+/* ============================================
+   RadaTik UI Kit — tokens, dark mode, mobile tables, stepper
+   ============================================ */
+
+:root {
+    --rtk-primary: var(--primary, #0066CC);
+    --rtk-primary-dark: var(--primary-dark, #004C99);
+    --rtk-secondary: var(--accent, #00B4D8);
+    --rtk-success: var(--success, #00C853);
+    --rtk-warning: var(--warning, #FF9800);
+    --rtk-danger: var(--danger, #F44336);
+    --rtk-info: var(--info, #2196F3);
+    --rtk-violet: #7c3aed;
+    --rtk-cyan: #06b6d4;
+    --rtk-page: var(--bg-body, #F0F4F8);
+    --rtk-card: var(--bg-card, #FFFFFF);
+    --rtk-text: var(--text-primary, #1A202C);
+    --rtk-text-muted: var(--text-muted, #718096);
+    --rtk-border: var(--border-color, #E2E8F0);
+    --rtk-radius: var(--radius-md, 12px);
+    --rtk-shadow: var(--shadow-card, 0 2px 8px rgba(0, 0, 0, 0.08));
+    --rtk-hero-gradient: linear-gradient(135deg, #1e40af 0%, #1e3a8a 55%, #0f172a 100%);
+}
+
+[data-theme="dark"] {
+    --rtk-page: #0f172a;
+    --rtk-card: #1e293b;
+    --rtk-text: #f1f5f9;
+    --rtk-text-muted: #94a3b8;
+    --rtk-border: #334155;
+    --rtk-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    --bg-body: #0f172a;
+    --bg-card: #1e293b;
+    --bg-header: #1e293b;
+    --bg-hover: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --border-color: #334155;
+}
+
+/* ——— Page hero ——— */
+.radtk-page-hero .sys-hero-title { color: var(--rtk-text); }
+.radtk-page-hero .sys-hero-subtitle { color: var(--rtk-text-muted); }
+
+.radtk-page-hero.operational-sys-hero--danger .sys-hero-icon {
+    background: rgba(244, 67, 54, 0.12);
+    color: var(--rtk-danger);
+}
+
+.radtk-page-hero.operational-sys-hero--warning .sys-hero-icon {
+    background: rgba(255, 152, 0, 0.14);
+    color: var(--rtk-warning);
+}
+
+.radtk-page-hero.operational-sys-hero--success .sys-hero-icon {
+    background: rgba(0, 200, 83, 0.12);
+    color: var(--rtk-success);
+}
+
+/* ——— Stat cards ——— */
+.radtk-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.radtk-stat-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1rem 1.1rem;
+    background: var(--rtk-card);
+    border: 1px solid var(--rtk-border);
+    border-radius: var(--rtk-radius);
+    box-shadow: var(--rtk-shadow);
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.radtk-stat-card--link:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md, 0 6px 12px rgba(0, 0, 0, 0.1));
+    color: inherit;
+}
+
+.radtk-stat-card__icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.radtk-stat-card__label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--rtk-text-muted);
+    font-weight: 600;
+}
+
+.radtk-stat-card__value {
+    display: block;
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--rtk-text);
+}
+
+.radtk-stat-card__sub {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--rtk-text-muted);
+    margin-top: 0.15rem;
+}
+
+.radtk-stat-card--primary .radtk-stat-card__icon { background: rgba(0, 102, 204, 0.12); color: var(--rtk-primary); }
+.radtk-stat-card--success .radtk-stat-card__icon { background: rgba(0, 200, 83, 0.12); color: var(--rtk-success); }
+.radtk-stat-card--warning .radtk-stat-card__icon { background: rgba(255, 152, 0, 0.14); color: var(--rtk-warning); }
+.radtk-stat-card--danger .radtk-stat-card__icon { background: rgba(244, 67, 54, 0.12); color: var(--rtk-danger); }
+.radtk-stat-card--info .radtk-stat-card__icon { background: rgba(33, 150, 243, 0.12); color: var(--rtk-info); }
+.radtk-stat-card--violet .radtk-stat-card__icon { background: rgba(124, 58, 237, 0.12); color: var(--rtk-violet); }
+
+/* ——— Unified stepper ——— */
+.radtk-stepper {
+    margin-bottom: 1.25rem;
+    padding: 0.75rem 1rem;
+    background: var(--rtk-card);
+    border: 1px solid var(--rtk-border);
+    border-radius: var(--rtk-radius);
+}
+
+.radtk-stepper__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+}
+
+.radtk-stepper__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1 1 auto;
+    min-width: min(100%, 140px);
+}
+
+.radtk-stepper__marker {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: 2px solid var(--rtk-border);
+    color: var(--rtk-text-muted);
+    background: var(--rtk-page);
+}
+
+.radtk-stepper__item--done .radtk-stepper__marker {
+    background: var(--rtk-success);
+    border-color: var(--rtk-success);
+    color: #fff;
+}
+
+.radtk-stepper__item--current .radtk-stepper__marker {
+    background: var(--rtk-primary);
+    border-color: var(--rtk-primary);
+    color: #fff;
+}
+
+.radtk-stepper__title {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--rtk-text);
+}
+
+.radtk-stepper__subtitle {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--rtk-text-muted);
+}
+
+/* ——— Mobile-responsive data tables ——— */
+.radtk-data-table-wrap { width: 100%; }
+
+@media (max-width: 767.98px) {
+    .radtk-data-table.radtk-data-table--cards thead {
+        display: none;
+    }
+
+    .radtk-data-table.radtk-data-table--cards tbody tr {
+        display: block;
+        margin-bottom: 0.75rem;
+        border: 1px solid var(--rtk-border);
+        border-radius: var(--rtk-radius);
+        background: var(--rtk-card);
+        box-shadow: var(--rtk-shadow);
+        padding: 0.35rem 0;
+    }
+
+    .radtk-data-table.radtk-data-table--cards tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.45rem 0.85rem;
+        border: none;
+        text-align: start !important;
+    }
+
+    .radtk-data-table.radtk-data-table--cards tbody td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        font-size: 0.72rem;
+        color: var(--rtk-text-muted);
+        flex-shrink: 0;
+        max-width: 42%;
+    }
+
+    .radtk-data-table.radtk-data-table--cards tbody td[data-label=""]::before,
+    .radtk-data-table.radtk-data-table--cards tbody td:not([data-label])::before {
+        display: none;
+    }
+}
+
+/* ——— Operations hub ——— */
+.radtk-ops-hub {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.radtk-ops-hub__card {
+    background: var(--rtk-card);
+    border: 1px solid var(--rtk-border);
+    border-radius: var(--rtk-radius);
+    padding: 1.1rem;
+    box-shadow: var(--rtk-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.radtk-ops-hub__card h3 {
+    font-size: 0.95rem;
+    font-weight: 800;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.radtk-ops-hub__metric {
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.radtk-ops-hub__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: auto;
+}
+
+/* ——— Collection point flow ——— */
+.radtk-collect-flow {
+    display: grid;
+    gap: 1rem;
+}
+
+.radtk-collect-flow__balance {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--rtk-success);
+}
+
+.radtk-collect-network-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+    gap: 0.85rem;
+}
+
+.radtk-collect-network-card {
+    cursor: pointer;
+    border: 2px solid var(--rtk-border);
+    border-radius: var(--rtk-radius);
+    padding: 1rem;
+    text-align: center;
+    background: var(--rtk-card);
+    transition: border-color 0.15s, transform 0.15s;
+}
+
+.radtk-collect-network-card:hover,
+.radtk-collect-network-card:focus-visible {
+    border-color: var(--rtk-primary);
+    transform: translateY(-2px);
+    outline: none;
+}
+
+/* ——— Sidebar advanced section (collapsed by default) ——— */
+.sidebar-pro .nav-section-advanced .nav-list {
+    display: none;
+}
+
+.sidebar-pro .nav-section-advanced.is-expanded .nav-list {
+    display: block;
+}
+
+.sidebar-pro .nav-section-advanced .nav-section-title {
+    cursor: pointer;
+}
+
+/* ——— Utility: hide inline badge until JS loads ——— */
+.radtk-badge-hidden { display: none !important; }
+
+/* ——— Unified form controls (app-wide via .radtk-fields on main) ——— */
+/*
+ * أنواع العرض (responsive):
+ * - نص/قائمة/textarea: عرض كامل للعمود (100%)
+ * - rtk-w-md: حقول متوسطة (بريد، هاتف…) — كامل على موبايل، ~20rem على لابتوب
+ * - rtk-w-sm: أرقام قصيرة — كامل على موبايل، ~7.5rem على لابتوب
+ * - rtk-w-coord: إحداثيات — monospace، عرض ثابت نسبياً على تابلت+
+ */
+.radtk-fields,
+.radtk-form {
+    --rtk-field-height: calc(1.5em + 0.5rem + 2px);
+    --rtk-field-radius: 8px;
+    --rtk-field-font: 0.875rem;
+    --rtk-field-border: var(--rtk-border, var(--border-color, #dee2e6));
+    --rtk-field-bg: var(--rtk-card, var(--bg-card, #fff));
+    --rtk-field-focus: var(--rtk-primary, var(--primary, #0066CC));
+    --rtk-field-width-full: 100%;
+    --rtk-field-width-md: 100%;
+    --rtk-field-width-sm: 100%;
+    --rtk-field-width-coord: 100%;
+}
+
+@media (min-width: 576px) {
+    .radtk-fields {
+        --rtk-field-width-md: min(100%, 17rem);
+        --rtk-field-width-sm: min(100%, 6.5rem);
+        --rtk-field-width-coord: min(100%, 10.5rem);
+    }
+}
+
+@media (min-width: 992px) {
+    .radtk-fields {
+        --rtk-field-width-md: min(100%, 20rem);
+        --rtk-field-width-sm: 7.5rem;
+        --rtk-field-width-coord: 11rem;
+    }
+}
+
+/* عرض افتراضي: كل حقل يملأ عمود الشبكة */
+.radtk-fields form .form-control,
+.radtk-fields form .form-select,
+.radtk-fields form .input-group,
+.radtk-fields form .select2-container,
+.radtk-form .form-control,
+.radtk-form .form-select,
+.radtk-form .input-group,
+.radtk-form .select2-container {
+    width: 100%;
+    max-width: 100%;
+}
+
+.radtk-fields form textarea.form-control,
+.radtk-form textarea.form-control {
+    min-height: 5.5rem;
+    resize: vertical;
+}
+
+/* أدوات العرض حسب النوع */
+.rtk-w-full { width: var(--rtk-field-width-full) !important; max-width: 100% !important; }
+.rtk-w-md { width: 100% !important; max-width: var(--rtk-field-width-md) !important; }
+.rtk-w-sm { width: 100% !important; max-width: var(--rtk-field-width-sm) !important; }
+.rtk-w-coord { width: 100% !important; max-width: var(--rtk-field-width-coord) !important; }
+
+.radtk-fields form .form-label,
+.radtk-fields form .form-label-sm,
+.radtk-form .form-label,
+.radtk-form .form-label-sm {
+    font-weight: 600;
+    color: var(--rtk-text, var(--text-primary));
+    margin-bottom: 0.25rem;
+}
+
+.radtk-fields form .form-label.required::after,
+.radtk-fields form .form-label-sm.required::after,
+.radtk-form .form-label.required::after,
+.radtk-form .form-label-sm.required::after {
+    content: ' *';
+    color: var(--rtk-danger, var(--danger, #dc3545));
+}
+
+.radtk-fields form .form-control,
+.radtk-fields form .form-select,
+.radtk-fields form .input-group .form-control,
+.radtk-fields form .input-group .form-select,
+.radtk-form .form-control,
+.radtk-form .form-select,
+.radtk-form .input-group .form-control,
+.radtk-form .input-group .form-select {
+    min-height: var(--rtk-field-height);
+    border-radius: var(--rtk-field-radius);
+    font-size: var(--rtk-field-font);
+    border-color: var(--rtk-field-border);
+    background-color: var(--rtk-field-bg);
+    color: var(--rtk-text);
+}
+
+.radtk-fields form .form-control:focus,
+.radtk-fields form .form-select:focus,
+.radtk-fields form .input-group .form-control:focus,
+.radtk-form .form-control:focus,
+.radtk-form .form-select:focus,
+.radtk-form .input-group .form-control:focus {
+    border-color: var(--rtk-field-focus);
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.12);
+}
+
+.radtk-fields form .input-group-sm > .form-control,
+.radtk-fields form .input-group-sm > .form-select,
+.radtk-fields form .input-group-sm > .input-group-text,
+.radtk-fields form .input-group-sm > .btn,
+.radtk-form .input-group-sm > .form-control,
+.radtk-form .input-group-sm > .form-select,
+.radtk-form .input-group-sm > .input-group-text,
+.radtk-form .input-group-sm > .btn {
+    min-height: var(--rtk-field-height);
+    font-size: var(--rtk-field-font);
+    border-radius: var(--rtk-field-radius);
+}
+
+.radtk-fields form .input-group-sm > :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback),
+.radtk-form .input-group-sm > :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) {
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+}
+
+.radtk-fields form .input-group-sm > :not(:last-child):not(.dropdown-toggle):not(.dropdown-menu):not(.form-floating),
+.radtk-form .input-group-sm > :not(:last-child):not(.dropdown-toggle):not(.dropdown-menu):not(.form-floating) {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+}
+
+.radtk-fields form .input-group-text,
+.radtk-form .input-group-text {
+    min-height: var(--rtk-field-height);
+    font-size: var(--rtk-field-font);
+    border-color: var(--rtk-field-border);
+    background: var(--bg-hover, #f5f7fa);
+    color: var(--rtk-text-muted);
+}
+
+.radtk-fields form .input-group .btn,
+.radtk-form .input-group .btn {
+    min-height: var(--rtk-field-height);
+    padding-top: 0;
+    padding-bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-color: var(--rtk-field-border);
+}
+
+.radtk-fields form .select2-container--bootstrap-5 .select2-selection--single,
+.radtk-form .select2-container--bootstrap-5 .select2-selection--single {
+    min-height: var(--rtk-field-height) !important;
+    height: var(--rtk-field-height) !important;
+    border-radius: var(--rtk-field-radius) !important;
+    border-color: var(--rtk-field-border) !important;
+    background: var(--rtk-field-bg) !important;
+}
+
+.radtk-fields form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
+.radtk-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    line-height: calc(var(--rtk-field-height) - 2px) !important;
+    font-size: var(--rtk-field-font) !important;
+    padding-inline: 0.65rem !important;
+    color: var(--rtk-text) !important;
+}
+
+.radtk-fields form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow,
+.radtk-form .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+    height: calc(var(--rtk-field-height) - 2px) !important;
+}
+
+.radtk-fields form .form-check-input,
+.radtk-form .form-check-input {
+    width: 2.25em;
+    height: 1.15em;
+    margin-top: 0.1em;
+}
+
+.radtk-fields form .form-check-label,
+.radtk-form .form-check-label {
+    font-size: var(--rtk-field-font);
+}
+
+/* Toggle switches: label on the left (physical), control on the right */
+.radtk-fields .form-check.form-switch:not(.form-check-inline):not(.maintenance-pricing-switch),
+.radtk-form .form-check.form-switch:not(.form-check-inline):not(.maintenance-pricing-switch),
+.radtk-surface .form-check.form-switch:not(.form-check-inline):not(.maintenance-pricing-switch),
+.radtk-switch-left-label {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    direction: ltr;
+    min-height: calc(1.5em + 0.5rem + 2px);
+    padding-inline-start: 0;
+}
+
+.radtk-fields .form-check.form-switch:not(.form-check-inline):not(.maintenance-pricing-switch) .form-check-label,
+.radtk-form .form-check.form-switch:not(.form-check-inline):not(.maintenance-pricing-switch) .form-check-label,
+.radtk-surface .form-check.form-switch:not(.form-check-inline):not(.maintenance-pricing-switch) .form-check-label,
+.radtk-switch-left-label .form-check-label,
+.radtk-switch-left-label .switch-label {
+    order: 1;
+    direction: rtl;
+    text-align: start;
+    margin: 0;
+    flex: 1 1 auto;
+}
+
+.radtk-fields .form-check.form-switch:not(.form-check-inline):not(.maintenance-pricing-switch) .form-check-input,
+.radtk-form .form-check.form-switch:not(.form-check-inline):not(.maintenance-pricing-switch) .form-check-input,
+.radtk-surface .form-check.form-switch:not(.form-check-inline):not(.maintenance-pricing-switch) .form-check-input,
+.radtk-switch-left-label .form-check-input {
+    order: 2;
+    float: none;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.radtk-fields .form-check.form-switch:not(.form-check-inline):not(.maintenance-pricing-switch) > .form-text,
+.radtk-form .form-check.form-switch:not(.form-check-inline):not(.maintenance-pricing-switch) > .form-text,
+.radtk-surface .form-check.form-switch:not(.form-check-inline):not(.maintenance-pricing-switch) > .form-text,
+.radtk-switch-left-label > .form-text {
+    order: 3;
+    flex: 0 0 100%;
+    width: 100%;
+}
+
+.radtk-surface .form-check-wrapper.radtk-switch-left-label,
+.radtk-fields .form-check-wrapper.radtk-switch-left-label,
+.radtk-form .form-check-wrapper.radtk-switch-left-label {
+    align-items: center;
+    justify-content: space-between;
+    direction: ltr;
+}
+
+.radtk-surface .switch-box,
+.radtk-fields .switch-box,
+.radtk-form .switch-box {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    direction: ltr;
+    cursor: pointer;
+    margin: 0;
+}
+
+.radtk-fields form .form-text,
+.radtk-fields form .field-hint,
+.radtk-form .form-text,
+.radtk-form .field-hint {
+    font-size: 0.72rem;
+    color: var(--rtk-text-muted);
+    margin-top: 0.2rem;
+}
+
+.radtk-fields form .threshold-grid .field-hint,
+.radtk-form .threshold-grid .field-hint {
+    display: block;
+    text-align: center;
+}
+
+.radtk-fields form .map-coords-panel,
+.radtk-form .map-coords-panel {
+    border: 1px solid var(--rtk-field-border);
+    border-radius: var(--rtk-radius, 12px);
+    padding: 0.85rem;
+    background: var(--rtk-field-bg);
+}
+
+.radtk-fields form .map-coords-paste-row,
+.radtk-form .map-coords-paste-row {
+    padding: 0.65rem;
+    border-radius: var(--rtk-field-radius);
+    background: var(--bg-hover, rgba(148, 163, 184, 0.08));
+    border: 1px solid var(--rtk-field-border);
+}
+
+.radtk-fields form .map-coords-panel__modes,
+.radtk-form .map-coords-panel__modes {
+    background: var(--bg-hover, rgba(148, 163, 184, 0.12));
+    border: 1px solid var(--rtk-field-border);
+}
+
+.radtk-fields form .map-coords-mode-btn,
+.radtk-form .map-coords-mode-btn {
+    font-size: var(--rtk-field-font);
+    min-height: var(--rtk-field-height);
+    padding: 0 0.65rem;
+}
+
+.radtk-fields form .map-coords-mode-btn.active,
+.radtk-form .map-coords-mode-btn.active {
+    background: var(--rtk-primary);
+    color: #fff;
+}
+
+.radtk-fields form .map-coords-panel .btn-sm,
+.radtk-fields form .map-coords-paste-row .btn,
+.radtk-form .map-coords-panel .btn-sm,
+.radtk-form .map-coords-paste-row .btn {
+    min-height: var(--rtk-field-height);
+    font-size: var(--rtk-field-font);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* شبكة نماذج responsive — اختياري على form */
+.radtk-fields form.rtk-form-grid,
+.radtk-form.rtk-form-grid {
+    display: grid;
+    gap: 0.75rem 1rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 576px) {
+    .radtk-fields form.rtk-form-grid--2,
+    .radtk-form.rtk-form-grid--2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 992px) {
+    .radtk-fields form.rtk-form-grid--3,
+    .radtk-form.rtk-form-grid--3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+[data-theme="dark"] .radtk-fields form .form-control,
+[data-theme="dark"] .radtk-fields form .form-select,
+[data-theme="dark"] .radtk-fields form .input-group-text,
+[data-theme="dark"] .radtk-form .form-control,
+[data-theme="dark"] .radtk-form .form-select,
+[data-theme="dark"] .radtk-form .input-group-text {
+    background-color: var(--rtk-card);
+    border-color: var(--rtk-border);
+    color: var(--rtk-text);
+}
+
+/* ============================================
+   RadaTik Surface — cards, tables, buttons, alerts, maps (app-wide via main)
+   ============================================ */
+.radtk-surface {
+    --rtk-btn-height: calc(1.5em + 0.5rem + 2px);
+    --rtk-btn-radius: 8px;
+    --rtk-btn-font: 0.875rem;
+    --rtk-map-height: 280px;
+    --rtk-map-height-md: 240px;
+    --rtk-map-height-sm: 210px;
+}
+
+/* ——— Section cards (بديل material-invoice-section / form-section) ——— */
+.radtk-surface .radtk-section-card,
+.radtk-surface .material-invoice-section.card,
+.radtk-surface > .card:not(.radtk-stat-card) {
+    background: var(--rtk-card);
+    border: 1px solid var(--rtk-border);
+    border-radius: var(--rtk-radius);
+    box-shadow: var(--rtk-shadow);
+    margin-bottom: 1rem;
+}
+
+.radtk-surface .radtk-section-card__header,
+.radtk-surface .material-invoice-section__header,
+.radtk-surface .card-header:not(.card-header-warning):not(.card-header-danger):not(.card-header-success) {
+    background: var(--bg-hover, rgba(148, 163, 184, 0.08));
+    border-bottom: 1px solid var(--rtk-border);
+    padding: 0.55rem 1rem;
+}
+
+.radtk-surface .radtk-section-card__header .h6,
+.radtk-surface .material-invoice-section__header .h6,
+.radtk-surface .card-header .card-title,
+.radtk-surface .card-header .h6 {
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--rtk-text);
+}
+
+.radtk-surface .radtk-section-card__body,
+.radtk-surface .material-invoice-section .card-body {
+    padding: 0.85rem 1rem;
+}
+
+.radtk-surface .form-section {
+    background: var(--rtk-card);
+    border: 1px solid var(--rtk-border);
+    border-radius: var(--rtk-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.radtk-surface .form-section-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.45rem;
+    border-bottom: 2px solid var(--rtk-primary);
+    color: var(--rtk-text);
+}
+
+/* ——— Page headers (legacy + sys-hero) ——— */
+.radtk-surface .page-header {
+    margin-bottom: 1rem;
+}
+
+.radtk-surface .page-header-content {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.radtk-surface .page-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--rtk-text);
+}
+
+.radtk-surface .sys-hero,
+.radtk-surface .operational-sys-hero {
+    background: var(--rtk-card);
+    border: 1px solid var(--rtk-border);
+    border-radius: var(--rtk-radius);
+    box-shadow: var(--rtk-shadow);
+}
+
+.radtk-surface .sys-hero-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--rtk-text);
+}
+
+.radtk-surface .sys-hero-subtitle {
+    font-size: 0.85rem;
+    color: var(--rtk-text-muted);
+}
+
+@media (max-width: 575.98px) {
+    .radtk-surface .sys-hero-actions,
+    .radtk-surface .page-actions {
+        width: 100%;
+    }
+
+    .radtk-surface .sys-hero-actions .btn,
+    .radtk-surface .page-actions .btn {
+        flex: 1 1 auto;
+    }
+}
+
+/* ——— Buttons ——— */
+.radtk-surface .btn-sm,
+.radtk-surface .micro-btn {
+    min-height: var(--rtk-btn-height);
+    font-size: var(--rtk-btn-font);
+    border-radius: var(--rtk-btn-radius);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.radtk-surface .btn-group-sm > .btn {
+    min-height: var(--rtk-btn-height);
+    font-size: var(--rtk-btn-font);
+}
+
+.radtk-surface .form-actions,
+.radtk-surface .page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+@media (max-width: 575.98px) {
+    .radtk-surface .form-actions .btn-primary,
+    .radtk-surface .form-actions .btn-warning,
+    .radtk-surface .form-actions .btn-success {
+        width: 100%;
+    }
+}
+
+/* ——— Alerts & badges ——— */
+.radtk-surface .alert {
+    border-radius: var(--rtk-radius);
+    font-size: var(--rtk-btn-font);
+    border-width: 1px;
+    margin-bottom: 1rem;
+}
+
+.radtk-surface .alert .alert-icon {
+    font-size: 1.1rem;
+}
+
+.radtk-surface .status-pill,
+.radtk-surface .status-badge,
+.radtk-surface .badge:not(.nav-badge) {
+    font-size: 0.76rem;
+    font-weight: 700;
+    border-radius: 999px;
+}
+
+/* ——— Data tables ——— */
+.radtk-surface .table-container,
+.radtk-surface .radtk-data-table-wrap,
+.radtk-surface .table-responsive {
+    border-radius: var(--rtk-radius);
+}
+
+.radtk-surface .table {
+    margin-bottom: 0;
+    color: var(--rtk-text);
+    font-size: var(--rtk-btn-font);
+}
+
+.radtk-surface .table thead th {
+    background: var(--table-head-bg, rgba(0, 102, 204, 0.06));
+    color: var(--rtk-text);
+    font-weight: 700;
+    font-size: 0.78rem;
+    border-bottom: 2px solid var(--rtk-border);
+    white-space: nowrap;
+    vertical-align: middle;
+    padding: 0.55rem 0.65rem;
+}
+
+.radtk-surface .table tbody td {
+    vertical-align: middle;
+    padding: 0.5rem 0.65rem;
+    border-color: var(--rtk-border);
+}
+
+.radtk-surface .table tbody tr:hover {
+    background: var(--table-row-hover, rgba(0, 102, 204, 0.04));
+}
+
+.radtk-surface .table.table-sm thead th,
+.radtk-surface .table.table-sm tbody td {
+    padding: 0.4rem 0.55rem;
+}
+
+.radtk-surface .radtk-table-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    margin-bottom: 0.75rem;
+}
+
+.radtk-surface .radtk-table-toolbar__title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--rtk-text);
+}
+
+.radtk-surface .radtk-table-toolbar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.radtk-surface .radtk-table-search {
+    min-width: min(100%, 14rem);
+    max-width: 20rem;
+}
+
+[data-theme="dark"] .radtk-surface .table thead th {
+    background: rgba(96, 165, 250, 0.08);
+}
+
+[data-theme="dark"] .radtk-surface .table tbody tr:hover {
+    background: rgba(96, 165, 250, 0.06);
+}
+
+/* ——— Maps (Leaflet embeds) ——— */
+.radtk-surface .radtk-map-wrap,
+.radtk-surface .sector-create-map-wrap,
+.radtk-surface .map-container-form {
+    position: relative;
+    border-radius: var(--rtk-radius);
+    overflow: hidden;
+    border: 1px solid var(--rtk-border);
+    margin-bottom: 0.75rem;
+}
+
+.radtk-surface .radtk-map,
+.radtk-surface .sector-create-map,
+.radtk-surface .map-container-form > #map,
+.radtk-surface .map-container-form #map {
+    width: 100%;
+    height: var(--rtk-map-height);
+    min-height: 200px;
+    background: var(--bg-hover, #e2e8f0);
+    z-index: 1;
+}
+
+.radtk-surface .radtk-map .leaflet-container,
+.radtk-surface .sector-create-map .leaflet-container,
+.radtk-surface .map-container-form .leaflet-container {
+    font-family: inherit;
+    z-index: 1;
+}
+
+.radtk-surface .radtk-map-controls,
+.radtk-surface .sector-create-map-controls,
+.radtk-surface .map-controls-overlay {
+    position: absolute;
+    top: 8px;
+    inset-inline-end: 8px;
+    z-index: 1000;
+}
+
+.radtk-surface .radtk-map-controls .map-type-btn.active,
+.radtk-surface .sector-create-map-controls .map-type-btn.active,
+.radtk-surface .map-controls-overlay .map-type-btn.active {
+    background: var(--rtk-primary);
+    color: #fff;
+    border-color: var(--rtk-primary);
+}
+
+.radtk-surface .radtk-map-legend,
+.radtk-surface .sector-create-map-legend,
+.radtk-surface .coverage-legend {
+    position: absolute;
+    bottom: 8px;
+    inset-inline-end: 8px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.94);
+    border-radius: var(--rtk-btn-radius);
+    padding: 0.4rem 0.55rem;
+    box-shadow: var(--rtk-shadow);
+    line-height: 1.35;
+    font-size: 0.78rem;
+    border: 1px solid var(--rtk-border);
+}
+
+[data-theme="dark"] .radtk-surface .radtk-map-legend,
+[data-theme="dark"] .radtk-surface .sector-create-map-legend,
+[data-theme="dark"] .radtk-surface .coverage-legend {
+    background: rgba(30, 41, 59, 0.94);
+    color: var(--rtk-text);
+}
+
+.radtk-surface .radtk-legend-dot,
+.radtk-surface .sector-legend-dot,
+.radtk-surface .legend-color {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-inline-end: 4px;
+    vertical-align: middle;
+}
+
+.radtk-surface .map-coords-panel {
+    border: 1px solid var(--rtk-border);
+    border-radius: var(--rtk-radius);
+    padding: 0.85rem;
+    background: var(--rtk-card);
+    margin-bottom: 0.75rem;
+}
+
+@media (max-width: 991.98px) {
+    .radtk-surface {
+        --rtk-map-height: var(--rtk-map-height-md);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .radtk-surface {
+        --rtk-map-height: var(--rtk-map-height-sm);
+    }
+
+    .radtk-surface .radtk-map-legend,
+    .radtk-surface .sector-create-map-legend,
+    .radtk-surface .coverage-legend {
+        font-size: 0.68rem;
+        max-width: 46%;
+    }
+}
+
+/* ——— Details/summary help panels ——— */
+.radtk-surface details.material-invoice-help,
+.radtk-surface details.radtk-help-panel {
+    border: 1px solid var(--rtk-border);
+    border-radius: var(--rtk-radius);
+    background: var(--rtk-card);
+    margin-bottom: 1rem;
+}
+
+.radtk-surface details.material-invoice-help summary,
+.radtk-surface details.radtk-help-panel summary {
+    padding: 0.55rem 0.85rem;
+    font-weight: 600;
+    font-size: var(--rtk-btn-font);
+    cursor: pointer;
+    color: var(--rtk-text);
+}
+
+.radtk-surface details.material-invoice-help .material-invoice-help__body,
+.radtk-surface details.radtk-help-panel .radtk-help-panel__body {
+    padding: 0 0.85rem 0.85rem;
+    font-size: var(--rtk-btn-font);
+}
+
+/* ——— Legacy form layouts (form-grid / form-row — used until full migration) ——— */
+.radtk-surface .form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.radtk-surface .form-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 0.65rem;
+}
+
+.radtk-surface .form-row-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.radtk-surface .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.radtk-surface .form-hint {
+    font-size: 0.72rem;
+    color: var(--rtk-text-muted);
+}
+
+.radtk-surface .input-with-btn {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.radtk-surface .input-with-btn .form-control {
+    flex: 1;
+}
+
+.radtk-surface .input-with-addon {
+    display: flex;
+    align-items: stretch;
+}
+
+.radtk-surface .input-with-addon .form-control {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+}
+
+.radtk-surface .input-addon {
+    display: flex;
+    align-items: center;
+    padding: 0 0.65rem;
+    background: var(--bg-hover, #f5f7fa);
+    border: 1px solid var(--rtk-border);
+    border-inline-start: none;
+    border-start-end-radius: var(--rtk-btn-radius);
+    border-end-end-radius: var(--rtk-btn-radius);
+    font-size: var(--rtk-btn-font);
+    color: var(--rtk-text-muted);
+    min-height: var(--rtk-btn-height, calc(1.5em + 0.5rem + 2px));
+}
+
+.radtk-surface .map-type-controls {
+    display: flex;
+    gap: 2px;
+    background: var(--rtk-card);
+    border-radius: var(--rtk-btn-radius);
+    padding: 2px;
+    box-shadow: var(--rtk-shadow);
+}
+
+.radtk-surface .map-type-btn {
+    padding: 0.25rem 0.55rem;
+    border: none;
+    background: transparent;
+    border-radius: calc(var(--rtk-btn-radius) - 2px);
+    font-size: 0.72rem;
+    cursor: pointer;
+    color: var(--rtk-text-muted);
+    min-height: var(--rtk-btn-height);
+}
+
+.radtk-surface .map-type-btn:hover {
+    background: var(--bg-hover);
+}
+
+.radtk-surface .legend-title {
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid var(--rtk-border);
+}
+
+.radtk-surface .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.2rem;
+}
+
+.radtk-surface .form-check-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.65rem;
+    background: var(--rtk-card);
+    border-radius: var(--rtk-btn-radius);
+    border: 1px solid var(--rtk-border);
+}
+
+.radtk-surface .check-text {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.1rem;
+}
+
+.radtk-surface .check-hint {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--rtk-text-muted);
+}
+
+.radtk-surface .card-header-warning {
+    background: linear-gradient(135deg, var(--rtk-warning, #ff9800), #f57c00) !important;
+    color: #fff !important;
+}
+
+.radtk-surface .card-header-success {
+    background: linear-gradient(135deg, var(--rtk-success, #00c853), #2e7d32) !important;
+    color: #fff !important;
+}
+
+.radtk-surface .filter-bar {
+    background: var(--rtk-card);
+    border: 1px solid var(--rtk-border);
+    border-radius: var(--rtk-radius);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 0.65rem;
+    align-items: center;
+    flex-wrap: wrap;
+    box-shadow: var(--rtk-shadow);
+}
+
+.radtk-surface .filter-bar label {
+    font-weight: 600;
+    font-size: var(--rtk-btn-font);
+    color: var(--rtk-text);
+    margin: 0;
+}
+
+.radtk-surface .stats-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+}
+
+.radtk-surface .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    background: var(--rtk-card);
+    border: 1px solid var(--rtk-border);
+    border-radius: var(--rtk-radius);
+    box-shadow: var(--rtk-shadow);
+    flex: 1 1 min(100%, 140px);
+}
+
+.radtk-surface .stat-number {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--rtk-text);
+}
+
+.radtk-surface .stat-label {
+    font-size: 0.72rem;
+    color: var(--rtk-text-muted);
+}
+
+.radtk-surface .delete-container {
+    max-width: 42rem;
+    margin-inline: auto;
+}
+
+.radtk-surface .table-card {
+    background: var(--rtk-card);
+    border: 1px solid var(--rtk-border);
+    border-radius: var(--rtk-radius);
+    box-shadow: var(--rtk-shadow);
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.radtk-surface .material-invoice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rtk-border);
+}
+
+.radtk-surface .map-info-overlay {
+    position: absolute;
+    top: 8px;
+    inset-inline-start: 8px;
+    z-index: 1000;
+    max-width: min(100%, 220px);
+}
+
+.radtk-surface .map-info-overlay .info-box {
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid var(--rtk-border);
+    border-radius: var(--rtk-btn-radius);
+    padding: 0.35rem 0.55rem;
+    font-size: 0.72rem;
+    box-shadow: var(--rtk-shadow);
+}
+
+[data-theme="dark"] .radtk-surface .map-info-overlay .info-box {
+    background: rgba(30, 41, 59, 0.94);
+    color: var(--rtk-text);
+}
+
+@media (max-width: 767.98px) {
+    .radtk-surface .form-row,
+    .radtk-surface .form-row-3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+.app-footer {
+    padding: var(--spacing-lg, 1.5rem);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--font-sm, 0.875rem);
+    border-top: 1px solid var(--border-light, #EDF2F7);
+}
+
+.radtk-collect-network-logo { max-height: 60px; max-width: 100%; }
+
+.radtk-collect-network-icon {
+    width: 60px;
+    height: 60px;
+    margin-inline: auto;
+    border-radius: 999px;
+    background: var(--rtk-primary);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 767.98px) {
+    .radtk-data-table.radtk-data-table--cards tbody td.radtk-col-actions,
+    .radtk-data-table.radtk-data-table--cards tbody td:last-child {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

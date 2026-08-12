@@ -1,0 +1,59 @@
+@{
+    var formId = ViewData["FormId"] as string ?? "";
+    var editBtnId = ViewData["EditButtonId"] as string ?? "";
+    var saveBtnId = ViewData["SaveButtonId"] as string ?? "";
+    var cancelBtnId = ViewData["CancelButtonId"] as string ?? "";
+    var readonlySelector = ViewData["ReadonlySelector"] as string ?? "";
+    var disabledSelector = ViewData["DisabledSelector"] as string ?? "";
+    var editModeAttribute = ViewData["EditModeAttribute"] as string ?? "data-edit-mode";
+}
+
+@if (!string.IsNullOrWhiteSpace(formId) && !string.IsNullOrWhiteSpace(editBtnId) &&
+    !string.IsNullOrWhiteSpace(saveBtnId) && !string.IsNullOrWhiteSpace(cancelBtnId))
+{
+    <script>
+        (function () {
+            var form = document.getElementById('@formId');
+            if (!form) return;
+
+            var editBtn = document.getElementById('@editBtnId');
+            var saveBtn = document.getElementById('@saveBtnId');
+            var cancelBtn = document.getElementById('@cancelBtnId');
+            if (!editBtn || !saveBtn || !cancelBtn) return;
+
+            var readonlySelector = '@readonlySelector';
+            var disabledSelector = '@disabledSelector';
+            var editModeAttribute = '@editModeAttribute';
+
+            function setEditMode(isEditMode) {
+                if (isEditMode) {
+                    if (readonlySelector) {
+                        form.querySelectorAll(readonlySelector).forEach(function (el) {
+                            el.removeAttribute('readonly');
+                        });
+                    }
+                    if (disabledSelector) {
+                        form.querySelectorAll(disabledSelector).forEach(function (el) {
+                            el.removeAttribute('disabled');
+                        });
+                    }
+                }
+
+                form.setAttribute(editModeAttribute, isEditMode ? 'true' : 'false');
+                editBtn.classList.toggle('d-none', isEditMode);
+                saveBtn.classList.toggle('d-none', !isEditMode);
+                cancelBtn.classList.toggle('d-none', !isEditMode);
+
+                document.dispatchEvent(new CustomEvent('profile-edit-mode-changed', {
+                    detail: { formId: '@formId', isEditMode: isEditMode }
+                }));
+            }
+
+            editBtn.addEventListener('click', function () {
+                setEditMode(true);
+            });
+
+            setEditMode(false);
+        })();
+    </script>
+}

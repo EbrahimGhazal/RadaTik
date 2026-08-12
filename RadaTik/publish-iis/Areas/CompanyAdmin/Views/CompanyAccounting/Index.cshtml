@@ -1,0 +1,68 @@
+@using RadaTik.Models.Business
+@{
+    ViewData["Title"] = "المحاسبة";
+    var accounts = ViewBag.Accounts as IEnumerable<ChartOfAccount> ?? Enumerable.Empty<ChartOfAccount>();
+    var entries = ViewBag.Entries as IEnumerable<JournalEntry> ?? Enumerable.Empty<JournalEntry>();
+    string StatusLabel(JournalEntryStatus s) => s switch
+    {
+        JournalEntryStatus.Draft => "مسودة",
+        JournalEntryStatus.Posted => "مرحّل",
+        JournalEntryStatus.Cancelled => "ملغى",
+        _ => s.ToString()
+    };
+}
+
+<div class="financial-page financial-hub-page">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h4 mb-0"><i class="fas fa-calculator me-1"></i> المحاسبة — شجرة الحسابات والقيود</h1>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary btn-sm" asp-route="networkManager-erp">ERP</a>
+            <a class="btn btn-primary btn-sm" asp-action="CreateEntry"><i class="fas fa-plus"></i> قيد جديد</a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <h2 class="h6 text-muted">شجرة الحسابات</h2>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead class="table-light"><tr><th>الرمز</th><th>الاسم</th><th>النوع</th></tr></thead>
+                    <tbody>
+                    @foreach (var a in accounts)
+                    {
+                        <tr><td>@a.Code</td><td>@a.Name</td><td>@a.AccountType</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <h2 class="h6 text-muted">آخر القيود</h2>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light"><tr><th>التاريخ</th><th>الوصف</th><th>الحالة</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var e in entries)
+                    {
+                        <tr>
+                            <td>@e.EntryDate.ToString("yyyy-MM-dd")</td>
+                            <td>@e.Description</td>
+                            <td>@StatusLabel(e.Status)</td>
+                            <td>
+                                @if (e.Status == JournalEntryStatus.Draft)
+                                {
+                                    <form asp-action="PostEntry" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@e.Id" />
+                                        <button type="submit" class="btn btn-sm btn-success">ترحيل</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

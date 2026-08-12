@@ -1,0 +1,48 @@
+@using RadaTik.Areas.CompanyAdmin.ViewModels
+@model WarehouseStocktakeFormViewModel
+@{
+    ViewData["Title"] = "جرد المستودع";
+}
+
+<div class="financial-page financial-hub-page material-invoice-page">
+    <partial name="_WarehouseSubNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-clipboard-check";
+        ViewBag.FinancialHeroTheme = "warehouse";
+        ViewBag.FinancialHeroSubtitle = "جرد المستودع";
+    }
+    <partial name="_FinancialSysHero" />
+    @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <div class="card mb-3"><div class="card-body row g-3">
+            <div class="col-md-3"><label class="form-label">تاريخ الجرد</label><input type="date" name="stocktakeDate" class="form-control" value="@Model.StocktakeDate.ToString("yyyy-MM-dd")" required /></div>
+            <div class="col-md-3"><label class="form-label">من (تقرير)</label><input type="date" name="periodFrom" class="form-control" value="@Model.PeriodFrom?.ToString("yyyy-MM-dd")" /></div>
+            <div class="col-md-3"><label class="form-label">إلى (تقرير)</label><input type="date" name="periodTo" class="form-control" value="@Model.PeriodTo?.ToString("yyyy-MM-dd")" /></div>
+            <div class="col-md-3"><label class="form-label">ملاحظات</label><input name="notes" class="form-control" value="@Model.Notes" /></div>
+        </div></</div>
+
+        <div class="card mb-3">
+            <div class="table-responsive">
+                <table class="table mb-0 radtk-data-table radtk-data-table--cards">
+                    <thead><tr><th>الصنف</th><th>الموديل</th><th>كمية النظام</th><th>كمية معدّة</th></tr></thead>
+                    <tbody>
+                    @for (var i = 0; i < Model.Rows.Count; i++)
+                    {
+                        var row = Model.Rows[i];
+                        <tr>
+                            <td>@row.Name<input type="hidden" name="lines[@i].WarehouseItemId" value="@row.WarehouseItemId" /></td>
+                            <td>@(row.ModelNumber ?? "—")</td>
+                            <td>@row.SystemQuantity.ToString("N3")</td>
+                            <td><input name="lines[@i].CountedQuantity" type="number" step="0.001" min="0" class="form-control" value="@row.SystemQuantity.ToString("0.###")" required /></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-warning micro-btn">اعتماد الجرد</button>
+        <a asp-action="Index" class="btn btn-outline-secondary micro-btn">إلغاء</a>
+    </form>
+</div>

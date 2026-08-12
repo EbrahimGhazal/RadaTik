@@ -1,0 +1,199 @@
+<div class="radtk-page-sector-receivers">
+<div class="radtk-page-sector-receivers">
+@model IEnumerable<RadaTik.Models.Receiver>
+
+@{
+    ViewData["Title"] = "المستقبلات التابعة للقطاع";
+    var totalReceivers = Model.Count();
+    var activeReceivers = Model.Count(r => r.IsActive);
+    var totalUsers = Model.Sum(r => r.UserCount);
+    int totalDataSize = 0;
+    foreach (var receiver in Model)
+    {
+        if (receiver.Clients != null)
+        {
+            foreach (var client in receiver.Clients)
+            {
+                if (!string.IsNullOrEmpty(client.ProfileName))
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(client.ProfileName, @"\d+");
+                    if (match.Success && int.TryParse(match.Value, out int size))
+                    {
+                        totalDataSize += size;
+                    }
+                }
+            }
+        }
+    }
+    ViewBag.PageHeroIcon = "fas fa-wifi";
+    ViewData["Title"] = $"مستقبلات القطاع: {ViewBag.SectorName}";
+    ViewBag.PageHeroBackUrl = Url.Action("Index");
+    ViewBag.PageHeroBackText = "العودة للقطاعات";
+}
+
+<partial name="_CrudPageHero" />
+
+<!-- Compact Statistics Bar -->
+<div class="stats-bar">
+    <div class="stat-item stat-primary">
+        <div class="stat-icon-mini"><i class="fas fa-wifi"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalReceivers</span>
+            <span class="stat-label">إجمالي</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-success">
+        <div class="stat-icon-mini"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@activeReceivers</span>
+            <span class="stat-label">نشط</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-info">
+        <div class="stat-icon-mini"><i class="fas fa-database"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalDataSize</span>
+            <span class="stat-label">ميجا</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-warning">
+        <div class="stat-icon-mini"><i class="fas fa-users"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalUsers</span>
+            <span class="stat-label">مستخدمين</span>
+        </div>
+    </div>
+</div>
+
+<!-- Receivers Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            قائمة المستقبلات
+        </h3>
+        <span class="badge badge-info">@totalReceivers مستقبل</span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        @if (Model.Any())
+        {
+            <div class="table-container">
+                <table class="table table-sm table-hover radtk-data-table radtk-data-table--cards" id="receiversTable">
+                    <thead>
+                        <tr>
+                            <th>المستقبل</th>
+                            <th>IP</th>
+                            <th>الموقع</th>
+                            <th>المستخدمين</th>
+                            <th>البروفايلات</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الإضافة</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="receiver-info">
+                                        <div class="receiver-icon @(item.IsActive ? "active" : "inactive")">
+                                            <i class="fas fa-wifi"></i>
+                                        </div>
+                                        <div>
+                                            <div class="receiver-name">@item.Name</div>
+                                            <div class="receiver-mask">@item.NetworkMask</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><code>@item.IPAddress</code></td>
+                                <td>
+                                    <div class="location-info">
+                                        <span><i class="fas fa-map-marker-alt text-danger"></i> @item.Latitude.ToString("F4")</span>
+                                        <span>@item.Longitude.ToString("F4")</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="count-badge count-warning">
+                                        <i class="fas fa-users"></i>
+                                        <span>@item.UserCount</span>
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.ProfileNames))
+                                    {
+                                        <span class="badge badge-success" title="@item.ProfileNames">
+                                            <i class="fas fa-database"></i> @item.ProfileNames
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-secondary">لا يوجد</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="status-badge status-active">
+                                            <i class="fas fa-check-circle"></i> نشط
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-inactive">
+                                            <i class="fas fa-times-circle"></i> متوقف
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="date-info">
+                                        <span>@item.CreatedDate.ToString("yyyy-MM-dd")</span>
+                                        <small class="text-muted">@item.CreatedDate.ToString("hh:mm tt")</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a asp-controller="Receiver" asp-action="Details" asp-route-id="@item.Id"
+                                           class="btn btn-sm btn-icon btn-info" title="تفاصيل">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a asp-controller="Receiver" asp-action="Edit" asp-route-id="@item.Id"
+                                           class="btn btn-sm btn-icon btn-warning" title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-wifi"></i>
+                <h4>لا توجد مستقبلات</h4>
+                <p>لم يتم إضافة أي مستقبلات لهذا القطاع بعد</p>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#receiversTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+                },
+                order: [[0, 'asc']],
+                pageLength: 15,
+                responsive: true
+            });
+        });
+    </script>
+}

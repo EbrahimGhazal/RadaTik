@@ -1,0 +1,119 @@
+@model RadaTik.Models.MaintenanceRequest
+@using RadaTik.Models
+@{
+    ViewData["Title"] = "طلب صيانة جديد";
+    ViewBag.PageHeroIcon = "fas fa-tools";
+    ViewBag.PageHeroBackUrl = Url.Action("MaintenanceRequests");
+    ViewBag.PageHeroBackText = "العودة";
+}
+<div class="radtk-page--clientportal-views-clientportal-createmaintenancerequest">
+
+<partial name="_CrudPageHero" />
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-edit"></i>
+                    تفاصيل طلب الصيانة
+                </h3>
+            </div>
+            <div class="card-body">
+                <form asp-action="CreateMaintenanceRequest" method="post" class="radtk-form">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                    <input type="hidden" asp-for="ClientId" />
+
+                    <!-- نوع المشكلة -->
+                    <div class="form-group mb-4">
+                        <label asp-for="Type" class="form-label required">نوع المشكلة</label>
+                        <div class="type-selector">
+                            @{
+                                var types = MaintenanceCatalog.ProblemTypes
+                                    .Select(type => (
+                                        Type: type,
+                                        Icon: MaintenanceCatalog.GetIcon(type),
+                                        Name: MaintenanceCatalog.GetDisplayName(type)))
+                                    .ToList();
+                            }
+                            @foreach (var type in types)
+                            {
+                                <label class="type-option">
+                                    <input type="radio" name="Type" value="@((int)type.Type)" required />
+                                    <div class="type-content">
+                                        <i class="fas @type.Icon"></i>
+                                        <span class="type-name">@type.Name</span>
+                                    </div>
+                                </label>
+                            }
+                        </div>
+                        <span asp-validation-for="Type" class="text-danger"></span>
+                    </div>
+
+                    <!-- وصف المشكلة -->
+                    <div class="form-group mb-4">
+                        <label asp-for="Description" class="form-label required">وصف المشكلة</label>
+                        <textarea asp-for="Description" class="form-control" rows="4" 
+                                  placeholder="اشرح المشكلة بالتفصيل... متى بدأت؟ هل تحدث بشكل مستمر أم متقطع؟"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                        <small class="form-text text-muted">كلما كان الوصف دقيقاً، كان الحل أسرع</small>
+                    </div>
+
+                    <!-- الأولوية -->
+                    <div class="form-group mb-4">
+                        <label asp-for="Priority" class="form-label">درجة الأولوية</label>
+                        <select asp-for="Priority" class="form-select">
+                            <option value="@((int)RequestPriority.Low)">منخفضة - يمكن الانتظار</option>
+                            <option value="@((int)RequestPriority.Normal)" selected>عادية</option>
+                            <option value="@((int)RequestPriority.High)">عالية - مهم</option>
+                            <option value="@((int)RequestPriority.Urgent)">عاجلة - لا يوجد اتصال نهائياً</option>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <!-- رقم الهاتف للتواصل -->
+                        <div class="col-md-6">
+                            <div class="form-group mb-4">
+                                <label asp-for="ContactPhone" class="form-label">رقم الهاتف للتواصل</label>
+                                <input asp-for="ContactPhone" class="form-control" placeholder="رقم الهاتف" />
+                                <span asp-validation-for="ContactPhone" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- أفضل وقت للتواصل -->
+                        <div class="col-md-6">
+                            <div class="form-group mb-4">
+                                <label asp-for="PreferredContactTime" class="form-label">أفضل وقت للتواصل</label>
+                                <input asp-for="PreferredContactTime" class="form-control" 
+                                       placeholder="مثال: صباحاً من 9 إلى 12" />
+                                <span asp-validation-for="PreferredContactTime" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- العنوان -->
+                    <div class="form-group mb-4">
+                        <label asp-for="Address" class="form-label">العنوان</label>
+                        <textarea asp-for="Address" class="form-control" rows="2" 
+                                  placeholder="العنوان التفصيلي للزيارة الفنية (إن لزم)"></textarea>
+                        <span asp-validation-for="Address" class="text-danger"></span>
+                    </div>
+
+                    <!-- أزرار -->
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-paper-plane"></i> تقديم الطلب
+                        </button>
+                        <a asp-action="MaintenanceRequests" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-times"></i> إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

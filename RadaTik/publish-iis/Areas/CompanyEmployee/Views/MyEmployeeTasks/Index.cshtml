@@ -1,0 +1,109 @@
+@using RadaTik.Models.Business
+@model IEnumerable<CompanyEmployeeTask>
+@{
+    ViewData["Title"] = "مهامي";
+    var statusFilter = ViewBag.StatusFilter as CompanyEmployeeTaskStatus?;
+    var openCount = ViewBag.OpenCount as int? ?? 0;
+    string StatusLabel(CompanyEmployeeTaskStatus s) => s switch
+    {
+        CompanyEmployeeTaskStatus.Pending => "معلّقة",
+        CompanyEmployeeTaskStatus.InProgress => "قيد التنفيذ",
+        CompanyEmployeeTaskStatus.Completed => "مكتملة",
+        CompanyEmployeeTaskStatus.Cancelled => "ملغاة",
+        _ => s.ToString()
+    };
+    string PriorityLabel(CompanyEmployeeTaskPriority p) => p switch
+    {
+        CompanyEmployeeTaskPriority.Low => "منخفضة",
+        CompanyEmployeeTaskPriority.Normal => "عادية",
+        CompanyEmployeeTaskPriority.High => "عالية",
+        CompanyEmployeeTaskPriority.Urgent => "عاجلة",
+        _ => p.ToString()
+    };
+}
+
+<div class="employee-page">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1"><i class="fas fa-tasks me-1"></i> مهامي</h1>
+            <p class="text-muted small mb-0">@openCount مهمة مفتوحة</p>
+        </div>
+        <div class="btn-group btn-group-sm">
+            <a class="btn btn-outline-primary @(statusFilter == null ? "active" : "")" asp-action="Index">المفتوحة</a>
+            <a class="btn btn-outline-secondary @(statusFilter == CompanyEmployeeTaskStatus.Completed ? "active" : "")"
+               asp-action="Index" asp-route-status="@CompanyEmployeeTaskStatus.Completed">المكتملة</a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-light border">لا توجد مهام في هذا العرض.</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var t in Model)
+            {
+                var overdue = t.DueDate.HasValue && t.DueDate < DateTime.UtcNow
+                    && t.Status != CompanyEmployeeTaskStatus.Completed
+                    && t.Status != CompanyEmployeeTaskStatus.Cancelled;
+                <div class="col-12 col-lg-6">
+                    <div class="card h-100 @(overdue ? "border-danger" : "")">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <h2 class="h6 mb-0">@t.Title</h2>
+                                <span class="badge bg-secondary">@PriorityLabel(t.Priority)</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(t.Description))
+                            {
+                                <p class="small text-muted">@t.Description</p>
+                            }
+                            <dl class="small mb-3">
+                                <dt class="d-inline">الحالة:</dt>
+                                <dd class="d-inline ms-1">@StatusLabel(t.Status)</dd>
+                                @if (t.DueDate.HasValue)
+                                {
+                                    <dt class="d-inline ms-2">الاستحقاق:</dt>
+                                    <dd class="d-inline ms-1 @(overdue ? "text-danger fw-bold" : "")">@t.DueDate.Value.ToString("yyyy-MM-dd")</dd>
+                                }
+                                @if (t.AssignedByUser != null)
+                                {
+                                    <dt class="d-block mt-1">من:</dt>
+                                    <dd class="mb-0">@(t.AssignedByUser.FullName ?? t.AssignedByUser.UserName)</dd>
+                                }
+                            </dl>
+                            @if (t.Status == CompanyEmployeeTaskStatus.Pending)
+                            {
+                                <form asp-action="UpdateStatus" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@t.Id" />
+                                    <input type="hidden" name="status" value="@((int)CompanyEmployeeTaskStatus.InProgress)" />
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">بدء التنفيذ</button>
+                                </form>
+                            }
+                            @if (t.Status == CompanyEmployeeTaskStatus.Pending || t.Status == CompanyEmployeeTaskStatus.InProgress)
+                            {
+                                <form asp-action="UpdateStatus" method="post" class="mt-2">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@t.Id" />
+                                    <input type="hidden" name="status" value="@((int)CompanyEmployeeTaskStatus.Completed)" />
+                                    <input type="text" name="completionNotes" class="form-control form-control-sm mb-2" placeholder="ملاحظات الإنجاز (اختياري)" maxlength="1000" />
+                                    <button type="submit" class="btn btn-sm btn-success">إنجاز المهمة</button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

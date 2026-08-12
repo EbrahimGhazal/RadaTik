@@ -1,0 +1,632 @@
+<div class="radtk-page-clients-index">
+<div class="radtk-page-clients-index">
+@model IEnumerable<RadaTik.Models.Client>
+
+@{
+    ViewData["Title"] = "قائمة العملاء";
+
+    // حساب الإحصائيات
+    var totalClients = Model.Count();
+    var activeClients = Model.Count(c => c.IsActive);
+    var inactiveClients = Model.Count(c => !c.IsActive);
+
+    // حساب مجموع السرعات (بالميجابت)
+    var totalSpeed = 0m;
+    var activeSpeed = 0m;
+    var inactiveSpeed = 0m;
+    var connectedSpeed = 0m;
+    var disconnectedSpeed = 0m;
+
+    var connectedClients = ViewBag.ConnectedClientIds as ISet<int> ?? new HashSet<int>();
+
+    foreach (var item in Model)
+    {
+        decimal speed = 0;
+        if (item.Profile != null)
+        {
+            speed = item.Profile.DownloadSpeedMbps;
+        }
+        else if (!string.IsNullOrEmpty(item.ProfileName))
+        {
+            var numbers = System.Text.RegularExpressions.Regex.Match(item.ProfileName, @"\d+");
+            if (numbers.Success && int.TryParse(numbers.Value, out var parsedSpeed))
+            {
+                speed = parsedSpeed;
+            }
+        }
+
+        if (speed > 0)
+        {
+            totalSpeed += speed;
+            if (item.IsActive)
+            {
+                activeSpeed += speed;
+                if (connectedClients.Contains(item.Id))
+                {
+                    connectedSpeed += speed;
+                }
+                else
+                {
+                    disconnectedSpeed += speed;
+                }
+            }
+            else
+            {
+                inactiveSpeed += speed;
+            }
+        }
+    }
+
+    var disconnectedActiveClients = activeClients - connectedClients.Count;
+    var averageTotalSpeed = totalClients > 0 ? Math.Round((double)totalSpeed / totalClients, 1) : 0;
+    var activePercent = totalClients > 0 ? Math.Round((double)activeClients / totalClients * 100, 0) : 0;
+    var connectedPercent = activeClients > 0 ? Math.Round((double)connectedClients.Count / activeClients * 100, 0) : 0;
+    var dbAccountMap = ViewBag.DbAccountMap as IDictionary<int, string> ?? new Dictionary<int, string>();
+    var pendingClientIds = ViewBag.PendingClientIds as ISet<int> ?? new HashSet<int>();
+}
+
+<!-- Page Header -->
+<div class="operational-page clients-list-page">
+    @{
+        ViewBag.OperationalHeroIcon = "fas fa-users";
+        ViewBag.OperationalHeroSubtitle = $"إجمالي {totalClients} مشترك — نشط {activeClients}";
+    }
+    <partial name="_OperationalSysHero" />
+    <div class="page-actions-toolbar clients-page-toolbar d-flex flex-wrap gap-2 mb-3 justify-content-end">
+            @if (User.IsInRole("SystemAdministrator") || User.IsInRole("Employee"))
+            {
+                <a asp-action="ExpiringIn3Days" class="btn btn-sm" style="background: var(--warning); color: white;" title="تنتهي قريباً">
+                    <i class="fas fa-clock"></i> <span class="clients-toolbar-label">تنتهي قريباً</span>
+                </a>
+                <a asp-action="ExpiredAccounts" class="btn btn-danger btn-sm" title="المنتهية">
+                    <i class="fas fa-exclamation-triangle"></i> <span class="clients-toolbar-label">المنتهية</span>
+                </a>
+            }
+            @if (User.IsInRole("SystemAdministrator"))
+            {
+                <a asp-action="CheckExpiredAccounts" class="btn btn-sm" style="background: var(--info); color: white;" title="فحص"
+                   onclick="return confirm('هل تريد التحقق من الحسابات المنتهية؟')">
+                    <i class="fas fa-sync-alt"></i> <span class="clients-toolbar-label">فحص</span>
+                </a>
+            }
+            @if (User.IsInRole("NetworkAdministrator") || User.IsInRole("Employee"))
+            {
+                <a asp-action="ImportFromServer" class="btn btn-warning btn-sm" title="استيراد من سيرفر">
+                    <i class="fas fa-download"></i> <span class="clients-toolbar-label">استيراد من سيرفر</span>
+                </a>
+            }
+            @if (User.IsInRole("NetworkAdministrator") ||
+                 User.IsInRole("SystemAdministrator") ||
+                 User.IsInRole("CompanyEmployee") ||
+                 User.IsInRole("Employee") ||
+                 User.IsInRole("EmployeeLegacy"))
+            {
+                <a asp-route="networkManager-new-subscriber-wizard" asp-route-action="Index" asp-route-id="" class="btn btn-success btn-sm" title="إضافة مشترك جديد">
+                    <i class="fas fa-user-plus"></i> <span class="clients-toolbar-label">إضافة مشترك جديد</span>
+                </a>
+            }
+    </div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Success"]</div>
+        <button class="alert-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+    </div>
+}
+
+@if (TempData["ImportFailedUsersDetails"] is string failedUsersJson && !string.IsNullOrWhiteSpace(failedUsersJson))
+{
+    var failedUsers = System.Text.Json.JsonSerializer.Deserialize<List<string>>(failedUsersJson) ?? new List<string>();
+    if (failedUsers.Any())
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-circle alert-icon"></i>
+            <div class="alert-content">
+                <div class="fw-semibold mb-1">تعذر إنشاء حسابات لبعض المستخدمين:</div>
+                <ul class="mb-0 ps-3">
+                    @foreach (var item in failedUsers)
+                    {
+                        <li>@item</li>
+                    }
+                </ul>
+            </div>
+            <button class="alert-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+        </div>
+    }
+}
+
+<!-- Compact Statistics Bar -->
+<div class="stats-bar">
+    <div class="stat-item stat-primary">
+        <div class="stat-icon-mini"><i class="fas fa-users"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalClients</span>
+            <span class="stat-label">إجمالي</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-success">
+        <div class="stat-icon-mini"><i class="fas fa-user-check"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@activeClients</span>
+            <span class="stat-label">نشط (@activePercent%)</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-info">
+        <div class="stat-icon-mini"><i class="fas fa-wifi"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@connectedClients.Count</span>
+            <span class="stat-label">متصل (@connectedPercent%)</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-warning">
+        <div class="stat-icon-mini"><i class="fas fa-user-clock"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@disconnectedActiveClients</span>
+            <span class="stat-label">غير متصل</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-danger">
+        <div class="stat-icon-mini"><i class="fas fa-user-times"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@inactiveClients</span>
+            <span class="stat-label">معطل</span>
+        </div>
+    </div>
+    
+    <div class="stat-divider"></div>
+    
+    <div class="stat-item stat-speed">
+        <div class="stat-icon-mini"><i class="fas fa-bolt"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalSpeed</span>
+            <span class="stat-label">Mbps كلي</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-speed-active">
+        <div class="stat-icon-mini"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@connectedSpeed</span>
+            <span class="stat-label">Mbps متصل</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-avg">
+        <div class="stat-icon-mini"><i class="fas fa-chart-line"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@averageTotalSpeed</span>
+            <span class="stat-label">Mbps متوسط</span>
+        </div>
+    </div>
+</div>
+
+<!-- Clients Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            قائمة العملاء
+        </h3>
+        <div class="card-actions">
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="filterByStatus('all')" data-filter="all">
+                    الكل <span class="filter-count">@totalClients</span>
+                </button>
+                <button class="filter-btn" onclick="filterByStatus('active')" data-filter="active">
+                    نشط <span class="filter-count">@activeClients</span>
+                </button>
+                <button class="filter-btn" onclick="filterByStatus('connected')" data-filter="connected">
+                    متصل <span class="filter-count">@connectedClients.Count</span>
+                </button>
+                <button class="filter-btn" onclick="filterByStatus('disconnected')" data-filter="disconnected">
+                    غير متصل <span class="filter-count">@disconnectedActiveClients</span>
+                </button>
+                <button class="filter-btn" onclick="filterByStatus('inactive')" data-filter="inactive">
+                    معطل <span class="filter-count">@inactiveClients</span>
+                </button>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-columns"></i> الحقول
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-2 column-picker-menu">
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="fullName" checked /> الاسم الكامل</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="phone" checked /> الجوال</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="receiver" checked /> المستقبل</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="sender" checked /> المرسل</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="speed" checked /> السرعة</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="server" checked /> السيرفر</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="serverAccount" checked /> الحساب في السيرفر</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="dbAccount" checked /> الحساب في قاعدة البيانات</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="startDate" checked /> تاريخ بدء الصلاحية</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="endDate" checked /> تاريخ انتهاء الصلاحية</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="remainingDays" checked /> الأيام المتبقية</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="lastRenewal" checked /> آخر تجديد</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="location" checked /> الموقع</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="powerSource" checked /> مصدر الكهرباء</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="building" checked /> البناء</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="floor" checked /> الطابق</label>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-icon" onclick="refreshConnections()" title="تحديث">
+                <i class="fas fa-sync"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body clients-table-wrap">
+        <div class="table-container table-responsive">
+            <table class="table table-sm table-compact radtk-data-table radtk-data-table--cards" id="clientsTable">
+                <thead>
+                    <tr>
+                        <th data-col="fullName">الاسم الكامل</th>
+                        <th data-col="phone">الجوال</th>
+                        <th data-col="receiver">المستقبل</th>
+                        <th data-col="sender">المرسل</th>
+                        <th data-col="speed">السرعة</th>
+                        <th data-col="server">السيرفر</th>
+                        <th data-col="serverAccount">الحساب في السيرفر</th>
+                        <th data-col="dbAccount">الحساب في قاعدة البيانات</th>
+                        <th data-col="startDate">تاريخ بدء الصلاحية</th>
+                        <th data-col="endDate">تاريخ انتهاء الصلاحية</th>
+                        <th data-col="remainingDays">عدد الأيام المتبقية</th>
+                        <th data-col="lastRenewal">تاريخ آخر تجديد</th>
+                        <th data-col="location">الموقع</th>
+                        <th data-col="powerSource">مصدر الكهرباء</th>
+                        <th data-col="building">البناء</th>
+                        <th data-col="floor">الطابق</th>
+                        <th data-label="الحالة">الحالة</th>
+                        <th data-label="الاتصال">الاتصال</th>
+                        <th data-label="تاريخ الإضافة">تاريخ الإضافة</th>
+                        <th class="no-sort clients-actions-col">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        var speed = 0m;
+                        var profileName = item.Profile?.Name ?? item.ProfileName;
+                        if (item.Profile != null)
+                        {
+                            speed = item.Profile.DownloadSpeedMbps;
+                        }
+                        else if (!string.IsNullOrEmpty(item.ProfileName))
+                        {
+                            var numbers = System.Text.RegularExpressions.Regex.Match(item.ProfileName, @"\d+");
+                            if (numbers.Success && int.TryParse(numbers.Value, out var parsedSpeed))
+                            {
+                                speed = parsedSpeed;
+                            }
+                        }
+
+                        var isConnected = connectedClients.Contains(item.Id);
+                        var isPendingApproval = pendingClientIds.Contains(item.Id) ||
+                            string.Equals(item.ConnectionStatus, "معلق بانتظار موافقة مدير الشركة", StringComparison.OrdinalIgnoreCase);
+                        var senderName = item.Receiver?.Sector?.Name ?? "-";
+                        var dbAccount = dbAccountMap.TryGetValue(item.Id, out var dbUser) ? dbUser : "-";
+                        var remainingDays = item.AccountExpirationDate.HasValue
+                            ? (item.AccountExpirationDate.Value.Date - DateTime.Now.Date).Days
+                            : (int?)null;
+
+                        <tr class="client-row"
+                            data-active="@item.IsActive.ToString().ToLower()"
+                            data-connected="@isConnected.ToString().ToLower()"
+                            data-speed="@speed"
+                            data-speed-display="@(item.Profile?.DownloadSpeedDisplay ?? speed.ToString())">
+                            <td data-col="fullName">
+                                <div class="client-info">
+                                    <div class="client-avatar @(item.IsActive ? (isConnected ? "online" : "away") : "offline")">
+                                        @(item.Name?.Substring(0, 1).ToUpper() ?? "?")
+                                    </div>
+                                    <div>
+                                        <div class="client-name">@item.Name</div>
+                                        @if (!string.IsNullOrEmpty(item.SID))
+                                        {
+                                            <div class="client-sid">#@item.SID</div>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                            <td data-col="phone">
+                                <span class="text-muted">
+                                    <i class="fas fa-phone"></i> @item.PhoneNumber
+                                </span>
+                            </td>
+                            <td data-col="receiver">
+                                @if (item.Receiver != null)
+                                {
+                                    <span class="badge badge-info">@item.Receiver.Name</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td data-col="sender">
+                                <span class="badge badge-light">@senderName</span>
+                            </td>
+                            <td data-col="speed">
+                                <div class="profile-info">
+                                    <span class="badge @(item.IsActive ? "badge-success" : "badge-secondary")">
+                                        @(profileName ?? "غير محدد")
+                                    </span>
+                                    <small class="speed-value">@speed Mbps</small>
+                                </div>
+                            </td>
+                            <td data-col="server">
+                                @if (item.MikroTikServer != null)
+                                {
+                                    <span class="badge badge-primary" title="@item.MikroTikServer.Host">
+                                        <i class="fas fa-server"></i> @item.MikroTikServer.Name
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td data-col="serverAccount"><code class="text-nowrap">@item.UserName</code></td>
+                            <td data-col="dbAccount"><code class="text-nowrap">@dbAccount</code></td>
+                            <td data-col="startDate">
+                                @(item.ServiceStartDate?.ToString("yyyy/MM/dd") ?? "-")
+                            </td>
+                            <td data-col="endDate">
+                                @(item.AccountExpirationDate?.ToString("yyyy/MM/dd") ?? "-")
+                            </td>
+                            <td data-col="remainingDays">
+                                @if (remainingDays.HasValue)
+                                {
+                                    <span class="badge @(remainingDays.Value < 0 ? "badge-danger" : remainingDays.Value <= 3 ? "badge-warning" : "badge-success")">
+                                        @remainingDays يوم
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td data-col="lastRenewal">
+                                @(item.LastRenewalDate?.ToString("yyyy/MM/dd") ?? "-")
+                            </td>
+                            <td data-col="location">
+                                <span title="@item.ResidenceAddress">@(string.IsNullOrWhiteSpace(item.ResidenceAddress) ? "-" : item.ResidenceAddress)</span>
+                                @if (item.Latitude.HasValue && item.Longitude.HasValue)
+                                {
+                                    <small class="text-muted d-block">@item.Latitude.Value.ToString("F4"), @item.Longitude.Value.ToString("F4")</small>
+                                }
+                            </td>
+                            <td data-col="powerSource">@(string.IsNullOrWhiteSpace(item.PowerSource) ? "-" : item.PowerSource)</td>
+                            <td data-col="building">@(string.IsNullOrWhiteSpace(item.Building) ? "-" : item.Building)</td>
+                            <td data-col="floor">@(string.IsNullOrWhiteSpace(item.Floor) ? "-" : item.Floor)</td>
+                            <td data-label="الحالة">
+                                @if (item.IsActive)
+                                {
+                                    <span class="status-badge status-active">
+                                        <i class="fas fa-check-circle"></i> مفعل
+                                    </span>
+                                }
+                                else if (isPendingApproval)
+                                {
+                                    <span class="status-badge status-awaiting">
+                                        <i class="fas fa-hourglass-half"></i> بانتظار موافقة المدير
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-inactive">
+                                        <i class="fas fa-times-circle"></i> معطل
+                                    </span>
+                                }
+                            </td>
+                            <td data-label="الاتصال">
+                                @if (isPendingApproval)
+                                {
+                                    <span class="status-badge status-awaiting">
+                                        <i class="fas fa-user-clock"></i> قيد الاعتماد
+                                    </span>
+                                }
+                                else if (item.IsActive)
+                                {
+                                    if (isConnected)
+                                    {
+                                        <span class="status-badge status-online">
+                                            <i class="fas fa-wifi"></i> متصل
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-away">
+                                            <i class="fas fa-wifi-slash"></i> غير متصل
+                                        </span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td data-label="تاريخ الإضافة">
+                                <span class="text-muted text-sm">@item.CreatedDate.ToString("yyyy/MM/dd")</span>
+                            </td>
+                            <td class="clients-actions-cell radtk-col-actions" data-label="إجراءات">
+                                <div class="action-buttons">
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-icon btn-info" title="تفاصيل">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+
+                                    @if (User.IsInRole("NetworkAdministrator") || User.IsInRole("CompanyEmployee") || User.IsInRole("Employee") || User.IsInRole("EmployeeLegacy"))
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-icon btn-warning" title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    }
+
+                                    @if (User.IsInRole("NetworkAdministrator"))
+                                    {
+                                        <form asp-action="Freeze" method="post" class="clients-action-form">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button type="submit" class="btn btn-sm btn-icon btn-secondary" title="تجميد الإنترنت في MikroTik"
+                                                    onclick="return confirm('سيتم تجميد الإنترنت لهذا المشترك على المايكروتك فقط، هل تريد المتابعة؟');">
+                                                <i class="fas fa-pause"></i>
+                                            </button>
+                                        </form>
+
+                                        <form asp-action="RenewOneMonth" method="post" class="clients-action-form">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button type="submit" class="btn btn-sm btn-icon btn-success" title="تجديد اشتراك شهر"
+                                                    onclick="return confirm('سيتم تجديد الاشتراك لمدة شهر من تاريخ الانتهاء الحالي، متابعة؟');">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="footer-stats">
+            <span class="footer-stat">
+                <i class="fas fa-bolt text-warning"></i>
+                <span id="currentSpeedLabel">المجموع:</span>
+                <strong id="currentSpeedValue">@totalSpeed Mbps</strong>
+            </span>
+            <span class="footer-stat">
+                <i class="fas fa-wifi text-success"></i>
+                <span id="currentConnectedCount">@connectedClients.Count متصل</span>
+            </span>
+            <span class="footer-stat">
+                <i class="fas fa-clock text-muted"></i>
+                @DateTime.Now.ToString("HH:mm:ss")
+            </span>
+        </div>
+    </div>
+</div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentFilter = 'all';
+
+        function filterByStatus(filterType) {
+            const rows = document.querySelectorAll('.client-row');
+            let visibleTotalSpeed = 0;
+            let visibleConnectedCount = 0;
+
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-filter') === filterType) {
+                    btn.classList.add('active');
+                }
+            });
+
+            rows.forEach(row => {
+                const isActive = row.getAttribute('data-active') === 'true';
+                const isConnected = row.getAttribute('data-connected') === 'true';
+                const speed = parseInt(row.getAttribute('data-speed')) || 0;
+
+                let shouldShow = false;
+
+                switch(filterType) {
+                    case 'active':
+                        shouldShow = isActive;
+                        break;
+                    case 'inactive':
+                        shouldShow = !isActive;
+                        break;
+                    case 'connected':
+                        shouldShow = isActive && isConnected;
+                        break;
+                    case 'disconnected':
+                        shouldShow = isActive && !isConnected;
+                        break;
+                    default:
+                        shouldShow = true;
+                }
+
+                if (shouldShow) {
+                    row.style.display = '';
+                    visibleTotalSpeed += speed;
+                    if (isActive && isConnected) {
+                        visibleConnectedCount++;
+                    }
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Update footer stats
+            document.getElementById('currentSpeedValue').textContent = visibleTotalSpeed + ' Mbps';
+            document.getElementById('currentConnectedCount').textContent = visibleConnectedCount + ' متصل';
+            
+            const labels = {
+                'all': 'المجموع:',
+                'active': 'النشطين:',
+                'inactive': 'المعطلين:',
+                'connected': 'المتصلين:',
+                'disconnected': 'غير المتصلين:'
+            };
+            document.getElementById('currentSpeedLabel').textContent = labels[filterType];
+            
+            currentFilter = filterType;
+        }
+
+        function refreshConnections() {
+            location.reload();
+        }
+
+        function applyColumnVisibility() {
+            const selected = JSON.parse(localStorage.getItem('clients.columns.visible') || '{}');
+            document.querySelectorAll('.column-toggle').forEach(chk => {
+                const key = chk.getAttribute('data-col');
+                const visible = Object.prototype.hasOwnProperty.call(selected, key) ? !!selected[key] : true;
+                chk.checked = visible;
+                document.querySelectorAll('[data-col="' + key + '"]').forEach(el => {
+                    el.style.display = visible ? '' : 'none';
+                });
+            });
+        }
+
+        function persistColumnVisibility() {
+            const data = {};
+            document.querySelectorAll('.column-toggle').forEach(chk => {
+                data[chk.getAttribute('data-col')] = chk.checked;
+            });
+            localStorage.setItem('clients.columns.visible', JSON.stringify(data));
+        }
+
+        $(document).ready(function () {
+            applyColumnVisibility();
+            document.querySelectorAll('.column-toggle').forEach(chk => {
+                chk.addEventListener('change', function () {
+                    const key = this.getAttribute('data-col');
+                    document.querySelectorAll('[data-col="' + key + '"]').forEach(el => {
+                        el.style.display = this.checked ? '' : 'none';
+                    });
+                    persistColumnVisibility();
+                });
+            });
+
+            $('#clientsTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+                },
+                order: [[18, 'desc']],
+                responsive: true,
+                pageLength: 25,
+                columnDefs: [
+                    { orderable: false, targets: 19 }
+                ]
+            });
+        });
+    </script>
+}

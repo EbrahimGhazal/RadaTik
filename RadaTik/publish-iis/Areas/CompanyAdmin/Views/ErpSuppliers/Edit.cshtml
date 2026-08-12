@@ -1,0 +1,19 @@
+@model RadaTik.Models.Business.ErpSupplier
+@{ ViewData["Title"] = "تعديل مورد"; }
+
+<div class="financial-page financial-hub-page col-lg-8">
+    <h1 class="h4 mb-3">تعديل مورد</h1>
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <div class="mb-3"><label asp-for="Name" class="form-label"></label><input asp-for="Name" class="form-control" required /></div>
+        <div class="row g-3">
+            <div class="col-md-6"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control" /></div>
+            <div class="col-md-6"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" /></div>
+        </div>
+        <div class="mb-3 mt-3"><label asp-for="Address" class="form-label"></label><input asp-for="Address" class="form-control" /></div>
+        <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="2"></textarea></div>
+        <div class="form-check mb-3"><input asp-for="IsActive" class="form-check-input" /><label asp-for="IsActive" class="form-check-label">نشط</label></div>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+    </form>
+</div>

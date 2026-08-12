@@ -1,0 +1,376 @@
+@model RadaTik.Models.Receiver
+
+@{
+    ViewData["Title"] = "تعديل المستقبل";
+    var isEmployeeActor = User.IsInRole("CompanyEmployee") || User.IsInRole("Employee") || User.IsInRole("EmployeeLegacy");
+    ViewBag.PageHeroIcon = "fas fa-edit";
+    ViewBag.PageHeroSubtitle = Model.Name;
+    ViewBag.PageHeroTheme = "warning";
+    ViewBag.PageHeroBackUrl = Url.Action("Index");
+    ViewBag.PageHeroExtraActions = new[]
+    {
+        new RadaTik.ViewModels.UI.PageHeroActionViewModel
+        {
+            Text = "عرض التفاصيل",
+            Url = Url.Action("Details", new { id = Model.Id })!,
+            CssClass = "btn btn-info btn-sm",
+            IconClass = "fas fa-eye"
+        }
+    };
+}
+
+<partial name="_CrudPageHero" />
+
+@if (isEmployeeActor)
+{
+    <div class="alert alert-info mb-3">
+        <i class="fas fa-circle-info me-1"></i>
+        تعديل المستقبل سيُسجل كطلب موافقة ويُطبق بعد اعتماد مدير الشركة.
+    </div>
+}
+
+<div class="card radtk-section-card">
+    <div class="card-header radtk-section-card__header">
+        <h3 class="card-title h6 mb-0">
+            <i class="fas fa-wifi"></i>
+            تعديل بيانات المستقبل
+        </h3>
+    </div>
+    <div class="card-body">
+        <form asp-action="Edit" class="radtk-form">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <input type="hidden" asp-for="Id" />
+
+            <div class="form-grid">
+                <!-- القسم الأول: المعلومات الأساسية -->
+                <div class="form-section">
+                    <h4 class="form-section-title">
+                        <i class="fas fa-info-circle"></i> المعلومات الأساسية
+                    </h4>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label asp-for="Name" class="form-label required">اسم المستقبل</label>
+                            <input asp-for="Name" class="form-control form-control-sm" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label asp-for="SectorId" class="form-label required">القطاع التابع له</label>
+                            <select asp-for="SectorId" class="form-select form-select-sm" asp-items="ViewBag.SectorId">
+                                <option value="">-- اختر القطاع --</option>
+                            </select>
+                            <span asp-validation-for="SectorId" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label asp-for="IPAddress" class="form-label required">عنوان IP</label>
+                            <input asp-for="IPAddress" class="form-control form-control-sm" />
+                            <span asp-validation-for="IPAddress" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label asp-for="NetworkMask" class="form-label">قناع الشبكة</label>
+                            <input asp-for="NetworkMask" class="form-control form-control-sm" />
+                            <span asp-validation-for="NetworkMask" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- القسم الثاني: الموقع (مع خريطة تفاعلية) -->
+                <div class="form-section">
+                    <h4 class="form-section-title">
+                        <i class="fas fa-map-marked-alt"></i> موقع المستقبل
+                    </h4>
+                    
+                    <div class="map-container-form radtk-map-wrap">
+                        <div id="map"></div>
+                        <div class="map-controls-overlay">
+                            <div class="map-type-controls">
+                                <button type="button" class="map-type-btn active" data-map-type="streets">شوارع</button>
+                                <button type="button" class="map-type-btn" data-map-type="satellite">قمر صناعي</button>
+                                <button type="button" class="map-type-btn" data-map-type="terrain">تضاريس</button>
+                            </div>
+                        </div>
+                        <div class="map-info-overlay" id="sectorInfoOverlay">
+                            <div class="info-box">
+                                <small><i class="fas fa-info-circle"></i> اختر القطاع أولاً</small>
+                            </div>
+                            <div id="sectorInfo" class="d-none">
+                                <small><strong>القطاع:</strong> <span id="selectedSectorName"></span></small>
+                                <small><strong>التغطية:</strong> <span id="coverageRange"></span> كم</small>
+                            </div>
+                        </div>
+                    </div>
+                    <small class="form-hint">حدّد موقع المستقبل بالنقر على الخريطة أو بإدخال/لصق الإحداثيات.</small>
+
+                    @{
+                        ViewData["CoordsPanelTitle"] = "إحداثيات موقع المستقبل";
+                        ViewData["CoordsLatitudeLabel"] = "خط العرض";
+                        ViewData["CoordsLongitudeLabel"] = "خط الطول";
+                        ViewData["CoordsLatitude"] = Model.Latitude;
+                        ViewData["CoordsLongitude"] = Model.Longitude;
+                    }
+                    <partial name="_MapCoordinatesPanel" />
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">المسافة من القطاع</label>
+                            <div class="input-with-addon">
+                                <input type="text" class="form-control form-control-sm" id="distanceFromSector" readonly value="غير محدد" />
+                                <span class="input-addon">كم</span>
+                            </div>
+                            <small class="form-hint" id="distanceStatus"></small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- القسم الثالث: الحالة -->
+                <div class="form-section">
+                    <div class="form-check-wrapper form-check form-switch radtk-switch-left-label" dir="ltr">
+                        <input asp-for="IsActive" class="form-check-input" id="isActiveCheck" />
+                        <label asp-for="IsActive" class="form-check-label" for="isActiveCheck">
+                            <span class="check-text">تفعيل المستقبل</span>
+                            <small class="check-hint">المستقبل سيكون نشطاً ويمكن إضافة مستخدمين له</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-save"></i> حفظ التعديلات
+                </button>
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-info">
+                    <i class="fas fa-eye"></i> عرض التفاصيل
+                </a>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script src="~/js/map-coordinates-panel.js" asp-append-version="true"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var map = null;
+            var receiverMarker = null;
+            var sectorMarker = null;
+            var sectorCoverage = null;
+            var selectedSector = null;
+            var coordsPanel = null;
+
+            initializeMap();
+
+            var sectorSelect = document.querySelector('select[name="SectorId"]');
+            if (sectorSelect) {
+                sectorSelect.id = 'sectorSelect';
+                sectorSelect.addEventListener('change', function () {
+                    var sectorId = this.value;
+                    if (sectorId) {
+                        loadSectorInfo(sectorId);
+                    } else {
+                        clearSectorInfo();
+                    }
+                });
+            }
+
+            var latVal = parseFloat(document.getElementById('latitudeInput').value);
+            var lngVal = parseFloat(document.getElementById('longitudeInput').value);
+            if (coordsPanel && MapCoordinatesPanel.isValidCoordinate(latVal, lngVal)) {
+                coordsPanel.applyCoordinates(latVal, lngVal, { source: 'map', fly: false, showStatus: false, updatePaste: true });
+            }
+
+            if (sectorSelect && sectorSelect.value) {
+                loadSectorInfo(sectorSelect.value);
+            }
+
+            function applyReceiverLocation(lat, lng, options) {
+                options = options || {};
+                if (!MapCoordinatesPanel.isValidCoordinate(lat, lng) || !map) return false;
+                updateReceiverMarker(lat, lng, options.fly !== false);
+                if (selectedSector) calculateDistanceFromSector(lat, lng);
+                return true;
+            }
+
+            function initializeMap() {
+                try {
+                    var latVal = parseFloat(document.getElementById('latitudeInput').value);
+                    var lngVal = parseFloat(document.getElementById('longitudeInput').value);
+                    var defaultLat = MapCoordinatesPanel.isValidCoordinate(latVal, lngVal) ? latVal : 35.5200;
+                    var defaultLng = MapCoordinatesPanel.isValidCoordinate(latVal, lngVal) ? lngVal : 35.7800;
+
+                    map = L.map('map').setView([defaultLat, defaultLng], 13);
+
+                    var streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap', maxZoom: 19
+                    });
+                    var satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                        maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+                    });
+                    var terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17 });
+
+                    streetLayer.addTo(map);
+
+                    coordsPanel = MapCoordinatesPanel.init({
+                        applyLocation: function (lat, lng, options) {
+                            return applyReceiverLocation(lat, lng, options);
+                        }
+                    });
+
+                    map.on('click', function (e) {
+                        coordsPanel.notifyMapSelection(e.latlng.lat, e.latlng.lng);
+                    });
+
+                    document.querySelectorAll('.map-type-btn').forEach(button => {
+                        button.addEventListener('click', function () {
+                            document.querySelectorAll('.map-type-btn').forEach(btn => btn.classList.remove('active'));
+                            this.classList.add('active');
+                            map.removeLayer(streetLayer); map.removeLayer(satelliteLayer); map.removeLayer(terrainLayer);
+                            switch (this.getAttribute('data-map-type')) {
+                                case 'satellite': satelliteLayer.addTo(map); break;
+                                case 'terrain': terrainLayer.addTo(map); break;
+                                default: streetLayer.addTo(map);
+                            }
+                        });
+                    });
+                } catch (error) {
+                    console.error('Map error:', error);
+                    document.getElementById('map').innerHTML =
+                        '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);"><i class="fas fa-exclamation-triangle"></i> خطأ في تحميل الخريطة</div>';
+                    MapCoordinatesPanel.init({
+                        applyLocation: function () { return false; }
+                    });
+                }
+            }
+
+            function updateReceiverMarker(lat, lng, shouldFly) {
+                if (receiverMarker) map.removeLayer(receiverMarker);
+                var receiverIcon = L.divIcon({
+                    className: 'receiver-marker',
+                    html: '<div style="background:#28a745;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;"><i class="fas fa-wifi"></i></div>',
+                    iconSize: [30, 30], iconAnchor: [15, 15]
+                });
+                receiverMarker = L.marker([lat, lng], { icon: receiverIcon }).addTo(map)
+                    .bindPopup('<strong>موقع المستقبل</strong><br>خط العرض: ' + lat.toFixed(6) + '<br>خط الطول: ' + lng.toFixed(6));
+                if (shouldFly !== false) {
+                    map.flyTo([lat, lng], Math.max(map.getZoom(), 15), { duration: 0.6 });
+                }
+            }
+
+            function loadSectorInfo(sectorId) {
+                fetch(`/Receiver/GetSectorInfo?sectorId=${sectorId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            selectedSector = data.sector;
+                            document.getElementById('selectedSectorName').textContent = data.sector.name;
+                            document.getElementById('coverageRange').textContent = data.sector.coverageRange;
+                            document.getElementById('sectorInfo').classList.remove('d-none');
+                            document.querySelector('#sectorInfoOverlay .info-box').classList.add('d-none');
+                            drawSectorCoverage(selectedSector, data.receivers || []);
+
+                            // إذا كان لدينا إحداثيات حالية، حساب المسافة
+                            var latVal = parseFloat(document.getElementById('latitudeInput').value);
+                            var lngVal = parseFloat(document.getElementById('longitudeInput').value);
+                            if (!isNaN(latVal) && !isNaN(lngVal)) {
+                                calculateDistanceFromSector(latVal, lngVal);
+                            }
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+
+            function drawSectorCoverage(sector, receivers) {
+                if (sectorMarker) map.removeLayer(sectorMarker);
+                if (sectorCoverage) map.removeLayer(sectorCoverage);
+
+                var sectorIcon = L.divIcon({
+                    html: '<div style="background:#007bff;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;"><i class="fas fa-broadcast-tower"></i></div>',
+                    iconSize: [40, 40], iconAnchor: [20, 20]
+                });
+                sectorMarker = L.marker([sector.latitude, sector.longitude], { icon: sectorIcon }).addTo(map)
+                    .bindPopup(`<strong>${sector.name}</strong><br>IP: ${sector.ipAddress}`);
+
+                var direction = sector.direction || 0;
+                var angle = sector.coverageAngle || 60;
+                var range = sector.coverageRange || 5;
+                var rangeMeters = range * 1000;
+                var startAngleRad = (direction - angle / 2) * Math.PI / 180;
+                var endAngleRad = (direction + angle / 2) * Math.PI / 180;
+
+                var points = [[sector.latitude, sector.longitude]];
+                for (var i = 0; i <= 20; i++) {
+                    var currentAngle = startAngleRad + (endAngleRad - startAngleRad) * i / 20;
+                    points.push(calculatePoint([sector.latitude, sector.longitude], rangeMeters, currentAngle));
+                }
+                points.push([sector.latitude, sector.longitude]);
+
+                sectorCoverage = L.polygon(points, {
+                    color: '#007bff',
+                    fillColor: '#007bff',
+                    fillOpacity: 0.2,
+                    weight: 2
+                }).addTo(map);
+
+                map.setView([sector.latitude, sector.longitude], 13);
+            }
+
+            /** 0 = الشمال، باتجاه عقارب الساعة — يطابق خريطة لوحة التحكم */
+            function calculatePoint(center, radius, bearingRad) {
+                var lat = center[0] + (radius / 111320) * Math.cos(bearingRad);
+                var lng = center[1] + (radius / (111320 * Math.cos(center[0] * Math.PI / 180))) * Math.sin(bearingRad);
+                return [lat, lng];
+            }
+
+            function calculateDistanceFromSector(lat, lng) {
+                if (!selectedSector) return;
+                var R = 6371;
+                var dLat = (lat - selectedSector.latitude) * Math.PI / 180;
+                var dLon = (lng - selectedSector.longitude) * Math.PI / 180;
+                var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                        Math.cos(selectedSector.latitude * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                var distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+                document.getElementById('distanceFromSector').value = distance.toFixed(2);
+                var status = document.getElementById('distanceStatus');
+                if (distance <= selectedSector.coverageRange) {
+                    status.textContent = '✅ داخل نطاق التغطية';
+                    status.style.color = 'var(--success)';
+                } else {
+                    status.textContent = '⚠️ خارج نطاق التغطية';
+                    status.style.color = 'var(--danger)';
+                }
+            }
+
+            function clearSectorInfo() {
+                selectedSector = null;
+                var info = document.getElementById('sectorInfo');
+                if (info) info.classList.add('d-none');
+                var box = document.querySelector('#sectorInfoOverlay .info-box');
+                if (box) box.classList.remove('d-none');
+                document.getElementById('distanceFromSector').value = 'غير محدد';
+                document.getElementById('distanceStatus').textContent = '';
+                if (sectorMarker) { map.removeLayer(sectorMarker); sectorMarker = null; }
+                if (sectorCoverage) { map.removeLayer(sectorCoverage); sectorCoverage = null; }
+            }
+
+            function showAlert(message, type) {
+                var alertHtml = `<div class="alert alert-${type} alert-dismissible fade show" style="position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;">${message}<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button></div>`;
+                document.body.insertAdjacentHTML('beforeend', alertHtml);
+                setTimeout(() => document.querySelector('.alert')?.remove(), 3000);
+            }
+        });
+    </script>
+}

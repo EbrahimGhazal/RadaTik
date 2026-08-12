@@ -16,3 +16,4 @@ RadaTik/publish-smarterasp/
 # Local env
 **/.env
 **/appsettings.*.local.json
+git rm --cached tools/dotnet-hosting-9.0-win.exe

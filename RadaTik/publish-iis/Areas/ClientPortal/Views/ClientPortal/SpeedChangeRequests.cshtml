@@ -1,0 +1,169 @@
+@model IEnumerable<RadaTik.Models.SpeedChangeRequest>
+@using RadaTik.Models
+@using RadaTik.Helpers
+@{
+    ViewData["Title"] = "طلبات تغيير السرعة";
+    var currentProfile = ViewBag.CurrentProfile as Profile;
+    ViewBag.PageHeroIcon = "fas fa-tachometer-alt";
+    ViewBag.PageHeroBackUrl = Url.Action("Index");
+    ViewBag.PageHeroBackText = "العودة";
+    ViewBag.PageHeroExtraActions = new[]
+    {
+        new RadaTik.ViewModels.UI.PageHeroActionViewModel { Text = "طلب تغيير السرعة", Url = Url.Action("AvailablePlans")!, CssClass = "btn btn-primary btn-sm", IconClass = "fas fa-plus" }
+    };
+}
+<div class="radtk-page--clientportal-views-clientportal-speedchangerequests">
+
+<partial name="_CrudPageHero" />
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Success"]</div>
+    </div>
+}
+
+@if (TempData["Warning"] != null)
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle alert-icon"></i>
+        <div class="alert-content">@TempData["Warning"]</div>
+    </div>
+}
+
+<!-- الباقة الحالية -->
+@if (currentProfile != null)
+{
+    <div class="current-plan-card">
+        <div class="current-plan-header">
+            <i class="fas fa-wifi"></i>
+            <span>باقتك الحالية</span>
+        </div>
+        <div class="current-plan-body">
+            <div class="plan-name">@currentProfile.Name</div>
+            <div class="plan-speed">
+                <i class="fas fa-download"></i> @currentProfile.DownloadSpeedDisplay
+                @if (currentProfile.UploadSpeed.HasValue)
+                {
+                    <span class="mx-2">|</span>
+                    <i class="fas fa-upload"></i> @currentProfile.UploadSpeedDisplay 
+                }
+            </div>
+            <div class="plan-price">@SyrianCurrencyHelper.FormatNew(currentProfile.PriceWithVAT) ر.س/شهر</div>
+        </div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            سجل طلبات تغيير السرعة
+        </h3>
+    </div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="requests-list">
+                @foreach (var request in Model)
+                {
+                    var statusClass = PricingDisplay.SpeedChangeRequestStatusClass(request.Status);
+
+                    var isUpgrade = request.RequestedProfile?.Price > request.CurrentProfile?.Price;
+
+                    <div class="request-card @statusClass">
+                        <div class="request-icon @(isUpgrade ? "upgrade" : "downgrade")">
+                            <i class="fas @(isUpgrade ? "fa-arrow-up" : "fa-arrow-down")"></i>
+                        </div>
+                        <div class="request-content">
+                            <div class="request-header">
+                                <div class="speed-change">
+                                    <span class="from-speed">@request.CurrentProfile?.Name</span>
+                                    <i class="fas fa-long-arrow-alt-left"></i>
+                                    <span class="to-speed">@request.RequestedProfile?.Name</span>
+                                </div>
+                                <span class="request-status @statusClass">@GetStatusName(request.Status)</span>
+                            </div>
+                            <div class="request-details">
+                                <span class="speed-detail">
+                                    <i class="fas fa-download"></i>
+                                    @request.CurrentProfile?.DownloadSpeedDisplay → @request.RequestedProfile?.DownloadSpeedDisplay
+                                </span>
+                                @if (request.PriceDifference.HasValue)
+                                {
+                                    <span class="price-diff @(request.PriceDifference > 0 ? "increase" : "decrease")">
+                                        <i class="fas fa-coins"></i>
+                                        @(request.PriceDifference > 0 ? "+" : "")@SyrianCurrencyHelper.FormatNew(request.PriceDifference.Value) ر.س
+                                    </span>
+                                }
+                            </div>
+                            @if (!string.IsNullOrEmpty(request.Reason))
+                            {
+                                <p class="request-reason">@request.Reason</p>
+                            }
+                            <div class="request-meta">
+                                <span><i class="fas fa-calendar"></i> @request.RequestDate.ToString("yyyy/MM/dd HH:mm")</span>
+                            </div>
+                        </div>
+                        <div class="request-actions">
+                            <a asp-action="SpeedChangeRequestDetails" asp-route-id="@request.Id" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i> التفاصيل
+                            </a>
+                            @if (request.Status == SpeedChangeRequestStatus.Pending)
+                            {
+                                <button type="button" class="btn btn-sm btn-danger" onclick="cancelRequest(@request.Id, 'speed')">
+                                    <i class="fas fa-times"></i> إلغاء
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <h3>لا توجد طلبات تغيير سرعة</h3>
+                <p>يمكنك طلب تغيير باقتك إلى باقة أخرى من الباقات المتاحة.</p>
+                <a asp-action="AvailablePlans" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> طلب تغيير السرعة
+                </a>
+            </div>
+        }
+    </div>
+</div>
+@functions {
+    string GetStatusName(SpeedChangeRequestStatus status) => PricingDisplay.SpeedChangeRequestStatusLabel(status);
+}
+
+
+</div>
+@section Scripts {
+    <script>
+        function cancelRequest(id, type) {
+            if (confirm('هل أنت متأكد من إلغاء هذا الطلب؟')) {
+                fetch('@Url.Action("CancelSpeedChangeRequest")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: 'id=' + id
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                });
+            }
+        }
+    </script>
+    @Html.AntiForgeryToken()
+}

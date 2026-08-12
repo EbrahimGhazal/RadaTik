@@ -1,0 +1,51 @@
+@model RadaTik.Areas.CompanyAdmin.ViewModels.MaterialPurchaseInvoiceEditViewModel
+@{
+    ViewData["Title"] = $"تعديل فاتورة شراء #{Model.Id}";
+    var paymentStatus = Model.IsPaid ? "paid" : "unpaid";
+}
+
+<div class="financial-page material-invoice-page material-invoice-page--purchase">
+    <partial name="_WarehouseSubNav" />
+    <h1 class="mb-3">تعديل فاتورة شراء #@Model.Id</h1>
+    <p class="text-muted">تعديل بيانات الرأس فقط — البنود والمستودع دون تغيير. الإجمالي: <strong>@SyrianCurrencyHelper.FormatNew(Model.TotalAmount)</strong> ل.س</p>
+
+    <form method="post" class="card financial-form-card border-0 shadow-sm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+        <div class="card-body row g-3">
+            <div class="col-md-4"><label class="form-label">التاريخ</label><input type="date" name="invoiceDate" class="form-control" value="@Model.InvoiceDate.ToString("yyyy-MM-dd")" required /></div>
+            <div class="col-md-4">
+                <label class="form-label">مورد ERP</label>
+                @{
+                    var erpSuppliers = ViewBag.ErpSuppliers as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+                }
+                <select name="erpSupplierId" class="form-select mb-2">
+                    <option value="">— من سجل ERP —</option>
+                    @foreach (var s in erpSuppliers)
+                    {
+                        <option value="@s.Value" selected="@(Model.ErpSupplierId?.ToString() == s.Value)">@s.Text</option>
+                    }
+                </select>
+                <label class="form-label small text-muted">أو اسم حر</label>
+                <input name="supplierName" class="form-control" value="@Model.SupplierName" />
+            </div>
+            <div class="col-md-4"><label class="form-label">ملاحظات</label><input name="notes" class="form-control" value="@Model.Notes" /></div>
+            <div class="col-12">
+                @{
+                    ViewData["MaterialInvoiceRequireExplicitChoice"] = false;
+                    ViewData["PaymentStatus"] = paymentStatus;
+                    ViewData["MaterialInvoiceKind"] = "purchase";
+                }
+                <partial name="_MaterialInvoicePaymentPanel" />
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary micro-btn">حفظ</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary micro-btn">إلغاء</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_MaterialInvoiceChoicePanelsScript" />
+}

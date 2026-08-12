@@ -1,0 +1,33 @@
+@* شعار RadaTik نفس واجهة /app/admin (SVG + كلمة RadaTik) *@
+@{
+    var variant = (ViewData["RtBrandVariant"] as string ?? "default").ToLowerInvariant();
+    var filterId = variant switch
+    {
+        "sidebar" => "radatik-glow-filter-sidebar",
+        "hero" => "radatik-glow-filter-hero",
+        _ => "radatik-glow-filter-" + variant
+    };
+    var svgSize = variant == "hero" ? 52 : 40;
+}
+<div class="rt-brand-block rt-brand-block--@(variant)" dir="ltr" translate="no">
+    <svg class="rt-logomark" width="@svgSize" height="@svgSize" viewBox="0 0 48 48" aria-hidden="true">
+        <defs>
+            <filter id="@filterId" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="1.2" result="b" />
+                <feMerge>
+                    <feMergeNode in="b" />
+                    <feMergeNode in="SourceGraphic" />
+                </feMerge>
+            </filter>
+        </defs>
+        <circle cx="24" cy="24" r="20" fill="none" class="rt-svg-ring" stroke-width="2" opacity="0.9" />
+        <path d="M12 30 L24 18 L36 30 M18 14 L30 26" fill="none" class="rt-svg-accent" stroke-width="1.8" stroke-linecap="round" opacity="0.95" />
+        <path d="M17 14 V34 M17 14 H26 Q31 14 31 19 Q31 24 26 24 H17 M24 24 L31 34" fill="none" class="rt-svg-ring" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="31" cy="16" r="2.4" class="rt-svg-glow" filter="url(#@filterId)" />
+    </svg>
+    <span class="rt-wordmark">
+        <span class="rt-wm-text">
+            <span class="rt-wm-r">R</span><span class="rt-wm-ad">ada</span><span class="rt-wm-r">T</span><span class="rt-wm-i">i<span class="rt-wm-dot" aria-hidden="true"></span></span><span class="rt-wm-r">k</span>
+        </span>
+    </span>
+</div>

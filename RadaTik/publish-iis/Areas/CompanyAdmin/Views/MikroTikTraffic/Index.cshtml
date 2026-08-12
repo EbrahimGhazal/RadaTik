@@ -1,0 +1,514 @@
+@model IReadOnlyList<RadaTik.Dtos.Traffic.ManagerMikroTikServerOptionDto>
+@{
+    ViewData["Title"] = "مراقبة ترافك MikroTik";
+    var serversJson = ViewBag.ServersJson as string ?? "[]";
+    var initialServerId = ViewBag.InitialServerId as int?;
+}
+
+@section Styles {
+    <style>
+        .traffic-mon-page {
+            --tm-radius: 12px;
+            --tm-muted: #64748b;
+            --tm-surface: var(--bs-body-bg, #fff);
+            --tm-line: rgba(15, 23, 42, 0.08);
+            --tm-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.06);
+            --tm-primary: #2563eb;
+            --tm-cyan: #06b6d4;
+        }
+
+        [data-bs-theme="dark"] .traffic-mon-page {
+            --tm-line: rgba(248, 250, 252, 0.1);
+            --tm-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .traffic-mon-page .tm-kicker {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--tm-muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .traffic-mon-page .tm-hero {
+            border-radius: 16px;
+            border: 1px solid rgba(37, 99, 235, 0.16);
+            padding: 1rem 1.05rem;
+            background:
+                radial-gradient(700px 220px at 0% -20%, rgba(37, 99, 235, 0.16), transparent 55%),
+                radial-gradient(560px 180px at 100% 0%, rgba(6, 182, 212, 0.12), transparent 52%),
+                linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+        }
+
+        .traffic-mon-page .tm-title {
+            font-size: 1.35rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            line-height: 1.3;
+            color: var(--bs-emphasis-color, #0f172a);
+        }
+
+        .traffic-mon-page .tm-sub {
+            font-size: 0.8125rem;
+            color: var(--tm-muted);
+            line-height: 1.55;
+            max-width: 42rem;
+        }
+
+        .traffic-mon-page .tm-card {
+            border-radius: var(--tm-radius);
+            border: 1px solid var(--tm-line);
+            box-shadow: var(--tm-shadow);
+            background: var(--tm-surface);
+        }
+
+        .traffic-mon-page .tm-card .card-body {
+            padding: 1.15rem 1.25rem;
+        }
+
+        .traffic-mon-page .tm-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--tm-muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .traffic-mon-page .form-select {
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .traffic-mon-page .tm-pill {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.4rem 0.85rem;
+            border-radius: 999px;
+            border: 1px solid var(--tm-line);
+            background: var(--bs-secondary-bg, #f8fafc);
+            color: var(--bs-secondary-color);
+        }
+
+        .traffic-mon-page .tm-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.9rem;
+        }
+
+        .traffic-mon-page .tm-stat {
+            border-radius: 12px;
+            border: 1px solid var(--tm-line);
+            padding: 0.65rem 0.75rem;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.8));
+        }
+
+        .traffic-mon-page .tm-stat-label {
+            font-size: 0.74rem;
+            color: var(--tm-muted);
+            margin-bottom: 0.2rem;
+        }
+
+        .traffic-mon-page .tm-stat-value {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--bs-emphasis-color);
+        }
+
+        .traffic-mon-page .tm-section-head {
+            padding: 0.85rem 1.25rem;
+            border-bottom: 1px solid var(--tm-line);
+            background: var(--bs-tertiary-bg, rgba(15, 23, 42, 0.02));
+        }
+
+        .traffic-mon-page .tm-section-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--bs-emphasis-color);
+        }
+
+        .traffic-mon-page .tm-section-hint {
+            font-size: 0.75rem;
+            color: var(--tm-muted);
+        }
+
+        .traffic-mon-page .tm-source-name {
+            font-size: 0.78rem;
+            color: var(--tm-primary);
+            font-weight: 600;
+        }
+
+        .traffic-mon-page .tm-graph-toggles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            margin-top: 0.4rem;
+        }
+
+        .traffic-mon-page .tm-graph-toggle {
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.3rem 0.7rem;
+            border: 1px solid var(--tm-line);
+            background: var(--bs-body-bg, #fff);
+            color: var(--bs-secondary-color);
+        }
+
+        .traffic-mon-page .tm-graph-toggle.is-active {
+            border-color: rgba(37, 99, 235, 0.35);
+            color: var(--tm-primary);
+            background: rgba(37, 99, 235, 0.08);
+        }
+
+        .traffic-mon-page .chart-wrap {
+            display: block;
+            position: relative;
+            height: 300px;
+            padding: 0.25rem 0 0.5rem;
+        }
+
+        .traffic-mon-page .tm-live {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .traffic-mon-page .tm-live-item {
+            flex: 1 1 140px;
+            min-width: 120px;
+            padding: 0.65rem 0.85rem;
+            border-radius: 8px;
+            background: var(--bs-tertiary-bg, #f1f5f9);
+            border: 1px solid var(--tm-line);
+        }
+
+        .traffic-mon-page .tm-live-item.tm-rx { border-inline-start: 3px solid #2563eb; }
+        .traffic-mon-page .tm-live-item.tm-tx { border-inline-start: 3px solid #ea580c; }
+
+        .traffic-mon-page .tm-live-label {
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--tm-muted);
+        }
+
+        .traffic-mon-page .tm-live-value {
+            font-size: 1.05rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            margin-top: 0.2rem;
+            color: var(--bs-emphasis-color);
+        }
+
+        .traffic-mon-page .tm-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.65rem;
+            margin-top: 0.9rem;
+        }
+
+        .traffic-mon-page .tm-kpi {
+            border-radius: 10px;
+            border: 1px solid var(--tm-line);
+            padding: 0.55rem 0.65rem;
+            background: var(--bs-tertiary-bg, #f8fafc);
+        }
+
+        .traffic-mon-page .tm-kpi-label {
+            font-size: 0.72rem;
+            color: var(--tm-muted);
+            margin-bottom: 0.15rem;
+        }
+
+        .traffic-mon-page .tm-kpi-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .traffic-mon-page .tm-kpi.is-up { border-inline-start: 3px solid #198754; }
+        .traffic-mon-page .tm-kpi.is-down { border-inline-start: 3px solid #6c757d; }
+        .traffic-mon-page .tm-kpi.is-bridge { border-inline-start: 3px solid #0dcaf0; }
+
+        .traffic-mon-page .btn-tm-back {
+            border-radius: 8px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+        }
+
+        .traffic-mon-page .tm-iface-list {
+            max-height: 168px;
+            overflow-y: auto;
+            border-radius: 8px;
+            border: 1px solid var(--tm-line);
+            background: var(--bs-tertiary-bg, #f8fafc);
+            padding: 0.5rem 0.65rem;
+        }
+
+        .traffic-mon-page .tm-iface-list.tm-disabled {
+            opacity: 0.55;
+            pointer-events: none;
+        }
+
+        .traffic-mon-page .tm-iface-list .form-check {
+            margin-bottom: 0.35rem;
+        }
+
+        .traffic-mon-page .tm-iface-list .form-check:last-child {
+            margin-bottom: 0;
+        }
+
+        .traffic-mon-page .tm-iface-search {
+            border-radius: 8px;
+            font-size: 0.84rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .traffic-mon-page .chart-wrap .traffic-chart-overlay {
+            inset: 0;
+            z-index: 2;
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--bs-body-bg, #fff) 82%, transparent);
+        }
+
+        [data-bs-theme="dark"] .traffic-mon-page .chart-wrap .traffic-chart-overlay {
+            background: color-mix(in srgb, var(--bs-body-bg, #0f172a) 88%, transparent);
+        }
+
+        .traffic-mon-page .tm-insights {
+            border-radius: 10px;
+            border: 1px solid var(--tm-line);
+            margin-top: 0.5rem;
+            font-size: 0.86rem;
+        }
+
+        .traffic-mon-page .tm-insights strong {
+            font-size: 0.82rem;
+        }
+
+        @@media (max-width: 1199.98px) {
+            .traffic-mon-page .tm-stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .traffic-mon-page .tm-kpi-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @@media (max-width: 991.98px) {
+            .traffic-mon-page .tm-hero .d-flex.gap-2 {
+                width: 100%;
+            }
+
+            .traffic-mon-page .tm-hero .btn {
+                width: 100%;
+            }
+
+            .traffic-mon-page .tm-kpi-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .traffic-mon-page .tm-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        [data-bs-theme="dark"] .traffic-mon-page .tm-hero {
+            border-color: rgba(96, 165, 250, 0.24);
+            background:
+                radial-gradient(700px 220px at 0% -20%, rgba(37, 99, 235, 0.2), transparent 55%),
+                radial-gradient(560px 180px at 100% 0%, rgba(6, 182, 212, 0.18), transparent 52%),
+                linear-gradient(145deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.94));
+            box-shadow: 0 14px 30px rgba(2, 6, 23, 0.4);
+        }
+
+        [data-bs-theme="dark"] .traffic-mon-page .tm-stat {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.92));
+        }
+    </style>
+}
+
+<div class="traffic-mon-page">
+    <div class="tm-hero mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <div class="tm-kicker">مراقبة لحظية</div>
+                <h1 class="tm-title mb-2">@ViewData["Title"]</h1>
+                <p class="tm-sub mb-0">
+                    متابعة مباشرة لحركة الشبكة عبر <strong>SignalR</strong> مع مخطط تفاعلي وسجل زمني محلي داخل المتصفح.
+                    الصفحة مهيأة لتحديد مصدر البيانات بسرعة (كل الواجهات أو واجهات محددة) مع قراءة واضحة على سطح المكتب والجوال.
+                </p>
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span id="mikrotik-traffic-updated" class="tm-pill"></span>
+                <a asp-route="networkManager-mikrotikservers" asp-route-action="Index" class="btn btn-outline-secondary btn-tm-back">
+                    <i class="fas fa-server me-1"></i> خوادم MikroTik
+                </a>
+            </div>
+        </div>
+        <div class="tm-stats">
+            <div class="tm-stat">
+                <div class="tm-stat-label">مصدر القراءة</div>
+                <div class="tm-stat-value">RouterOS Interface Stats</div>
+            </div>
+            <div class="tm-stat">
+                <div class="tm-stat-label">زمن التحديث</div>
+                <div class="tm-stat-value">تقريباً كل 0.5 ثانية</div>
+            </div>
+            <div class="tm-stat">
+                <div class="tm-stat-label">البيانات المعروضة</div>
+                <div class="tm-stat-value">RX/TX + Packets + Interfaces</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mikrotik-traffic-alert" class="alert alert-danger d-none rounded-3 border-0 shadow-sm" role="alert"></div>
+    @if (Model.Count == 0)
+    {
+        <div class="alert alert-warning rounded-3 border-0 shadow-sm mb-3" role="alert">
+            لا توجد خوادم MikroTik مفعّلة ضمن شبكتك حالياً. قم بإضافة خادم أو تفعيل خادم موجود من صفحة الخوادم.
+        </div>
+    }
+
+    <div class="card tm-card border-0 mb-3">
+        <div class="card-body">
+            <div class="tm-label mb-2">الخوادم + مصدر المخطط (اختيار متعدد)</div>
+            <div class="row g-3">
+                <div class="col-lg-5">
+                    <label class="tm-label" for="mikrotik-traffic-server">الخوادم</label>
+                    <div class="d-flex gap-2 mb-2">
+                        <button type="button" id="traffic-select-all-servers" class="btn btn-sm btn-outline-primary">تحديد الكل</button>
+                        <button type="button" id="traffic-clear-all-servers" class="btn btn-sm btn-outline-secondary">إلغاء الكل</button>
+                    </div>
+                    <select id="mikrotik-traffic-server" class="form-select shadow-none" multiple size="8"@if (Model.Count == 0) { <text> disabled</text> }>
+                        @foreach (var s in Model)
+                        {
+                            if (initialServerId == s.Id)
+                            {
+                                <option value="@s.Id" data-network="@s.NetworkId" data-server-name="@s.Name" selected="selected">@s.Name — @s.Host</option>
+                            }
+                            else
+                            {
+                                <option value="@s.Id" data-network="@s.NetworkId" data-server-name="@s.Name">@s.Name — @s.Host</option>
+                            }
+                        }
+                    </select>
+                    <p class="text-muted small mt-2 mb-0">يمكن اختيار خادم واحد أو عدة خوادم معًا.</p>
+                </div>
+                <div class="col-lg-7">
+                    <div class="tm-label">مصدر المخطط — واجهات (اختيار متعدد)</div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="traffic-chart-iface-all" disabled />
+                        <label class="form-check-label" for="traffic-chart-iface-all">مجموع كل الواجهات المحددة</label>
+                    </div>
+                    <div class="text-muted small mb-2" id="traffic-chart-iface-hint">اختر خادماً واحداً على الأقل، ثم حدّد واجهة أو أكثر، أو اختر «مجموع كل الواجهات المحددة».</div>
+                    <input type="search" id="traffic-chart-iface-search" class="form-control tm-iface-search" placeholder="بحث داخل الواجهات..." autocomplete="off" />
+                    <div id="traffic-chart-iface-list" class="tm-iface-list tm-disabled small" aria-label="واجهات المخطط"></div>
+                </div>
+            </div>
+            <p class="text-muted small mt-3 mb-0">
+                عند اختيار أكثر من خادم، ستظهر الواجهة بصيغة: <strong>اسم الخادم — اسم الواجهة</strong>.
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card tm-card border-0 h-100">
+                <div class="tm-section-head d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <div class="tm-section-title">معدل الترافك (RX / TX)</div>
+                        <div id="traffic-chart-hint" class="tm-section-hint">محور الزمن: وقت التحديث — القيم بـ Mbps</div>
+                        <div id="traffic-active-source-name" class="tm-source-name"></div>
+                        <div class="tm-graph-toggles" id="traffic-graph-toggles">
+                            <button type="button" class="btn tm-graph-toggle is-active" data-graph-toggle="rate">Rate Graph</button>
+                            <button type="button" class="btn tm-graph-toggle is-active" data-graph-toggle="byte">Byte Graph</button>
+                            <button type="button" class="btn tm-graph-toggle is-active" data-graph-toggle="packet">Packet Graph</button>
+                        </div>
+                    </div>
+                    <div class="tm-section-hint">كل أنواع العرض مفعّلة: معدل RX/TX + RX/TX Byte + Byte Graph + Packet Graph</div>
+                </div>
+                <div class="card-body pt-3 pb-3">
+                    <div class="tm-live">
+                        <div class="tm-live-item tm-rx">
+                            <div class="tm-live-label">معدل RX</div>
+                            <div id="traffic-live-rx" class="tm-live-value">—</div>
+                        </div>
+                        <div class="tm-live-item tm-tx">
+                            <div class="tm-live-label">معدل TX</div>
+                            <div id="traffic-live-tx" class="tm-live-value">—</div>
+                        </div>
+                        <div class="tm-live-item tm-rx">
+                            <div class="tm-live-label">RX Byte</div>
+                            <div id="traffic-live-rx-bytes" class="tm-live-value">—</div>
+                        </div>
+                        <div class="tm-live-item tm-tx">
+                            <div class="tm-live-label">TX Byte</div>
+                            <div id="traffic-live-tx-bytes" class="tm-live-value">—</div>
+                        </div>
+                    </div>
+                    <div class="chart-wrap position-relative" id="traffic-rate-chart-wrap">
+                        <div id="traffic-chart-overlay" class="traffic-chart-overlay position-absolute d-flex align-items-center justify-content-center p-3 text-center" role="status">
+                            <span class="small text-muted">اختر الخادم ثم حدّد مصدر المخطط (واجهة أو أكثر، أو مجموع كل الواجهات).</span>
+                        </div>
+                        <canvas id="traffic-chart" aria-label="مخطط معدل RX و TX"></canvas>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-lg-6" id="traffic-byte-chart-wrap">
+                            <div class="tm-section-hint mb-1">Byte Graph (RX / TX)</div>
+                            <div class="chart-wrap">
+                                <canvas id="traffic-byte-chart" aria-label="Byte Graph"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6" id="traffic-packet-chart-wrap">
+                            <div class="tm-section-hint mb-1">Packet Graph (RX / TX)</div>
+                            <div class="chart-wrap">
+                                <canvas id="traffic-packet-chart" aria-label="Packet Graph"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tm-kpi-grid" aria-label="ملخص الواجهات">
+                        <div class="tm-kpi">
+                            <div class="tm-kpi-label">إجمالي الواجهات</div>
+                            <div class="tm-kpi-value" id="traffic-kpi-total">0</div>
+                        </div>
+                        <div class="tm-kpi is-up">
+                            <div class="tm-kpi-label">واجهات تعمل</div>
+                            <div class="tm-kpi-value" id="traffic-kpi-up">0</div>
+                        </div>
+                        <div class="tm-kpi is-down">
+                            <div class="tm-kpi-label">واجهات متوقفة</div>
+                            <div class="tm-kpi-value" id="traffic-kpi-down">0</div>
+                        </div>
+                        <div class="tm-kpi is-bridge">
+                            <div class="tm-kpi-label">ضمن Bridge</div>
+                            <div class="tm-kpi-value" id="traffic-kpi-bridge">0</div>
+                        </div>
+                    </div>
+                    <div id="traffic-traffic-insights" class="alert alert-light tm-insights mb-0" role="status">
+                        <strong class="d-block mb-1">ملاحظة ذكية</strong>
+                        <span id="traffic-traffic-insights-text">بانتظار بيانات الترافك لتحليل الحالة…</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js" crossorigin="anonymous"></script>
+    <script src="~/js/mikrotik-traffic-mvc.js" asp-append-version="true"></script>
+    <script>
+        window.initMikroTikTrafficMvc({
+            mode: 'manager',
+            servers: @Html.Raw(serversJson),
+            initialServerId: @(initialServerId.HasValue ? initialServerId.Value.ToString() : "null"),
+            showInsights: true
+        });
+    </script>
+}

@@ -1,0 +1,18 @@
+@{
+    if (ViewBag.FinancialNavCurrent == null)
+    {
+        var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+        var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+        ViewBag.FinancialNavCurrent = ctrl switch
+        {
+            "Warehouse" => "warehouse",
+            "MaterialPurchaseInvoices" => "purchase",
+            "MaterialSalesInvoices" => "sales",
+            "WarehouseStocktake" when action == "Report" => "report",
+            "WarehouseStocktake" => "stocktake",
+            _ => ViewBag.FinancialNavCurrent
+        };
+        ViewBag.WarehouseNavCurrent = ViewBag.FinancialNavCurrent;
+    }
+}
+<partial name="_FinancialQuickNav" />

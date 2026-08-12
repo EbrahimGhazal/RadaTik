@@ -1,0 +1,299 @@
+@using System.Text.Json
+@{
+    ViewData["Title"] = "مراقبة ترافك الاشتراك";
+    var serversJson = ViewBag.ServersJson as string ?? "[]";
+    var fixedServerId = (int)ViewBag.FixedServerId;
+
+    var fixedNetworkId = (int)ViewBag.FixedNetworkId;
+    var clientName = ViewBag.ClientDisplayName as string ?? "";
+    var clientUser = ViewBag.ClientUserName as string ?? "";
+    var serverName = ViewBag.ServerDisplayName as string ?? "";
+    var serverHost = ViewBag.ServerHost as string ?? "";
+    var userJson = JsonSerializer.Serialize(clientUser);
+}
+
+@section Styles {
+    <style>
+        .traffic-mon-page {
+            --tm-radius: 12px;
+            --tm-muted: #64748b;
+            --tm-surface: var(--bs-body-bg, #fff);
+            --tm-line: rgba(15, 23, 42, 0.08);
+            --tm-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.06);
+        }
+
+        [data-bs-theme="dark"] .traffic-mon-page {
+            --tm-line: rgba(248, 250, 252, 0.1);
+            --tm-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .traffic-mon-page .tm-kicker {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--tm-muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .traffic-mon-page .tm-title {
+            font-size: 1.35rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            line-height: 1.3;
+            color: var(--bs-emphasis-color, #0f172a);
+        }
+
+        .traffic-mon-page .tm-sub {
+            font-size: 0.8125rem;
+            color: var(--tm-muted);
+            line-height: 1.55;
+            max-width: 42rem;
+        }
+
+        .traffic-mon-page .tm-card {
+            border-radius: var(--tm-radius);
+            border: 1px solid var(--tm-line);
+            box-shadow: var(--tm-shadow);
+            background: var(--tm-surface);
+        }
+
+        .traffic-mon-page .tm-card .card-body {
+            padding: 1.15rem 1.25rem;
+        }
+
+        .traffic-mon-page .tm-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--tm-muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .traffic-mon-page .tm-pill {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.4rem 0.85rem;
+            border-radius: 999px;
+            border: 1px solid var(--tm-line);
+            background: var(--bs-secondary-bg, #f8fafc);
+            color: var(--bs-secondary-color);
+        }
+
+        .traffic-mon-page .tm-section-head {
+            padding: 0.85rem 1.25rem;
+            border-bottom: 1px solid var(--tm-line);
+            background: var(--bs-tertiary-bg, rgba(15, 23, 42, 0.02));
+        }
+
+        .traffic-mon-page .tm-section-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--bs-emphasis-color);
+        }
+
+        .traffic-mon-page .tm-section-hint {
+            font-size: 0.75rem;
+            color: var(--tm-muted);
+        }
+
+        .traffic-mon-page .chart-wrap {
+            display: block;
+            position: relative;
+            height: 300px;
+            padding: 0.25rem 0 0.5rem;
+        }
+
+        .traffic-mon-page .tm-live {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .traffic-mon-page .tm-live-item {
+            flex: 1 1 140px;
+            min-width: 120px;
+            padding: 0.65rem 0.85rem;
+            border-radius: 8px;
+            background: var(--bs-tertiary-bg, #f1f5f9);
+            border: 1px solid var(--tm-line);
+        }
+
+        .traffic-mon-page .tm-live-item.tm-rx { border-inline-start: 3px solid #2563eb; }
+        .traffic-mon-page .tm-live-item.tm-tx { border-inline-start: 3px solid #ea580c; }
+
+        .traffic-mon-page .tm-live-label {
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--tm-muted);
+        }
+
+        .traffic-mon-page .tm-live-value {
+            font-size: 1.05rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            margin-top: 0.2rem;
+            color: var(--bs-emphasis-color);
+        }
+
+        .traffic-mon-page #mikrotik-traffic-table_wrapper .dataTables_filter input {
+            margin-right: 0.5rem;
+            margin-left: 0;
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+        .traffic-mon-page #mikrotik-traffic-table_wrapper .dataTables_length select {
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+        .traffic-mon-page .table-mono-num {
+            font-variant-numeric: tabular-nums;
+            font-size: 0.8125rem;
+        }
+
+        .traffic-mon-page .table thead.table-light th {
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--tm-muted);
+            border-bottom-width: 1px;
+        }
+
+        .traffic-mon-page thead th.sorting,
+        .traffic-mon-page thead th.sorting_asc,
+        .traffic-mon-page thead th.sorting_desc {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .traffic-mon-page .tm-iface-list {
+            max-height: 168px;
+            overflow-y: auto;
+            border-radius: 8px;
+            border: 1px solid var(--tm-line);
+            background: var(--bs-tertiary-bg, #f8fafc);
+            padding: 0.5rem 0.65rem;
+        }
+
+        .traffic-mon-page .tm-iface-list.tm-disabled {
+            opacity: 0.55;
+            pointer-events: none;
+        }
+
+        .traffic-mon-page .tm-iface-list .form-check {
+            margin-bottom: 0.35rem;
+        }
+
+        .traffic-mon-page .tm-iface-list .form-check:last-child {
+            margin-bottom: 0;
+        }
+
+        .traffic-mon-page .chart-wrap .traffic-chart-overlay {
+            inset: 0;
+            z-index: 2;
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--bs-body-bg, #fff) 82%, transparent);
+        }
+
+        [data-bs-theme="dark"] .traffic-mon-page .chart-wrap .traffic-chart-overlay {
+            background: color-mix(in srgb, var(--bs-body-bg, #0f172a) 88%, transparent);
+        }
+
+        .traffic-mon-page .tm-client-banner .tm-pill {
+            margin: 0.15rem;
+        }
+    </style>
+}
+
+<div class="traffic-mon-page">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <div class="tm-kicker">اشتراكك</div>
+            <h1 class="tm-title mb-2">@ViewData["Title"]</h1>
+            <p class="tm-sub mb-0">
+                يتم ربط <strong>الخادم</strong> و<strong>حساب الاشتراك</strong> تلقائياً بملفك؛ يُحسب المخطط وفق مطابقة اسم الاشتراك مع واجهة على الراوتر أو مجموع الواجهات.
+                التحديث عبر SignalR. الملاحظات أدناه تفسير عام وليست تشخيصاً فنياً.
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <span id="mikrotik-traffic-updated" class="tm-pill"></span>
+            <a asp-route="clientPortal-actions" asp-route-action="Index" class="btn btn-outline-secondary btn-sm rounded-3">
+                <i class="fas fa-arrow-right me-1"></i> لوحة التحكم
+            </a>
+        </div>
+    </div>
+
+    <div id="traffic-traffic-insights" class="alert alert-light border shadow-sm small mb-3" role="status">
+        <strong><i class="fas fa-info-circle me-1 text-primary"></i> ملاحظة:</strong>
+        <span id="traffic-traffic-insights-text">بانتظار بيانات الترافك لتحليل الحالة…</span>
+    </div>
+
+    <div id="mikrotik-traffic-alert" class="alert alert-danger d-none rounded-3 border-0 shadow-sm" role="alert"></div>
+
+    <div class="card tm-card border-0 mb-3">
+        <div class="card-body py-3 tm-client-banner">
+            <div class="tm-label mb-2">تم التعيين تلقائياً</div>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="tm-pill"><i class="fas fa-user me-1"></i> @clientName</span>
+                <span class="tm-pill"><i class="fas fa-key me-1"></i> حساب الاشتراك: <strong>@(string.IsNullOrEmpty(clientUser) ? "—" : clientUser)</strong></span>
+                <span class="tm-pill"><i class="fas fa-server me-1"></i> @serverName <span class="text-muted">(@serverHost)</span></span>
+            </div>
+        </div>
+    </div>
+
+    <select id="mikrotik-traffic-server" class="d-none" aria-hidden="true" tabindex="-1">
+        <option value="@fixedServerId" data-network="@fixedNetworkId" selected="selected">auto</option>
+    </select>
+
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card tm-card border-0 h-100">
+                <div class="tm-section-head d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <div class="tm-section-title">معدل الترافك (RX / TX)</div>
+                        <div class="tm-section-hint">محور الزمن: وقت التحديث — Mbps</div>
+                    </div>
+                </div>
+                <div class="card-body pt-3 pb-3">
+                    <div class="tm-live">
+                        <div class="tm-live-item tm-rx">
+                            <div class="tm-live-label">معدل RX</div>
+                            <div id="traffic-live-rx" class="tm-live-value">—</div>
+                        </div>
+                        <div class="tm-live-item tm-tx">
+                            <div class="tm-live-label">معدل TX</div>
+                            <div id="traffic-live-tx" class="tm-live-value">—</div>
+                        </div>
+                    </div>
+                    <div class="chart-wrap position-relative">
+                        <div id="traffic-chart-overlay" class="traffic-chart-overlay position-absolute d-flex align-items-center justify-content-center p-3 text-center" role="status">
+                            <span class="small text-muted">جاري تحميل بيانات المخطط…</span>
+                        </div>
+                        <canvas id="traffic-chart" aria-label="مخطط معدل RX و TX"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js" crossorigin="anonymous"></script>
+    <script src="~/js/mikrotik-traffic-mvc.js" asp-append-version="true"></script>
+    <script>
+        window.initMikroTikTrafficMvc({
+            mode: 'clientPortal',
+            hideIfaceUi: true,
+            servers: @Html.Raw(serversJson),
+            initialServerId: @fixedServerId,
+            autoMatchUserName: @Html.Raw(userJson),
+            showInsights: true
+        });
+    </script>
+}

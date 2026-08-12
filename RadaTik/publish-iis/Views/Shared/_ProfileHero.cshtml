@@ -1,0 +1,25 @@
+@{
+    var title = ViewData["HeroTitle"] as string ?? "";
+    var subtitle = ViewData["HeroSubtitle"] as string ?? "";
+    var iconClass = ViewData["HeroIconClass"] as string ?? "fas fa-user-circle";
+    var chips = ViewData["HeroChips"] as IEnumerable<(string IconClass, string Text)> ?? Enumerable.Empty<(string IconClass, string Text)>();
+}
+
+<div class="sys-hero mb-4">
+    <div class="sys-hero-main">
+        <div class="sys-hero-icon"><i class="@iconClass"></i></div>
+        <div>
+            <h1 class="sys-hero-title">@title</h1>
+            <p class="sys-hero-subtitle">@subtitle</p>
+        </div>
+    </div>
+    @if (chips.Any())
+    {
+        <div class="sys-hero-chips">
+            @foreach (var chip in chips)
+            {
+                <span class="sys-hero-chip"><i class="@chip.IconClass"></i> @chip.Text</span>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,484 @@
+@model IEnumerable<RadaTik.Models.Network>
+
+@{
+    ViewData["Title"] = "الشبكات";
+    var totalCompanies = (int)(ViewBag.TotalCompanies ?? 0);
+    var activeCompanies = (int)(ViewBag.ActiveCompanies ?? 0);
+    var inactiveCompanies = (int)(ViewBag.InactiveCompanies ?? 0);
+    var underConstructionCompanies = (int)(ViewBag.UnderConstructionCompanies ?? 0);
+    var statusFilter = ViewBag.StatusFilter as string;
+    var isFiltered = !string.IsNullOrEmpty(statusFilter);
+    var isSysAdmin = (bool)(ViewBag.IsSystemAdmin ?? false);
+    var managerNames = ViewBag.ManagerNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var q = ViewBag.Query as string ?? "";
+    var scopeFilter = (ViewBag.ScopeFilter as string ?? "all").Trim().ToLowerInvariant();
+    if (scopeFilter != "all" && scopeFilter != "main" && scopeFilter != "sub")
+    {
+        scopeFilter = "all";
+    }
+
+    var flattenedSubNetworks = Model
+        .SelectMany(main => (main.ChildNetworks ?? Enumerable.Empty<RadaTik.Models.Network>())
+            .Select(child => new { Main = main, Child = child }))
+        .ToList();
+    RadaTik.Models.NetworkStatus parsedStatus = default;
+    var hasStatusFilter = !string.IsNullOrWhiteSpace(statusFilter) &&
+                          Enum.TryParse<RadaTik.Models.NetworkStatus>(statusFilter, true, out parsedStatus);
+    RadaTik.Models.NetworkStatus? effectiveStatus = hasStatusFilter ? parsedStatus : (RadaTik.Models.NetworkStatus?)null;
+    var hasQueryFilter = !string.IsNullOrWhiteSpace(q);
+    var queryTerm = hasQueryFilter ? q.Trim() : string.Empty;
+    var filteredSubNetworks = flattenedSubNetworks
+        .Where(x =>
+            (!effectiveStatus.HasValue || x.Child.Status == effectiveStatus.Value) &&
+            (!hasQueryFilter ||
+                (x.Child.Name?.Contains(queryTerm!, StringComparison.OrdinalIgnoreCase) == true) ||
+                (x.Main.Name?.Contains(queryTerm!, StringComparison.OrdinalIgnoreCase) == true)))
+        .ToList();
+
+    var filteredMainNetworks = scopeFilter == "main"
+        ? Model.Where(c => c.ParentNetworkId == null).ToList()
+        : Model.ToList();
+    var mainNetworksCount = Model.Count(c => c.ParentNetworkId == null);
+    var subNetworksCount = filteredSubNetworks.Count;
+
+    var hasItemsForScope = scopeFilter == "sub"
+        ? filteredSubNetworks.Any()
+        : filteredMainNetworks.Any();
+
+    if (isSysAdmin)
+    {
+        // When this view is used by SystemAdmin via fallback view locations,
+        // force the correct layout/sidebar for SystemAdmin.
+        Layout = "~/Areas/SystemAdmin/Views/Shared/_Layout.cshtml";
+        ViewData["Title"] = "إدارة شبكات الشركات";
+    }
+}
+
+<link rel="stylesheet" href="~/css/pages/network-page.css" asp-append-version="true" />
+
+<div class="network-page">
+    <!-- رأس الصفحة -->
+    <div class="network-page-header">
+        <div class="network-page-header-content">
+            <div class="network-page-header-icon">
+                <i class="fas fa-building"></i>
+            </div>
+            <div>
+                <h1 class="network-page-title">@ViewData["Title"]</h1>
+                <p class="network-page-subtitle">
+                    @(isSysAdmin
+                        ? "إدارة شبكات الشركات (عرض/فلترة/تجميد/إضافة رصيد) — مع عرض حالة كل شركة"
+                        : "الشبكات الرئيسية المسجلة في النظام — إدارة وعرض تفاصيل كل شبكة")
+                </p>
+            </div>
+        </div>
+        @if (!isSysAdmin)
+        {
+            <a asp-action="Create" class="btn btn-create-company">
+                <i class="fas fa-plus"></i>
+                <span>إضافة شبكة</span>
+            </a>
+        }
+    </div>
+
+    @if (isSysAdmin)
+    {
+        <!-- بحث سريع (بالاسم أو مدير الشركة) -->
+        <form method="get" class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+            @if (!string.IsNullOrEmpty(statusFilter))
+            {
+                <input type="hidden" name="status" value="@statusFilter" />
+            }
+            <div class="input-group" style="max-width: 420px;">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" name="q" value="@q" placeholder="بحث باسم الشركة أو مدير الشركة..." />
+            </div>
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="fas fa-filter me-1"></i> بحث
+            </button>
+            @if (!string.IsNullOrWhiteSpace(q))
+            {
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i> إلغاء البحث
+                </a>
+            }
+        </form>
+    }
+
+    <!-- شريط الإحصائيات (قابل للنقر للفلترة) -->
+    <div class="network-stats-grid">
+        <a asp-action="Index" class="network-stat-card network-stat-total @(statusFilter == null ? "network-stat-selected" : "")">
+            <div class="network-stat-icon">
+                <i class="fas fa-building"></i>
+            </div>
+            <div class="network-stat-body">
+                <span class="network-stat-value">@totalCompanies</span>
+                <span class="network-stat-label">إجمالي الشبكات</span>
+            </div>
+        </a>
+        <a asp-action="Index" asp-route-status="Active" class="network-stat-card network-stat-active @(string.Equals(statusFilter, "Active", StringComparison.OrdinalIgnoreCase) ? "network-stat-selected" : "")">
+            <div class="network-stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="network-stat-body">
+                <span class="network-stat-value">@activeCompanies</span>
+                <span class="network-stat-label">نشطة</span>
+            </div>
+        </a>
+        <a asp-action="Index" asp-route-status="Inactive" class="network-stat-card network-stat-inactive @(string.Equals(statusFilter, "Inactive", StringComparison.OrdinalIgnoreCase) ? "network-stat-selected" : "")">
+            <div class="network-stat-icon">
+                <i class="fas fa-pause-circle"></i>
+            </div>
+            <div class="network-stat-body">
+                <span class="network-stat-value">@inactiveCompanies</span>
+                <span class="network-stat-label">@(isSysAdmin ? "مجمدة" : "معطلة")</span>
+            </div>
+        </a>
+        <a asp-action="Index" asp-route-status="UnderConstruction" class="network-stat-card network-stat-building @(string.Equals(statusFilter, "UnderConstruction", StringComparison.OrdinalIgnoreCase) ? "network-stat-selected" : "")">
+            <div class="network-stat-icon">
+                <i class="fas fa-hard-hat"></i>
+            </div>
+            <div class="network-stat-body">
+                <span class="network-stat-value">@underConstructionCompanies</span>
+                <span class="network-stat-label">قيد الإنشاء</span>
+            </div>
+        </a>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <span class="small text-muted fw-semibold">نوع العرض:</span>
+        <a asp-action="Index" asp-route-status="@statusFilter" asp-route-q="@q" asp-route-scope="all"
+           class="btn btn-sm @(scopeFilter == "all" ? "btn-primary" : "btn-outline-primary")">
+            الكل
+            <span class="badge bg-light text-dark ms-1">@Model.Count()</span>
+        </a>
+        <a asp-action="Index" asp-route-status="@statusFilter" asp-route-q="@q" asp-route-scope="main"
+           class="btn btn-sm @(scopeFilter == "main" ? "btn-primary" : "btn-outline-primary")">
+            الرئيسية فقط
+            <span class="badge bg-light text-dark ms-1">@mainNetworksCount</span>
+        </a>
+        <a asp-action="Index" asp-route-status="@statusFilter" asp-route-q="@q" asp-route-scope="sub"
+           class="btn btn-sm @(scopeFilter == "sub" ? "btn-primary" : "btn-outline-primary")">
+            الفرعية فقط
+            <span class="badge bg-light text-dark ms-1">@subNetworksCount</span>
+        </a>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 small text-muted">
+        <span class="fw-semibold">دليل ألوان الشبكات الفرعية:</span>
+        <span class="badge rounded-pill text-bg-success">نشطة</span>
+        <span class="badge rounded-pill text-bg-danger">معطلة/مجمدة</span>
+        <span class="badge rounded-pill text-bg-warning text-dark">قيد الإنشاء</span>
+    </div>
+    
+    @if (scopeFilter == "sub" && (effectiveStatus.HasValue || hasQueryFilter))
+    {
+        <div class="alert alert-light border d-flex flex-wrap gap-2 align-items-center py-2 mb-3">
+            <span class="fw-semibold text-muted">الفلاتر النشطة لعرض الشبكات الفرعية:</span>
+            @if (effectiveStatus.HasValue)
+            {
+                var statusLabel = effectiveStatus.Value == RadaTik.Models.NetworkStatus.Active
+                    ? "نشطة"
+                    : effectiveStatus.Value == RadaTik.Models.NetworkStatus.Inactive
+                        ? "معطلة/مجمدة"
+                        : "قيد الإنشاء";
+                <span class="badge text-bg-primary">الحالة: @statusLabel</span>
+            }
+            @if (hasQueryFilter)
+            {
+                <span class="badge text-bg-secondary">البحث: @queryTerm</span>
+            }
+            <a asp-action="Index"
+               asp-route-scope="sub"
+               class="btn btn-sm btn-outline-secondary ms-auto">
+                <i class="fas fa-undo me-1"></i>
+                إلغاء كل الفلاتر
+            </a>
+        </div>
+    }
+
+    @if (!hasItemsForScope)
+    {
+        <div class="network-empty">
+            <div class="network-empty-icon">
+                <i class="fas fa-building"></i>
+            </div>
+            @if (isFiltered)
+            {
+                <h3>
+                    @(statusFilter == "Active" ? "لا توجد شبكات نشطة" : statusFilter == "Inactive" ? "لا توجد شبكات معطلة" : "لا توجد شبكات قيد الإنشاء")
+                </h3>
+                <p>جرّب عرض إجمالي الشبكات أو أضف شبكة جديدة.</p>
+                <a asp-action="Index" class="btn btn-outline-primary btn-lg me-2">
+                    <i class="fas fa-list me-2"></i>
+                    عرض الكل
+                </a>
+                @if (!isSysAdmin)
+                {
+                    <a asp-action="Create" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus me-2"></i>
+                        إضافة شبكة
+                    </a>
+                }
+            }
+            else
+            {
+                <h3>لا توجد شبكات مسجلة</h3>
+                <p>@(isSysAdmin ? "لا توجد شبكات في النظام." : "ابدأ بإضافة أول شبكة إلى النظام.")</p>
+                @if (!isSysAdmin)
+                {
+                    <a asp-action="Create" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus me-2"></i>
+                        إضافة شبكة
+                    </a>
+                }
+            }
+        </div>
+    }
+    else
+    {
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="small text-muted">
+                @if (scopeFilter == "sub")
+                {
+                    <text>نتائج الشبكات الفرعية: <strong>@filteredSubNetworks.Count</strong></text>
+                }
+                else if (scopeFilter == "main")
+                {
+                    <text>نتائج الشبكات الرئيسية: <strong>@filteredMainNetworks.Count</strong></text>
+                }
+                else
+                {
+                    <text>إجمالي النتائج: <strong>@filteredMainNetworks.Count</strong></text>
+                }
+            </span>
+        </div>
+
+        @if (scopeFilter == "sub")
+        {
+            <div class="network-cards">
+                @foreach (var item in filteredSubNetworks)
+                {
+                    var child = item.Child;
+                    var main = item.Main;
+                    var statusClass = child.Status == RadaTik.Models.NetworkStatus.Active ? "active"
+                        : child.Status == RadaTik.Models.NetworkStatus.Inactive ? "inactive" : "building";
+
+                    <div class="network-company-card network-company-card-@statusClass">
+                        <div class="network-company-card-accent"></div>
+                        <div class="network-company-card-header">
+                            <div class="network-company-logo-wrap">
+                                <div class="network-company-logo-placeholder">
+                                    <i class="fas fa-network-wired"></i>
+                                </div>
+                            </div>
+                            <div class="network-company-meta">
+                                <h3 class="network-company-name">@child.Name</h3>
+                                <span class="network-company-date">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    @child.CreationDate.ToString("yyyy/MM/dd")
+                                </span>
+                            </div>
+                            <span class="network-company-badge network-company-badge-@statusClass">
+                                @if (child.Status == RadaTik.Models.NetworkStatus.Active)
+                                {
+                                    <i class="fas fa-check"></i><span>نشط</span>
+                                }
+                                else if (child.Status == RadaTik.Models.NetworkStatus.Inactive)
+                                {
+                                    <i class="fas fa-pause"></i><span>@(isSysAdmin ? "مجمد" : "معطل")</span>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-hard-hat"></i><span>قيد الإنشاء</span>
+                                }
+                            </span>
+                        </div>
+                        <div class="network-company-card-body">
+                            <div class="network-company-field">
+                                <i class="fas fa-diagram-project"></i>
+                                <span><strong>الشبكة الرئيسية:</strong> @main.Name</span>
+                            </div>
+                        </div>
+                        <div class="network-company-card-footer">
+                            <a asp-action="Details" asp-route-id="@child.Id" class="btn btn-company-action btn-company-details">
+                                <i class="fas fa-info-circle"></i>
+                                <span>التفاصيل</span>
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="network-cards">
+            @foreach (var company in filteredMainNetworks)
+            {
+                var subCount = company.ChildNetworks?.Count ?? 0;
+                var childNetworks = (company.ChildNetworks ?? Enumerable.Empty<RadaTik.Models.Network>())
+                    .OrderBy(n => n.Name)
+                    .ToList();
+                var clientsCount = company.Clients?.Count ?? 0;
+                var statusClass = company.Status == RadaTik.Models.NetworkStatus.Active ? "active"
+                    : company.Status == RadaTik.Models.NetworkStatus.Inactive ? "inactive" : "building";
+
+                <div class="network-company-card network-company-card-@statusClass">
+                    <div class="network-company-card-accent"></div>
+                    <div class="network-company-card-header">
+                        <div class="network-company-logo-wrap">
+                            @if (!string.IsNullOrEmpty(company.LogoPath))
+                            {
+                                <img src="@company.LogoPath" alt="@company.Name" class="network-company-logo" />
+                            }
+                            else
+                            {
+                                <div class="network-company-logo-placeholder">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                            }
+                        </div>
+                        <div class="network-company-meta">
+                            <h3 class="network-company-name">@company.Name</h3>
+                            <span class="network-company-date">
+                                <i class="fas fa-calendar-alt"></i>
+                                @company.CreationDate.ToString("yyyy/MM/dd")
+                            </span>
+                        </div>
+                        <span class="network-company-badge network-company-badge-@statusClass">
+                            @if (company.Status == RadaTik.Models.NetworkStatus.Active)
+                            {
+                                <i class="fas fa-check"></i><span>نشط</span>
+                            }
+                            else if (company.Status == RadaTik.Models.NetworkStatus.Inactive)
+                            {
+                                <i class="fas fa-pause"></i><span>@(isSysAdmin ? "مجمد" : "معطل")</span>
+                            }
+                            else
+                            {
+                                <i class="fas fa-hard-hat"></i><span>قيد الإنشاء</span>
+                            }
+                        </span>
+                    </div>
+                    <div class="network-company-card-body">
+                        @if (isSysAdmin)
+                        {
+                            <div class="network-company-field">
+                                <i class="fas fa-user-tie"></i>
+                                <span>مدير الشركة: @(managerNames.GetValueOrDefault(company.Id, "-"))</span>
+                            </div>
+                            <div class="network-company-field">
+                                <i class="fas fa-wallet"></i>
+                                <span>رصيد الشبكة: <strong class="text-primary">@(company.Balance.ToString("N2"))</strong></span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(company.Governorates))
+                        {
+                            <div class="network-company-field">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>@company.Governorates</span>
+                            </div>
+                        }
+                        <div class="network-company-metrics">
+                            <div class="network-company-metric">
+                                <i class="fas fa-sitemap"></i>
+                                <span>@subCount</span>
+                                <small>شبكات فرعية</small>
+                            </div>
+                            <div class="network-company-metric">
+                                <i class="fas fa-users"></i>
+                                <span>@clientsCount</span>
+                                <small>مشترك</small>
+                            </div>
+                        </div>
+                        <div class="network-company-field">
+                            <i class="fas fa-diagram-project"></i>
+                            <span><strong>الشبكة الرئيسية:</strong> @company.Name</span>
+                        </div>
+                        @if (childNetworks.Any())
+                        {
+                            <div class="network-company-field align-items-start">
+                                <i class="fas fa-network-wired"></i>
+                                <div>
+                                    <div><strong>الشبكات الفرعية:</strong></div>
+                                    <div class="d-flex flex-wrap gap-1 mt-1">
+                                        @foreach (var child in childNetworks)
+                                        {
+                                            var childBadgeClass = child.Status == RadaTik.Models.NetworkStatus.Active
+                                                ? "text-bg-success"
+                                                : child.Status == RadaTik.Models.NetworkStatus.Inactive
+                                                    ? "text-bg-danger"
+                                                    : "text-bg-warning";
+                                            <a asp-action="Details"
+                                               asp-route-id="@child.Id"
+                                               class="badge rounded-pill @childBadgeClass text-decoration-none"
+                                               title="عرض تفاصيل الشبكة الفرعية @child.Name — الحالة: @child.Status">
+                                                @child.Name
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="network-company-field text-muted">
+                                <i class="fas fa-network-wired"></i>
+                                <span><strong>الشبكات الفرعية:</strong> لا يوجد</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(company.Notes))
+                        {
+                            <p class="network-company-notes">@(company.Notes!.Length > 80 ? company.Notes.Substring(0, 80) + "…" : company.Notes)</p>
+                        }
+                    </div>
+                    <div class="network-company-card-footer">
+                        <a asp-action="Details" asp-route-id="@company.Id" class="btn btn-company-action btn-company-details">
+                            <i class="fas fa-info-circle"></i>
+                            <span>التفاصيل</span>
+                        </a>
+                        @if (isSysAdmin)
+                        {
+                            <a asp-action="AddBalance" asp-route-id="@company.Id" class="btn btn-company-action btn-company-balance">
+                                <i class="fas fa-plus-circle"></i>
+                                <span>إضافة رصيد</span>
+                            </a>
+                            @if (company.Status == RadaTik.Models.NetworkStatus.Active)
+                            {
+                                <form asp-action="EditManagerStatus" method="post" class="d-inline" onsubmit="return confirm('تجميد الشركة: سيتم تعطيل حساب مدير الشركة وجميع الشبكات التابعة له. هل أنت متأكد؟');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="networkId" value="@company.Id" />
+                                    <input type="hidden" name="isActive" value="false" />
+                                    <button type="submit" class="btn btn-company-action btn-company-status-inactive" title="تجميد الشركة">
+                                        <i class="fas fa-snowflake"></i>
+                                        <span>تجميد</span>
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-action="EditManagerStatus" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="networkId" value="@company.Id" />
+                                    <input type="hidden" name="isActive" value="true" />
+                                    <button type="submit" class="btn btn-company-action btn-company-status-active" title="إلغاء تجميد الشركة">
+                                        <i class="fas fa-user-check"></i>
+                                        <span>إلغاء التجميد</span>
+                                    </button>
+                                </form>
+                            }
+                        }
+                        else
+                        {
+                            <a asp-action="Edit" asp-route-id="@company.Id" class="btn btn-company-action btn-company-edit">
+                                <i class="fas fa-edit"></i>
+                                <span>تعديل</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        }
+    }
+</div>

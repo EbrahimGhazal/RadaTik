@@ -1,0 +1,416 @@
+@model RadaTik.Models.Sector
+@using System.Globalization
+@{
+    ViewData["Title"] = "تعديل القطاع";
+    var initLat = Model.Latitude != 0 ? Model.Latitude : 35.52;
+    var initLng = Model.Longitude != 0 ? Model.Longitude : 35.78;
+    var hasSavedCoords = Model.Latitude != 0 || Model.Longitude != 0;
+}
+
+<div class="material-invoice-page material-invoice-page--sector sector-create-page material-invoice-page--edit">
+    <div class="sys-hero material-invoice-hero mb-3">
+        <div class="sys-hero-main">
+            <div class="sys-hero-icon"><i class="fas fa-edit"></i></div>
+            <div>
+                <h1 class="sys-hero-title mb-1">@ViewData["Title"]: @Model.Name</h1>
+                <p class="sys-hero-subtitle mb-0">تحديث بيانات القطاع والموقع ونطاق التغطية</p>
+            </div>
+        </div>
+        <div class="sys-hero-chips">
+            <span class="sys-hero-chip"><i class="fas fa-wifi"></i> @Model.Name</span>
+        </div>
+        <div class="sys-hero-actions d-flex flex-wrap gap-2">
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info micro-btn btn-sm"><i class="fas fa-eye"></i> التفاصيل</a>
+            <a asp-action="Index" class="btn btn-outline-secondary micro-btn btn-sm"><i class="fas fa-arrow-right"></i> القائمة</a>
+        </div>
+    </div>
+
+    <details class="material-invoice-help mb-3">
+        <summary class="material-invoice-help__summary"><i class="fas fa-circle-info"></i> إرشادات الموقع</summary>
+        <div class="material-invoice-help__body">
+            <p class="small text-muted mb-0">حدّد الموقع بالنقر على الخريطة، أو أدخل/الصق الإحداثيات يدوياً — يُحدَّث الموقع والارتفاع تلقائياً.</p>
+        </div>
+    </details>
+
+    <form asp-action="Edit" id="sectorForm" class="sector-create-form radtk-form" data-syp-skip-format="true">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+        <input type="hidden" asp-for="Id" />
+
+        <partial name="_SectionCardHeader" model='new RadaTik.ViewModels.UI.SectionCardViewModel { Title = "المعلومات الأساسية", IconClass = "fas fa-info-circle" }' />
+                <div class="row g-2 g-md-3">
+                    <div class="col-12 col-md-6">
+                        <label asp-for="Name" class="form-label form-label-sm mb-1 required">اسم القطاع</label>
+                        <input asp-for="Name" class="form-control form-control-sm" placeholder="اسم القطاع" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label asp-for="MikroTikServerId" class="form-label form-label-sm mb-1 required">
+                            <i class="fas fa-server me-1"></i> خادم MikroTik
+                        </label>
+                        <select asp-for="MikroTikServerId" class="form-select form-select-sm" asp-items="ViewBag.MikroTikServers" id="mikroTikSelect">
+                            <option value="">— اختر خادم —</option>
+                        </select>
+                        <span asp-validation-for="MikroTikServerId" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-5">
+                        <label asp-for="IPAddress" class="form-label form-label-sm mb-1 required">عنوان IP</label>
+                        <div class="input-group input-group-sm">
+                            <input asp-for="IPAddress" class="form-control form-control-sm" id="ipAddressInput" />
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnGenerateIP" title="توليد IP">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="IPAddress" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <label asp-for="NetworkMask" class="form-label form-label-sm mb-1">قناع الشبكة</label>
+                        <input asp-for="NetworkMask" class="form-control form-control-sm" />
+                        <span asp-validation-for="NetworkMask" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <label asp-for="RadioInterfaceName" class="form-label form-label-sm mb-1">واجهة الراديو</label>
+                        <input asp-for="RadioInterfaceName" class="form-control form-control-sm" placeholder="wlan1 (اختياري)" />
+                        <span asp-validation-for="RadioInterfaceName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label form-label-sm mb-1">عتبات التنبيه</label>
+                        <div class="row g-2 threshold-grid">
+                            <div class="col-4 col-sm-3 col-md-2">
+                                <input asp-for="NoiseAlertThresholdDbm" class="form-control form-control-sm rtk-w-sm" type="number" placeholder="-90" />
+                                <span class="field-hint">Noise</span>
+                            </div>
+                            <div class="col-4 col-sm-3 col-md-2">
+                                <input asp-for="SnrAlertMinDb" class="form-control form-control-sm rtk-w-sm" type="number" placeholder="20" />
+                                <span class="field-hint">SNR</span>
+                            </div>
+                            <div class="col-4 col-sm-3 col-md-2">
+                                <input asp-for="CcqAlertMinPercent" class="form-control form-control-sm rtk-w-sm" type="number" placeholder="70" />
+                                <span class="field-hint">CCQ %</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        <partial name="_SectionCardFooter" />
+
+        <partial name="_SectionCardHeader" model='new RadaTik.ViewModels.UI.SectionCardViewModel { Title = "الموقع ونطاق التغطية", IconClass = "fas fa-map-marked-alt" }' />
+                <div class="sector-create-map-wrap radtk-map-wrap mb-2">
+                    <div id="map" class="sector-create-map"></div>
+                    <div class="sector-create-map-controls">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-light map-type-btn active" data-map-type="streets">شوارع</button>
+                            <button type="button" class="btn btn-light map-type-btn" data-map-type="satellite">قمر</button>
+                            <button type="button" class="btn btn-light map-type-btn" data-map-type="terrain">تضاريس</button>
+                        </div>
+                    </div>
+                    <div class="sector-create-map-legend small">
+                        <div class="fw-semibold mb-1">التغطية</div>
+                        <div><span class="sector-legend-dot" style="background:#00ff00"></span> ممتازة</div>
+                        <div><span class="sector-legend-dot" style="background:#ffff00"></span> جيدة</div>
+                        <div><span class="sector-legend-dot" style="background:#ff0000"></span> ضعيفة</div>
+                    </div>
+                </div>
+
+                @{
+                    ViewData["CoordsLatitude"] = Model.Latitude;
+                    ViewData["CoordsLongitude"] = Model.Longitude;
+                }
+                <partial name="_MapCoordinatesPanel" />
+
+                <div class="row g-2 g-md-3">
+                    <div class="col-6 col-md-2">
+                        <label asp-for="Direction" class="form-label form-label-sm mb-1">الاتجاه °</label>
+                        <input asp-for="Direction" class="form-control form-control-sm" id="directionInput" type="number" min="0" max="360" step="1" />
+                        <span asp-validation-for="Direction" class="text-danger small"></span>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <label asp-for="ElevationMeters" class="form-label form-label-sm mb-1">الارتفاع (م)</label>
+                        <div class="input-group input-group-sm">
+                            <input asp-for="ElevationMeters" class="form-control form-control-sm" id="elevationInput" type="number" step="0.01" inputmode="decimal" />
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="btnGetElevation" title="جلب الارتفاع">
+                                <i class="fas fa-mountain"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="ElevationMeters" class="text-danger small d-block"></span>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label asp-for="AntennaHeightAglMeters" class="form-label form-label-sm mb-1">ارتفاع الهوائي (م)</label>
+                        <input asp-for="AntennaHeightAglMeters" class="form-control form-control-sm" id="antennaHeightAglInput" type="number" min="0" max="500" step="0.01" placeholder="6" />
+                        <span asp-validation-for="AntennaHeightAglMeters" class="text-danger small"></span>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label asp-for="CoverageAngle" class="form-label form-label-sm mb-1">زاوية °</label>
+                        <input asp-for="CoverageAngle" class="form-control form-control-sm" id="angleInput" type="number" min="1" max="360" step="1" />
+                        <span asp-validation-for="CoverageAngle" class="text-danger small"></span>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label asp-for="CoverageRange" class="form-label form-label-sm mb-1">المدى (كم)</label>
+                        <input asp-for="CoverageRange" class="form-control form-control-sm" id="rangeInput" type="number" min="0.1" step="0.1" />
+                        <span asp-validation-for="CoverageRange" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 col-md-3 d-flex align-items-end">
+                        <div class="form-check form-switch radtk-switch-left-label sector-create-active-switch mb-2" dir="ltr">
+                            <label asp-for="IsActive" class="form-check-label small" for="isActiveCheck">تفعيل القطاع</label>
+                            <input asp-for="IsActive" class="form-check-input" id="isActiveCheck" />
+                        </div>
+                    </div>
+                </div>
+        <partial name="_SectionCardFooter" />
+
+        <div class="material-invoice-actions">
+            <button type="submit" class="btn btn-warning btn-lg micro-btn">
+                <i class="fas fa-save"></i> حفظ التعديلات
+            </button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info btn-lg micro-btn">
+                <i class="fas fa-eye"></i> التفاصيل
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-lg micro-btn">
+                <i class="fas fa-times"></i> إلغاء
+            </a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script src="~/js/map-coordinates-panel.js" asp-append-version="true"></script>
+
+    <script>
+        const getNextIpUrl = '@Url.Action("GetNextIP", "Sector", new { area = "CompanyAdmin" })';
+        const getElevationUrl = '@Url.Action("GetElevation", "Sector", new { area = "CompanyAdmin" })';
+        const sectorEditHasSavedCoords = @(hasSavedCoords ? "true" : "false");
+        const sectorEditInitLat = @initLat.ToString(CultureInfo.InvariantCulture);
+        const sectorEditInitLng = @initLng.ToString(CultureInfo.InvariantCulture);
+        const sectorEditPopupTitle = @Html.Raw(System.Text.Json.JsonSerializer.Serialize("موقع القطاع - " + Model.Name));
+        let elevationFetchTimer = null;
+
+        $(document).ready(function() {
+            if (typeof L === 'undefined') {
+                console.error('Leaflet library is not loaded');
+                $('#map').html('<div class="sector-create-map-fallback"><i class="fas fa-exclamation-triangle"></i> خطأ في تحميل الخريطة</div>');
+            } else {
+                setTimeout(function() { initializeMap(); }, 100);
+            }
+
+            $('#mikroTikSelect').select2({
+                theme: 'bootstrap-5',
+                dir: 'rtl',
+                language: {
+                    noResults: function() { return "لا توجد نتائج"; },
+                    searching: function() { return "جاري البحث..."; },
+                    inputTooShort: function() { return "أدخل حرفاً واحداً على الأقل"; }
+                },
+                width: '100%',
+                placeholder: '— اختر خادم —',
+                allowClear: true,
+                minimumResultsForSearch: 3,
+                dropdownParent: $('#mikroTikSelect').parent()
+            });
+
+            $('#btnGenerateIP').on('click', function() {
+                var mikrotikId = $('#mikroTikSelect').val();
+                if (mikrotikId) generateIPForMikroTik(mikrotikId);
+                else alert('يرجى اختيار خادم MikroTik أولاً');
+            });
+
+            $('#btnGetElevation').on('click', function() {
+                requestElevationFromCurrentInputs(true);
+            });
+        });
+
+        function generateIPForMikroTik(mikrotikId) {
+            if (!mikrotikId) return;
+            var btn = document.getElementById('btnGenerateIP');
+            var originalHtml = btn.innerHTML;
+            var currentIp = encodeURIComponent(document.getElementById('ipAddressInput').value || '');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+            fetch(`${getNextIpUrl}?mikrotikServerId=${mikrotikId}&currentIP=${currentIp}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) document.getElementById('ipAddressInput').value = data.nextIP;
+                    else alert('حدث خطأ في توليد IP: ' + data.message);
+                })
+                .catch(() => alert('حدث خطأ في الاتصال بالخادم'))
+                .finally(() => { btn.innerHTML = originalHtml; btn.disabled = false; });
+        }
+
+        function requestElevationFromCurrentInputs(manualTrigger) {
+            var lat = parseFloat(document.getElementById('latitudeInput').value);
+            var lng = parseFloat(document.getElementById('longitudeInput').value);
+            if (isNaN(lat) || isNaN(lng)) {
+                if (manualTrigger) alert('يرجى إدخال إحداثيات صحيحة أولاً.');
+                return;
+            }
+            fetchElevationForLocation(lat, lng, manualTrigger);
+        }
+
+        function fetchElevationForLocation(lat, lng, manualTrigger) {
+            var elevationInput = document.getElementById('elevationInput');
+            var btn = document.getElementById('btnGetElevation');
+            var originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            fetch(`${getElevationUrl}?lat=${lat}&lng=${lng}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        elevationInput.value = Number(data.elevation).toFixed(2);
+                    } else if (manualTrigger) {
+                        alert(data.message || 'تعذر جلب الارتفاع.');
+                    }
+                })
+                .catch(function () {
+                    if (manualTrigger) alert('تعذر الاتصال بخدمة الارتفاع.');
+                })
+                .finally(() => { btn.disabled = false; btn.innerHTML = originalHtml; });
+        }
+
+        function queueAutoElevationFetch(lat, lng) {
+            if (elevationFetchTimer) clearTimeout(elevationFetchTimer);
+            elevationFetchTimer = setTimeout(function() { fetchElevationForLocation(lat, lng, false); }, 400);
+        }
+
+        var mapInstance = null;
+        var markerInstance = null;
+        var coverageLayersInstance = [];
+        var wifiIcon = null;
+        var coordsPanel = null;
+
+        function isValidCoordinate(lat, lng) {
+            return MapCoordinatesPanel.isValidCoordinate(lat, lng);
+        }
+
+        function clearCoverageLayers() {
+            if (!mapInstance) return;
+            coverageLayersInstance.forEach(function(layer) {
+                if (layer && mapInstance.hasLayer(layer)) mapInstance.removeLayer(layer);
+            });
+            coverageLayersInstance = [];
+        }
+
+        function drawCoverageArea(lat, lng) {
+            if (!mapInstance) return;
+            var direction = parseFloat(document.getElementById('directionInput').value) || 0;
+            var angle = parseFloat(document.getElementById('angleInput').value) || 60;
+            var range = parseFloat(document.getElementById('rangeInput').value) || 5;
+            var layersCount = 10;
+            var startAngleRad = (direction - angle / 2) * Math.PI / 180;
+            var endAngleRad = (direction + angle / 2) * Math.PI / 180;
+            for (var i = 0; i < layersCount; i++) {
+                var innerRadius = (i / layersCount) * range * 1000;
+                var outerRadius = ((i + 1) / layersCount) * range * 1000;
+                var colorRatio = i / (layersCount - 1);
+                var color = 'rgb(' + Math.floor(255 * colorRatio) + ',' + Math.floor(255 * (1 - colorRatio)) + ',0)';
+                var sector = createSector([lat, lng], innerRadius, outerRadius, startAngleRad, endAngleRad, color);
+                coverageLayersInstance.push(sector);
+                sector.addTo(mapInstance);
+            }
+        }
+
+        function createSector(center, innerRadius, outerRadius, startAngle, endAngle, color) {
+            var points = [];
+            for (var i = 0; i <= 20; i++) {
+                var a = startAngle + (endAngle - startAngle) * i / 20;
+                points.push(calculatePoint(center, innerRadius, a));
+            }
+            for (var j = 20; j >= 0; j--) {
+                var b = startAngle + (endAngle - startAngle) * j / 20;
+                points.push(calculatePoint(center, outerRadius, b));
+            }
+            points.push(points[0]);
+            return L.polygon(points, { color: color, fillColor: color, fillOpacity: 0.3, weight: 1 });
+        }
+
+        function calculatePoint(center, radius, bearingRad) {
+            var lat = center[0] + (radius / 111320) * Math.cos(bearingRad);
+            var lng = center[1] + (radius / (111320 * Math.cos(center[0] * Math.PI / 180))) * Math.sin(bearingRad);
+            return [lat, lng];
+        }
+
+        function setSectorLocation(lat, lng, options) {
+            options = options || {};
+            if (!isValidCoordinate(lat, lng) || !mapInstance) return false;
+
+            if (markerInstance && mapInstance.hasLayer(markerInstance)) mapInstance.removeLayer(markerInstance);
+            clearCoverageLayers();
+            markerInstance = L.marker([lat, lng], { icon: wifiIcon }).addTo(mapInstance).bindPopup(sectorEditPopupTitle).openPopup();
+            drawCoverageArea(lat, lng);
+
+            if (options.fly !== false) {
+                mapInstance.flyTo([lat, lng], Math.max(mapInstance.getZoom(), 15), { duration: 0.6 });
+            }
+
+            queueAutoElevationFetch(lat, lng);
+            return true;
+        }
+
+        function initializeCoordinateControls() {
+            coordsPanel = MapCoordinatesPanel.init({
+                applyLocation: function(lat, lng, options) {
+                    return setSectorLocation(lat, lng, options);
+                }
+            });
+        }
+
+        function initializeMap() {
+            if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+            var defaultLat = 35.5200;
+            var defaultLng = 35.7800;
+            if (typeof L === 'undefined') {
+                document.getElementById('map').innerHTML = '<div class="sector-create-map-fallback">خطأ في تحميل الخريطة</div>';
+                initializeCoordinateControls();
+                return;
+            }
+            try {
+                mapInstance = L.map('map', { zoomControl: true, attributionControl: true }).setView([defaultLat, defaultLng], 15);
+                var streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 });
+                var satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] });
+                var terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17 });
+                streetLayer.addTo(mapInstance);
+                wifiIcon = L.AwesomeMarkers.icon({ icon: 'wifi', markerColor: 'blue', prefix: 'fa', iconColor: 'white' });
+                initializeCoordinateControls();
+
+                var startLat = sectorEditHasSavedCoords && isValidCoordinate(sectorEditInitLat, sectorEditInitLng) ? sectorEditInitLat : defaultLat;
+                var startLng = sectorEditHasSavedCoords && isValidCoordinate(sectorEditInitLat, sectorEditInitLng) ? sectorEditInitLng : defaultLng;
+                coordsPanel.applyCoordinates(startLat, startLng, { source: 'map', fly: false, showStatus: false, updatePaste: true });
+
+                mapInstance.on('click', function(e) {
+                    coordsPanel.notifyMapSelection(e.latlng.lat, e.latlng.lng);
+                });
+
+                document.querySelectorAll('.map-type-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        document.querySelectorAll('.map-type-btn').forEach(btn => btn.classList.remove('active'));
+                        this.classList.add('active');
+                        mapInstance.removeLayer(streetLayer);
+                        mapInstance.removeLayer(satelliteLayer);
+                        mapInstance.removeLayer(terrainLayer);
+                        var type = this.getAttribute('data-map-type');
+                        if (type === 'satellite') satelliteLayer.addTo(mapInstance);
+                        else if (type === 'terrain') terrainLayer.addTo(mapInstance);
+                        else streetLayer.addTo(mapInstance);
+                    });
+                });
+
+                ['directionInput', 'angleInput', 'rangeInput'].forEach(id => {
+                    document.getElementById(id).addEventListener('input', function() {
+                        var lat = parseFloat(document.getElementById('latitudeInput').value);
+                        var lng = parseFloat(document.getElementById('longitudeInput').value);
+                        if (isValidCoordinate(lat, lng)) {
+                            clearCoverageLayers();
+                            drawCoverageArea(lat, lng);
+                        }
+                    });
+                });
+
+            } catch (error) {
+                console.error('حدث خطأ في تهيئة الخريطة:', error);
+                var mapElement = document.getElementById('map');
+                if (mapElement) mapElement.innerHTML = '<div class="sector-create-map-fallback">خطأ: ' + error.message + '</div>';
+            }
+        }
+    </script>
+}

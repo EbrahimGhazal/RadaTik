@@ -1,0 +1,86 @@
+@model RadaTik.ViewModels.CollectionPoints.CollectionPointDetailsViewModel
+
+@{
+    ViewData["Title"] = "تفاصيل نقطة التحصيل";
+}
+
+<div class="financial-page financial-hub-page">
+    @{
+        ViewBag.FinancialNavShowWarehouse = false;
+        ViewBag.FinancialNavCurrent = "collection";
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-info-circle";
+        ViewBag.FinancialHeroTheme = "default";
+        ViewBag.FinancialHeroSubtitle = Model.UserName + " — عمليات التحصيل";
+    }
+    <partial name="_FinancialSysHero" />
+
+<div class="card mb-3">
+    <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-1">نقطة التحصيل: @Model.UserName</h5>
+            <p class="mb-0 text-muted">معرّف المستخدم: @Model.UserId</p>
+        </div>
+        <div class="text-end">
+            <div class="text-muted">الرصيد الحالي:</div>
+            <div class="fw-bold">@Model.CurrentBalance.ToString("0.##")</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-receipt"></i>
+            سجل عمليات التحصيل
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0 radtk-data-table radtk-data-table--cards">
+                <thead class="table-light">
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>اسم المشترك</th>
+                        <th>المبلغ المدفوع</th>
+                        <th>رصيد العميل قبل</th>
+                        <th>رصيد العميل بعد</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Transactions != null && Model.Transactions.Any())
+                    {
+                        @foreach (var t in Model.Transactions)
+                        {
+                            <tr>
+                                <td>@t.PaymentDate.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td>@(t.Client?.Name ?? $"عميل رقم {t.ClientId}")</td>
+                                <td>@t.Amount.ToString("0.##")</td>
+                                <td>@t.PreviousClientBalance.ToString("0.##")</td>
+                                <td>@t.NewClientBalance.ToString("0.##")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">
+                                لا توجد عمليات تحصيل مسجلة لهذه النقطة.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3">
+    <a asp-action="Index" class="btn btn-secondary micro-btn">
+        <i class="fas fa-arrow-right"></i> رجوع لقائمة نقاط التحصيل
+    </a>
+</div>
+</div>
+

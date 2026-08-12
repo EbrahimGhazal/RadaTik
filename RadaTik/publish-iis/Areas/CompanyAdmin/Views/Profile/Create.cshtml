@@ -1,0 +1,888 @@
+@model RadaTik.Models.Profile
+@{
+    ViewData["Title"] = "إنشاء بروفايل جديد";
+    var profileCreateUnitPrice = (decimal?)(ViewBag.ProfileCreateUnitPrice) ?? 0m;
+    var systemProfileVatPercentage = (decimal?)(ViewBag.SystemProfileVatPercentage) ?? 15m;
+    var hasProfileCreatePricing = (bool?)(ViewBag.ProfileCreateHasInitial) == true;
+    var profileCreateInitialPrice = (decimal?)(ViewBag.ProfileCreateInitialSyp) ?? profileCreateUnitPrice;
+    var hasProfileCreateRenewalPricing = (bool?)(ViewBag.ProfileCreateHasRenewal) == true;
+    var profileCreateRenewalPrice = (decimal?)(ViewBag.ProfileCreateRenewalSyp) ?? 0m;
+    var profileCreateRenewalPeriodLabel = (string?)ViewBag.ProfileCreateRenewalPeriodLabel;
+    var profileCreateCompanyName = (string?)ViewBag.ProfileCreateCompanyName ?? "غير محدد";
+    var profileCreateTotalCount = (int?)(ViewBag.ProfileCreateTotalCount) ?? 0;
+    var profileCreateFreeInitialUnits = (int?)(ViewBag.ProfileCreateFreeInitialUnits) ?? 0;
+    var profileCreateFreeRenewalUnits = (int?)(ViewBag.ProfileCreateFreeRenewalUnits) ?? 0;
+    var profileCreateShouldChargeNow = (bool?)(ViewBag.ProfileCreateShouldChargeNow) ?? false;
+}
+<div class="radtk-page--companyadmin-views-profile-create">
+<div class="profile-create-container">
+    <div class="card shadow-lg border-0">
+        <div class="profile-header">
+            <h4>
+                <i class="fas fa-plus-circle"></i>
+                إنشاء بروفايل جديد
+            </h4>
+        </div>
+
+        @if (!profileCreateShouldChargeNow)
+        {
+            <div class="alert alert-success m-3 mb-0" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                <ul class="mb-0 mt-1 ms-3">
+                    <li>يتم احتساب مبلغ قدره <strong>@SyrianCurrencyHelper.FormatNew(profileCreateInitialPrice) ل.س.ج</strong>.</li>
+                    <li>يتم تجديد الخدمة بمبلغ قدره <strong>@SyrianCurrencyHelper.FormatNew(profileCreateRenewalPrice) ل.س.ج</strong> كل <strong>@(string.IsNullOrWhiteSpace(profileCreateRenewalPeriodLabel) ? "غير محدد" : profileCreateRenewalPeriodLabel)</strong>.</li>
+                    <li>عدد المرات المجانية قبل بدء احتساب الإنشاء: <strong>@profileCreateFreeInitialUnits</strong>.</li>
+                    <li>عدد المرات المجانية قبل بدء احتساب التجديد: <strong>@profileCreateFreeRenewalUnits</strong>.</li>
+                </ul>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning m-3 mb-0" role="alert">
+                <i class="fas fa-coins me-2"></i>
+                <div>هذا بروفايل إضافي للشركة <strong>@profileCreateCompanyName</strong> (عدد البروفايلات الحالية: @profileCreateTotalCount).</div>
+                <ul class="small mb-0 mt-2 ms-3">
+                    <li>يتم احتساب مبلغ قدره <strong>@SyrianCurrencyHelper.FormatNew(profileCreateInitialPrice) ل.س.ج</strong>.</li>
+                    <li>يتم تجديد الخدمة بمبلغ قدره <strong>@SyrianCurrencyHelper.FormatNew(profileCreateRenewalPrice) ل.س.ج</strong> كل <strong>@(string.IsNullOrWhiteSpace(profileCreateRenewalPeriodLabel) ? "غير محدد" : profileCreateRenewalPeriodLabel)</strong>.</li>
+                    <li>عدد المرات المجانية قبل بدء احتساب الإنشاء: <strong>@profileCreateFreeInitialUnits</strong>.</li>
+                    <li>عدد المرات المجانية قبل بدء احتساب التجديد: <strong>@profileCreateFreeRenewalUnits</strong>.</li>
+                </ul>
+            </div>
+        }
+        @if (!hasProfileCreatePricing || !hasProfileCreateRenewalPricing)
+        {
+            <div class="alert alert-danger m-3 mb-0" role="alert">
+                <i class="fas fa-triangle-exclamation me-2"></i>
+                إعدادات تسعير البروفايلات غير مكتملة من مدير النظام.
+            </div>
+        }
+
+        <form asp-action="Create" id="createForm" class="radtk-form">
+            @Html.AntiForgeryToken()
+
+            <!-- رسائل الخطأ -->
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger m-3" role="alert">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-exclamation-triangle me-2"></i>يوجد أخطاء في النموذج
+                    </h5>
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                </div>
+            }
+
+            <!-- شريط التبويبات المحسّن -->
+            <div class="tabs-wrapper">
+                <ul class="nav nav-tabs" id="profileTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab">
+                            <i class="fas fa-info-circle"></i>
+                            <span>المعلومات الأساسية</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="financial-tab" data-bs-toggle="tab" data-bs-target="#financial" type="button" role="tab">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>المعلومات المالية</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="mikrotik-tab" data-bs-toggle="tab" data-bs-target="#mikrotik" type="button" role="tab">
+                            <i class="fas fa-server"></i>
+                            <span>إعدادات MikroTik</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab">
+                            <i class="fas fa-cog"></i>
+                            <span>إعدادات متقدمة</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+                        <!-- محتوى التبويبات -->
+                        <div class="tab-content" id="profileTabsContent">
+                            <!-- التبويب 1: المعلومات الأساسية -->
+                            <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                                <div class="row g-4">
+                                    <div class="col-lg-6">
+                                        <div class="form-section">
+                                            <div class="form-section-title">
+                                                <i class="fas fa-info-circle text-primary"></i>
+                                                البيانات الأساسية
+                                            </div>
+
+                                            <div class="mb-4">
+                                                <label asp-for="Name" class="form-label required">
+                                                    <i class="fas fa-tag"></i>
+                                                    اسم البروفايل
+                                                </label>
+                                                <input asp-for="Name" class="form-control" placeholder="أدخل اسم البروفايل" />
+                                                <span asp-validation-for="Name" class="text-danger small d-block mt-1"></span>
+                                                <small class="form-text text-muted mt-1 d-block">
+                                                    <i class="fas fa-info-circle"></i> @ViewData["Name_Description"]
+                                                </small>
+                                            </div>
+
+                                            <div class="mb-4">
+                                                <label asp-for="Description" class="form-label">
+                                                    <i class="fas fa-align-right"></i>
+                                                    الوصف
+                                                </label>
+                                                <textarea asp-for="Description" class="form-control" rows="4" placeholder="وصف مختصر للبروفايل والخدمات المقدمة"></textarea>
+                                                <span asp-validation-for="Description" class="text-danger small d-block mt-1"></span>
+                                                <small class="form-text text-muted mt-1 d-block">
+                                                    <i class="fas fa-info-circle"></i> @ViewData["Description_Description"]
+                                                </small>
+                                            </div>
+
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label asp-for="Type" class="form-label required">
+                                                            <i class="fas fa-layer-group"></i>
+                                                            نوع البروفايل
+                                                        </label>
+                                                        <select asp-for="Type" class="form-select" asp-items="Html.GetEnumSelectList<ProfileType>()">
+                                                            <option value="">-- اختر النوع --</option>
+                                                        </select>
+                                                        <span asp-validation-for="Type" class="text-danger small d-block mt-1"></span>
+                                                        <small class="form-text text-muted mt-1 d-block">
+                                                            <i class="fas fa-info-circle"></i> @ViewData["Type_Description"]
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label asp-for="BillingCycle" class="form-label required">
+                                                            <i class="fas fa-calendar-alt"></i>
+                                                            دورة الفاتورة
+                                                        </label>
+                                                        <select asp-for="BillingCycle" class="form-select" asp-items="Html.GetEnumSelectList<BillingCycle>()">
+                                                            <option value="">-- اختر دورة الفاتورة --</option>
+                                                        </select>
+                                                        <span asp-validation-for="BillingCycle" class="text-danger small d-block mt-1"></span>
+                                                        <small class="form-text text-muted mt-1 d-block">
+                                                            <i class="fas fa-info-circle"></i> @ViewData["BillingCycle_Description"]
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-lg-6">
+                                        <div class="info-card">
+                                            <h5>
+                                                <i class="fas fa-lightbulb me-2"></i>نصائح مهمة
+                                            </h5>
+                                            <ul>
+                                                <li><i class="fas fa-check-circle text-success me-2"></i>اختر اسماً واضحاً يصف البروفايل</li>
+                                                <li><i class="fas fa-check-circle text-success me-2"></i>تأكد من اختيار النوع المناسب للخدمة</li>
+                                                <li><i class="fas fa-check-circle text-success me-2"></i>اكتب وصفاً مختصراً للبروفايل</li>
+                                                <li><i class="fas fa-check-circle text-success me-2"></i>اختر دورة الفاتورة المناسبة للخدمة</li>
+                                            </ul>
+                                        </div>
+
+                                        <div class="form-section">
+                                            <div class="form-section-title">
+                                                <i class="fas fa-toggle-on text-success"></i>
+                                                إعدادات التفعيل
+                                            </div>
+
+                                            <div class="form-check form-switch mb-3 p-3 bg-white rounded" dir="ltr">
+                                                <input asp-for="IsActive" class="form-check-input" type="checkbox" id="isActiveSwitch" checked style="transform: scale(1.3);">
+                                                <label class="form-check-label fw-bold" for="isActiveSwitch">
+                                                    تفعيل البروفايل
+                                                </label>
+                                                <small class="form-text text-muted d-block mt-2">
+                                                    <i class="fas fa-info-circle"></i> @ViewData["IsActive_Description"]
+                                                </small>
+                                            </div>
+
+                                            <div class="form-check form-switch mb-3 p-3 bg-white rounded" dir="ltr">
+                                                <input asp-for="IsForNewClients" class="form-check-input" type="checkbox" id="isForNewClientsSwitch" checked style="transform: scale(1.3);">
+                                                <label class="form-check-label fw-bold" for="isForNewClientsSwitch">
+                                                    متاح للعملاء الجدد
+                                                </label>
+                                                <small class="form-text text-muted d-block mt-2">
+                                                    <i class="fas fa-info-circle"></i> @ViewData["IsForNewClients_Description"]
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- التبويب 2: المعلومات المالية -->
+                            <div class="tab-pane fade" id="financial" role="tabpanel">
+                                <div class="row g-4">
+                                    <div class="col-lg-6">
+                                        <div class="form-section">
+                                            <div class="form-section-title">
+                                                <i class="fas fa-money-bill-wave text-success"></i>
+                                                معلومات التسعير
+                                            </div>
+
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <div class="mb-4">
+                                                        <label asp-for="Price" class="form-label required">
+                                                            <i class="fas fa-coins"></i>
+                                                            السعر
+                                                        </label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text bg-light">
+                                                                <i class="fas fa-lira-sign"></i> ل.س جديد
+                                                            </span>
+                                                            <input asp-for="Price" class="form-control" type="number" step="0.01" min="0" id="priceInput" readonly />
+                                                            <button type="button" class="btn btn-outline-secondary" id="editPriceBtn" title="تعديل السعر يدوياً">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                        </div>
+                                                        <span asp-validation-for="Price" class="text-danger small d-block mt-1"></span>
+                                                        <small class="form-text text-muted mt-2 d-block">
+                                                            <i class="fas fa-info-circle"></i>
+                                                            السعر يُحسب تلقائياً: 1 ميغابت = 500 ل.س جديد
+                                                            <br />
+                                                            <span id="oldPriceHint" class="text-info fw-bold">
+                                                                <i class="fas fa-coins me-1"></i>
+                                                                القيمة بالليرة القديمة: <strong id="oldPriceValue">0</strong> ل.س
+                                                            </span>
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-4">
+                                                        <label asp-for="VATPercentage" class="form-label">
+                                                            <i class="fas fa-percent"></i>
+                                                            ضريبة القيمة المضافة
+                                                        </label>
+                                                        <div class="input-group">
+                                                            <input asp-for="VATPercentage" class="form-control" type="number" step="0.01" min="0" max="100" value="@systemProfileVatPercentage" readonly />
+                                                            <span class="input-group-text bg-light">%</span>
+                                                        </div>
+                                                        <span asp-validation-for="VATPercentage" class="text-danger small d-block mt-1"></span>
+                                                        <small class="form-text text-muted mt-1 d-block">
+                                                            <i class="fas fa-info-circle"></i> يتم تحديد هذه الضريبة من مدير النظام وتُطبّق تلقائياً.
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="price-display-card">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <strong>
+                                                        <i class="fas fa-calculator me-2"></i>
+                                                        السعر بعد الضريبة:
+                                                    </strong>
+                                                    <span id="priceWithVAT" class="fs-4">0 ل.س جديد</span>
+                                                </div>
+                                                <div class="text-muted small">
+                                                    <i class="fas fa-coins me-1"></i>
+                                                    القيمة بالليرة القديمة: <strong id="priceWithVATOld">0</strong> ل.س
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-section">
+                                            <div class="form-section-title">
+                                                <i class="fas fa-tachometer-alt text-primary"></i>
+                                                سرعات الاتصال
+                                            </div>
+
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label asp-for="DownloadSpeed" class="form-label required">
+                                                            <i class="fas fa-download"></i>
+                                                            سرعة التنزيل
+                                                        </label>
+                                                        <div class="input-group">
+                                                            <input asp-for="DownloadSpeed" class="form-control" type="number" min="1" value="10" placeholder="رقم صحيح" />
+                                                            <select asp-for="DownloadSpeedUnit" asp-items="Html.GetEnumSelectList<RadaTik.Models.SpeedUnit>()" class="form-select" style="max-width: 110px;"></select>
+                                                        </div>
+                                                        <span asp-validation-for="DownloadSpeed" class="text-danger small d-block mt-1"></span>
+                                                        <small class="form-text text-muted mt-1 d-block">
+                                                            <i class="fas fa-info-circle"></i> رقم صحيح + الوحدة (Kbps, Mbps, Gbps)
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label asp-for="UploadSpeed" class="form-label">
+                                                            <i class="fas fa-upload"></i>
+                                                            سرعة الرفع
+                                                        </label>
+                                                        <div class="input-group">
+                                                            <input asp-for="UploadSpeed" class="form-control" type="number" min="1" value="10" placeholder="اختياري" />
+                                                            <select asp-for="UploadSpeedUnit" class="form-select" style="max-width: 110px;">
+                                                                <option value="">نفس التنزيل</option>
+                                                                @foreach (var e in Enum.GetValues<RadaTik.Models.SpeedUnit>())
+                                                                {
+                                                                    <option value="@((int)e)">@e</option>
+                                                                }
+                                                            </select>
+                                                        </div>
+                                                        <span asp-validation-for="UploadSpeed" class="text-danger small d-block mt-1"></span>
+                                                        <small class="form-text text-muted mt-1 d-block">
+                                                            <i class="fas fa-info-circle"></i> اتركه فارغاً لاستخدام نفس سرعة التنزيل
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-lg-6">
+                                        <div class="form-section">
+                                            <div class="form-section-title">
+                                                <i class="fas fa-sliders-h text-info"></i>
+                                                حدود الاستخدام
+                                            </div>
+
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label asp-for="DataLimit" class="form-label">
+                                                            <i class="fas fa-database"></i>
+                                                            حد البيانات
+                                                        </label>
+                                                        <div class="input-group">
+                                                            <input asp-for="DataLimit" class="form-control" type="number" step="1" min="0" />
+                                                            <span class="input-group-text bg-light">GB</span>
+                                                        </div>
+                                                        <span asp-validation-for="DataLimit" class="text-danger small d-block mt-1"></span>
+                                                        <small class="form-text text-muted mt-1 d-block">
+                                                            <i class="fas fa-info-circle"></i> @ViewData["DataLimit_Description"]
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label asp-for="TimeLimit" class="form-label">
+                                                            <i class="fas fa-clock"></i>
+                                                            حد الوقت
+                                                        </label>
+                                                        <div class="input-group">
+                                                            <input asp-for="TimeLimit" class="form-control" type="number" step="1" min="0" max="744" />
+                                                            <span class="input-group-text bg-light">ساعة</span>
+                                                        </div>
+                                                        <span asp-validation-for="TimeLimit" class="text-danger small d-block mt-1"></span>
+                                                        <small class="form-text text-muted mt-1 d-block">
+                                                            <i class="fas fa-info-circle"></i> @ViewData["TimeLimit_Description"]
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="row g-3 mt-2">
+                                                <div class="col-md-6">
+                                                    <div class="form-check form-switch p-3 bg-white rounded" dir="ltr">
+                                                        <input asp-for="IsDataCapped" class="form-check-input" type="checkbox" id="isDataCappedSwitch" style="transform: scale(1.3);">
+                                                        <label class="form-check-label fw-bold" for="isDataCappedSwitch">
+                                                            <i class="fas fa-database me-2"></i>تحديد البيانات
+                                                        </label>
+                                                        <small class="form-text text-muted d-block mt-2">
+                                                            <i class="fas fa-info-circle"></i> @ViewData["IsDataCapped_Description"]
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-check form-switch p-3 bg-white rounded" dir="ltr">
+                                                        <input asp-for="IsTimeCapped" class="form-check-input" type="checkbox" id="isTimeCappedSwitch" style="transform: scale(1.3);">
+                                                        <label class="form-check-label fw-bold" for="isTimeCappedSwitch">
+                                                            <i class="fas fa-clock me-2"></i>تحديد الوقت
+                                                        </label>
+                                                        <small class="form-text text-muted d-block mt-2">
+                                                            <i class="fas fa-info-circle"></i> @ViewData["IsTimeCapped_Description"]
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-3 mt-3">
+                                                <label asp-for="MaxUsers" class="form-label">
+                                                    <i class="fas fa-users"></i>
+                                                    الحد الأقصى للمستخدمين
+                                                </label>
+                                                <input asp-for="MaxUsers" class="form-control" type="number" min="1" max="1000" value="1" />
+                                                <span asp-validation-for="MaxUsers" class="text-danger small d-block mt-1"></span>
+                                                <small class="form-text text-muted mt-1 d-block">
+                                                    <i class="fas fa-info-circle"></i> @ViewData["MaxUsers_Description"]
+                                                </small>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    <label asp-for="MinDevices" class="form-label">
+                                                        <i class="fas fa-mobile-alt"></i>
+                                                        عدد الأجهزة الأدنى
+                                                    </label>
+                                                    <input asp-for="MinDevices" class="form-control" type="number" min="0" max="100" value="1" />
+                                                    <span asp-validation-for="MinDevices" class="text-danger small d-block mt-1"></span>
+                                                    <small class="form-text text-muted mt-1 d-block">
+                                                        الحد الأدنى للأجهزة المتصلة - يساعد المستخدم في اختيار الخطة
+                                                    </small>
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label asp-for="MaxDevices" class="form-label">
+                                                        <i class="fas fa-laptop"></i>
+                                                        عدد الأجهزة الأقصى
+                                                    </label>
+                                                    <input asp-for="MaxDevices" class="form-control" type="number" min="1" max="100" value="1" />
+                                                    <span asp-validation-for="MaxDevices" class="text-danger small d-block mt-1"></span>
+                                                    <small class="form-text text-muted mt-1 d-block">
+                                                        الحد الأقصى للأجهزة المتصلة - يساعد المستخدم في اختيار الخطة
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- التبويب 3: إعدادات MikroTik -->
+                            <div class="tab-pane fade" id="mikrotik" role="tabpanel">
+                                <div class="row g-4">
+                                    <div class="col-lg-6">
+                                        <div class="tips-card">
+                                            <h5>
+                                                <i class="fas fa-layer-group me-2"></i>كتالوج الشركة
+                                            </h5>
+                                            <p class="mb-0">
+                                                يُعرَّف البروفايل مرة واحدة على مستوى الشركة، ثم يُنشر على السيرفرات التي تختارها.
+                                                الاسم يجب أن يكون فريداً داخل الشركة (وليس لكل سيرفر على حدة).
+                                            </p>
+                                        </div>
+
+                                        <div class="form-section">
+                                            <div class="form-section-title">
+                                                <i class="fas fa-server text-primary"></i>
+                                                نشر على السيرفرات <span class="text-danger">*</span>
+                                            </div>
+
+                                            @{
+                                                var selectedIds = ViewBag.SelectedDeployServerIds as int[] ?? Array.Empty<int>();
+                                                var servers = ViewBag.MikroTikServers as IEnumerable<RadaTik.Models.MikroTikServer> ?? Enumerable.Empty<RadaTik.Models.MikroTikServer>();
+                                            }
+                                            @if (!servers.Any())
+                                            {
+                                                <p class="text-danger small mb-0">لا توجد سيرفرات MikroTik نشطة في نطاق شركتك.</p>
+                                            }
+                                            else
+                                            {
+                                                <div class="row g-2 mb-3">
+                                                    @foreach (var server in servers)
+                                                    {
+                                                        var isChecked = selectedIds.Contains(server.Id);
+                                                        <div class="col-md-6">
+                                                            <div class="form-check border rounded p-2">
+                                                                <input class="form-check-input deploy-server-check" type="checkbox" name="deployToServerIds" value="@server.Id" id="deploy_srv_@server.Id" @(isChecked ? "checked" : null) />
+                                                                <label class="form-check-label" for="deploy_srv_@server.Id">
+                                                                    <strong>@(server.Name ?? $"#{server.Id}")</strong>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <small class="form-text text-muted">
+                                                    <i class="fas fa-info-circle"></i>
+                                                    يمكنك لاحقاً نشر نفس البروفايل على سيرفرات إضافية من صفحة «نشر على سيرفرات».
+                                                </small>
+                                            }
+                                            <input type="hidden" asp-for="MikroTikServerId" id="MikroTikServerId" />
+
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label asp-for="MikroTikLocalAddress" class="form-label">
+                                                            <i class="fas fa-network-wired"></i>
+                                                            Local Address
+                                                        </label>
+                                                        <input asp-for="MikroTikLocalAddress" class="form-control" placeholder="مثال: 192.168.1.1" />
+                                                        <span asp-validation-for="MikroTikLocalAddress" class="text-danger small d-block mt-1"></span>
+                                                        <small class="form-text text-muted mt-1 d-block">
+                                                            <i class="fas fa-info-circle"></i> @ViewData["MikroTikLocalAddress_Description"]
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label asp-for="MikroTikRemoteAddress" class="form-label">
+                                                            <i class="fas fa-globe"></i>
+                                                            Remote Address
+                                                        </label>
+                                                        <input asp-for="MikroTikRemoteAddress" class="form-control" placeholder="مثال: 192.168.1.100" />
+                                                        <span asp-validation-for="MikroTikRemoteAddress" class="text-danger small d-block mt-1"></span>
+                                                        <small class="form-text text-muted mt-1 d-block">
+                                                            <i class="fas fa-info-circle"></i> @ViewData["MikroTikRemoteAddress_Description"]
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label asp-for="MikroTikRateLimit" class="form-label">
+                                                    <i class="fas fa-tachometer-alt"></i>
+                                                    Rate Limit
+                                                </label>
+                                                <div class="input-group">
+                                                    <input asp-for="MikroTikRateLimit" class="form-control" placeholder="مثال: 10M/10M" id="rateLimitInput" />
+                                                    <button type="button" class="btn btn-outline-primary" onclick="calculateRateLimit()">
+                                                        <i class="fas fa-calculator"></i> حساب تلقائي
+                                                    </button>
+                                                </div>
+                                                <span asp-validation-for="MikroTikRateLimit" class="text-danger small d-block mt-1"></span>
+                                                <small class="form-text text-muted mt-1 d-block">
+                                                    <i class="fas fa-info-circle"></i> @ViewData["MikroTikRateLimit_Description"]
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-lg-6">
+                                        <div class="form-section">
+                                            <div class="form-section-title">
+                                                <i class="fas fa-cogs text-info"></i>
+                                                إعدادات الخدمة
+                                            </div>
+
+                                            <div class="mb-4">
+                                                <label asp-for="MikroTikService" class="form-label">
+                                                    <i class="fas fa-plug"></i>
+                                                    نوع الخدمة
+                                                </label>
+                                                <select asp-for="MikroTikService" class="form-select">
+                                                    <option value="pppoe">PPPoE</option>
+                                                    <option value="pptp">PPTP</option>
+                                                    <option value="l2tp">L2TP</option>
+                                                </select>
+                                                <span asp-validation-for="MikroTikService" class="text-danger small d-block mt-1"></span>
+                                                <small class="form-text text-muted mt-1 d-block">
+                                                    <i class="fas fa-info-circle"></i> @ViewData["MikroTikService_Description"]
+                                                </small>
+                                            </div>
+
+                                            <div class="form-check form-switch p-3 bg-white rounded mb-4" dir="ltr">
+                                                <input asp-for="MikroTikOnlyOne" class="form-check-input" type="checkbox" id="mikroTikOnlyOneSwitch" checked style="transform: scale(1.3);">
+                                                <label class="form-check-label fw-bold" for="mikroTikOnlyOneSwitch">
+                                                    <i class="fas fa-user-lock me-2"></i>
+                                                    السماح باتصال واحد فقط
+                                                </label>
+                                                <small class="form-text text-muted d-block mt-2">
+                                                    <i class="fas fa-info-circle"></i> @ViewData["MikroTikOnlyOne_Description"]
+                                                </small>
+                                            </div>
+                                        </div>
+
+                                        <div class="info-card">
+                                            <h5>
+                                                <i class="fas fa-lightbulb me-2"></i>نصائح لـ MikroTik
+                                            </h5>
+                                            <ul>
+                                                <li><strong>Local Address:</strong> عنوان IP للخادم</li>
+                                                <li><strong>Remote Address:</strong> عنوان IP للعميل</li>
+                                                <li><strong>Rate Limit:</strong> صيغة "تنزيل/رفع" مثل "10M/5M"</li>
+                                                <li><strong>Service:</strong> نوع الخدمة (PPPoE هو الأكثر شيوعاً)</li>
+                                                <li><strong>Only One:</strong> يمنع الاتصال المتعدد</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- التبويب 4: إعدادات متقدمة -->
+                            <div class="tab-pane fade" id="advanced" role="tabpanel">
+                                <div class="row g-4">
+                                    <div class="col-lg-6">
+                                        <div class="form-section">
+                                            <div class="form-section-title">
+                                                <i class="fas fa-tv text-primary"></i>
+                                                إعدادات IPTV
+                                            </div>
+
+                                            <div class="mb-4">
+                                                <label asp-for="IPTVDevices" class="form-label">
+                                                    <i class="fas fa-tv"></i>
+                                                    عدد أجهزة IPTV
+                                                </label>
+                                                <input asp-for="IPTVDevices" class="form-control" type="number" min="1" max="10" />
+                                                <span asp-validation-for="IPTVDevices" class="text-danger small d-block mt-1"></span>
+                                                <small class="form-text text-muted mt-1 d-block">
+                                                    <i class="fas fa-info-circle"></i> @ViewData["IPTVDevices_Description"]
+                                                </small>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-section">
+                                            <div class="form-section-title">
+                                                <i class="fas fa-shield-alt text-warning"></i>
+                                                إعدادات الأمان
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label asp-for="AllowedPorts" class="form-label">
+                                                    <i class="fas fa-door-open"></i>
+                                                    البورتات المسموحة
+                                                </label>
+                                                <input asp-for="AllowedPorts" class="form-control" placeholder="مثال: 80,443,53" />
+                                                <span asp-validation-for="AllowedPorts" class="text-danger small d-block mt-1"></span>
+                                                <small class="form-text text-muted mt-1 d-block">
+                                                    <i class="fas fa-info-circle"></i> @ViewData["AllowedPorts_Description"]
+                                                </small>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label asp-for="AllowedAddresses" class="form-label">
+                                                    <i class="fas fa-map-marker-alt"></i>
+                                                    العناوين المسموحة
+                                                </label>
+                                                <input asp-for="AllowedAddresses" class="form-control" placeholder="مثال: 192.168.1.0/24" />
+                                                <span asp-validation-for="AllowedAddresses" class="text-danger small d-block mt-1"></span>
+                                                <small class="form-text text-muted mt-1 d-block">
+                                                    <i class="fas fa-info-circle"></i> @ViewData["AllowedAddresses_Description"]
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-lg-6">
+                                        <div class="form-section">
+                                            <div class="form-section-title">
+                                                <i class="fas fa-star text-success"></i>
+                                                الميزات الإضافية
+                                            </div>
+
+                                            <div class="mb-4">
+                                                <label asp-for="Features" class="form-label">
+                                                    <i class="fas fa-list"></i>
+                                                    الميزات
+                                                </label>
+                                                <textarea asp-for="Features" class="form-control" rows="5" placeholder="الميزات الإضافية للبروفايل مثل: VPN مخصص، دعم فني متميز، إلخ"></textarea>
+                                                <span asp-validation-for="Features" class="text-danger small d-block mt-1"></span>
+                                                <small class="form-text text-muted mt-1 d-block">
+                                                    <i class="fas fa-info-circle"></i> @ViewData["Features_Description"]
+                                                </small>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label asp-for="DisplayOrder" class="form-label">
+                                                    <i class="fas fa-sort-numeric-down"></i>
+                                                    ترتيب العرض
+                                                </label>
+                                                <input asp-for="DisplayOrder" class="form-control" type="number" value="0" />
+                                                <span asp-validation-for="DisplayOrder" class="text-danger small d-block mt-1"></span>
+                                                <small class="form-text text-muted mt-1 d-block">
+                                                    <i class="fas fa-info-circle"></i> @ViewData["DisplayOrder_Description"]
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+            <!-- أزرار التحكم -->
+            <div class="action-buttons">
+                <button type="button" class="btn btn-outline-secondary" id="prevTabBtn" onclick="previousTab()">
+                    <i class="fas fa-arrow-right me-2"></i>السابق
+                </button>
+
+                <div>
+                    <a asp-action="Index" class="btn btn-secondary me-2">
+                        <i class="fas fa-times me-2"></i>إلغاء
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>حفظ البروفايل
+                    </button>
+                </div>
+
+                <button type="button" class="btn btn-outline-primary" id="nextTabBtn" onclick="nextTab()">
+                    <i class="fas fa-arrow-left me-2"></i>التالي
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function () {
+            var isPriceEditable = false;
+            const PRICE_PER_MBPS = 500; // 1 ميغابت = 500 ليرة سورية جديدة
+
+            // حساب السعر تلقائياً بناءً على السرعة
+            function calculatePriceFromSpeed() {
+                if (!isPriceEditable) {
+                    var downloadSpeed = parseFloat($('#DownloadSpeed').val()) || 0;
+                    var calculatedPrice = downloadSpeed * PRICE_PER_MBPS;
+                    $('#priceInput').val(calculatedPrice.toFixed(2));
+                    updatePriceDisplay();
+                }
+            }
+
+            // تحديث عرض السعر والتلميحات
+            function updatePriceDisplay() {
+                var price = parseFloat($('#priceInput').val()) || 0;
+                var vat = parseFloat($('#VATPercentage').val()) || 0;
+                var priceWithVAT = price * (1 + vat / 100);
+                
+                // عرض السعر بعد الضريبة
+                $('#priceWithVAT').text(priceWithVAT.toFixed(2) + ' ل.س جديد');
+                
+                // عرض القيمة بالليرة القديمة (السعر * 100)
+                var oldPrice = price * 100;
+                var oldPriceWithVAT = priceWithVAT * 100;
+                $('#oldPriceValue').text(oldPrice.toLocaleString('ar-SY'));
+                $('#priceWithVATOld').text(oldPriceWithVAT.toLocaleString('ar-SY'));
+            }
+
+            // تفعيل/تعطيل تعديل السعر يدوياً
+            $('#editPriceBtn').on('click', function() {
+                isPriceEditable = !isPriceEditable;
+                if (isPriceEditable) {
+                    $('#priceInput').prop('readonly', false);
+                    $(this).html('<i class="fas fa-lock"></i>').removeClass('btn-outline-secondary').addClass('btn-warning');
+                    $(this).attr('title', 'حساب السعر تلقائياً من السرعة');
+                } else {
+                    $('#priceInput').prop('readonly', true);
+                    $(this).html('<i class="fas fa-edit"></i>').removeClass('btn-warning').addClass('btn-outline-secondary');
+                    $(this).attr('title', 'تعديل السعر يدوياً');
+                    calculatePriceFromSpeed();
+                }
+            });
+
+            // حساب السعر بعد الضريبة
+            function calculatePriceWithVAT() {
+                updatePriceDisplay();
+            }
+
+            // عند تغيير السرعة، احسب السعر تلقائياً
+            $('#DownloadSpeed').on('input', function() {
+                if (!isPriceEditable) {
+                    calculatePriceFromSpeed();
+                }
+            });
+
+            // عند تغيير السعر أو الضريبة، حدّث العرض
+            $('#priceInput, #VATPercentage').on('input', calculatePriceWithVAT);
+            
+            // حساب السعر الأولي
+            calculatePriceFromSpeed();
+            calculatePriceWithVAT();
+
+            // حساب Rate Limit تلقائياً
+            window.calculateRateLimit = function() {
+                var download = $('#DownloadSpeed').val() || 0;
+                var upload = $('#UploadSpeed').val() || download;
+
+                if (download > 0) {
+                    var rateLimit = download + 'M';
+                    if (upload > 0) {
+                        rateLimit += '/' + upload + 'M';
+                    }
+                    $('#rateLimitInput').val(rateLimit);
+                }
+            }
+
+            $('#DownloadSpeed, #UploadSpeed').on('input', calculateRateLimit);
+
+            // التنقل بين التبويبات - محسّن
+            var currentTab = 0;
+            var tabs = $('#profileTabs button');
+            var tabPanes = $('#profileTabsContent .tab-pane');
+
+            function showTab(n) {
+                // تحديث التبويبات
+                tabs.removeClass('active').eq(n).addClass('active');
+                tabPanes.removeClass('show active').eq(n).addClass('show active');
+                currentTab = n;
+
+                // تحديث الأزرار
+                var prevBtn = $('#prevTabBtn');
+                var nextBtn = $('#nextTabBtn');
+
+                if (currentTab === 0) {
+                    prevBtn.prop('disabled', true).addClass('disabled');
+                } else {
+                    prevBtn.prop('disabled', false).removeClass('disabled');
+                }
+
+                if (currentTab === tabs.length - 1) {
+                    nextBtn.prop('disabled', true).addClass('disabled');
+                } else {
+                    nextBtn.prop('disabled', false).removeClass('disabled');
+                }
+
+                // إضافة تأثير بسيط
+                tabPanes.eq(n).hide().fadeIn(300);
+            }
+
+            // دالة الانتقال للتبويب التالي
+            window.nextTab = function() {
+                if (currentTab < tabs.length - 1) {
+                    showTab(currentTab + 1);
+                    // تمرير سلس للتبويب
+                    $('html, body').animate({
+                        scrollTop: $('#profileTabs').offset().top - 20
+                    }, 300);
+                }
+            }
+
+            // دالة الانتقال للتبويب السابق
+            window.previousTab = function() {
+                if (currentTab > 0) {
+                    showTab(currentTab - 1);
+                    // تمرير سلس للتبويب
+                    $('html, body').animate({
+                        scrollTop: $('#profileTabs').offset().top - 20
+                    }, 300);
+                }
+            }
+
+            // إضافة مستمعات النقر على التبويبات
+            tabs.on('click', function() {
+                var index = tabs.index(this);
+                showTab(index);
+            });
+
+            // تهيئة الأزرار عند التحميل
+            showTab(0);
+
+            // التحقق من صحة النموذج قبل الإرسال
+            function syncHiddenServerId() {
+                var firstChecked = $('.deploy-server-check:checked').first().val();
+                $('#MikroTikServerId').val(firstChecked || '');
+            }
+
+            $('.deploy-server-check').on('change', syncHiddenServerId);
+            syncHiddenServerId();
+
+            $('#createForm').on('submit', function(e) {
+                var checkedCount = $('.deploy-server-check:checked').length;
+                if (checkedCount === 0) {
+                    alert('اختر سيرفراً واحداً على الأقل لنشر البروفايل.');
+                    e.preventDefault();
+                    return false;
+                }
+
+                syncHiddenServerId();
+                if (!confirm('سيتم إنشاء بروفايل الشركة ونشره على ' + checkedCount + ' سيرفر. هل تريد المتابعة؟')) {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // إظهار رسالة التحميل
+                var submitBtn = $(this).find('button[type="submit"]');
+                submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...').prop('disabled', true);
+                
+                return true;
+            });
+        });
+    </script>
+}

@@ -1,0 +1,53 @@
+@{
+    ViewData["Title"] = "غير مصرح";
+    ViewData["BodyClass"] = "access-denied-page";
+    var reason = Context.Request.Query["reason"].ToString();
+    var activeArea = Context.Request.Query["activeArea"].ToString();
+    var requestedArea = Context.Request.Query["requestedArea"].ToString();
+}
+
+<div class="container access-denied-wrap">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8 col-xl-7">
+            <div class="card access-denied-card">
+                <div class="card-body p-4 p-lg-5 text-center">
+                    <div class="access-denied-icon">
+                        <i class="fas fa-user-shield" aria-hidden="true"></i>
+                    </div>
+                    <div class="access-denied-code">403</div>
+                    <h1 class="h3 mb-3 fw-bold">ليس لديك صلاحية الوصول</h1>
+                    @if (string.Equals(reason, "areaSwitch", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <p class="text-muted mb-3">
+                            لا يمكن الانتقال بين واجهات النظام أثناء الجلسة الحالية.
+                            للانتقال إلى واجهة أخرى، سجّل الخروج ثم سجّل الدخول من جديد.
+                        </p>
+                        @if (!string.IsNullOrWhiteSpace(activeArea) && !string.IsNullOrWhiteSpace(requestedArea))
+                        {
+                            <div class="access-denied-meta">
+                                <span>الواجهة الحالية: <strong>@activeArea</strong></span>
+                                <span class="mx-2">|</span>
+                                <span>الواجهة المطلوبة: <strong>@requestedArea</strong></span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-3">
+                            إذا كنت ترى أن هذا الإجراء مسموح لك، يرجى التواصل مع مدير النظام.
+                        </p>
+                    }
+
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mt-4">
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">
+                            <i class="fas fa-home ms-1"></i> العودة للرئيسية
+                        </a>
+                        <a asp-route="reglog-login" class="btn btn-outline-primary">
+                            <i class="fas fa-sign-in-alt ms-1"></i> تسجيل الدخول
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

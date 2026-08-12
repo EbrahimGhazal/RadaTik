@@ -1,0 +1,50 @@
+@using RadaTik.Helpers
+@{
+    var fieldName = ViewData["FieldName"] as string ?? "amount";
+    var label = ViewData["Label"] as string ?? "المبلغ (ل.س.ج)";
+    var labelLong = ViewData["LabelLong"] as string ?? label;
+    var labelShort = ViewData["LabelShort"] as string ?? label;
+    var useResponsiveLabel = ViewData["ResponsiveLabel"] as bool? ?? (labelLong != labelShort);
+    var required = ViewData["Required"] as bool? ?? true;
+    var placeholder = ViewData["Placeholder"] as string ?? "مثال: 5,000,000";
+    var cssClass = ViewData["CssClass"] as string ?? "";
+    var minValue = ViewData["Min"] as string ?? "0.01";
+    var showOldHint = ViewData["ShowOldHint"] as bool? ?? true;
+    var initialValue = ViewData["InitialValue"] as decimal?;
+    var displayValue = initialValue.HasValue && initialValue.Value > 0
+        ? SyrianCurrencyHelper.FormatNew(initialValue.Value, 0)
+        : "";
+    var hiddenValue = initialValue.HasValue ? initialValue.Value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : "";
+}
+<div class="syp-amount-field mb-0 @cssClass" data-decimals="2" data-min="@minValue">
+    @if (useResponsiveLabel)
+    {
+        <label class="form-label syp-responsive-label mb-1">
+            <span class="syp-label-long">@labelLong</span>
+            <span class="syp-label-short">@labelShort</span>
+        </label>
+    }
+    else
+    {
+        <label class="form-label mb-1">@label</label>
+    }
+    <div class="syp-amount-input-wrap">
+        <span class="syp-amount-currency-badge" aria-hidden="true">ل.س.ج</span>
+        <input type="text"
+               class="form-control syp-amount-display"
+               autocomplete="off"
+               inputmode="decimal"
+               placeholder="@placeholder"
+               value="@displayValue"
+               @(required ? "required" : null) />
+    </div>
+    <input type="hidden" name="@fieldName" class="syp-amount-value" value="@hiddenValue" />
+    @if (showOldHint)
+    {
+        <small class="text-muted d-block mt-1 syp-amount-hint">
+            بالليرة <strong>الجديدة</strong>.
+            يعادل تقريباً: <strong class="syp-old-value">@(initialValue.HasValue && initialValue > 0 ? SyrianCurrencyHelper.FormatOld(initialValue.Value) : "0")</strong> ل.س <strong>قديمة</strong>
+            <span class="text-muted">(×@SyrianCurrencyHelper.OldLiraPerNewLira)</span>
+        </small>
+    }
+</div>

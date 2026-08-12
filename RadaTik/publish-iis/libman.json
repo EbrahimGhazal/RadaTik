@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "defaultProvider": "unpkg",
+  "libraries": [
+    {
+      "library": "bootstrap@5.3.8/dist",
+      "destination": "wwwroot/areas/CompanyAdmin/lib/bootstrap",
+      "files": [
+        "css/bootstrap.min.css",
+        "js/bootstrap.bundle.min.js"
+      ]
+    },
+    {
+      "library": "bootstrap@5.3.8/dist",
+      "destination": "wwwroot/areas/SystemAdmin/lib/bootstrap",
+      "files": [
+        "css/bootstrap.min.css",
+        "js/bootstrap.bundle.min.js"
+      ]
+    },
+    {
+      "library": "bootstrap@5.3.8/dist",
+      "destination": "wwwroot/areas/ClientPortal/lib/bootstrap",
+      "files": [
+        "css/bootstrap.min.css",
+        "js/bootstrap.bundle.min.js"
+      ]
+    },
+    {
+      "library": "bootstrap@5.3.8/dist",
+      "destination": "wwwroot/areas/CompanyEmployee/lib/bootstrap",
+      "files": [
+        "css/bootstrap.min.css",
+        "js/bootstrap.bundle.min.js"
+      ]
+    },
+    {
+      "library": "bootstrap@5.3.8/dist",
+      "destination": "wwwroot/areas/CollectionPoint/lib/bootstrap",
+      "files": [
+        "css/bootstrap.min.css",
+        "js/bootstrap.bundle.min.js"
+      ]
+    }
+  ]
+}
+

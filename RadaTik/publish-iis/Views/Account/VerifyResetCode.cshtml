@@ -1,0 +1,387 @@
+@model RadaTik.ViewModels.Account.VerifyCodeViewModel
+@{
+    ViewData["Title"] = "التحقق من الرمز";
+    ViewData["BodyClass"] = "auth-page";
+}
+
+@section Styles {
+    <style>
+        :root {
+            --primary: #0066CC;
+            --primary-dark: #004C99;
+            --accent: #00B4D8;
+            --bg-body: #F0F4F8;
+            --bg-card: #FFFFFF;
+            --text-primary: #1A202C;
+            --text-secondary: #4A5568;
+            --text-muted: #718096;
+            --border-color: #E2E8F0;
+            --danger: #F44336;
+            --success: #00C853;
+            --shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            --radius: 16px;
+        }
+        
+        [data-theme="dark"] {
+            --bg-body: #0F172A;
+            --bg-card: #1E293B;
+            --text-primary: #F1F5F9;
+            --text-secondary: #CBD5E1;
+            --text-muted: #94A3B8;
+            --border-color: #334155;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .auth-page .auth-center {
+            font-family: 'Tajawal', sans-serif;
+            background: var(--bg-body);
+            min-height: calc(100vh - var(--header-height));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border-radius: var(--radius);
+        }
+        
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(0, 102, 204, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 180, 216, 0.1) 0%, transparent 50%);
+            animation: rotate 30s linear infinite;
+        }
+        
+        @@keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .auth-page .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 450px;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--accent) 0%, #0088a8 100%);
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .card-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        
+        .card-icon i {
+            font-size: 2.5rem;
+            color: white;
+        }
+        
+        .card-title {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .card-subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+        }
+        
+        .card-body {
+            padding: 40px;
+        }
+        
+        .alert {
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.95rem;
+        }
+        
+        .alert-danger {
+            background: rgba(244, 67, 54, 0.1);
+            color: var(--danger);
+            border-right: 4px solid var(--danger);
+        }
+        
+        .alert-info {
+            background: rgba(0, 180, 216, 0.1);
+            color: var(--accent);
+            border-right: 4px solid var(--accent);
+        }
+        
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+        
+        .code-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            direction: ltr;
+        }
+        
+        .code-input {
+            width: 50px;
+            height: 60px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            transition: all 0.3s;
+            font-family: 'Tajawal', sans-serif;
+        }
+        
+        .code-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.1);
+        }
+        
+        .hidden-input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .validation-error {
+            color: var(--danger);
+            font-size: 0.85rem;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 16px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Tajawal', sans-serif;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 102, 204, 0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 102, 204, 0.5);
+        }
+        
+        .card-footer {
+            text-align: center;
+            padding: 20px 40px 30px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .back-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .back-link:hover {
+            color: var(--primary-dark);
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+        
+        .theme-toggle:hover {
+            background: var(--primary);
+            color: white;
+        }
+    </style>
+}
+
+<div class="auth-center">
+    <div class="bg-animation"></div>
+    
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h1 class="card-title">التحقق من الرمز</h1>
+                <p class="card-subtitle">أدخل رمز التحقق المرسل إلى بريدك الإلكتروني</p>
+            </div>
+            
+            <div class="card-body">
+                @if (TempData["Info"] != null)
+                {
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        @TempData["Info"]
+                    </div>
+                }
+                
+                <form asp-action="VerifyResetCode" method="post" id="verifyForm">
+                    <div class="form-group">
+                        <label class="form-label" style="text-align: center;">رمز التحقق (6 أرقام)</label>
+                        <div class="code-inputs">
+                            <input type="text" class="code-input" maxlength="1" data-index="0" />
+                            <input type="text" class="code-input" maxlength="1" data-index="1" />
+                            <input type="text" class="code-input" maxlength="1" data-index="2" />
+                            <input type="text" class="code-input" maxlength="1" data-index="3" />
+                            <input type="text" class="code-input" maxlength="1" data-index="4" />
+                            <input type="text" class="code-input" maxlength="1" data-index="5" />
+                        </div>
+                        <input type="hidden" asp-for="Code" id="codeInput" />
+                        <span asp-validation-for="Code" class="validation-error"></span>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i>
+                        تحقق من الرمز
+                    </button>
+                </form>
+            </div>
+            
+            <div class="card-footer">
+                <a href="@Url.Action("ForgotPassword", "Account")" class="back-link">
+                    <i class="fas fa-arrow-right"></i>
+                    طلب رمز جديد
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Code input handling
+        (function() {
+            const inputs = document.querySelectorAll('.code-input');
+            const hiddenInput = document.getElementById('codeInput');
+            
+            function updateHiddenInput() {
+                let code = '';
+                inputs.forEach(input => {
+                    code += input.value;
+                });
+                hiddenInput.value = code;
+            }
+            
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', function(e) {
+                    const value = this.value.replace(/\D/g, '');
+                    this.value = value;
+                    
+                    if (value && index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+                    
+                    updateHiddenInput();
+                });
+                
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && !this.value && index > 0) {
+                        inputs[index - 1].focus();
+                    }
+                });
+                
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                    
+                    pastedData.split('').forEach((char, i) => {
+                        if (inputs[i]) {
+                            inputs[i].value = char;
+                        }
+                    });
+                    
+                    updateHiddenInput();
+                    
+                    if (pastedData.length > 0) {
+                        inputs[Math.min(pastedData.length, inputs.length - 1)].focus();
+                    }
+                });
+            });
+            
+            // Focus first input on load
+            inputs[0].focus();
+        })();
+    </script>
+}

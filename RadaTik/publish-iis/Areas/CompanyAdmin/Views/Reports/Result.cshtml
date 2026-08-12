@@ -1,0 +1,202 @@
+@model RadaTik.ViewModels.CompanyAdmin.CompanyReportsResultViewModel
+@using System.Globalization
+@using System.Text.Json
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "~/Areas/CompanyAdmin/Views/Shared/_Layout.cshtml";
+    string? customFromStr = Model.CustomFrom?.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture);
+    string? customToStr = Model.CustomTo?.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture);
+}
+<div class="radtk-page--companyadmin-views-reports-result">
+<style media="print">
+    .no-print { display: none !important; }
+    body { background: #fff !important; }
+    .header-wallet-balance,
+    .header-user-wrapper {
+        display: none !important;
+    }
+    .report-print-area { border: none !important; box-shadow: none !important; }
+    .report-print-area .card-body { padding: 0.5rem !important; }
+
+    /* فرض جدول أفقي (رأس + صفوف) ومنع تحويل الصفوف إلى كتل عمودية */
+    .report-table-shell .report-data-table,
+    .report-table-shell .report-data-table thead,
+    .report-table-shell .report-data-table tbody {
+        display: table !important;
+        width: 100% !important;
+    }
+    .report-table-shell .report-data-table tr {
+        display: table-row !important;
+    }
+    .report-table-shell .report-data-table thead th,
+    .report-table-shell .report-data-table tbody td,
+    .report-table-shell .report-data-table tbody th.report-data-row-head {
+        display: table-cell !important;
+    }
+
+    .report-data-table-caption {
+        color: #000 !important;
+        background: #e9ecef !important;
+        border-bottom: 1px solid #adb5bd !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .report-summary-table th,
+    .report-data-table thead th {
+        background: #e9ecef !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .report-data-table-elegant tbody tr:nth-child(even) td,
+    .report-data-table-elegant tbody tr:nth-child(even) th.report-data-row-head {
+        background-color: #f8f9fa !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .report-summary-table { font-size: 11px; }
+    .report-data-table.report-data-table-elegant {
+        table-layout: auto !important;
+        max-width: 100% !important;
+    }
+    .report-data-table-elegant { font-size: 9px !important; }
+    .report-data-table-elegant thead th,
+    .report-data-table-elegant tbody td,
+    .report-data-table-elegant tbody th.report-data-row-head {
+        padding: 0.35rem 0.45rem !important;
+        line-height: 1.25;
+        border: 1px solid #555 !important;
+    }
+    .report-table-shell {
+        box-shadow: none !important;
+        border: 1px solid #999 !important;
+    }
+
+    .report-print-area[data-report-kind="2"] .report-data-table-sectors thead th,
+    .report-print-area[data-report-kind="2"] .report-data-table-sectors tbody td,
+    .report-print-area[data-report-kind="2"] .report-data-table-sectors tbody th.report-data-row-head {
+        font-size: 9px !important;
+        white-space: normal;
+        word-break: break-word;
+    }
+</style>
+
+<div class="no-print mb-3 d-flex flex-wrap gap-2 align-items-center">
+    <form id="reportChargePrintForm" class="d-none" asp-area="CompanyAdmin" asp-controller="Reports" asp-action="ChargeForPrint" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="Kind" value="@((int)Model.Kind)" />
+        <input type="hidden" name="Period" value="@((int)Model.Period)" />
+        <input type="hidden" name="CustomFrom" value="@customFromStr" />
+        <input type="hidden" name="CustomTo" value="@customToStr" />
+    </form>
+    <button type="button" class="btn btn-primary" id="btnReportPrint"><i class="fas fa-print"></i> طباعة</button>
+    <a class="btn btn-outline-secondary" asp-action="Index"><i class="fas fa-arrow-right"></i> تقارير أخرى</a>
+    @if (Model.ChargedAmountSyp.HasValue && Model.ChargedAmountSyp.Value > 0)
+    {
+        <span class="text-muted small">تم خصم @SyrianCurrencyHelper.FormatNew(Model.ChargedAmountSyp.Value) ل.س.ج من المحفظة.</span>
+    }
+    <span id="printChargeNote" class="text-muted small d-none" aria-live="polite"></span>
+</div>
+
+<div class="card report-print-area border" data-report-kind="@((int)Model.Kind)">
+    <div class="card-body">
+        @if (!string.IsNullOrEmpty(Model.IntegratedBodyHtml))
+        {
+            <div class="report-integrated">@Html.Raw(Model.IntegratedBodyHtml)</div>
+        }
+        else
+        {
+            @if (!Model.UseCustomTemplate)
+            {
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-bordered report-summary-table mb-0 no-responsive-stack" role="table" aria-label="معلومات التقرير">
+                        <tbody>
+                            <tr>
+                                <th scope="row">عنوان التقرير</th>
+                                <td>@Model.Title</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">الشبكة</th>
+                                <td>@Model.NetworkName</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">الفترة</th>
+                                <td>
+                                    @Model.Range.FromInclusive.ToString("yyyy/MM/dd HH:mm")
+                                    — @Model.Range.ToInclusive.ToString("yyyy/MM/dd HH:mm")
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">عدد السجلات</th>
+                                <td><strong>@Model.Rows.Count</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            @if (Model.UseCustomTemplate && !string.IsNullOrWhiteSpace(Model.CustomHtmlBeforeTable))
+            {
+                <div class="report-custom-html mb-3">@Html.Raw(Model.CustomHtmlBeforeTable)</div>
+            }
+
+            @Html.Raw(Model.DataTableHtml)
+
+            @if (Model.UseCustomTemplate && !string.IsNullOrWhiteSpace(Model.CustomHtmlAfterTable))
+            {
+                <div class="report-custom-html mt-3">@Html.Raw(Model.CustomHtmlAfterTable)</div>
+            }
+        }
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        (function () {
+            function applyWalletHeaderAmountFromNumber(num) {
+                if (num == null || isNaN(num)) return;
+                var rounded = Math.round(Number(num));
+                var text = rounded.toLocaleString('en-US', { maximumFractionDigits: 0, minimumFractionDigits: 0 });
+                document.querySelectorAll('.header-wallet-amount').forEach(function (el) {
+                    el.textContent = text;
+                });
+            }
+
+            var printChargeUrl = @Html.Raw(JsonSerializer.Serialize(Url.Action("ChargeForPrint", "Reports", new { area = "CompanyAdmin" })));
+            var priceHint = @Html.Raw(JsonSerializer.Serialize(Model.ExportPriceHintSyp));
+            var btn = document.getElementById('btnReportPrint');
+            var form = document.getElementById('reportChargePrintForm');
+            var note = document.getElementById('printChargeNote');
+            if (!btn || !form) return;
+            btn.addEventListener('click', async function () {
+                var pricePart = priceHint != null
+                    ? (priceHint + ' ل.س.ج')
+                    : 'مبلغ غير معروف (لم يُعرّف تسعير التقارير بعد)';
+                if (!confirm('سيتم خصم ' + pricePart + ' من محفظة الشركة قبل فتح نافذة الطباعة. إذا اخترت «إلغاء» لن يُخصم شيء. هل تريد المتابعة؟')) {
+                    return;
+                }
+                var fd = new FormData(form);
+                try {
+                    var res = await fetch(printChargeUrl, { method: 'POST', body: fd, headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+                    var data = await res.json();
+                    if (!data.ok) {
+                        alert(data.error || 'تعذر تنفيذ العملية المالية.');
+                        return;
+                    }
+                    if (data.newBalance != null) {
+                        var nb = typeof data.newBalance === 'number' ? data.newBalance : parseFloat(data.newBalance);
+                        applyWalletHeaderAmountFromNumber(nb);
+                    }
+                    window.print();
+                    var charged = typeof data.chargedAmount === 'number' ? data.chargedAmount : parseFloat(data.chargedAmount);
+                    if (note && !isNaN(charged) && charged > 0) {
+                        note.textContent = 'تم خصم ' + charged.toFixed(2) + ' ل.س.ج من المحفظة (طباعة).';
+                        note.classList.remove('d-none');
+                    }
+                } catch (e) {
+                    alert('تعذر الاتصال بالخادم.');
+                }
+            });
+        })();
+    </script>
+}

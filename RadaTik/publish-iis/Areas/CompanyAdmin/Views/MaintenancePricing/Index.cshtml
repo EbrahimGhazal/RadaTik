@@ -1,0 +1,235 @@
+@model RadaTik.Areas.CompanyAdmin.ViewModels.MaintenancePricingPageViewModel
+@{
+    ViewData["Title"] = "تسعير الصيانة";
+    var activeRowsCount = Model.Rows.Count(r => r.IsActive);
+    var scopeLabel = Model.NetworkScope == "main" ? "الشبكة الرئيسية" : "الشبكة الحالية (الفرعية)";
+}
+
+<div class="material-invoice-page material-invoice-page--maintenance maintenance-pricing-page material-invoice-page--create">
+    <div class="sys-hero material-invoice-hero mb-3">
+        <div class="sys-hero-main">
+            <div class="sys-hero-icon"><i class="fas fa-screwdriver-wrench"></i></div>
+            <div>
+                <h1 class="sys-hero-title mb-1">@ViewData["Title"]</h1>
+                <p class="sys-hero-subtitle mb-0">أسعار ثابتة لطرق الحل — @Model.EffectiveNetworkName</p>
+            </div>
+        </div>
+        <div class="sys-hero-chips">
+            <span class="sys-hero-chip"><i class="fas fa-coins"></i> ل.س.ج جديدة</span>
+            @if (Model.NetworkScope == "main")
+            {
+                <span class="sys-hero-chip"><i class="fas fa-network-wired"></i> رئيسية</span>
+            }
+            else
+            {
+                <span class="sys-hero-chip"><i class="fas fa-sitemap"></i> فرعية</span>
+            }
+        </div>
+        <div class="sys-hero-actions d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-secondary micro-btn btn-sm" asp-route="networkManager-dashboard"><i class="fas fa-arrow-right"></i> رجوع</a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success py-2 mb-3">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger py-2 mb-3">@TempData["Error"]</div>
+    }
+
+    @{
+        ViewData["SypNoteTitle"] = "ملاحظة — العملة";
+        ViewData["SypNoteText"] = "جميع أسعار طرق الحل في هذه الصفحة بالليرة السورية الجديدة (ل.س.ج).";
+    }
+    <partial name="_SypCurrencyPageNote" />
+
+    <details class="material-invoice-help mb-3">
+        <summary class="material-invoice-help__summary"><i class="fas fa-circle-info"></i> إرشادات سريعة</summary>
+        <div class="material-invoice-help__body small text-muted mb-0">
+            <ul class="mb-0 ps-3">
+                <li>فعّل طريقة حل واحدة على الأقل لتظهر في طلبات الصيانة.</li>
+                <li>يمكن التسعير للشبكة الرئيسية أو الفرعية بشكل منفصل.</li>
+            </ul>
+        </div>
+    </details>
+
+    <form asp-action="SaveAll" method="post" id="maintenancePricingBulkForm" class="maintenance-pricing-form" data-syp-page-amount-note="true">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="NetworkScope" value="@Model.NetworkScope" />
+
+        <div class="card material-invoice-section material-invoice-section--meta border-0 shadow-sm mb-3">
+            <div class="card-header material-invoice-section__header py-2">
+                <h2 class="h6 mb-0"><i class="fas fa-sliders me-1"></i> نطاق التسعير</h2>
+            </div>
+            <div class="card-body py-3">
+                <div class="row g-2 g-md-3 align-items-end">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <label class="form-label form-label-sm mb-1">نوع الشبكة</label>
+                        <select class="form-select form-select-sm"
+                                name="networkScope"
+                                form="networkScopeForm"
+                                onchange="document.getElementById('networkScopeForm').submit()">
+                            @if (Model.NetworkScope == "main")
+                            {
+                                <option value="main" selected>الشبكة الرئيسية</option>
+                            }
+                            else
+                            {
+                                <option value="main">الشبكة الرئيسية</option>
+                            }
+                            @if (Model.CanUseCurrentNetworkScope)
+                            {
+                                if (Model.NetworkScope == "current")
+                                {
+                                    <option value="current" selected>الشبكة الحالية (الفرعية)</option>
+                                }
+                                else
+                                {
+                                    <option value="current">الشبكة الحالية (الفرعية)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-5">
+                        <div class="maintenance-pricing-scope-info">
+                            <span class="text-muted small d-block">يطبّق على</span>
+                            <span class="fw-semibold">@Model.EffectiveNetworkName</span>
+                            <span class="badge @(Model.NetworkScope == "main" ? "text-bg-primary" : "text-bg-info") ms-1">@scopeLabel</span>
+                        </div>
+                    </div>
+                    @if (Model.CanUseCurrentNetworkScope)
+                    {
+                        <div class="col-12 col-lg-3">
+                            <button type="submit"
+                                    form="copyScopeForm"
+                                    class="btn btn-outline-primary btn-sm micro-btn w-100"
+                                    onclick="return confirm('سيتم نسخ الأسعار من النطاق الآخر إلى @scopeLabel. هل تريد المتابعة؟');">
+                                <i class="fas fa-copy"></i>
+                                نسخ من @(Model.NetworkScope == "main" ? "الفرعية" : "الرئيسية")
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="card material-invoice-section material-invoice-section--lines border-0 shadow-sm mb-3">
+            <div class="card-header material-invoice-section__header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h2 class="h6 mb-0"><i class="fas fa-list-check me-1"></i> أسعار طرق الحل</h2>
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <span class="badge text-bg-success maintenance-pricing-active-badge" id="activeSolutionsBadge">
+                        مفعّل: <strong id="activeSolutionsCount">@activeRowsCount</strong> / @Model.Rows.Count
+                    </span>
+                </div>
+            </div>
+            <div id="zeroActiveWarning"
+                 class="alert alert-danger mx-3 mt-2 mb-0 py-2 small @(activeRowsCount == 0 ? "" : "d-none")"
+                 role="alert">
+                <i class="fas fa-triangle-exclamation me-1"></i>
+                لن تظهر طرق حل في طلبات الصيانة حتى يُفعَّل عنصر واحد على الأقل.
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive material-invoice-lines-shell maintenance-pricing-table-shell">
+                    <table class="table table-sm mb-0 material-invoice-lines-table maintenance-pricing-table maintenance-pricing-table--compact align-middle">
+                        <colgroup>
+                            <col class="maint-col-name" />
+                            <col class="maint-col-price" />
+                            <col class="maint-col-active" />
+                        </colgroup>
+                        <thead>
+                            <tr class="material-invoice-lines-table__cols">
+                                <th>طريقة الحل</th>
+                                <th>السعر (ل.س.ج)</th>
+                                <th class="text-center">نشط</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < Model.Rows.Count; i++)
+                            {
+                                var row = Model.Rows[i];
+                                <tr class="maintenance-pricing-row @(row.IsActive ? "is-active" : "is-inactive")">
+                                    <td data-label="طريقة الحل" class="maint-cell-name">
+                                        <span class="maintenance-pricing-solution-name">@row.SolutionName</span>
+                                        <input type="hidden" name="Rows[@i].Type" value="@row.Type" />
+                                    </td>
+                                    <td data-label="السعر (ل.س.ج)" class="maint-cell-price">
+                                        <input type="number"
+                                               name="Rows[@i].AmountSyp"
+                                               min="0"
+                                               step="0.01"
+                                               inputmode="decimal"
+                                               class="form-control form-control-sm maintenance-pricing-amount"
+                                               value="@row.AmountSyp.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                               placeholder="0" />
+                                    </td>
+                                    <td data-label="نشط" class="maint-cell-active text-center">
+                                        <input type="hidden" name="Rows[@i].IsActive" value="false" />
+                                        <div class="form-check form-switch form-check-inline mb-0 maintenance-pricing-switch">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   role="switch"
+                                                   name="Rows[@i].IsActive"
+                                                   value="true"
+                                                   id="row-active-@i"
+                                                   @(row.IsActive ? "checked" : "") />
+                                            <label class="form-check-label visually-hidden" for="row-active-@i">مفعّل</label>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="material-invoice-actions">
+            <button type="submit" class="btn btn-primary btn-lg micro-btn">
+                <i class="fas fa-floppy-disk"></i> حفظ كل الأسعار
+            </button>
+            <a class="btn btn-outline-secondary btn-lg micro-btn" asp-route="networkManager-dashboard">إلغاء</a>
+        </div>
+    </form>
+</div>
+
+<form method="get" asp-action="Index" id="networkScopeForm" class="d-none" aria-hidden="true"></form>
+
+@if (Model.CanUseCurrentNetworkScope)
+{
+    <form method="post" asp-action="CopyFromOtherScope" id="copyScopeForm" class="d-none">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="networkScope" value="@Model.NetworkScope" />
+    </form>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var form = document.getElementById('maintenancePricingBulkForm');
+            var countEl = document.getElementById('activeSolutionsCount');
+            var warningEl = document.getElementById('zeroActiveWarning');
+            if (!form || !countEl || !warningEl) return;
+
+            function refreshActiveCount() {
+                var checked = form.querySelectorAll('input[type="checkbox"][name$=".IsActive"]:checked');
+                countEl.textContent = String(checked.length);
+                warningEl.classList.toggle('d-none', checked.length > 0);
+                form.querySelectorAll('.maintenance-pricing-row').forEach(function (tr) {
+                    var cb = tr.querySelector('input[type="checkbox"][name$=".IsActive"]');
+                    tr.classList.toggle('is-active', cb && cb.checked);
+                    tr.classList.toggle('is-inactive', !cb || !cb.checked);
+                });
+            }
+
+            form.addEventListener('change', function (e) {
+                if (e.target && e.target.matches('input[type="checkbox"][name$=".IsActive"]')) {
+                    refreshActiveCount();
+                }
+            });
+
+            refreshActiveCount();
+        })();
+    </script>
+}

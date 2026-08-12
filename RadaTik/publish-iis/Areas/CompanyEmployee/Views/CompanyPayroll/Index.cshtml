@@ -1,0 +1,97 @@
+@model RadaTik.Areas.CompanyAdmin.ViewModels.PayrollIndexViewModel
+@using RadaTik.Helpers
+@{
+    ViewData["Title"] = "رواتب الشركة";
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var readOnly = (bool?)(ViewBag.IsEmployeeReadOnly) == true;
+    var monthNames = new[] { "", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
+}
+
+<div class="emp-payroll-page">
+    <div class="page-header mb-3">
+        <h1 class="page-title"><i class="fas fa-money-check-alt"></i> @ViewData["Title"]</h1>
+        <p class="text-muted mb-0">@companyName — @(readOnly ? "عرض فقط حسب صلاحياتك" : "")</p>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap align-items-end mb-3">
+        <form method="get" asp-action="Index" class="d-flex gap-2 align-items-end">
+            <input type="number" name="year" class="form-control form-control-sm" value="@Model.Year" style="width:5rem" />
+            <select name="month" class="form-select form-select-sm">
+                @for (int i = 1; i <= 12; i++)
+                {
+                    if (i == Model.Month) { <option value="@i" selected>@monthNames[i]</option> }
+                    else { <option value="@i">@monthNames[i]</option> }
+                }
+            </select>
+            <button type="submit" class="btn btn-outline-primary btn-sm">عرض</button>
+        </form>
+        <a asp-controller="MyPayroll" asp-action="Index" class="btn btn-outline-secondary btn-sm">راتبي الشخصي</a>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">المستحق للصرف</div>
+                    <div class="fs-5 fw-bold">@SyrianCurrencyHelper.FormatNew(Model.TotalNetPayable) ل.س.ج</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">مُصروف</div>
+                    <div class="fs-5 fw-bold text-success">@SyrianCurrencyHelper.FormatNew(Model.TotalPaid) ل.س.ج</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">معلق</div>
+                    <div class="fs-5 fw-bold text-warning">@SyrianCurrencyHelper.FormatNew(Model.TotalPending) ل.س.ج</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0 radtk-data-table radtk-data-table--cards">
+                <thead>
+                    <tr>
+                        <th>الموظف</th>
+                        <th>الدوام</th>
+                        <th>أساسي</th>
+                        <th>مكافآت</th>
+                        <th>حسومات</th>
+                        <th>سحوبات</th>
+                        <th>سلف</th>
+                        <th>المستحق</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (!Model.Rows.Any())
+                {
+                    <tr><td colspan="9" class="text-center text-muted py-4">لا توجد دفعات لهذا الشهر.</td></tr>
+                }
+                @foreach (var r in Model.Rows)
+                {
+                    <tr>
+                        <td>@r.EmployeeName</td>
+                        <td class="small">@r.EmploymentLabel</td>
+                        <td>@r.BaseAmount.ToString("N0")</td>
+                        <td class="text-success">@((r.Bonus + r.TransactionBonus).ToString("N0"))</td>
+                        <td class="text-danger">@((r.Deduction + r.TransactionDeduction).ToString("N0"))</td>
+                        <td>@r.Withdrawals.ToString("N0")</td>
+                        <td>@r.Advances.ToString("N0")</td>
+                        <td class="fw-bold">@r.NetPayable.ToString("N0")</td>
+                        <td>@(r.IsPaid ? "مُصروف" : "معلق")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

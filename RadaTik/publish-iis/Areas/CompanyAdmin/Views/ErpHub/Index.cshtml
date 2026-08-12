@@ -1,0 +1,217 @@
+@using RadaTik.Security
+@using RadaTik.Services
+@{
+    ViewData["Title"] = "نظام ERP";
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var summary = ViewBag.Summary as ErpSummary;
+    bool canUsers = ViewBag.CanUsers == true;
+    bool canClients = ViewBag.CanClients == true;
+    bool canWarehouse = ViewBag.CanWarehouse == true;
+    bool canMoneyDiary = ViewBag.CanMoneyDiary == true;
+    bool canPayroll = ViewBag.CanPayroll == true;
+
+    ViewBag.FinancialHeroIcon = "fas fa-sitemap";
+    ViewBag.FinancialHeroTheme = "default";
+    ViewBag.FinancialHeroSubtitle = companyName;
+    ViewBag.FinancialHeroChips = new[] { ("fas fa-building", "ERP متكامل") };
+}
+
+<div class="financial-page financial-hub-page erp-hub-page">
+    <partial name="_FinancialSysHero" />
+
+    @if (summary != null)
+    {
+        <section class="mb-4">
+            <h2 class="h6 text-muted mb-3"><i class="fas fa-gauge-high me-1"></i> ملخص ERP</h2>
+            <div class="row g-3">
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="card company-module-stat h-100">
+                        <div class="card-body py-3">
+                            <div class="company-module-stat__label"><i class="fas fa-user-tie"></i> موظفون</div>
+                            <div class="company-module-stat__value">@summary.ActiveEmployees</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="card company-module-stat h-100">
+                        <div class="card-body py-3">
+                            <div class="company-module-stat__label"><i class="fas fa-handshake"></i> عملاء ERP</div>
+                            <div class="company-module-stat__value">@summary.ActiveErpCustomers</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="card company-module-stat h-100">
+                        <div class="card-body py-3">
+                            <div class="company-module-stat__label"><i class="fas fa-tasks"></i> مهام مفتوحة</div>
+                            <div class="company-module-stat__value">@summary.OpenTasks</div>
+                            @if (summary.OverdueTasks > 0)
+                            {
+                                <span class="badge bg-danger mt-1">@summary.OverdueTasks متأخرة</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="card company-module-stat h-100">
+                        <div class="card-body py-3">
+                            <div class="company-module-stat__label"><i class="fas fa-award"></i> مكافآت/عقوبات</div>
+                            <div class="company-module-stat__value">@summary.PendingRewardPenalties</div>
+                            <div class="company-module-stat__meta">بانتظار الاعتماد</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="card company-module-stat h-100">
+                        <div class="card-body py-3">
+                            <div class="company-module-stat__label"><i class="fas fa-calculator"></i> قيود مرحّلة</div>
+                            <div class="company-module-stat__value">@summary.PostedJournalEntriesThisMonth</div>
+                            <div class="company-module-stat__meta">هذا الشهر</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-xl-2">
+                    <div class="card company-module-stat h-100">
+                        <div class="card-body py-3">
+                            <div class="company-module-stat__label"><i class="fas fa-file-invoice-dollar"></i> مبيعات غير مسدّدة</div>
+                            <div class="company-module-stat__value">@summary.UnpaidSalesInvoices</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    }
+
+    <section>
+        <h2 class="h6 text-muted mb-3"><i class="fas fa-th-large me-1"></i> وحدات ERP</h2>
+        <div class="row g-3">
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card company-module-link-card h-100">
+                    <div class="card-body">
+                        <h5 class="mb-2"><i class="fas fa-user-tie text-primary"></i> 1. إدارة الموظفين</h5>
+                        <p class="small text-muted">إضافة موظفين، صلاحيات، وأقسام.</p>
+                        @if (canUsers)
+                        {
+                            <a class="btn btn-outline-primary btn-sm micro-btn" asp-route="networkManager-users">إدارة الموظفين</a>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">فعّل خدمة المستخدمين</span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card company-module-link-card h-100">
+                    <div class="card-body">
+                        <h5 class="mb-2"><i class="fas fa-users text-success"></i> 2. إدارة العملاء</h5>
+                        <p class="small text-muted">عملاء ERP + مشتركي ISP.</p>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a class="btn btn-outline-success btn-sm micro-btn" asp-route="networkManager-erp-customers">عملاء ERP</a>
+                            @if (canClients)
+                            {
+                                <a class="btn btn-outline-secondary btn-sm micro-btn" asp-route="networkManager-clients">المشتركون</a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card company-module-link-card h-100">
+                    <div class="card-body">
+                        <h5 class="mb-2"><i class="fas fa-calculator text-info"></i> 3. العمليات المحاسبية</h5>
+                        <p class="small text-muted">شجرة حسابات، قيود يومية، دفتر إيراد ومصروف.</p>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a class="btn btn-outline-info btn-sm micro-btn" asp-route="networkManager-erp-accounting">المحاسبة</a>
+                            @if (canMoneyDiary)
+                            {
+                                <a class="btn btn-outline-secondary btn-sm micro-btn" asp-route="networkManager-money-diary">الدفتر</a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card company-module-link-card h-100">
+                    <div class="card-body">
+                        <h5 class="mb-2"><i class="fas fa-tasks text-warning"></i> 4. مهام الموظفين</h5>
+                        <p class="small text-muted">تعيين ومتابعة وإنجاز المهام.</p>
+                        <a class="btn btn-outline-warning btn-sm micro-btn" asp-route="networkManager-erp-tasks">المهام</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card company-module-link-card h-100">
+                    <div class="card-body">
+                        <h5 class="mb-2"><i class="fas fa-award text-danger"></i> 5. المكافآت والعقوبات</h5>
+                        <p class="small text-muted">اعتماد وتطبيق على الراتب.</p>
+                        <a class="btn btn-outline-danger btn-sm micro-btn" asp-route="networkManager-erp-rewards">المكافآت والعقوبات</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card company-module-link-card h-100">
+                    <div class="card-body">
+                        <h5 class="mb-2"><i class="fas fa-money-check-alt text-primary"></i> 6. رواتب الموظفين</h5>
+                        <p class="small text-muted">@((summary?.ActivePayrollEmployees ?? 0)) موظف في سجل الرواتب.</p>
+                        @if (canPayroll)
+                        {
+                            <a class="btn btn-outline-primary btn-sm micro-btn" asp-route="networkManager-payroll">الرواتب</a>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">فعّل خدمة الرواتب</span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card company-module-link-card h-100">
+                    <div class="card-body">
+                        <h5 class="mb-2"><i class="fas fa-warehouse text-secondary"></i> 7. المستودع</h5>
+                        <p class="small text-muted">@((summary?.ActiveWarehouseItems ?? 0)) صنف نشط.</p>
+                        @if (canWarehouse)
+                        {
+                            <div class="d-flex flex-wrap gap-2">
+                                <a class="btn btn-outline-secondary btn-sm micro-btn" asp-route="networkManager-warehouse">المستودع</a>
+                                <a class="btn btn-outline-secondary btn-sm micro-btn" asp-route="networkManager-erp-suppliers">الموردون</a>
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">فعّل خدمة المستودع</span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card company-module-link-card h-100">
+                    <div class="card-body">
+                        <h5 class="mb-2"><i class="fas fa-shopping-cart text-success"></i> 8. إدارة المبيعات</h5>
+                        <p class="small text-muted">فواتير بيع مواد مرتبطة بعملاء ERP.</p>
+                        @if (canWarehouse)
+                        {
+                            <a class="btn btn-outline-success btn-sm micro-btn" asp-route="networkManager-material-sales">فواتير المبيعات</a>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">فعّل خدمة المستودع</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mt-4">
+        <div class="card company-module-link-card">
+            <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <h5 class="mb-1"><i class="fas fa-chart-bar text-info"></i> تقارير ERP</h5>
+                    <p class="small text-muted mb-0">مبيعات حسب العميل، ذمم مدينة، وأداء الموظفين.</p>
+                </div>
+                <a class="btn btn-outline-info btn-sm micro-btn" asp-route="networkManager-erp-reports">عرض التقارير</a>
+            </div>
+        </div>
+    </section>
+</div>

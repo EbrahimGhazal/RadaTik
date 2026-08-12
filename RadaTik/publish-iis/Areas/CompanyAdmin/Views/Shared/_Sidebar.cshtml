@@ -1,0 +1,45 @@
+@{
+    // CompanyAdmin sidebar (NetworkAdministrator).
+    var isAuthenticated = (bool?)(ViewData["Layout_IsAuthenticated"]) == true;
+}
+
+<aside class="sidebar sidebar-pro" id="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-logo">
+            <i class="fas fa-network-wired"></i>
+        </div>
+        <div class="sidebar-brand">
+            <span class="sidebar-brand-name">RadaTik</span>
+            <small class="sidebar-brand-sub">مدير الشركة</small>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav" data-single-open="true">
+        @if (!isAuthenticated)
+        {
+            <div class="nav-section">
+                <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="true">
+                    <i class="fas fa-bars"></i>
+                    <span>القائمة</span>
+                    <i class="fas fa-chevron-down nav-section-chevron"></i>
+                </div>
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-route="reglog-login">
+                            <span class="nav-icon"><i class="fas fa-sign-in-alt"></i></span>
+                            <span>تسجيل الدخول</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        }
+        else
+        {
+            <partial name="_SidebarWalletBalance" />
+            <partial name="_SidebarNavSections" />
+        }
+    </nav>
+
+</aside>
+
+
