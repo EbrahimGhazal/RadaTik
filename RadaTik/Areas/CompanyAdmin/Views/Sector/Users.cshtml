@@ -1,0 +1,197 @@
+<div class="radtk-page-sector-users">
+<div class="radtk-page-sector-users">
+@model IEnumerable<RadaTik.Models.Client>
+
+@{
+    ViewData["Title"] = "المستخدمين التابعين للقطاع";
+    var totalUsers = Model.Count();
+    var activeUsers = Model.Count(u => u.IsActive);
+    var connectedUsers = Model.Count(u => u.ConnectionStatus == "نشط");
+    int totalDataSize = 0;
+    foreach (var user in Model)
+    {
+        if (!string.IsNullOrEmpty(user.ProfileName))
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(user.ProfileName, @"\d+");
+            if (match.Success && int.TryParse(match.Value, out int size))
+            {
+                totalDataSize += size;
+            }
+        }
+    }
+    ViewBag.PageHeroIcon = "fas fa-users";
+    ViewData["Title"] = $"مستخدمين القطاع: {ViewBag.SectorName}";
+    ViewBag.PageHeroBackUrl = Url.Action("Index");
+    ViewBag.PageHeroBackText = "العودة للقطاعات";
+}
+
+<partial name="_CrudPageHero" />
+
+<!-- Compact Statistics Bar -->
+<div class="stats-bar">
+    <div class="stat-item stat-primary">
+        <div class="stat-icon-mini"><i class="fas fa-users"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalUsers</span>
+            <span class="stat-label">إجمالي</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-success">
+        <div class="stat-icon-mini"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@activeUsers</span>
+            <span class="stat-label">مفعلين</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-info">
+        <div class="stat-icon-mini"><i class="fas fa-database"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalDataSize</span>
+            <span class="stat-label">ميجا</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-warning">
+        <div class="stat-icon-mini"><i class="fas fa-plug"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@connectedUsers</span>
+            <span class="stat-label">متصلين</span>
+        </div>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            قائمة المستخدمين
+        </h3>
+        <span class="badge badge-warning">@totalUsers مستخدم</span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        @if (Model.Any())
+        {
+            <div class="table-container">
+                <table class="table table-sm table-hover radtk-data-table radtk-data-table--cards" id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>المستخدم</th>
+                            <th>الاسم الثلاثي</th>
+                            <th>الهاتف</th>
+                            <th>البروفايل</th>
+                            <th>العنوان</th>
+                            <th>حالة الاتصال</th>
+                            <th>تاريخ الإضافة</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="user-info">
+                                        <div class="user-avatar @(item.IsActive ? "active" : "inactive")">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div>
+                                            <div class="user-name">@item.UserName</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>@item.Name</td>
+                                <td>
+                                    <span class="phone-number">
+                                        <i class="fas fa-phone text-success"></i>
+                                        @item.PhoneNumber
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-info">
+                                        <i class="fas fa-database"></i> @item.ProfileName
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.Address))
+                                    {
+                                        <code>@item.Address</code>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">غير محدد</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.ConnectionStatus == "نشط")
+                                    {
+                                        <span class="connection-badge connection-active">
+                                            <i class="fas fa-plug"></i> متصل
+                                        </span>
+                                    }
+                                    else if (item.ConnectionStatus == "معطل")
+                                    {
+                                        <span class="connection-badge connection-disabled">
+                                            <i class="fas fa-ban"></i> معطل
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="connection-badge connection-unknown">
+                                            <i class="fas fa-question-circle"></i> غير معروف
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="date-info">
+                                        <span>@item.CreatedDate.ToString("yyyy-MM-dd")</span>
+                                        <small class="text-muted">@item.CreatedDate.ToString("hh:mm tt")</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="status-badge status-active">
+                                            <i class="fas fa-check-circle"></i> مفعل
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-inactive">
+                                            <i class="fas fa-times-circle"></i> معطل
+                                        </span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <h4>لا يوجد مستخدمين</h4>
+                <p>لم يتم إضافة أي مستخدمين للقطاع بعد</p>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#usersTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+                },
+                order: [[0, 'asc']],
+                pageLength: 25,
+                responsive: true
+            });
+        });
+    </script>
+}

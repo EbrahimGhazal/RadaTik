@@ -1,0 +1,382 @@
+@using RadaTik.Areas.CompanyAdmin.ViewModels
+@using RadaTik.Models
+@using RadaTik.Models.Business
+@model MaterialPurchaseInvoiceFormViewModel
+@{
+    ViewData["Title"] = "فاتورة شراء مواد";
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var items = Model.WarehouseItems;
+    var requireExplicitChoice = true;
+}
+
+<div class="financial-page financial-hub-page material-invoice-page material-invoice-page--purchase material-invoice-page--create">
+    <partial name="_WarehouseSubNav" />
+
+    <div class="sys-hero material-invoice-hero mb-3">
+        <div class="sys-hero-main">
+            <div class="sys-hero-icon"><i class="fas fa-cart-plus"></i></div>
+            <div>
+                <h1 class="sys-hero-title mb-1">@ViewData["Title"]</h1>
+                <p class="sys-hero-subtitle mb-0">@companyName</p>
+            </div>
+        </div>
+        <div class="sys-hero-chips">
+            <span class="sys-hero-chip"><i class="fas fa-warehouse"></i> شراء / إدخال</span>
+        </div>
+    </div>
+
+    @if (TempData["Error"] != null) { <div class="alert alert-danger mb-3">@TempData["Error"]</div> }
+
+    <details class="material-invoice-help mb-3">
+        <summary class="material-invoice-help__summary"><i class="fas fa-circle-info"></i> مساعدة وإرشادات</summary>
+        <div class="material-invoice-help__body">
+            <partial name="_BusinessModuleGuide" />
+            <partial name="_WarehouseUsageHints" />
+            @{ ViewData["SypNoteText"] = "حقول الجملة والمفرق (ل.س.ج) بالليرة السورية الجديدة."; }
+            <partial name="_SypCurrencyPageNote" />
+        </div>
+    </details>
+
+    <form method="post" id="purchase-form" class="material-invoice-form" data-syp-page-amount-note="true">
+        @Html.AntiForgeryToken()
+
+        <div class="card material-invoice-section material-invoice-section--meta border-0 shadow-sm mb-3">
+            <div class="card-header material-invoice-section__header py-2">
+                <h2 class="h6 mb-0"><i class="fas fa-file-invoice me-1"></i> بيانات الفاتورة</h2>
+            </div>
+            <div class="card-body py-3">
+                <div class="row g-2 g-md-3 material-invoice-meta-row">
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <label class="form-label form-label-sm mb-1">تاريخ الفاتورة</label>
+                        <input type="date" name="invoiceDate" class="form-control form-control-sm" value="@Model.InvoiceDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <label class="form-label form-label-sm mb-1">مورد ERP</label>
+                        @{
+                            var erpSuppliers = ViewBag.ErpSuppliers as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+                        }
+                        <select name="erpSupplierId" class="form-select form-select-sm mb-1">
+                            <option value="">— اختر من سجل ERP —</option>
+                            @foreach (var s in erpSuppliers)
+                            {
+                                <option value="@s.Value" selected="@(Model.ErpSupplierId?.ToString() == s.Value)">@s.Text</option>
+                            }
+                        </select>
+                        <label class="form-label form-label-sm mb-1 text-muted">أو اسم حر</label>
+                        <input name="supplierName" class="form-control form-control-sm" value="@Model.SupplierName" maxlength="120" placeholder="اسم المورد" />
+                    </div>
+                    <div class="col-12 col-lg-5">
+                        <label class="form-label form-label-sm mb-1">ملاحظات</label>
+                        <input name="notes" class="form-control form-control-sm" value="@Model.Notes" maxlength="500" placeholder="اختياري" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card material-invoice-section material-invoice-section--choices border-0 shadow-sm mb-3">
+            <div class="card-body p-3">
+                <div class="row g-3 material-invoice-choice-row">
+                    <div class="col-12 col-lg-6">
+                        @{
+                            ViewData["MaterialInvoiceRequireExplicitChoice"] = requireExplicitChoice;
+                            ViewData["CurrencySelected"] = Model.Currency;
+                        }
+                        <partial name="_MaterialInvoiceCurrencyPanel" />
+                    </div>
+                    <div class="col-12 col-lg-6">
+                        @{
+                            ViewData["MaterialInvoiceRequireExplicitChoice"] = requireExplicitChoice;
+                            ViewData["PaymentStatus"] = Model.PaymentStatus;
+                            ViewData["MaterialInvoiceKind"] = "purchase";
+                        }
+                        <partial name="_MaterialInvoicePaymentPanel" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card material-invoice-section material-invoice-section--lines border-0 shadow-sm mb-3">
+            <div class="card-header material-invoice-section__header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h2 class="h6 mb-0"><i class="fas fa-list me-1"></i> بنود الشراء</h2>
+                <button type="button" class="btn btn-sm btn-primary" id="add-line"><i class="fas fa-plus"></i> بند</button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive material-invoice-lines-shell">
+                    <table class="table table-sm mb-0 material-invoice-lines-table material-invoice-lines-table--compact" id="lines-table">
+                        <colgroup>
+                            <col class="mat-col-wh" />
+                            <col class="mat-col-name" />
+                            <col class="mat-col-model" />
+                            <col class="mat-col-unit" />
+                            <col class="mat-col-per" />
+                            <col class="mat-col-qty" />
+                            <col class="mat-col-price" />
+                            <col class="mat-col-wholesale" />
+                            <col class="mat-col-retail" />
+                            <col class="mat-col-actions" />
+                        </colgroup>
+                        <thead>
+                            <tr class="material-invoice-lines-table__groups">
+                                <th colspan="4" class="mat-th-group">الصنف</th>
+                                <th colspan="2" class="mat-th-group">الكميات</th>
+                                <th colspan="3" class="mat-th-group">التسعير</th>
+                                <th class="mat-th-group mat-th-group--actions"></th>
+                            </tr>
+                            <tr class="material-invoice-lines-table__cols">
+                                <th title="من المستودع أو مادة جديدة">المستودع</th>
+                                <th title="يُعبَّأ تلقائياً عند اختيار صنف">الاسم</th>
+                                <th>الموديل</th>
+                                <th>الوحدة</th>
+                                <th title="قطع داخل الكرتونة/العلبة">قطع/وحدة</th>
+                                <th title="عدد الكرتونات أو العلب أو القطع">العدد</th>
+                                <th title="سعر وحدة الشراء">سعر الشراء</th>
+                                <th title="سعر الجملة للقطعة">جملة</th>
+                                <th title="سعر المفرق للقطعة">مفرق</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="lines-body"></tbody>
+                    </table>
+                </div>
+                <div class="px-3 py-2 border-top material-invoice-lines-formula small text-muted">
+                    <i class="fas fa-calculator me-1"></i>
+                    قطع المخزون = العدد × قطع/وحدة
+                    <span class="text-muted">(قطعة: قطع/وحدة = 1)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="material-invoice-actions">
+            <button type="submit" class="btn btn-primary btn-lg micro-btn"><i class="fas fa-save"></i> حفظ وإدخال للمستودع</button>
+            <a class="btn btn-outline-secondary btn-lg micro-btn" asp-action="Index">إلغاء</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<partial name="_MaterialInvoiceChoicePanelsScript" />
+<script>
+(function () {
+    const items = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(items.Select(i => new {
+        id = i.Id,
+        name = i.Name,
+        modelNumber = i.ModelNumber,
+        wholesalePrice = i.WholesalePrice,
+        retailPrice = i.RetailPrice
+    })));
+    let lineIndex = 0;
+    const body = document.getElementById('lines-body');
+
+    function unitOptions(selected) {
+        const units = [
+            { v: 0, t: 'قطعة' },
+            { v: 1, t: 'علبة' },
+            { v: 2, t: 'كرتونة' },
+            { v: 3, t: 'ربطة' }
+        ];
+        return units.map(u => `<option value="${u.v}" ${u.v === selected ? 'selected' : ''}>${u.t}</option>`).join('');
+    }
+
+    function itemOptions(selectedId) {
+        let html = '<option value="">— مادة جديدة —</option>';
+        items.forEach(i => {
+            html += `<option value="${i.id}" ${i.id === selectedId ? 'selected' : ''}>${i.name}${i.modelNumber ? ' (' + i.modelNumber + ')' : ''}</option>`;
+        });
+        return html;
+    }
+
+    const unitPricePlaceholders = {
+        '0': 'سعر القطعة الواحدة',
+        '1': 'سعر العلبة',
+        '2': 'سعر الكرتونة',
+        '3': 'سعر الربطة'
+    };
+    const unitQtyPlaceholders = {
+        '0': 'عدد القطع',
+        '1': 'عدد العلب',
+        '2': 'عدد الكرتونات',
+        '3': 'عدد الربطات'
+    };
+
+    function syncLineUi(tr) {
+        if (!tr) return;
+        syncPerPackageForRow(tr);
+
+        const unitSelect = tr.querySelector('.unit-select');
+        const unitVal = unitSelect?.value ?? '0';
+        const isPiece = unitVal === '0';
+        const perPkgInput = tr.querySelector('[data-units-per-package-input]') || tr.querySelector('.per-pkg');
+        const qtyInput = tr.querySelector('.pkg-qty');
+        const unitPriceInput = tr.querySelector('.unit-price');
+        const whSelect = tr.querySelector('.wh-select');
+        const nameHint = tr.querySelector('.material-line-name-hint');
+        const stockPreview = tr.querySelector('.material-line-stock-preview');
+
+        if (unitPriceInput) {
+            unitPriceInput.placeholder = unitPricePlaceholders[unitVal] || 'سعر وحدة الشراء';
+        }
+        if (qtyInput) {
+            qtyInput.placeholder = unitQtyPlaceholders[unitVal] || 'عدد الوحدات';
+        }
+
+        const perPkg = isPiece ? 1 : (parseInt(perPkgInput?.value || '0', 10) || 0);
+        const qty = parseFloat(qtyInput?.value || '0');
+        let pieces = 0;
+        if (qty > 0) {
+            pieces = isPiece ? qty : (perPkg > 0 ? qty * perPkg : 0);
+        }
+        if (stockPreview) {
+            if (pieces > 0) {
+                const shown = pieces % 1 === 0 ? pieces : pieces.toFixed(3).replace(/\.?0+$/, '');
+                stockPreview.textContent = '≈ ' + shown + ' قطعة';
+                stockPreview.classList.remove('d-none');
+            } else {
+                stockPreview.textContent = '';
+                stockPreview.classList.add('d-none');
+            }
+        }
+
+        const isExisting = !!(whSelect?.value);
+        if (nameHint) {
+            nameHint.textContent = isExisting ? 'من المستودع' : 'مطلوب';
+            nameHint.classList.toggle('text-primary', !isExisting);
+            nameHint.classList.toggle('text-muted', isExisting);
+        }
+    }
+
+    function addLine() {
+        const idx = lineIndex++;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td data-label="المستودع" class="mat-cell-wh">
+                <select name="lines[${idx}].WarehouseItemId" class="form-select form-select-sm wh-select" title="صنف مسجّل أو مادة جديدة">${itemOptions(null)}</select>
+            </td>
+            <td data-label="الاسم" class="mat-cell-name">
+                <input name="lines[${idx}].ItemName" class="form-control form-control-sm name-input" required maxlength="120" placeholder="اسم المادة" />
+                <small class="material-line-name-hint text-muted">مطلوب</small>
+            </td>
+            <td data-label="الموديل" class="mat-cell-model">
+                <input name="lines[${idx}].ModelNumber" class="form-control form-control-sm model-input" maxlength="60" placeholder="—" />
+            </td>
+            <td data-label="الوحدة" class="mat-cell-unit">
+                <select name="lines[${idx}].PackageUnit" class="form-select form-select-sm unit-select">${unitOptions(0)}</select>
+            </td>
+            <td data-label="قطع/وحدة" class="material-per-pkg-cell mat-cell-per" data-units-per-package-cell>
+                <input name="lines[${idx}].UnitsPerPackage" type="number" min="1" step="1" value="1"
+                       class="form-control form-control-sm per-pkg" data-units-per-package-input
+                       data-syp-skip-format="true" title="قطع داخل الوحدة" />
+            </td>
+            <td data-label="العدد" class="mat-cell-qty">
+                <div class="mat-qty-wrap">
+                    <input name="lines[${idx}].PackageQuantity" type="number" step="0.001" min="0.001" required
+                           class="form-control form-control-sm pkg-qty" data-syp-skip-format="true" placeholder="العدد" />
+                    <span class="material-line-stock-preview badge text-bg-success-subtle border border-success-subtle d-none" aria-live="polite"></span>
+                </div>
+            </td>
+            <td data-label="سعر الشراء" class="mat-cell-price">
+                <input name="lines[${idx}].UnitPrice" type="number" step="0.01" min="0" required
+                       class="form-control form-control-sm unit-price" placeholder="السعر" />
+            </td>
+            <td data-label="جملة" class="mat-cell-wholesale">
+                <input name="lines[${idx}].WholesalePrice" type="number" step="0.01" min="0" class="form-control form-control-sm wh-price" placeholder="—" />
+            </td>
+            <td data-label="مفرق" class="mat-cell-retail">
+                <input name="lines[${idx}].RetailPrice" type="number" step="0.01" min="0" class="form-control form-control-sm rt-price" placeholder="—" />
+            </td>
+            <td data-label="" class="mat-cell-actions text-center">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-line px-2" title="حذف">&times;</button>
+            </td>`;
+        body.appendChild(tr);
+
+        const whSelect = tr.querySelector('.wh-select');
+        const unitSelect = tr.querySelector('.unit-select');
+
+        function syncFromWarehouse() {
+            const id = parseInt(whSelect.value || '0', 10);
+            const found = items.find(x => x.id === id);
+            const nameInput = tr.querySelector('.name-input');
+            const modelInput = tr.querySelector('.model-input');
+            if (found) {
+                nameInput.value = found.name;
+                nameInput.readOnly = true;
+                modelInput.value = found.modelNumber || '';
+                modelInput.readOnly = true;
+                if (found.wholesalePrice) tr.querySelector('.wh-price').value = found.wholesalePrice;
+                if (found.retailPrice) tr.querySelector('.rt-price').value = found.retailPrice;
+            } else {
+                nameInput.value = '';
+                nameInput.readOnly = false;
+                modelInput.value = '';
+                modelInput.readOnly = false;
+            }
+            syncLineUi(tr);
+        }
+
+        whSelect.addEventListener('change', syncFromWarehouse);
+        unitSelect.addEventListener('change', () => syncLineUi(tr));
+        tr.querySelector('.pkg-qty')?.addEventListener('input', () => syncLineUi(tr));
+        tr.querySelector('[data-units-per-package-input]')?.addEventListener('input', () => syncLineUi(tr));
+        tr.querySelector('.per-pkg')?.addEventListener('input', () => syncLineUi(tr));
+        tr.querySelector('.remove-line').addEventListener('click', () => tr.remove());
+        syncLineUi(tr);
+    }
+
+    function syncPerPackageForRow(tr) {
+        if (!tr) return;
+        const unitSelect = tr.querySelector('.unit-select');
+        const cell = tr.querySelector('[data-units-per-package-cell]');
+        const isPiece = !unitSelect || unitSelect.value === '0' || unitSelect.value === '';
+
+        const native = cell?.querySelector('input[data-units-per-package-input]')
+            || cell?.querySelector('input.per-pkg[type="number"]');
+        const display = cell?.querySelector('.fmt-number-display');
+        const hidden = cell?.querySelector('.fmt-number-value[name*="UnitsPerPackage"]');
+        const editors = [native, display].filter(Boolean);
+
+        if (isPiece) {
+            cell?.classList.add('material-per-pkg--locked');
+            editors.forEach(el => {
+                el.readOnly = true;
+                el.removeAttribute('disabled');
+                el.setAttribute('aria-disabled', 'true');
+            });
+            if (native) native.value = '1';
+            if (display) display.value = '1';
+            if (hidden) hidden.value = '1';
+            if (cell) cell.title = 'عند «قطعة» يكون العدد 1 دائماً';
+        } else {
+            cell?.classList.remove('material-per-pkg--locked');
+            editors.forEach(el => {
+                el.readOnly = false;
+                el.removeAttribute('disabled');
+                el.removeAttribute('aria-disabled');
+            });
+            if (cell) cell.title = 'عدد القطع داخل العلبة أو الكرتونة (مثال: 16)';
+        }
+    }
+
+    document.getElementById('lines-body').addEventListener('change', function (e) {
+        const tr = e.target.closest('tr');
+        if (!tr) return;
+        if (e.target.classList.contains('unit-select') || e.target.classList.contains('wh-select')) {
+            syncLineUi(tr);
+        }
+    });
+    document.getElementById('lines-body').addEventListener('input', function (e) {
+        const tr = e.target.closest('tr');
+        if (!tr) return;
+        if (e.target.classList.contains('pkg-qty') || e.target.classList.contains('per-pkg')
+            || e.target.hasAttribute('data-units-per-package-input')) {
+            syncLineUi(tr);
+        }
+    });
+
+    document.getElementById('add-line').addEventListener('click', addLine);
+    addLine();
+
+    setTimeout(function () {
+        document.querySelectorAll('#lines-body tr').forEach(syncLineUi);
+    }, 400);
+})();
+</script>
+}

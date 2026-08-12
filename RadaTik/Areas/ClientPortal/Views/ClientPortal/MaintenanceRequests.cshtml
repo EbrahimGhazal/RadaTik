@@ -1,0 +1,139 @@
+@model IEnumerable<RadaTik.Models.MaintenanceRequest>
+@using RadaTik.Models
+@using RadaTik.Helpers
+@{
+    ViewData["Title"] = "طلبات الصيانة";
+    ViewBag.PageHeroIcon = "fas fa-tools";
+    ViewBag.PageHeroExtraActions = new[]
+    {
+        new RadaTik.ViewModels.UI.PageHeroActionViewModel { Text = "طلب صيانة جديد", Url = Url.Action("CreateMaintenanceRequest")!, CssClass = "btn btn-primary btn-sm", IconClass = "fas fa-plus" }
+    };
+    ViewBag.PageHeroBackUrl = Url.Action("Index");
+    ViewBag.PageHeroBackText = "العودة";
+}
+<div class="radtk-page--clientportal-views-clientportal-maintenancerequests">
+
+<partial name="_CrudPageHero" />
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Success"]</div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Error"]</div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            قائمة طلبات الصيانة
+        </h3>
+    </div>
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="requests-list">
+                @foreach (var request in Model)
+                {
+                    var statusClass = PricingDisplay.MaintenanceRequestStatusClass(request.Status);
+
+                    var typeIcon = MaintenanceCatalog.GetIcon(request.Type);
+
+                    <div class="request-card @statusClass">
+                        <div class="request-icon">
+                            <i class="fas @typeIcon"></i>
+                        </div>
+                        <div class="request-content">
+                            <div class="request-header">
+                                <span class="request-type">@GetMaintenanceTypeName(request.Type)</span>
+                                <span class="request-status @statusClass">@GetStatusName(request.Status)</span>
+                            </div>
+                            <p class="request-description">@request.Description</p>
+                            <div class="request-meta">
+                                <span><i class="fas fa-calendar"></i> @request.RequestDate.ToString("yyyy/MM/dd HH:mm")</span>
+                                @if (request.Priority != RequestPriority.Normal)
+                                {
+                                    <span class="priority-badge priority-@request.Priority.ToString().ToLower()">
+                                        <i class="fas fa-flag"></i> @GetPriorityName(request.Priority)
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                        <div class="request-actions">
+                            <a asp-action="MaintenanceRequestDetails" asp-route-id="@request.Id" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i> التفاصيل
+                            </a>
+                            @if (request.Status == MaintenanceRequestStatus.Pending)
+                            {
+                                <button type="button" class="btn btn-sm btn-danger" onclick="cancelRequest(@request.Id, 'maintenance')">
+                                    <i class="fas fa-times"></i> إلغاء
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <h3>لا توجد طلبات صيانة</h3>
+                <p>لم تقم بتقديم أي طلب صيانة حتى الآن.</p>
+                <a asp-action="CreateMaintenanceRequest" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> تقديم طلب صيانة
+                </a>
+            </div>
+        }
+    </div>
+</div>
+@functions {
+    string GetMaintenanceTypeName(MaintenanceType type) => MaintenanceCatalog.GetDisplayName(type);
+
+    string GetStatusName(MaintenanceRequestStatus status) => PricingDisplay.MaintenanceRequestStatusLabel(status);
+
+    string GetPriorityName(RequestPriority priority) => PricingDisplay.RequestPriorityLabel(priority);
+}
+
+
+</div>
+@section Scripts {
+    <script>
+        function cancelRequest(id, type) {
+            if (confirm('هل أنت متأكد من إلغاء هذا الطلب؟')) {
+                var url = type === 'maintenance' 
+                    ? '@Url.Action("CancelMaintenanceRequest")' 
+                    : '@Url.Action("CancelSpeedChangeRequest")';
+                
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: 'id=' + id
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                });
+            }
+        }
+    </script>
+    @Html.AntiForgeryToken()
+}

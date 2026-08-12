@@ -1,0 +1,271 @@
+@model RadaTik.Models.SpeedChangeRequest
+@using RadaTik.Models
+@using RadaTik.Helpers
+@inject RadaTik.Services.IPermissionService PermissionService
+@{
+    ViewData["Title"] = $"طلب تغيير سرعة #{Model.Id}";
+    
+    // موافقة/رفض: SpeedChange.Approve (أو Implement للتوافق مع الإسناد القديم عبر PermissionService).
+    // تنفيذ: SpeedChange.Implement فقط.
+    var canApproveOrReject = await PermissionService.HasPermissionAsync(User, "SpeedChange.Approve");
+    var canImplement = await PermissionService.HasPermissionAsync(User, "SpeedChange.Implement");
+    ViewBag.PageHeroIcon = "fas fa-tachometer-alt";
+    ViewBag.PageHeroBackUrl = Url.RouteUrl("networkManager-requestsManagement", new { action = "SpeedChangeRequests" });
+    ViewBag.PageHeroBackText = "العودة للقائمة";
+}
+<div class="radtk-page--companyadmin-views-requestsmanagement-speedchangerequestdetails">
+
+<partial name="_CrudPageHero" />
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Success"]</div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Error"]</div>
+    </div>
+}
+
+<!-- معلومات التغيير -->
+<div class="speed-change-overview">
+    <div class="profile-box current">
+        <div class="profile-label">الباقة الحالية</div>
+        <div class="profile-name">@Model.CurrentProfile?.Name</div>
+        <div class="profile-speed">
+            <i class="fas fa-download"></i> @Model.CurrentProfile?.DownloadSpeedDisplay
+        </div>
+        <div class="profile-price">@SyrianCurrencyHelper.FormatNew(Model.CurrentProfile?.PriceWithVAT) ر.س/شهر</div>
+    </div>
+    
+    <div class="arrow-box">
+        <i class="fas fa-long-arrow-alt-left"></i>
+    </div>
+    
+    <div class="profile-box requested">
+        <div class="profile-label">الباقة المطلوبة</div>
+        <div class="profile-name">@Model.RequestedProfile?.Name</div>
+        <div class="profile-speed">
+            <i class="fas fa-download"></i> @Model.RequestedProfile?.DownloadSpeedDisplay
+        </div>
+        <div class="profile-price">@SyrianCurrencyHelper.FormatNew(Model.RequestedProfile?.PriceWithVAT) ر.س/شهر</div>
+    </div>
+</div>
+
+@if (Model.PriceDifference.HasValue && Model.PriceDifference != 0)
+{
+    <div class="price-difference-box @(Model.PriceDifference > 0 ? "increase" : "decrease")">
+        <i class="fas @(Model.PriceDifference > 0 ? "fa-arrow-up" : "fa-arrow-down")"></i>
+        <span>فرق السعر: @(Model.PriceDifference > 0 ? "+" : "")@SyrianCurrencyHelper.FormatNew(Model.PriceDifference.Value) ر.س/شهر</span>
+    </div>
+}
+
+<div class="details-grid">
+    <!-- معلومات الطلب -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-info-circle"></i> تفاصيل الطلب</h3>
+            <span class="status-badge @GetStatusClass(Model.Status)">@GetStatusName(Model.Status)</span>
+        </div>
+        <div class="card-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">تاريخ الطلب</span>
+                    <span class="info-value">@Model.RequestDate.ToString("yyyy/MM/dd HH:mm")</span>
+                </div>
+                @if (Model.ProcessedDate.HasValue)
+                {
+                    <div class="info-item">
+                        <span class="info-label">تاريخ المعالجة</span>
+                        <span class="info-value">@Model.ProcessedDate?.ToString("yyyy/MM/dd HH:mm")</span>
+                    </div>
+                }
+                @if (Model.ImplementedDate.HasValue)
+                {
+                    <div class="info-item">
+                        <span class="info-label">تاريخ التنفيذ</span>
+                        <span class="info-value">@Model.ImplementedDate?.ToString("yyyy/MM/dd HH:mm")</span>
+                    </div>
+                }
+                @if (Model.ProcessedBy != null)
+                {
+                    <div class="info-item">
+                        <span class="info-label">معالج بواسطة</span>
+                        <span class="info-value">@Model.ProcessedBy.FullName</span>
+                    </div>
+                }
+                @if (Model.ImplementedBy != null)
+                {
+                    <div class="info-item">
+                        <span class="info-label">منفذ بواسطة</span>
+                        <span class="info-value">@Model.ImplementedBy.FullName</span>
+                    </div>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Reason))
+            {
+                <div class="reason-section">
+                    <h4>سبب التغيير</h4>
+                    <p class="reason-text">@Model.Reason</p>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.AdminNotes))
+            {
+                <div class="notes-section">
+                    <h4>ملاحظات المدير</h4>
+                    <p class="notes-text">@Model.AdminNotes</p>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.RejectionReason))
+            {
+                <div class="rejection-section">
+                    <h4>سبب الرفض</h4>
+                    <p class="rejection-text">@Model.RejectionReason</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- معلومات العميل -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-user"></i> معلومات العميل</h3>
+        </div>
+        <div class="card-body">
+            @if (Model.Client != null)
+            {
+                <div class="client-card">
+                    <div class="client-avatar-lg">
+                        @(Model.Client.Name?.Substring(0, 1).ToUpper() ?? "?")
+                    </div>
+                    <div class="client-details">
+                        <h4>@Model.Client.Name</h4>
+                        <p><i class="fas fa-user"></i> @Model.Client.UserName</p>
+                        <p><i class="fas fa-phone"></i> @Model.Client.PhoneNumber</p>
+                        @if (Model.Client.MikroTikServer != null)
+                        {
+                            <p><i class="fas fa-server"></i> @Model.Client.MikroTikServer.Name</p>
+                        }
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a asp-route="networkManager-clients" asp-route-action="Details" asp-route-id="@Model.ClientId" class="btn btn-outline-info btn-sm">
+                        <i class="fas fa-external-link-alt"></i> عرض ملف العميل
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- إجراءات -->
+@if (canApproveOrReject || canImplement)
+{
+    <div class="actions-card">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-cogs"></i> إجراءات</h3>
+            </div>
+            <div class="card-body">
+                @if (Model.Status == SpeedChangeRequestStatus.Pending)
+                {
+                    @if (canApproveOrReject)
+                    {
+                        <div class="actions-grid">
+                            <!-- الموافقة -->
+                            <form asp-action="ApproveSpeedChangeRequest" method="post" class="action-form">
+                                <input type="hidden" name="id" value="@Model.Id" />
+                                <div class="form-group mb-3">
+                                    <label class="form-label">ملاحظات (اختياري)</label>
+                                    <textarea name="adminNotes" class="form-control" rows="2" placeholder="أضف ملاحظات..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-thumbs-up"></i> الموافقة على الطلب
+                                </button>
+                            </form>
+
+                            <!-- الرفض -->
+                            <form asp-action="RejectSpeedChangeRequest" method="post" class="action-form" onsubmit="return validateRejection(this)">
+                                <input type="hidden" name="id" value="@Model.Id" />
+                                <div class="form-group mb-3">
+                                    <label class="form-label">سبب الرفض</label>
+                                    <textarea name="rejectionReason" class="form-control" rows="2" placeholder="اكتب سبب الرفض..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-danger btn-lg w-100">
+                                    <i class="fas fa-times"></i> رفض الطلب
+                                </button>
+                            </form>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted">
+                            <i class="fas fa-lock"></i>
+                            الموافقة والرفض تتطلب صلاحية «موافقة/رفض تغيير السرعة» (أو التنفيذ للحسابات القديمة)
+                        </div>
+                    }
+                }
+                else if (Model.Status == SpeedChangeRequestStatus.Approved)
+                {
+                    @if (canImplement)
+                    {
+                        <form asp-action="ImplementSpeedChange" method="post" class="text-center" onsubmit="return confirm('هل أنت متأكد من تنفيذ تغيير السرعة؟ سيتم تحديث الباقة في المايكروتك.')">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <div class="alert alert-info mb-3">
+                                <i class="fas fa-info-circle"></i>
+                                سيتم تغيير باقة العميل من <strong>@Model.CurrentProfile?.Name</strong> إلى <strong>@Model.RequestedProfile?.Name</strong>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-check-double"></i> تنفيذ تغيير السرعة
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted">
+                            <i class="fas fa-lock"></i>
+                            لا تملك صلاحية تنفيذ تغيير السرعة
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        لا توجد إجراءات متاحة لهذا الطلب
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+@functions {
+    string GetStatusName(SpeedChangeRequestStatus status) => PricingDisplay.SpeedChangeRequestStatusLabel(status);
+
+    string GetStatusClass(SpeedChangeRequestStatus status) => PricingDisplay.SpeedChangeRequestStatusClass(status);
+}
+
+
+</div>
+@section Scripts {
+    <script>
+        function validateRejection(form) {
+            var reason = form.querySelector('textarea[name="rejectionReason"]').value;
+            if (!reason.trim()) {
+                alert('يجب تحديد سبب الرفض');
+                return false;
+            }
+            return confirm('هل أنت متأكد من رفض هذا الطلب؟');
+        }
+    </script>
+}
+

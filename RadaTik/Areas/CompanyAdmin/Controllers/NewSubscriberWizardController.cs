@@ -1,0 +1,933 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using RadaTik.Areas.CompanyAdmin.ViewModels;
+using global::RadaTik.Constants;
+using global::RadaTik.Data;
+using global::RadaTik.Helpers;
+using global::RadaTik.Models;
+using global::RadaTik.Security;
+using global::RadaTik.Services;
+using global::RadaTik.Services.NewSubscriberWizard;
+
+namespace RadaTik.Areas.CompanyAdmin.Controllers;
+
+[Area("CompanyAdmin")]
+[Authorize(Roles = $"{RoleNames.NetworkAdministrator},{RoleNames.CompanyEmployee},{RoleNames.EmployeeLegacy}")]
+[RequirePermission("Clients.Create")]
+public class NewSubscriberWizardController : Controller
+{
+    private sealed record WizardProfileOptionJson(int id, string? name);
+
+    private sealed record WizardSectorOptionJson(int id, string? name);
+
+    private sealed record WizardSharedReceiverOptionJson(int id, string? name, string? sectorName, string? serverName);
+
+    private string CurrentArea => RouteData.Values["area"]?.ToString() ?? "CompanyAdmin";
+
+    private readonly ApplicationDbContext _context;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly NewSubscriberWizardOrchestrator _orchestrator;
+    private readonly ISubscriberInstallationInvoiceService _invoiceService;
+    private readonly SubscriberInstallationWarehouseLinkService _warehouseLinkService;
+
+    public NewSubscriberWizardController(
+        ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager,
+        NewSubscriberWizardOrchestrator orchestrator,
+        ISubscriberInstallationInvoiceService invoiceService,
+        SubscriberInstallationWarehouseLinkService warehouseLinkService)
+    {
+        _context = context;
+        _userManager = userManager;
+        _orchestrator = orchestrator;
+        _invoiceService = invoiceService;
+        _warehouseLinkService = warehouseLinkService;
+    }
+
+    /// <summary>Canonical entry URL: /networkManager/Clients/wizard and /wizard/Index.</summary>
+    [HttpGet]
+    public Task<IActionResult> Index(int? receiverId) => Start(receiverId);
+
+    [HttpGet]
+    public async Task<IActionResult> Start(int? receiverId)
+    {
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue)
+        {
+            TempData["Error"] = AppMessages.SelectNetworkFirst;
+            return RedirectToAction("Index", "Network", new { area = CurrentArea });
+        }
+
+        if (receiverId.HasValue && receiverId.Value > 0)
+        {
+            var receiverMeta = await _context.Receivers
+                .AsNoTracking()
+                .Where(r => r.Id == receiverId.Value && r.NetworkId == networkId.Value)
+                .Select(r => new { r.IsActive, r.SectorId, ServerId = r.Sector.MikroTikServerId })
+                .FirstOrDefaultAsync();
+            if (receiverMeta == null)
+            {
+                TempData["Error"] = "اللاقط غير موجود في هذه الشبكة.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!receiverMeta.IsActive)
+            {
+                TempData["Info"] = "اللاقط بانتظار موافقة المدير. يمكنك متابعة بيانات المشترك الآن؛ التفعيل بعد الاعتماد.";
+            }
+
+            HttpContext.Session.SetWizardState(new NewSubscriberWizardState
+            {
+                Path = NewSubscriberWizardPath.PrivateNewReceiver,
+                ReceiverId = receiverId.Value,
+                SectorId = receiverMeta.SectorId,
+                MikroTikServerId = receiverMeta.ServerId
+            });
+            return RedirectToAction(nameof(Subscriber));
+        }
+
+        NewSubscriberWizardStartViewModel vm = new()
+        {
+            Receivers = await LoadReceiverOptionsAsync(networkId.Value)
+        };
+        ViewData["Title"] = "إضافة مشترك جديد";
+        return View("Start", vm);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Resume(int clientId)
+    {
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue)
+        {
+            TempData["Error"] = AppMessages.SelectNetworkFirst;
+            return RedirectToAction(nameof(Start));
+        }
+
+        Client? client = await _context.Clients
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == clientId && c.NetworkId == networkId.Value);
+        if (client == null)
+        {
+            return NotFound();
+        }
+
+        SubscriberInstallationInvoice? invoice = await _context.SubscriberInstallationInvoices
+            .AsNoTracking()
+            .Where(i => i.ClientId == clientId && i.Kind == SubscriberInstallationInvoiceKind.InitialSetup)
+            .OrderByDescending(i => i.Id)
+            .FirstOrDefaultAsync();
+
+        NewSubscriberWizardPath path = await InferWizardPathAsync(client, networkId.Value);
+
+        NewSubscriberWizardState state = new()
+        {
+            Path = path,
+            ClientId = client.Id,
+            InvoiceId = invoice?.Id,
+            ReceiverId = client.ReceiverId,
+            MikroTikServerId = client.MikroTikServerId
+        };
+        HttpContext.Session.SetWizardState(state);
+
+        if (invoice == null)
+        {
+            TempData["Info"] = "لا توجد فاتورة تركيب — أكمل بيانات المشترك أولاً.";
+            return RedirectToAction(nameof(Subscriber));
+        }
+
+        if (invoice.Status == SubscriberInstallationInvoiceStatus.Draft)
+        {
+            return RedirectToAction(nameof(Invoice));
+        }
+
+        if (invoice.Status is SubscriberInstallationInvoiceStatus.Finalized
+            or SubscriberInstallationInvoiceStatus.PartiallyPaid
+            or SubscriberInstallationInvoiceStatus.PendingWalletPayment)
+        {
+            return RedirectToAction(nameof(CollectPayment), new { id = invoice.Id });
+        }
+
+        return RedirectToAction(nameof(Complete), new { invoiceId = invoice.Id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Start(NewSubscriberWizardPath path, int? existingReceiverId)
+    {
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue)
+        {
+            TempData["Error"] = AppMessages.SelectNetworkFirst;
+            return RedirectToAction("Index", "Network", new { area = CurrentArea });
+        }
+
+        NewSubscriberWizardState state = new() { Path = path };
+
+        switch (path)
+        {
+            case NewSubscriberWizardPath.TowerDirect:
+                HttpContext.Session.SetWizardState(state);
+                return RedirectToAction(nameof(Subscriber));
+
+            case NewSubscriberWizardPath.PrivateNewReceiver:
+                string returnUrl = Url.Action(nameof(Start), "NewSubscriberWizard", new { area = CurrentArea })!;
+                return RedirectToAction("Create", "Receiver", new { area = GetReceiverArea(), returnUrl });
+
+            case NewSubscriberWizardPath.SharedSelectReceiver:
+                HttpContext.Session.SetWizardState(state);
+                return RedirectToAction(nameof(SharedReceiver));
+
+            case NewSubscriberWizardPath.ExistingReceiverFromList:
+                if (!existingReceiverId.HasValue || existingReceiverId.Value <= 0)
+                {
+                    TempData["Error"] = "اختر اللاقط من القائمة.";
+                    return RedirectToAction(nameof(Start));
+                }
+
+                state.ReceiverId = existingReceiverId.Value;
+                state.MikroTikServerId = await _context.Receivers
+                    .AsNoTracking()
+                    .Where(r => r.Id == existingReceiverId.Value)
+                    .Select(r => r.Sector.MikroTikServerId)
+                    .FirstOrDefaultAsync();
+                HttpContext.Session.SetWizardState(state);
+                return RedirectToAction(nameof(Subscriber));
+
+            default:
+                TempData["Error"] = "اختر نوع الاتصال.";
+                return RedirectToAction(nameof(Start));
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> SharedReceiver()
+    {
+        NewSubscriberWizardState? state = HttpContext.Session.GetWizardState();
+        if (state?.Path != NewSubscriberWizardPath.SharedSelectReceiver)
+        {
+            return RedirectToAction(nameof(Start));
+        }
+
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue)
+        {
+            return RedirectToAction("Index", "Network", new { area = CurrentArea });
+        }
+
+        NewSubscriberWizardSharedReceiverViewModel vm = await BuildSharedReceiverViewModelAsync(networkId.Value, state.MikroTikServerId, state.SectorId);
+        ViewData["Title"] = "تحديد لاقط مشترك";
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SharedReceiver(int? mikroTikServerId, int? sectorId, int receiverId)
+    {
+        NewSubscriberWizardState? state = HttpContext.Session.GetWizardState();
+        if (state?.Path != NewSubscriberWizardPath.SharedSelectReceiver)
+        {
+            return RedirectToAction(nameof(Start));
+        }
+
+        if (receiverId <= 0)
+        {
+            TempData["Error"] = "اختر اللاقط المشترك.";
+            return RedirectToAction(nameof(SharedReceiver));
+        }
+
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue)
+        {
+            return RedirectToAction(nameof(Start));
+        }
+
+        bool isShared = await _context.Clients
+            .AsNoTracking()
+            .AnyAsync(c => c.ReceiverId == receiverId && c.NetworkId == networkId.Value);
+        if (!isShared)
+        {
+            TempData["Error"] = "اللاقط المحدد ليس مشتركاً (لا يوجد مشترك آخر عليه).";
+            return RedirectToAction(nameof(SharedReceiver));
+        }
+
+        state.ReceiverId = receiverId;
+        state.MikroTikServerId = mikroTikServerId;
+        state.SectorId = sectorId;
+        HttpContext.Session.SetWizardState(state);
+        return RedirectToAction(nameof(Subscriber));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Subscriber()
+    {
+        NewSubscriberWizardState? state = HttpContext.Session.GetWizardState();
+        if (state == null)
+        {
+            return RedirectToAction(nameof(Start));
+        }
+
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue)
+        {
+            return RedirectToAction(nameof(Start));
+        }
+
+        await LoadSubscriberViewDataAsync(networkId.Value, state);
+        NewSubscriberWizardSubscriberFormModel model = new()
+        {
+            Path = state.Path,
+            ReceiverId = state.ReceiverId,
+            MikroTikServerId = state.MikroTikServerId,
+            ServiceStartDate = DateTime.Today,
+            AccountExpirationDate = DateTime.Today.AddMonths(1),
+            IsActive = true
+        };
+        ViewData["Title"] = "بيانات المشترك الجديد";
+        ViewBag.WizardPathLabel = GetPathLabel(state.Path);
+        ViewBag.RequireMikroTikServer = state.Path == NewSubscriberWizardPath.TowerDirect;
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Subscriber(NewSubscriberWizardSubscriberFormModel model)
+    {
+        NewSubscriberWizardState? state = HttpContext.Session.GetWizardState();
+        if (state == null)
+        {
+            return RedirectToAction(nameof(Start));
+        }
+
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge();
+        }
+
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue)
+        {
+            return RedirectToAction(nameof(Start));
+        }
+
+        model.Path = state.Path;
+        if (state.Path != NewSubscriberWizardPath.TowerDirect)
+        {
+            model.ReceiverId = state.ReceiverId ?? model.ReceiverId;
+        }
+
+        model.MikroTikServerId = state.MikroTikServerId ?? model.MikroTikServerId;
+
+        if (state.Path == NewSubscriberWizardPath.TowerDirect && !model.MikroTikServerId.HasValue)
+        {
+            ModelState.AddModelError(nameof(model.MikroTikServerId), "خادم MikroTik مطلوب عند الاتصال من البرج مباشرة.");
+        }
+
+        if (model.MikroTikServerId.HasValue)
+        {
+            bool profileBelongsToSelectedServer = await _context.Profiles
+                .AsNoTracking()
+                .AnyAsync(p =>
+                    p.Id == model.ProfileId &&
+                    p.NetworkId == networkId.Value &&
+                    p.IsActive &&
+                    p.MikroTikServerId == model.MikroTikServerId.Value);
+            if (!profileBelongsToSelectedServer)
+            {
+                ModelState.AddModelError(nameof(model.ProfileId), "البروفايل المحدد لا يتبع السيرفر المختار.");
+            }
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await LoadSubscriberViewDataAsync(networkId.Value, state);
+            ViewData["Title"] = "بيانات المشترك الجديد";
+            ViewBag.WizardPathLabel = GetPathLabel(state.Path);
+            ViewBag.RequireMikroTikServer = state.Path == NewSubscriberWizardPath.TowerDirect;
+            return View(model);
+        }
+
+        Client client = new()
+        {
+            Name = model.Name,
+            SID = model.SID,
+            UserName = model.UserName,
+            Password = model.Password,
+            ProfileId = model.ProfileId,
+            PhoneNumber = model.PhoneNumber,
+            ResidenceAddress = model.ResidenceAddress,
+            ReceiverId = state.Path == NewSubscriberWizardPath.TowerDirect ? null : model.ReceiverId,
+            MikroTikServerId = model.MikroTikServerId,
+            IsActive = model.IsActive,
+            ServiceStartDate = model.ServiceStartDate,
+            AccountExpirationDate = model.AccountExpirationDate
+        };
+
+        NewSubscriberWizardOrchestrator.CreateSubscriberResult result = await _orchestrator.CreateSubscriberAsync(
+            client,
+            user,
+            networkId.Value,
+            state.Path,
+            model.DbUserName,
+            model.DbPassword);
+
+        if (!result.Success)
+        {
+            TempData["Error"] = result.ErrorMessage;
+            await LoadSubscriberViewDataAsync(networkId.Value, state);
+            ViewData["Title"] = "بيانات المشترك الجديد";
+            ViewBag.WizardPathLabel = GetPathLabel(state.Path);
+            ViewBag.RequireMikroTikServer = state.Path == NewSubscriberWizardPath.TowerDirect;
+            return View(model);
+        }
+
+        state.ClientId = result.ClientId;
+        state.InvoiceId = result.InvoiceId;
+        if (model.MikroTikServerId.HasValue)
+        {
+            state.MikroTikServerId = model.MikroTikServerId;
+        }
+
+        HttpContext.Session.SetWizardState(state);
+
+        TempData[result.RequiresManagerApproval ? "Info" : "Success"] = result.RequiresManagerApproval
+            ? "تم تسجيل المشترك كطلب موافقة. أكمل فاتورة المواد ثم انتظر اعتماد المدير."
+            : "تم إنشاء المشترك. حدّد كميات المواد لإصدار الفاتورة.";
+
+        return RedirectToAction(nameof(Invoice));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Invoice()
+    {
+        NewSubscriberWizardState? state = HttpContext.Session.GetWizardState();
+        if (state?.InvoiceId == null)
+        {
+            return RedirectToAction(nameof(Start));
+        }
+
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue)
+        {
+            return RedirectToAction(nameof(Start));
+        }
+
+        SubscriberInstallationInvoice? invoice = await _context.SubscriberInstallationInvoices
+            .Include(i => i.Items)
+            .FirstOrDefaultAsync(i => i.Id == state.InvoiceId && i.NetworkId == networkId.Value);
+        if (invoice == null)
+        {
+            return NotFound();
+        }
+
+        bool requiresApproval = state.ClientId.HasValue && await _context.Clients
+            .AsNoTracking()
+            .AnyAsync(c => c.Id == state.ClientId && c.ConnectionStatus == "معلق بانتظار موافقة مدير الشركة");
+
+        PricingWarehouseReadiness warehouseReadiness = await _warehouseLinkService.GetReadinessAsync(networkId.Value);
+
+        List<NewSubscriberWizardInvoiceLineViewModel> lines = [];
+        foreach (SubscriberInstallationInvoiceItem item in invoice.Items)
+        {
+            IReadOnlyList<WarehouseModelOption> models = [];
+            if (item.IsStockItem && !string.IsNullOrWhiteSpace(item.MaterialKey))
+            {
+                models = await _warehouseLinkService.GetModelsForMaterialAsync(
+                    networkId.Value, item.MaterialKey);
+            }
+
+            lines.Add(new NewSubscriberWizardInvoiceLineViewModel
+            {
+                ItemId = item.Id,
+                ItemName = item.ItemName,
+                MaterialKey = item.MaterialKey,
+                IsStockItem = item.IsStockItem,
+                WarehouseItemId = item.WarehouseItemId,
+                AvailableModels = models.Select(m => new InvoiceWarehouseModelOptionViewModel
+                {
+                    WarehouseItemId = m.WarehouseItemId,
+                    DisplayLabel = m.DisplayLabel,
+                    IsDefault = m.IsDefault
+                }).ToList(),
+                UnitPrice = item.UnitPrice,
+                Quantity = item.Quantity,
+                LineTotal = item.LineTotal
+            });
+        }
+
+        NewSubscriberWizardInvoiceViewModel vm = new()
+        {
+            InvoiceId = invoice.Id,
+            ClientId = invoice.ClientId,
+            ClientName = invoice.ClientName,
+            Path = state.Path,
+            RequiresManagerApproval = requiresApproval,
+            WarehousePricingReady = warehouseReadiness.IsReadyForWarehouseFinalize,
+            UnlinkedStockLineCount = warehouseReadiness.UnlinkedStockLineCount,
+            TotalAmount = invoice.TotalAmount,
+            Lines = lines
+        };
+
+        ViewData["Title"] = "فاتورة تجهيز المشترك";
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Invoice(int invoiceId, List<NewSubscriberWizardInvoiceLineViewModel> lines, bool finalize)
+    {
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue || user == null)
+        {
+            return RedirectToAction(nameof(Start));
+        }
+
+        IReadOnlyList<DraftInvoiceLineUpdate> updates = lines
+            .Select(l => new DraftInvoiceLineUpdate
+            {
+                ItemId = l.ItemId,
+                Quantity = l.Quantity,
+                WarehouseItemId = l.WarehouseItemId
+            })
+            .ToList();
+
+        FinalizeInvoiceResult updateResult = await _invoiceService.UpdateDraftInvoiceItemsAsync(
+            invoiceId, networkId.Value, updates);
+        if (!updateResult.Success)
+        {
+            TempData["Error"] = updateResult.ErrorMessage;
+            return RedirectToAction(nameof(Invoice));
+        }
+
+        if (finalize)
+        {
+            PricingWarehouseReadiness readinessCheck = await _warehouseLinkService.GetReadinessAsync(networkId.Value);
+            if (!readinessCheck.IsReadyForWarehouseFinalize)
+            {
+                TempData["Error"] = "أكمل ربط مواد التركيب بأصناف المستودع من صفحة تسعير التركيب قبل الإصدار.";
+                return RedirectToAction(nameof(Invoice));
+            }
+
+            NewSubscriberWizardState? state = HttpContext.Session.GetWizardState();
+            bool requiresApproval = state?.ClientId is int clientId && await _context.Clients
+                .AsNoTracking()
+                .AnyAsync(c => c.Id == clientId && c.ConnectionStatus == "معلق بانتظار موافقة مدير الشركة");
+            if (requiresApproval)
+            {
+                TempData["Error"] = "لا يمكن إصدار الفاتورة وخصم المستودع قبل موافقة المدير على المشترك.";
+                return RedirectToAction(nameof(Invoice));
+            }
+
+            FinalizeInvoiceResult finalizeResult = await _invoiceService.FinalizeInvoiceAsync(
+                invoiceId, networkId.Value, user.Id);
+            if (!finalizeResult.Success)
+            {
+                TempData["Error"] = finalizeResult.ErrorMessage;
+                return RedirectToAction(nameof(Invoice));
+            }
+
+            if (state != null)
+            {
+                state.InvoiceId = invoiceId;
+                HttpContext.Session.SetWizardState(state);
+            }
+
+            return RedirectToAction(nameof(CollectPayment), new { id = invoiceId });
+        }
+
+        TempData["Success"] = "تم حفظ الكميات.";
+        return RedirectToAction(nameof(Invoice));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> CollectPayment(int id)
+    {
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue)
+        {
+            return RedirectToAction(nameof(Start));
+        }
+
+        SubscriberInstallationInvoice? invoice = await _context.SubscriberInstallationInvoices
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.Id == id && i.NetworkId == networkId.Value);
+        if (invoice == null || invoice.Status != SubscriberInstallationInvoiceStatus.Finalized)
+        {
+            TempData["Error"] = "الفاتورة غير جاهزة للتحصيل.";
+            return RedirectToAction(nameof(Invoice));
+        }
+
+        Client? client = await _context.Clients.AsNoTracking().FirstOrDefaultAsync(c => c.Id == invoice.ClientId);
+        if (client == null)
+        {
+            return NotFound();
+        }
+
+        if (client.ConnectionStatus == "معلق بانتظار موافقة مدير الشركة")
+        {
+            return RedirectToAction(nameof(Complete), new { invoiceId = id, paymentRecorded = false });
+        }
+
+        if (invoice.RemainingAmount <= 0m)
+        {
+            return RedirectToAction(nameof(Complete), new { invoiceId = id, paymentRecorded = true });
+        }
+
+        NewSubscriberWizardCollectPaymentViewModel vm = new()
+        {
+            InvoiceId = invoice.Id,
+            ClientId = invoice.ClientId,
+            ClientName = invoice.ClientName,
+            TotalAmount = invoice.TotalAmount,
+            RemainingAmount = invoice.RemainingAmount,
+            ClientWalletBalance = client.Balance
+        };
+        ViewData["Title"] = "تحصيل فاتورة التجهيز";
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CollectPayment(
+        int invoiceId,
+        decimal amount,
+        SubscriberInstallationPaymentMethod paymentMethod,
+        string? notes)
+    {
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue || user == null)
+        {
+            return RedirectToAction(nameof(Start));
+        }
+
+        RegisterInstallationPaymentResult result = await _invoiceService.RegisterPaymentAsync(
+            invoiceId, networkId.Value, user.Id, amount, paymentMethod, notes);
+        if (!result.Success)
+        {
+            TempData["Error"] = result.ErrorMessage;
+            return RedirectToAction(nameof(CollectPayment), new { id = invoiceId });
+        }
+
+        TempData["Success"] = result.NewStatus == SubscriberInstallationInvoiceStatus.Paid
+            ? "تم تسديد الفاتورة بالكامل."
+            : "تم تسجيل الدفعة.";
+        return RedirectToAction(nameof(Complete), new { invoiceId, paymentRecorded = true });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Complete(int invoiceId, bool paymentRecorded = false)
+    {
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue)
+        {
+            return RedirectToAction(nameof(Start));
+        }
+
+        SubscriberInstallationInvoice? invoice = await _context.SubscriberInstallationInvoices
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.Id == invoiceId && i.NetworkId == networkId.Value);
+        if (invoice == null)
+        {
+            return NotFound();
+        }
+
+        bool requiresApproval = await _context.Clients
+            .AsNoTracking()
+            .AnyAsync(c => c.Id == invoice.ClientId && c.ConnectionStatus == "معلق بانتظار موافقة مدير الشركة");
+
+        HttpContext.Session.ClearWizardState();
+
+        NewSubscriberWizardCompleteViewModel vm = new()
+        {
+            ClientId = invoice.ClientId,
+            InvoiceId = invoice.Id,
+            ClientName = invoice.ClientName,
+            RequiresManagerApproval = requiresApproval,
+            InvoiceFinalized = invoice.Status is SubscriberInstallationInvoiceStatus.Finalized
+                or SubscriberInstallationInvoiceStatus.Paid
+                or SubscriberInstallationInvoiceStatus.PartiallyPaid,
+            PaymentRecorded = paymentRecorded || invoice.Status == SubscriberInstallationInvoiceStatus.Paid
+        };
+        ViewData["Title"] = "اكتمال إضافة المشترك";
+        return View(vm);
+    }
+
+    [HttpGet]
+    public IActionResult Cancel()
+    {
+        HttpContext.Session.ClearWizardState();
+        return RedirectToAction("Index", "Clients", new { area = CurrentArea });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> SearchSharedReceivers(int? serverId, int? sectorId)
+    {
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue)
+        {
+            return Json(Array.Empty<object>());
+        }
+
+        IQueryable<Receiver> query = _context.Receivers
+            .AsNoTracking()
+            .Where(r => r.NetworkId == networkId.Value && r.IsActive)
+            .Where(r => _context.Clients.Any(c => c.ReceiverId == r.Id));
+
+        if (serverId.HasValue)
+        {
+            query = query.Where(r => r.Sector.MikroTikServerId == serverId.Value);
+        }
+
+        if (sectorId.HasValue)
+        {
+            query = query.Where(r => r.SectorId == sectorId.Value);
+        }
+
+        List<WizardSharedReceiverOptionJson> rows = await query
+            .OrderBy(r => r.Name)
+            .Select(r => new WizardSharedReceiverOptionJson(
+                r.Id,
+                r.Name,
+                r.Sector.Name,
+                r.Sector.MikroTikServer!.Name))
+            .Take(200)
+            .ToListAsync();
+
+        return Json(rows);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetSectorsByServer(int serverId)
+    {
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue)
+        {
+            return Json(Array.Empty<object>());
+        }
+
+        List<WizardSectorOptionJson> sectors = await _context.Sectors
+            .AsNoTracking()
+            .Where(s => s.NetworkId == networkId && s.IsActive && s.MikroTikServerId == serverId)
+            .OrderBy(s => s.Name)
+            .Select(s => new WizardSectorOptionJson(s.Id, s.Name))
+            .ToListAsync();
+
+        return Json(sectors);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetProfilesByServer(int serverId)
+    {
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
+        int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (!networkId.HasValue)
+        {
+            return Json(Array.Empty<object>());
+        }
+
+        bool serverExists = await _context.MikroTikServers
+            .AsNoTracking()
+            .AnyAsync(s => s.Id == serverId && s.NetworkId == networkId.Value && s.IsActive);
+        if (!serverExists)
+        {
+            return Json(Array.Empty<object>());
+        }
+
+        List<WizardProfileOptionJson> profiles = await _context.Profiles
+            .AsNoTracking()
+            .Where(p =>
+                p.NetworkId == networkId.Value &&
+                p.IsActive &&
+                p.MikroTikServerId == serverId)
+            .OrderBy(p => p.DisplayOrder)
+            .ThenBy(p => p.Name)
+            .Select(p => new WizardProfileOptionJson(p.Id, p.Name))
+            .ToListAsync();
+
+        return Json(profiles);
+    }
+
+    private string GetReceiverArea()
+    {
+        if (User.IsInRole(RoleNames.CompanyEmployee) || User.IsInRole(RoleNames.EmployeeLegacy))
+        {
+            return "CompanyEmployee";
+        }
+
+        return "CompanyAdmin";
+    }
+
+    private async Task<NewSubscriberWizardPath> InferWizardPathAsync(Client client, int networkId)
+    {
+        if (!client.ReceiverId.HasValue)
+        {
+            return NewSubscriberWizardPath.TowerDirect;
+        }
+
+        bool hasPeers = await _context.Clients
+            .AsNoTracking()
+            .AnyAsync(c => c.ReceiverId == client.ReceiverId && c.Id != client.Id && c.NetworkId == networkId);
+
+        return hasPeers
+            ? NewSubscriberWizardPath.SharedSelectReceiver
+            : NewSubscriberWizardPath.ExistingReceiverFromList;
+    }
+
+    private static string GetPathLabel(NewSubscriberWizardPath path) => path switch
+    {
+        NewSubscriberWizardPath.TowerDirect => "من البرج مباشرة (بدون لاقط)",
+        NewSubscriberWizardPath.PrivateNewReceiver => "لاقط خاص (جديد)",
+        NewSubscriberWizardPath.SharedSelectReceiver => "لاقط مشترك",
+        NewSubscriberWizardPath.ExistingReceiverFromList => "لاقط من القائمة",
+        _ => "—"
+    };
+
+    private async Task<List<ReceiverPickOption>> LoadReceiverOptionsAsync(int networkId)
+    {
+        var receivers = await _context.Receivers
+            .AsNoTracking()
+            .Where(r => r.NetworkId == networkId && r.IsActive)
+            .OrderBy(r => r.Name)
+            .Select(r => new
+            {
+                r.Id,
+                Name = r.Name ?? $"#{r.Id}",
+                SectorName = r.Sector.Name ?? "—",
+                ServerName = r.Sector.MikroTikServer != null ? r.Sector.MikroTikServer.Name! : "—",
+                SubscriberCount = r.Clients.Count
+            })
+            .ToListAsync();
+
+        return receivers.Select(r => new ReceiverPickOption
+        {
+            Id = r.Id,
+            Name = r.Name,
+            SectorName = r.SectorName,
+            ServerName = r.ServerName,
+            IsShared = r.SubscriberCount > 1
+        }).ToList();
+    }
+
+    private async Task<NewSubscriberWizardSharedReceiverViewModel> BuildSharedReceiverViewModelAsync(
+        int networkId,
+        int? serverId,
+        int? sectorId)
+    {
+        List<SelectListItem> servers = await _context.MikroTikServers
+            .AsNoTracking()
+            .Where(s => s.NetworkId == networkId && s.IsActive)
+            .OrderBy(s => s.Name)
+            .Select(s => new SelectListItem(s.Name, s.Id.ToString()))
+            .ToListAsync();
+
+        List<SelectListItem> sectors = [];
+        if (serverId.HasValue)
+        {
+            sectors = await _context.Sectors
+                .AsNoTracking()
+                .Where(s => s.NetworkId == networkId && s.IsActive && s.MikroTikServerId == serverId)
+                .OrderBy(s => s.Name)
+                .Select(s => new SelectListItem(s.Name, s.Id.ToString()))
+                .ToListAsync();
+        }
+
+        IQueryable<Receiver> receiverQuery = _context.Receivers
+            .AsNoTracking()
+            .Where(r => r.NetworkId == networkId && r.IsActive)
+            .Where(r => _context.Clients.Any(c => c.ReceiverId == r.Id));
+
+        if (serverId.HasValue)
+        {
+            receiverQuery = receiverQuery.Where(r => r.Sector.MikroTikServerId == serverId);
+        }
+
+        if (sectorId.HasValue)
+        {
+            receiverQuery = receiverQuery.Where(r => r.SectorId == sectorId);
+        }
+
+        List<ReceiverPickOption> receivers = await receiverQuery
+            .OrderBy(r => r.Name)
+            .Select(r => new ReceiverPickOption
+            {
+                Id = r.Id,
+                Name = r.Name ?? $"#{r.Id}",
+                SectorName = r.Sector.Name ?? "—",
+                ServerName = r.Sector.MikroTikServer != null ? r.Sector.MikroTikServer.Name! : "—",
+                IsShared = true
+            })
+            .ToListAsync();
+
+        return new NewSubscriberWizardSharedReceiverViewModel
+        {
+            MikroTikServerId = serverId,
+            SectorId = sectorId,
+            Servers = servers,
+            Sectors = sectors,
+            Receivers = receivers
+        };
+    }
+
+    private async Task LoadSubscriberViewDataAsync(int networkId, NewSubscriberWizardState state)
+    {
+        IQueryable<Profile> profilesQuery = _context.Profiles
+            .AsNoTracking()
+            .Where(p => p.NetworkId == networkId && p.IsActive);
+        if (state.MikroTikServerId.HasValue)
+        {
+            profilesQuery = profilesQuery.Where(p => p.MikroTikServerId == state.MikroTikServerId.Value);
+        }
+        else
+        {
+            profilesQuery = profilesQuery.Where(_ => false);
+        }
+
+        ViewBag.Profiles = new SelectList(
+            await profilesQuery
+                .OrderBy(p => p.Name)
+                .Select(p => new { p.Id, p.Name })
+                .ToListAsync(),
+            "Id",
+            "Name");
+
+        if (state.MikroTikServerId.HasValue)
+        {
+            ViewBag.MikroTikServers = new SelectList(
+                await _context.MikroTikServers.AsNoTracking()
+                    .Where(s => s.Id == state.MikroTikServerId)
+                    .Select(s => new { s.Id, s.Name })
+                    .ToListAsync(),
+                "Id",
+                "Name",
+                state.MikroTikServerId);
+        }
+        else
+        {
+            ViewBag.MikroTikServers = new SelectList(
+                await _context.MikroTikServers.AsNoTracking()
+                    .Where(s => s.NetworkId == networkId && s.IsActive)
+                    .OrderBy(s => s.Name)
+                    .Select(s => new { s.Id, s.Name })
+                    .ToListAsync(),
+                "Id",
+                "Name");
+        }
+    }
+}

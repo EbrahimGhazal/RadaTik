@@ -1,4 +1,4 @@
-# 🔧 استكشاف الأخطاء وحلها - RadTik
+# 🔧 استكشاف الأخطاء وحلها - RadaTik
 
 ## مشاكل شائعة وحلولها
 
@@ -23,14 +23,14 @@ SqlException: A network-related or instance-specific error occurred
 
 2. تحقق من Connection String:
    ```json
-   "Server=localhost;Database=RadTikDB;Trusted_Connection=True;TrustServerCertificate=True;"
+   "Server=localhost;Database=RadaTikDB;Trusted_Connection=True;TrustServerCertificate=True;"
    ```
 
 3. تحقق من Firewall (Port 1433)
 
 4. جرّب SQL Server Authentication:
    ```json
-   "Server=localhost;Database=RadTikDB;User Id=sa;Password=YourPassword;TrustServerCertificate=True;"
+   "Server=localhost;Database=RadaTikDB;User Id=sa;Password=YourPassword;TrustServerCertificate=True;"
    ```
 
 ---
@@ -39,7 +39,7 @@ SqlException: A network-related or instance-specific error occurred
 
 **الحل**:
 ```sql
-CREATE DATABASE RadTikDB;
+CREATE DATABASE RadaTikDB;
 ```
 
 أو:
@@ -111,7 +111,7 @@ An existing connection was forcibly closed by the remote host
 2. تأكد من أن المستخدم لديه صلاحيات API
 3. جرّب إنشاء مستخدم جديد على MikroTik:
    ```
-   /user add name=radtik password=yourpassword group=full
+   /user add name=radatik password=yourpassword group=full
    ```
 
 ---

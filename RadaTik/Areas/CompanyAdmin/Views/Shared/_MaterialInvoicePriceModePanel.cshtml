@@ -1,0 +1,68 @@
+@using RadaTik.Models.Business
+@{
+    var selected = ViewData["PriceModeSelected"] as MaterialSalePriceMode?;
+    var requireChoice = (ViewData["MaterialInvoiceRequireExplicitChoice"] as bool?) ?? false;
+    var wholesaleSelected = selected == MaterialSalePriceMode.Wholesale;
+    var retailSelected = selected == MaterialSalePriceMode.Retail;
+    var customSelected = selected == MaterialSalePriceMode.Custom;
+}
+<div class="material-invoice-choice-panel material-invoice-choice-panel--price-mode" data-material-price-mode-panel>
+    <div class="material-invoice-choice-panel__header">
+        <span class="material-invoice-choice-panel__icon" aria-hidden="true">
+            <i class="fas fa-tags"></i>
+        </span>
+        <div>
+            <h2 class="material-invoice-choice-panel__title">نوع السعر</h2>
+            <p class="material-invoice-choice-panel__subtitle mb-0">
+                @(requireChoice ? "يُطبَّق على كل بنود الفاتورة — مطلوب قبل الحفظ." : "يُطبَّق على جميع البنود.")
+            </p>
+        </div>
+        <span class="material-invoice-choice-panel__badge material-invoice-choice-panel__badge--unset"
+              data-price-mode-badge-unset @(selected.HasValue ? "hidden" : null)>لم يُحدَّد</span>
+        <span class="material-invoice-choice-panel__badge material-invoice-choice-panel__badge--syp"
+              data-price-mode-badge-wholesale @(wholesaleSelected ? null : "hidden")>جملة</span>
+        <span class="material-invoice-choice-panel__badge material-invoice-choice-panel__badge--usd"
+              data-price-mode-badge-retail @(retailSelected ? null : "hidden")>مفرق</span>
+        <span class="material-invoice-choice-panel__badge material-invoice-choice-panel__badge--pending"
+              data-price-mode-badge-custom @(customSelected ? null : "hidden")>مخصص</span>
+    </div>
+    <div class="material-invoice-choice-grid material-invoice-choice-grid--triple" role="radiogroup" aria-label="نوع السعر" aria-required="@(requireChoice ? "true" : "false")">
+        <label class="material-invoice-choice @(wholesaleSelected ? "is-selected" : "")">
+            <input type="radio"
+                   class="material-invoice-choice__input"
+                   name="priceMode"
+                   value="@((int)MaterialSalePriceMode.Wholesale)"
+                   @(wholesaleSelected ? "checked" : null)
+                   @(requireChoice ? "required" : null)
+                   data-price-mode-choice="wholesale" />
+            <span class="material-invoice-choice__body">
+                <span class="material-invoice-choice__title">جملة</span>
+                <span class="material-invoice-choice__desc">يُعبَّأ سعر الجملة من البطاقة — قابل للتعديل في كل بند.</span>
+            </span>
+        </label>
+        <label class="material-invoice-choice @(retailSelected ? "is-selected" : "")">
+            <input type="radio"
+                   class="material-invoice-choice__input"
+                   name="priceMode"
+                   value="@((int)MaterialSalePriceMode.Retail)"
+                   @(retailSelected ? "checked" : null)
+                   data-price-mode-choice="retail" />
+            <span class="material-invoice-choice__body">
+                <span class="material-invoice-choice__title">مفرق</span>
+                <span class="material-invoice-choice__desc">سعر المفرق من بطاقة كل صنف.</span>
+            </span>
+        </label>
+        <label class="material-invoice-choice @(customSelected ? "is-selected" : "")">
+            <input type="radio"
+                   class="material-invoice-choice__input"
+                   name="priceMode"
+                   value="@((int)MaterialSalePriceMode.Custom)"
+                   @(customSelected ? "checked" : null)
+                   data-price-mode-choice="custom" />
+            <span class="material-invoice-choice__body">
+                <span class="material-invoice-choice__title">مخصص</span>
+                <span class="material-invoice-choice__desc">إدخال سعر يدوي لكل بند — عملة الفاتورة حسب شراء المادة.</span>
+            </span>
+        </label>
+    </div>
+</div>

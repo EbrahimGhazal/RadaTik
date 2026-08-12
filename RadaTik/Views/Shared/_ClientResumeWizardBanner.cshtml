@@ -1,0 +1,24 @@
+@{
+    var area = ViewContext.RouteData.Values["area"]?.ToString() ?? "CompanyAdmin";
+    var clientId = Model as int? ?? 0;
+    var resumeIdRaw = TempData["ResumeWizardClientId"] as string;
+    int resumeClientId = 0;
+    var showBanner = clientId > 0
+        && !string.IsNullOrWhiteSpace(resumeIdRaw)
+        && int.TryParse(resumeIdRaw, out resumeClientId)
+        && resumeClientId == clientId;
+}
+
+@if (showBanner)
+{
+    <div class="alert alert-primary d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <span>
+            <i class="fas fa-route"></i>
+            المشترك جاهز للخطوة التالية — أكمل إصدار فاتورة التركيب أو التحصيل من المعالج.
+        </span>
+        <a asp-area="@area" asp-controller="NewSubscriberWizard" asp-action="Resume" asp-route-clientId="@clientId"
+           class="btn btn-sm btn-light">
+            <i class="fas fa-play"></i> متابعة المعالج
+        </a>
+    </div>
+}

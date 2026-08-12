@@ -1,0 +1,48 @@
+@{
+    // Minimal layout for auth pages (Login/ForgotPassword/etc.)
+    // Keeps the experience focused without Sidebar/Header.
+    var bodyClass = ViewData["BodyClass"]?.ToString() ?? "";
+    var title = (ViewData["Title"]?.ToString() ?? "RadaTik");
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <partial name="_ThemeHeadBootstrap" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="نظام RadaTik لإدارة مزود خدمة الإنترنت" />
+    <title>@title - RadaTik</title>
+
+    <!-- Fonts: RadaTik SPA identity (Poppins + Cairo) + Tajawal for legacy Arabic UI -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Tajawal:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Bootstrap (keep for alerts/forms consistency) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
+
+    <!-- App theme -->
+    <link rel="stylesheet" href="~/css/main.css" asp-append-version="true" />
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="@bodyClass">
+    <!-- Theme toggle (floating) -->
+    <button type="button" class="theme-toggle" id="themeToggle" title="تبديل الوضع" aria-label="تبديل الوضع">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+
+    @RenderBody()
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="~/js/theme.js" asp-append-version="true"></script>
+    <script src="~/js/layout.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+

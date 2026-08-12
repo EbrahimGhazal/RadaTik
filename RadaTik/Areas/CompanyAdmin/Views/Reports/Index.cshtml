@@ -1,0 +1,213 @@
+@using RadaTik.Helpers
+@using RadaTik.ViewModels.CompanyAdmin
+@using System.Text.Json
+@{
+    ViewData["Title"] = "التقارير";
+    decimal? exportPrice = ViewBag.ExportPriceSyp as decimal?;
+}
+
+<div class="financial-page financial-hub-page">
+    @{
+        ViewBag.FinancialNavCurrent = "reports";
+        ViewBag.FinancialNavShowWarehouse = false;
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-file-alt";
+        ViewBag.FinancialHeroTheme = "wallet";
+        ViewBag.FinancialHeroSubtitle = "تقارير مخصّصة — خصم من محفظة الشركة عند التصدير/الطباعة";
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-primary btn-sm micro-btn"" href=""" + Url.RouteUrl("networkManager-reports", new { action = "Templates" }) + @"""><i class=""fas fa-file-code""></i> قوالب التقارير</a>";
+    }
+    <partial name="_FinancialSysHero" />
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0"><i class="fas fa-filter"></i> إعدادات التقرير</h3>
+    </div>
+    <div class="card-body">
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
+
+        <div class="alert alert-info">
+            <strong>التسعير:</strong>
+            @if (exportPrice.HasValue)
+            {
+                <span>عرض التقرير («عرض وطباعة») <strong>بدون خصم</strong>. يُخصم من محفظة الشركة <strong>@SyrianCurrencyHelper.FormatNew(exportPrice.Value)</strong> ل.س.ج عند <strong>تصدير Excel</strong> أو عند <strong>الطباعة</strong> من صفحة النتيجة بعد تأكيدك (حسب تسعير <code>ReportsExport</code>).</span>
+            }
+            else
+            {
+                <span>لم يُعرّف بعد سعر التصدير/الطباعة من مدير النظام (<code>ReportsExport</code>). العرض على الشاشة متاح؛ التصدير أو الطباعة المدفوعة تتطلب تعريف السعر.</span>
+            }
+        </div>
+
+        <form id="reportsForm" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0 report-settings-table">
+                    <tbody>
+                        <tr>
+                            <th scope="row" class="text-nowrap bg-light" style="width: 220px;">نوع التقرير</th>
+                            <td>
+                                <select name="Kind" class="form-select" required aria-label="نوع التقرير">
+                                    <option value="@((int)CompanyReportKind.Subscribers)">تقارير المشتركين</option>
+                                    <option value="@((int)CompanyReportKind.Sectors)">تقارير المرسلات (القطاعات)</option>
+                                    <option value="@((int)CompanyReportKind.Receivers)">تقارير المستقبلات</option>
+                                    <option value="@((int)CompanyReportKind.Servers)">تقارير السيرفرات (MikroTik)</option>
+                                    <option value="@((int)CompanyReportKind.Subcontractors)">تقارير المتعاقدين بالباطن (نقاط التحصيل)</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row" class="text-nowrap bg-light">الفترة الزمنية</th>
+                            <td>
+                                <select name="Period" id="periodSelect" class="form-select" required aria-label="الفترة الزمنية">
+                                    <option value="@((int)CompanyReportPeriodPreset.Today)">اليوم</option>
+                                    <option value="@((int)CompanyReportPeriodPreset.Week)">أسبوع (آخر 7 أيام)</option>
+                                    <option value="@((int)CompanyReportPeriodPreset.Month)">الشهر الحالي</option>
+                                    <option value="@((int)CompanyReportPeriodPreset.ThreeMonths)">3 أشهر</option>
+                                    <option value="@((int)CompanyReportPeriodPreset.SixMonths)">6 أشهر</option>
+                                    <option value="@((int)CompanyReportPeriodPreset.Year)">سنة (من بداية العام)</option>
+                                    <option value="@((int)CompanyReportPeriodPreset.Custom)">بين تاريخين</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr class="custom-range d-none" id="customFromWrap">
+                            <th scope="row" class="text-nowrap bg-light">من تاريخ</th>
+                            <td>
+                                <input type="datetime-local" name="CustomFrom" class="form-control" aria-label="من تاريخ" />
+                            </td>
+                        </tr>
+                        <tr class="custom-range d-none" id="customToWrap">
+                            <th scope="row" class="text-nowrap bg-light">إلى تاريخ</th>
+                            <td>
+                                <input type="datetime-local" name="CustomTo" class="form-control" aria-label="إلى تاريخ" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row" class="text-nowrap bg-light align-top pt-3">إجراءات</th>
+                            <td class="pt-3 pb-3">
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="submit" class="btn btn-primary" formaction="@Url.Action("Print", "Reports", new { area = "CompanyAdmin" })" title="عرض التقرير على الشاشة دون خصم من المحفظة">
+                                        <i class="fas fa-print"></i> عرض وطباعة
+                                    </button>
+                                    <button type="button" class="btn btn-success" id="btnReportsExportExcel">
+                                        <i class="fas fa-file-excel"></i> تصدير Excel
+                                    </button>
+                                    <a class="btn btn-outline-secondary" asp-route="networkManager-dashboard">رجوع</a>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    </div>
+</div>
+
+</div>
+
+@section Scripts {
+    <script>
+        var exportPriceHint = @Html.Raw(JsonSerializer.Serialize(exportPrice));
+        var exportExcelUrl = @Html.Raw(JsonSerializer.Serialize(Url.Action("ExportExcel", "Reports", new { area = "CompanyAdmin" })));
+
+        function confirmExcelExportMessage() {
+            if (exportPriceHint != null && exportPriceHint > 0) {
+                return 'سيتم خصم ' + exportPriceHint.toFixed(2) + ' ل.س.ج من محفظة الشركة لتصدير Excel. هل تريد المتابعة؟';
+            }
+            if (exportPriceHint != null && exportPriceHint === 0) {
+                return 'السعر الحالي صفر؛ لن يُخصم مبلغ. هل تريد المتابعة؟';
+            }
+            return 'لم يُعرّف تسعير التصدير؛ قد تفشل العملية. هل تريد المتابعة؟';
+        }
+
+        function applyWalletHeaderAmountFromNumber(num) {
+            if (num == null || isNaN(num)) return;
+            var rounded = Math.round(Number(num));
+            var text = rounded.toLocaleString('en-US', { maximumFractionDigits: 0, minimumFractionDigits: 0 });
+            document.querySelectorAll('.header-wallet-amount').forEach(function (el) {
+                el.textContent = text;
+            });
+        }
+
+        function parseContentDispositionFilename(cd) {
+            if (!cd) return null;
+            var m = /filename\*=UTF-8''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i.exec(cd);
+            if (!m) return null;
+            var raw = (m[1] || m[2] || m[3] || '').trim();
+            try {
+                return decodeURIComponent(raw.replace(/^"|"$/g, ''));
+            } catch (e) {
+                return raw.replace(/^"|"$/g, '');
+            }
+        }
+
+        (function () {
+            var excelBtn = document.getElementById('btnReportsExportExcel');
+            var form = document.getElementById('reportsForm');
+            if (excelBtn && form) {
+                excelBtn.addEventListener('click', async function () {
+                    if (!confirm(confirmExcelExportMessage())) return;
+                    var fd = new FormData(form);
+                    excelBtn.disabled = true;
+                    try {
+                        var res = await fetch(exportExcelUrl, {
+                            method: 'POST',
+                            body: fd,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                            }
+                        });
+                        if (res.status === 400) {
+                            var err = await res.json().catch(function () { return null; });
+                            alert((err && err.error) ? err.error : 'تعذر تصدير الملف.');
+                            return;
+                        }
+                        if (!res.ok) {
+                            alert('تعذر تصدير الملف.');
+                            return;
+                        }
+                        var balHdr = res.headers.get('X-Company-Wallet-Balance');
+                        if (balHdr) {
+                            applyWalletHeaderAmountFromNumber(parseFloat(balHdr));
+                        }
+                        var blob = await res.blob();
+                        var cd = res.headers.get('Content-Disposition');
+                        var name = parseContentDispositionFilename(cd) || 'report.xlsx';
+                        var url = URL.createObjectURL(blob);
+                        var a = document.createElement('a');
+                        a.href = url;
+                        a.download = name;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
+                    } catch (e) {
+                        alert('تعذر الاتصال بالخادم.');
+                    } finally {
+                        excelBtn.disabled = false;
+                    }
+                });
+            }
+        })();
+
+        (function () {
+            var sel = document.getElementById('periodSelect');
+            function syncCustom() {
+                var v = sel && parseInt(sel.value, 10);
+                var show = v === @((int)CompanyReportPeriodPreset.Custom);
+                document.querySelectorAll('.custom-range').forEach(function (el) {
+                    el.classList.toggle('d-none', !show);
+                });
+            }
+            if (sel) {
+                sel.addEventListener('change', syncCustom);
+                syncCustom();
+            }
+        })();
+    </script>
+}

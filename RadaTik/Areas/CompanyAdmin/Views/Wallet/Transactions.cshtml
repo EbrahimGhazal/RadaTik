@@ -1,0 +1,374 @@
+@model RadaTik.ViewModels.CompanyAdmin.CompanyWalletTransactionsViewModel
+
+@using RadaTik.Models
+
+@using RadaTik.Helpers
+
+@{
+
+    ViewData["Title"] = ViewData["Title"] ?? "عمليات التعبئة";
+
+
+
+    var txCount = Model.Transactions?.Count ?? 0;
+
+    var sypTxs = Model.Transactions?.Where(t => t.Currency != PricingCurrency.USD).ToList() ?? [];
+
+    var usdTxs = Model.Transactions?.Where(t => t.Currency == PricingCurrency.USD).ToList() ?? [];
+
+    var totalInSyp = sypTxs.Where(t => t.SignedAmount > 0).Sum(t => t.SignedAmount);
+
+    var totalOutSyp = sypTxs.Where(t => t.SignedAmount < 0).Sum(t => Math.Abs(t.SignedAmount));
+
+    var totalInUsd = usdTxs.Where(t => t.SignedAmount > 0).Sum(t => t.SignedAmount);
+
+    var totalOutUsd = usdTxs.Where(t => t.SignedAmount < 0).Sum(t => Math.Abs(t.SignedAmount));
+
+}
+
+
+
+<div class="financial-page financial-hub-page financial-transactions-page">
+    @{
+        ViewBag.FinancialNavShowWarehouse = false;
+        ViewBag.FinancialNavCurrent = "wallet";
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-list";
+        ViewBag.FinancialHeroTheme = "wallet";
+        ViewBag.FinancialHeroSubtitle = "حركات محفظة RadaTik فقط — الصندوق النقدي له سجل منفصل";
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-secondary micro-btn"" href=""" + Url.RouteUrl("networkManager-wallet-index") + @"""><i class=""fas fa-wallet""></i> نظرة عامة</a>
+<a class=""btn btn-primary micro-btn"" href=""" + Url.RouteUrl("networkManager-wallet-topup") + @"""><i class=""fas fa-plus-circle""></i> تغذية رصيد</a>";
+    }
+    <partial name="_FinancialSysHero" />
+
+    @if (TempData["Success"] != null)
+
+    {
+
+        <div class="alert alert-success">@TempData["Success"]</div>
+
+    }
+
+    @if (TempData["Error"] != null)
+
+    {
+
+        <div class="alert alert-danger">@TempData["Error"]</div>
+
+    }
+
+
+
+    <partial name="_WalletVsCashBoxGuide" />
+
+
+
+    <div class="row g-3 mb-3">
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="card financial-stat-card h-100">
+
+                <div class="card-body">
+
+                    <div class="financial-stat-label">الشركة المحتسبة</div>
+
+                    <div class="financial-stat-value">@Model.EffectiveCompanyNetworkName</div>
+
+                    <div class="financial-stat-meta">#@Model.EffectiveCompanyNetworkId</div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="card financial-stat-card financial-stat-accent h-100">
+
+                <div class="card-body">
+
+                    <div class="financial-stat-label">رصيد ل.س.ج</div>
+
+                    <div class="financial-stat-value">@CurrencyHelper.FormatAmount(Model.CompanyBalance, PricingCurrency.SYP_New)</div>
+
+                    <div class="financial-stat-meta">تحصيل / منصة / تغذية</div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="card financial-stat-card financial-stat-accent h-100">
+
+                <div class="card-body">
+
+                    <div class="financial-stat-label">رصيد $</div>
+
+                    <div class="financial-stat-value">@CurrencyHelper.FormatAmount(Model.CompanyBalanceUsd, PricingCurrency.USD)</div>
+
+                    <div class="financial-stat-meta">فواتير مواد وإيراد USD</div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="card financial-stat-card h-100">
+
+                <div class="card-body">
+
+                    <div class="financial-stat-label">حركات ل.س.ج (إضافة / خصم)</div>
+
+                    <div class="financial-stat-value text-success">+@CurrencyHelper.FormatAmount(totalInSyp, PricingCurrency.SYP_New)</div>
+
+                    <div class="financial-stat-value text-danger small">−@CurrencyHelper.FormatAmount(totalOutSyp, PricingCurrency.SYP_New)</div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+
+            <div class="card financial-stat-card h-100">
+
+                <div class="card-body">
+
+                    <div class="financial-stat-label">حركات $ (إضافة / خصم)</div>
+
+                    <div class="financial-stat-value text-success">+@CurrencyHelper.FormatAmount(totalInUsd, PricingCurrency.USD)</div>
+
+                    <div class="financial-stat-value text-danger small">−@CurrencyHelper.FormatAmount(totalOutUsd, PricingCurrency.USD)</div>
+
+                    <div class="financial-stat-meta">@txCount حركة إجمالاً</div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <div class="card financial-table-card">
+
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+            <h3 class="card-title mb-0">
+
+                <i class="fas fa-clock text-secondary"></i>
+
+                سجل الحركات
+
+            </h3>
+
+            <span class="text-muted small">إجمالي السجلات: @txCount</span>
+
+        </div>
+
+        <div class="card-body border-bottom py-2 px-3">
+
+            <p class="small text-muted mb-0">
+
+                <i class="fas fa-circle-info text-primary"></i>
+
+                اضغط <strong>تفاصيل</strong> لعرض سبب الحركة والمرجع والملاحظات.
+
+            </p>
+
+        </div>
+
+        <div class="card-body p-0 pt-0">
+
+            <div class="table-responsive wallet-tx-table-wrap">
+
+                <table class="table align-middle mb-0 financial-table wallet-tx-table radtk-data-table radtk-data-table--cards">
+
+                    <thead>
+
+                        <tr>
+
+                            <th class="wallet-tx-col-idx text-center" scope="col">#</th>
+
+                            <th class="wallet-tx-col-date" scope="col">التاريخ</th>
+
+                            <th class="wallet-tx-col-type" scope="col">النوع</th>
+
+                            <th class="text-center wallet-tx-col-amt" scope="col">المبلغ</th>
+
+                            <th class="text-center wallet-tx-col-bal" scope="col">الرصيد <span class="wallet-tx-th-sub">قبل ← بعد</span></th>
+
+                            <th class="text-center wallet-tx-col-expand" scope="col">تفاصيل</th>
+
+                            <th class="wallet-tx-col-by" scope="col">بواسطة</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model.Transactions != null && Model.Transactions.Any())
+
+                        {
+
+                            var rowNum = 0;
+
+                            foreach (var t in Model.Transactions)
+
+                            {
+
+                                rowNum++;
+
+                                var detailId = $"wallet-tx-detail-{t.Id}";
+
+                                var typeClass = NetworkWalletTransactionDisplayHelper.TypeClass(t.Type);
+
+                                var amountClass = t.SignedAmount >= 0 ? "text-success" : "text-danger";
+
+                                var typeDetails = NetworkWalletTransactionDisplayHelper.TypeDetails(t);
+
+                                var referenceNotes = NetworkWalletTransactionDisplayHelper.ReferenceAndNotes(t);
+
+                                var byName = t.CreatedByUser?.FullName ?? t.CreatedByUser?.UserName ?? t.CreatedByUserId ?? "—";
+
+                                <tr class="financial-row @typeClass wallet-tx-main-row">
+
+                                    <td class="wallet-tx-col-idx text-center text-muted" data-label="تسلسل">@rowNum</td>
+
+                                    <td class="wallet-tx-col-date" data-label="التاريخ">
+
+                                        <span class="wallet-tx-date">
+
+                                            <span class="wallet-tx-date-d">@t.CreatedAt.ToString("yyyy/MM/dd")</span>
+
+                                            <span class="wallet-tx-date-t">@t.CreatedAt.ToString("HH:mm")</span>
+
+                                        </span>
+
+                                    </td>
+
+                                    <td class="wallet-tx-col-type" data-label="النوع">
+
+                                        <span class="financial-chip @typeClass">@NetworkWalletTransactionDisplayHelper.TypeLabel(t.Type)</span>
+
+                                    </td>
+
+                                    <td data-label="المبلغ" class="text-center wallet-tx-col-amt @amountClass"><strong class="wallet-tx-amt">@CurrencyHelper.FormatAmount(t.SignedAmount, t.Currency)</strong></td>
+
+                                    <td data-label="الرصيد" class="text-center wallet-tx-col-bal">
+
+                                        <span class="wallet-tx-bal-flow" title="@($"قبل {t.PreviousBalance:N2} ← بعد {t.NewBalance:N2} ({CurrencyHelper.GetSymbol(t.Currency)})")">
+
+                                            <span class="wallet-tx-bal-prev">@CurrencyHelper.FormatAmount(t.PreviousBalance, t.Currency)</span>
+
+                                            <span class="wallet-tx-bal-sep" aria-hidden="true"><i class="fas fa-angle-double-left"></i></span>
+
+                                            <span class="wallet-tx-bal-next">@CurrencyHelper.FormatAmount(t.NewBalance, t.Currency)</span>
+
+                                        </span>
+
+                                    </td>
+
+                                    <td data-label="تفاصيل" class="text-center wallet-tx-col-expand">
+
+                                        <button type="button"
+
+                                                class="btn btn-sm btn-outline-secondary wallet-tx-detail-btn micro-btn"
+
+                                                data-bs-toggle="collapse"
+
+                                                data-bs-target="#@detailId"
+
+                                                aria-expanded="false"
+
+                                                aria-controls="@detailId"
+
+                                                title="سبب الحركة والمرجع">
+
+                                            <i class="fas fa-circle-info"></i>
+
+                                            <span class="d-none d-md-inline">تفاصيل</span>
+
+                                        </button>
+
+                                    </td>
+
+                                    <td data-label="بواسطة" class="wallet-tx-col-by wallet-tx-ellipsis" title="@byName">@byName</td>
+
+                                </tr>
+
+                                <tr class="collapse wallet-tx-detail-row" id="@detailId">
+
+                                    <td colspan="7" class="wallet-tx-detail-cell">
+
+                                        <div class="wallet-tx-detail-panel">
+
+                                            <dl class="wallet-tx-detail-dl mb-0">
+
+                                                <div class="wallet-tx-detail-dl__item">
+
+                                                    <dt>سبب الحركة</dt>
+
+                                                    <dd>@typeDetails</dd>
+
+                                                </div>
+
+                                                <div class="wallet-tx-detail-dl__item">
+
+                                                    <dt>مرجع وملاحظة</dt>
+
+                                                    <dd class="@(referenceNotes == "—" ? "text-muted" : "")">@referenceNotes</dd>
+
+                                                </div>
+
+                                            </dl>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+                            }
+
+                        }
+
+                        else
+
+                        {
+
+                            <tr>
+
+                                <td colspan="7" class="text-center text-muted py-4">لا توجد عمليات حتى الآن.</td>
+
+                            </tr>
+
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+

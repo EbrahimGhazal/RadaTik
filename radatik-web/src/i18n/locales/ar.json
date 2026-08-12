@@ -1,0 +1,271 @@
+{
+  "app": { "name": "رادتك" },
+  "roles": {
+    "systemAdmin": "مسؤول النظام",
+    "employee": "موظف",
+    "companyManager": "مدير شركة",
+    "client": "عميل",
+    "collectionPoint": "نقطة تحصيل"
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "users": "المستخدمون",
+    "networks": "الشبكات",
+    "payments": "المدفوعات",
+    "reports": "التقارير",
+    "settings": "الإعدادات",
+    "customerSupport": "دعم العملاء",
+    "tasks": "المهام",
+    "billing": "الفوترة",
+    "team": "الفريق",
+    "myNetwork": "شبكتي",
+    "myTraffic": "معدلي المباشر",
+    "support": "الدعم",
+    "transactions": "المعاملات",
+    "mikrotikTraffic": "ترافك MikroTik"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "signup": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "userNameOrEmail": "اسم المستخدم أو البريد",
+    "userNameHint": "مثال: admin أو البريد المسجل",
+    "password": "كلمة المرور",
+    "passwordRequired": "أدخل كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "fullName": "الاسم الكامل",
+    "role": "الدور",
+    "toSignup": "ليس لديك حساب؟ سجّل",
+    "toLogin": "لديك حساب؟ سجّل الدخول",
+    "logout": "تسجيل الخروج",
+    "loggingIn": "جاري الدخول…",
+    "dbLoginHint": "تسجيل الدخول عبر حسابات النظام (قاعدة البيانات). المشرف الافتراضي إن وُجد: admin / 123456",
+    "demoHint": "تجريبي: admin وكلمة المرور admin@123Gh، أو البريد الكامل من القائمة.",
+    "invalidCredentials": "اسم المستخدم أو كلمة المرور غير صحيحة.",
+    "networkError": "تعذر الاتصال بالخادم. تأكد أن التطبيق يعمل وأن عنوان الخادم صحيح (انظر VITE_MVC_ORIGIN عند التطوير).",
+    "serverError": "استجابة غير متوقعة من الخادم.",
+    "emailHint": "admin أو البريد الكامل (مثل admin@radatik.dev)",
+    "heroTitle": "إدارة الشبكة من مكان واحد",
+    "heroSubtitle": "راقب الترافك، وأدر المستخدمين، وتابع الفوترة — من أي جهاز.",
+    "loginSubtitle": "سجّل الدخول بحساب رادتك",
+    "signupSubtitle": "أنشئ حساباً تجريبياً لمعاينة لوحة التحكم",
+    "signupHeroTitle": "ابدأ خلال دقائق",
+    "signupHeroSubtitle": "سجّل ملفاً تجريبياً لاستكشاف لوحات التحكم حسب الدور — على الجوال والتابلت والحاسوب.",
+    "signupHint": "التسجيل التجريبي يحفظ البيانات محلياً في المتصفح فقط.",
+    "passwordMismatch": "كلمتا المرور غير متطابقتين.",
+    "passwordMin": "6 أحرف على الأقل.",
+    "fullNameRequired": "أدخل الاسم الكامل.",
+    "emailInvalid": "أدخل بريداً إلكترونياً صالحاً.",
+    "emailTaken": "البريد مسجّل مسبقاً — سجّل الدخول بدلاً من ذلك."
+  },
+  "header": {
+    "darkMode": "الوضع الداكن",
+    "lightMode": "الوضع الفاتح",
+    "language": "اللغة"
+  },
+  "quickNav": {
+    "title": "تنقل سريع",
+    "open": "ابحث عن صفحة…",
+    "placeholder": "اكتب اسم الصفحة…",
+    "noResults": "لا توجد صفحات مطابقة.",
+    "hint": "اضغط ⌘K أو Ctrl+K من أي مكان"
+  },
+  "sidebar": {
+    "hint": "استخدم البحث السريع للوصول الفوري لأي صفحة"
+  },
+  "mobileNav": {
+    "more": "المزيد",
+    "allPages": "كل الصفحات"
+  },
+  "admin": {
+    "welcome": "مرحبًا بعودتك",
+    "stats": { "users": "إجمالي المستخدمين", "networks": "الشبكات النشطة", "pending": "مدفوعات معلقة" },
+    "traffic": "الحركة (جيجابايت)",
+    "userGrowth": "نمو المستخدمين",
+    "coverage": "تغطية الشبكة",
+    "activity": "آخر النشاطات",
+    "financial": "ملخص مالي",
+    "dashboardHint": "لمحة مباشرة عن الشبكة — بيانات تجريبية تتحدّث تلقائياً."
+  },
+  "employee": {
+    "tasks": "المهام الموكلة",
+    "stats": { "done": "مكتملة", "pending": "معلقة" },
+    "responseTime": "زمن استجابة الدعم (تجريبي)",
+    "completion": "إنجاز المهام",
+    "interactions": "آخر تفاعلات العملاء"
+  },
+  "manager": {
+    "finance": "الأداء المالي",
+    "team": "الفريق",
+    "usage": "استخدام الشبكة",
+    "collection": "حالة نقاط التحصيل",
+    "dashboardTabOverview": "نظرة عامة",
+    "dashboardTabTraffic": "ترافك MikroTik مباشر",
+    "openTrafficFullPage": "صفحة كاملة",
+    "traffic": {
+      "pageTitle": "ترافك واجهات MikroTik",
+      "loadError": "تعذر تحميل خوادم MikroTik. تأكد أنك مسجّل كمدير شركة وأن الخادم متاح.",
+      "hubError": "خطأ في بث البيانات من MikroTik.",
+      "connectError": "تعذر فتح الاتصال اللحظي. تحقق من الجدار الناري ومن أن عنوان التطبيق يطابق نطاق ملف تعريف الارتباط للمصادقة.",
+      "noServers": "لا توجد خوادم MikroTik نشطة مرتبطة بشبكتك.",
+      "serverLabel": "الخادم",
+      "lastUpdate": "آخر تحديث",
+      "emptyInterfaces": "لم تُرجع الراوتر أي واجهات.",
+      "colInterface": "الواجهة",
+      "colType": "النوع",
+      "colStatus": "الحالة",
+      "colBridge": "الجسر",
+      "colRx": "استقبال (إجمالي)",
+      "colTx": "إرسال (إجمالي)",
+      "colRxPacket": "حزم استقبال",
+      "colTxPacket": "حزم إرسال",
+      "colRxRate": "معدل الاستقبال",
+      "colTxRate": "معدل الإرسال",
+      "statusUp": "يعمل",
+      "statusDown": "متوقف",
+      "badgeBridge": "Bridge",
+      "statsTitle": "ملخص الأداء التاريخي",
+      "statsLoadError": "تعذر تحميل الإحصاءات التاريخية لهذا الخادم.",
+      "trendTitle": "اتجاه الترافك",
+      "trendLoadError": "تعذر تحميل مخطط الاتجاه.",
+      "kpiPeakRx": "ذروة الاستقبال",
+      "kpiPeakTx": "ذروة الإرسال",
+      "kpiLoadIndex": "مؤشر الاستفادة",
+      "kpiAt": "عند",
+      "riskNormal": "طبيعي",
+      "riskMedium": "تنبيه",
+      "riskHigh": "مرتفع",
+      "overallStatus": "الحالة العامة",
+      "recommendationsTitle": "توصيات تشغيلية",
+      "recPeakRxWarn": "معدل الاستقبال يقترب من حد التنبيه. راقب ازدحام ساعات الذروة ووازن التوزيع بين القطاعات.",
+      "recPeakRxHigh": "ذروة الاستقبال مرتفعة جدًا. يُنصح بزيادة السعة أو توزيع الحمل على خادم/وصلة إضافية.",
+      "recPeakTxWarn": "معدل الإرسال ضمن نطاق التنبيه. تحقق من أنشطة النسخ/الرفع الكثيفة خلال الفترة.",
+      "recPeakTxHigh": "ذروة الإرسال مرتفعة جدًا. افحص مصادر الرفع العالي وطبّق سياسات QoS إن لزم.",
+      "recLoadWarn": "مؤشر الاستفادة مرتفع نسبيًا. حضّر خطة توسعة قصيرة الأمد قبل زيادة الضغط.",
+      "recLoadHigh": "مؤشر الاستفادة في نطاق حرج. يلزم إجراء توسعة أو إعادة توزيع حمل بشكل فوري.",
+      "recHealthy": "المؤشرات ضمن النطاق الطبيعي حاليًا. استمر بالمراقبة الدورية.",
+      "periodDay": "آخر 24 ساعة",
+      "periodWeek": "آخر 7 أيام",
+      "periodMonth": "آخر 30 يوم",
+      "samples": "عدد العينات",
+      "rx": "الاستقبال (RX)",
+      "tx": "الإرسال (TX)",
+      "min": "الأدنى",
+      "avg": "المتوسط",
+      "max": "الأعلى"
+    }
+  },
+  "client": {
+    "plan": "الباقة الحالية",
+    "usage": "الاستخدام",
+    "invoices": "سجل الفواتير",
+    "status": "حالة الشبكة",
+    "speedDown": "تحميل",
+    "speedUp": "رفع",
+    "linkStatus": "الاتصال",
+    "latency": "زمن الاستجابة",
+    "speedTest": "اختبار السرعة",
+    "ticket": { "title": "فتح تذكرة", "subject": "العنوان", "message": "الرسالة", "send": "إرسال", "sent": "تم إرسال التذكرة (تجريبي)." },
+    "traffic": {
+      "pageTitle": "معدل الاتصال الخاص بي",
+      "loadError": "تعذر تحميل بيانات المعدل الحالية.",
+      "statusLoadError": "تعذر تحميل حالة الاختبار حالياً.",
+      "connected": "حالة الاتصال: متصل",
+      "disconnected": "حالة الاتصال: غير متصل حالياً",
+      "startTest": "بدء اختبار 10 ثوان",
+      "startWarning": "سيتم حسم {{amount}} ل.س جديدة من رصيدك لبدء اختبار مدته {{duration}} ثوانٍ. يمكن إعادة الاختبار كل {{cooldown}} ساعات. هل تريد المتابعة؟",
+      "chargeLine": "قيمة الحسم لكل اختبار: {{amount}} ل.س جديدة",
+      "needStartTest": "لا يوجد اختبار نشط حالياً. ابدأ اختباراً جديداً لعرض المعدلات لمدة 10 ثوان.",
+      "activeUntil": "الاختبار نشط حتى",
+      "nextEligible": "يمكنك الاختبار مجدداً عند",
+      "availableNow": "متاح الآن",
+      "insufficientBalance": "رصيدك غير كافٍ لبدء الاختبار.",
+      "cooldownActive": "لا يمكنك بدء اختبار جديد قبل انتهاء فترة الـ 4 ساعات.",
+      "startFailed": "تعذر بدء الاختبار حالياً.",
+      "rxRate": "معدل الاستقبال",
+      "txRate": "معدل الإرسال",
+      "rxTotal": "إجمالي الاستقبال",
+      "txTotal": "إجمالي الإرسال",
+      "userName": "اسم المستخدم",
+      "serverName": "الخادم",
+      "uptime": "مدة الاتصال",
+      "address": "العنوان",
+      "rxPackets": "حزم الاستقبال",
+      "txPackets": "حزم الإرسال",
+      "trendTitle": "اتجاه المعدل المباشر (آخر العينات)"
+    }
+  },
+  "collection": {
+    "summary": "ملخص التحصيل اليومي",
+    "table": "المدفوعات الأخيرة",
+    "chart": "اتجاه التحصيلات",
+    "record": "تسجيل دفعة",
+    "todayTotal": "اليوم (تجريبي)",
+    "recordMock": "تم تسجيل الدفعة (تجريبي)."
+  },
+  "table": {
+    "customer": "العميل",
+    "amount": "المبلغ",
+    "date": "التاريخ",
+    "status": "الحالة",
+    "invoice": "الفاتورة",
+    "type": "النوع",
+    "channel": "القناة"
+  },
+  "status": {
+    "paid": "مدفوع",
+    "pending": "معلق",
+    "done": "تم",
+    "inProgress": "قيد التنفيذ",
+    "active": "نشط",
+    "suspended": "معلق الحساب"
+  },
+  "directory": {
+    "search": "ابحث بالاسم أو البريد",
+    "roleFilter": "الدور",
+    "allRoles": "كل الأدوار",
+    "lastActive": "آخر نشاط"
+  },
+  "networksPage": {
+    "apTable": "نقاط الوصول",
+    "coordinates": "الإحداثيات"
+  },
+  "paymentsPage": {
+    "filterStatus": "الحالة",
+    "all": "الكل"
+  },
+  "reportsPage": {
+    "kpis": "مؤشرات رئيسية",
+    "paymentMix": "توزيع حالة المدفوعات"
+  },
+  "settingsPage": {
+    "title": "مساحة العمل",
+    "notifyEmail": "إشعارات البريد",
+    "notifyEmailDesc": "تلقي تنبيهات للمدفوعات وأحداث النظام.",
+    "compactTables": "جداول مدمجة",
+    "compactTablesDesc": "عرض المزيد من الصفوف بمسافات أ tighter في القوائم.",
+    "saved": "تُحفظ التفضيلات محليًا (تجريبي)."
+  },
+  "employeeSupport": {
+    "queue": "قائمة انتظار الدعم",
+    "notes": "ملاحظات داخلية",
+    "save": "حفظ الملاحظة (تجريبي)"
+  },
+  "transactionsPage": {
+    "title": "سجل المعاملات"
+  },
+  "common": {
+    "openMenu": "القائمة",
+    "close": "إغلاق",
+    "loading": "جارٍ التحميل…",
+    "noData": "لا توجد بيانات."
+  },
+  "pages": {
+    "users": "إدارة المستخدمين",
+    "networks": "الشبكات والتغطية",
+    "payments": "المدفوعات",
+    "reports": "التقارير",
+    "settings": "الإعدادات",
+    "placeholders": "يستخدم هذا القسم نفس واجهة البيانات الوهمية؛ وسّعها حسب احتياجك."
+  }
+}

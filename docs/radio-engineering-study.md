@@ -1,4 +1,4 @@
-# Radio Control Engineering Study (RadTik)
+# Radio Control Engineering Study (RadaTik)
 
 ## Objective
 - Build a safe, high-performance workflow to monitor sector RF metrics and control frequency changes from the app.

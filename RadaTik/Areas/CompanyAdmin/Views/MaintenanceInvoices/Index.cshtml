@@ -1,0 +1,121 @@
+@model List<RadaTik.Models.MaintenanceInvoice>
+@using RadaTik.Models
+@{
+    ViewData["Title"] = "فواتير الصيانة";
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var currentStatus = ViewBag.CurrentStatus as MaintenanceInvoiceStatus?;
+    bool canDiary = ViewBag.CanMoneyDiary == true;
+    bool canWarehouse = ViewBag.CanWarehouse == true;
+}
+
+<div class="financial-page financial-hub-page">
+    @{
+        ViewBag.FinancialNavCurrent = "maintenance";
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-file-invoice";
+        ViewBag.FinancialHeroTheme = "default";
+        ViewBag.FinancialHeroSubtitle = companyName + " — الربط مع الدفتر والمستودع اختياري ويدوياً";
+    }
+    <partial name="_FinancialSysHero" />
+
+    <div class="d-flex gap-2 flex-wrap mb-3">
+        <a class="btn btn-outline-success btn-sm micro-btn" asp-action="ExportExcel" asp-route-status="@currentStatus">Excel</a>
+        <a class="btn btn-outline-secondary btn-sm micro-btn" asp-route="networkManager-requestsManagement" asp-route-action="MaintenanceRequests">طلبات الصيانة</a>
+    </div>
+
+    <partial name="_BusinessModuleGuide" />
+
+    <div class="alert alert-light border mb-3 small">
+        فواتير الصيانة تُدار عبر محفظة العميل في RadaTik. استخدم الأزرار أدناه فقط إذا أردت تسجيلاً إضافياً في <strong>دفتر الإيراد والمصروف</strong> أو <strong>المستودع</strong>.
+    </div>
+
+    <div class="btn-group mb-3 flex-wrap" role="group">
+        <a class="btn btn-sm @(currentStatus == null ? "btn-primary" : "btn-outline-primary")" asp-action="Index">الكل</a>
+        <a class="btn btn-sm @(currentStatus == MaintenanceInvoiceStatus.Pending ? "btn-primary" : "btn-outline-primary")" asp-action="Index" asp-route-status="@MaintenanceInvoiceStatus.Pending">معلقة (@ViewBag.PendingCount)</a>
+        <a class="btn btn-sm @(currentStatus == MaintenanceInvoiceStatus.Paid ? "btn-primary" : "btn-outline-primary")" asp-action="Index" asp-route-status="@MaintenanceInvoiceStatus.Paid">مدفوعة (@ViewBag.PaidCount)</a>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle radtk-data-table radtk-data-table--cards">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>العميل</th>
+                        <th>الإجمالي</th>
+                        <th>صافي الشركة</th>
+                        <th>الحالة</th>
+                        <th>إدارة الشركة (اختياري)</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">لا توجد فواتير.</td></tr>
+                }
+                @foreach (var inv in Model)
+                {
+                    var statusLabel = inv.Status switch
+                    {
+                        MaintenanceInvoiceStatus.Paid => "مدفوعة",
+                        MaintenanceInvoiceStatus.Cancelled => "ملغاة",
+                        _ => "معلقة"
+                    };
+                    var desc = $"فاتورة صيانة #{inv.Id} — {inv.Client?.Name}";
+                    <tr>
+                        <td>@inv.Id</td>
+                        <td>@(inv.Client?.Name ?? "—")</td>
+                        <td>@SyrianCurrencyHelper.FormatNew(inv.GrossAmount)</td>
+                        <td class="fw-bold">@SyrianCurrencyHelper.FormatNew(inv.NetAmountToCompany)</td>
+                        <td>
+                            <span class="badge @(inv.Status == MaintenanceInvoiceStatus.Paid ? "bg-success" : inv.Status == MaintenanceInvoiceStatus.Pending ? "bg-warning text-dark" : "bg-secondary")">
+                                @statusLabel
+                            </span>
+                        </td>
+                        <td class="text-nowrap">
+                            @if (canDiary && inv.Status == MaintenanceInvoiceStatus.Paid)
+                            {
+                                <a class="btn btn-xs btn-outline-success btn-sm"
+                                   asp-route="networkManager-money-diary"
+                                   asp-route-prefillAmount="@inv.NetAmountToCompany.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                   asp-route-prefillEntryType="1"
+                                   asp-route-prefillCategoryKey="income_maintenance"
+                                   asp-route-prefillDescription="@desc"
+                                   title="تسجيل إيراد">إيراد</a>
+                                <a class="btn btn-xs btn-outline-danger btn-sm"
+                                   asp-route="networkManager-money-diary"
+                                   asp-route-prefillAmount="@inv.NetAmountToCompany.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                   asp-route-prefillEntryType="2"
+                                   asp-route-prefillCategoryKey="expense_maintenance"
+                                   asp-route-prefillDescription="@($"قطع صيانة — {desc}")"
+                                   title="مصروف قطع">مصروف</a>
+                            }
+                            @if (canWarehouse && inv.Status == MaintenanceInvoiceStatus.Paid)
+                            {
+                                <a class="btn btn-xs btn-outline-primary btn-sm"
+                                   asp-route="networkManager-warehouse"
+                                   asp-route-movementType="2"
+                                   asp-route-prefillNotes="@($"صيانة #{inv.Id}")"
+                                   title="إخراج من المستودع">مخزون</a>
+                            }
+                            @if (!canDiary && !canWarehouse)
+                            {
+                                <span class="text-muted small">—</span>
+                            }
+                        </td>
+                        <td>
+                            <a class="btn btn-sm btn-outline-secondary"
+                               asp-route="networkManager-requestsManagement"
+                               asp-route-action="MaintenanceRequestDetails"
+                               asp-route-id="@inv.MaintenanceRequestId">التفاصيل</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

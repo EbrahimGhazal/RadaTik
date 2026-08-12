@@ -1,0 +1,48 @@
+@using RadaTik.Models.Business
+@using RadaTik.Services
+@model MaterialPurchaseInvoice
+@{
+    Layout = null;
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var printDate = ViewBag.PrintDate as string ?? DateTime.Today.ToString("yyyy-MM-dd");
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>فاتورة شراء #@Model.Id</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; margin: 24px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th, td { border: 1px solid #ccc; padding: 6px; text-align: right; }
+        th { background: #f0f4f8; }
+        .no-print { margin-bottom: 12px; }
+        @@media print { .no-print { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="no-print"><button type="button" onclick="window.print()">طباعة / PDF</button></div>
+    <h1>فاتورة شراء مواد #@Model.Id</h1>
+    <p>@companyName — @printDate @(Model.IsCancelled ? "(ملغاة)" : "")</p>
+    <p>التاريخ: @Model.InvoiceDate.ToString("yyyy-MM-dd") | المورد: @(Model.SupplierName ?? "—") | الإجمالي: @SyrianCurrencyHelper.FormatNew(Model.TotalAmount) ل.س | @(Model.IsPaid ? "مدفوعة" : "غير مدفوعة")</p>
+    <table>
+        <thead>
+            <tr><th>المادة</th><th>الموديل</th><th>الوحدة</th><th>كمية</th><th>قطع</th><th>السعر</th><th>الإجمالي</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var line in Model.Lines)
+        {
+            <tr>
+                <td>@line.ItemName</td>
+                <td>@(line.ModelNumber ?? "")</td>
+                <td>@WarehouseMaterialQuantityHelper.DisplayPackageUnit(line.PackageUnit)</td>
+                <td>@line.PackageQuantity.ToString("N3")</td>
+                <td>@line.BaseQuantity.ToString("N3")</td>
+                <td>@SyrianCurrencyHelper.FormatNew(line.UnitPrice)</td>
+                <td>@SyrianCurrencyHelper.FormatNew(line.LineTotal)</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</body>
+</html>

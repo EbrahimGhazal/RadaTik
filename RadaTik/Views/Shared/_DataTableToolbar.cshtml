@@ -1,0 +1,37 @@
+@model RadaTik.ViewModels.UI.DataTableToolbarViewModel
+@{
+    var toolbar = Model ?? new RadaTik.ViewModels.UI.DataTableToolbarViewModel();
+}
+<div class="radtk-table-toolbar">
+    <div class="d-flex flex-wrap align-items-center gap-2 flex-grow-1">
+        @if (!string.IsNullOrWhiteSpace(toolbar.Title))
+        {
+            <h3 class="radtk-table-toolbar__title mb-0">@toolbar.Title</h3>
+        }
+        @if (!string.IsNullOrWhiteSpace(toolbar.SearchInputId))
+        {
+            <div class="radtk-table-search">
+                <input type="search"
+                       class="form-control form-control-sm"
+                       id="@toolbar.SearchInputId"
+                       placeholder="@(toolbar.SearchPlaceholder ?? "بحث…")"
+                       autocomplete="off" />
+            </div>
+        }
+    </div>
+    @if (toolbar.Actions.Count > 0)
+    {
+        <div class="radtk-table-toolbar__actions">
+            @foreach (var action in toolbar.Actions)
+            {
+                <a href="@action.Url" class="@action.CssClass">
+                    @if (!string.IsNullOrWhiteSpace(action.IconClass))
+                    {
+                        <i class="@action.IconClass"></i>
+                    }
+                    @action.Text
+                </a>
+            }
+        </div>
+    }
+</div>

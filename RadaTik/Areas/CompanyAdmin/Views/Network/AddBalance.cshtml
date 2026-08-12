@@ -1,0 +1,42 @@
+@{
+    ViewData["Title"] = "إضافة رصيد لمدير الشركة";
+    var net = ViewBag.Network as RadaTik.Models.Network;
+    var managerName = ViewBag.ManagerName as string ?? "-";
+
+    // This page is SystemAdministrator-only, so ensure SystemAdmin layout when reached via fallback view locations.
+    if (User.IsInRole("SystemAdministrator"))
+    {
+        Layout = "~/Areas/SystemAdmin/Views/Shared/_Layout.cshtml";
+    }
+}
+
+<div class="page-header mb-4">
+    <h1><i class="fas fa-wallet text-primary me-2"></i>@ViewData["Title"]</h1>
+    <p class="text-muted mb-0">إضافة رصيد للشبكة: @(net?.Name ?? "-") — مدير الشركة: @managerName</p>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        @if (net != null)
+        {
+            <p class="mb-3"><strong>الرصيد الحالي:</strong> <span class="text-primary fs-4">@(net.Balance.ToString("N2"))</span></p>
+            <form asp-action="AddBalance" method="post" class="mb-0">
+                <input type="hidden" name="networkId" value="@net.Id" />
+                @Html.AntiForgeryToken()
+                <div class="mb-3">
+                    <label for="amount" class="form-label">المبلغ المضاف <span class="text-danger">*</span></label>
+                    <input type="number" name="amount" id="amount" class="form-control" step="0.01" min="0.01" required placeholder="0.00" />
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-plus me-1"></i>إضافة الرصيد</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+                </div>
+            </form>
+        }
+        else
+        {
+            <p class="text-muted">الشبكة غير موجودة.</p>
+            <a asp-action="Index" class="btn btn-outline-primary">العودة للقائمة</a>
+        }
+    </div>
+</div>

@@ -1,4 +1,4 @@
-# 📘 التوثيق الشامل - RadTik ISP Management System
+# 📘 التوثيق الشامل - RadaTik ISP Management System
 
 ## فهرس المحتويات
 
@@ -17,7 +17,7 @@
 
 ## نظرة عامة
 
-RadTik هو نظام إدارة شامل لمزودي خدمة الإنترنت مبني على ASP.NET Core MVC. يوفر النظام إدارة متكاملة للعملاء، الشبكة، والمزامنة مع أجهزة MikroTik RouterOS.
+RadaTik هو نظام إدارة شامل لمزودي خدمة الإنترنت مبني على ASP.NET Core MVC. يوفر النظام إدارة متكاملة للعملاء، الشبكة، والمزامنة مع أجهزة MikroTik RouterOS.
 
 ### الأهداف الرئيسية
 
@@ -51,7 +51,7 @@ RadTik هو نظام إدارة شامل لمزودي خدمة الإنترنت 
 #### 1. استنساخ المشروع
 ```bash
 git clone <repository-url>
-cd RadTik
+cd RadaTik
 ```
 
 #### 2. تحديث appsettings.json
@@ -59,7 +59,7 @@ cd RadTik
 ```json
 {
   "ConnectionStrings": {
-    "MyDBConnection": "Server=localhost;Database=RadTikDB;Trusted_Connection=True;TrustServerCertificate=True;"
+    "MyDBConnection": "Server=localhost;Database=RadaTikDB;Trusted_Connection=True;TrustServerCertificate=True;"
   },
   "Logging": {
     "LogLevel": {

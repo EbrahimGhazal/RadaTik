@@ -1,0 +1,11 @@
+@using RadaTik.ViewModels.UI
+@{
+    var hero = new PageHeroViewModel
+    {
+        Title = ViewData["Title"] as string ?? "",
+        Subtitle = ViewBag.OperationalHeroSubtitle as string ?? ViewBag.CompanyName as string,
+        IconClass = ViewBag.OperationalHeroIcon as string ?? "fas fa-layer-group",
+        Theme = ViewBag.OperationalHeroTheme as string ?? "default"
+    };
+}
+<partial name="~/Views/Shared/_PageHero.cshtml" model="hero" />

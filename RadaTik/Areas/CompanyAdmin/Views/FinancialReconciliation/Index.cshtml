@@ -1,0 +1,266 @@
+@using RadaTik.Helpers
+@using RadaTik.Models
+@using RadaTik.Services
+@{
+    ViewData["Title"] = "جرد مالي";
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var s = ViewBag.Snapshot as FinancialReconciliationSnapshot;
+    var monthLabel = DateTime.Now.ToString("yyyy/MM");
+
+    ViewBag.FinancialNavShowWarehouse = false;
+    ViewBag.FinancialHeroIcon = "fas fa-balance-scale";
+    ViewBag.FinancialHeroTheme = "reconciliation";
+    ViewBag.FinancialHeroSubtitle = companyName + " — مطابقة الصندوق والدفتر وفواتير المواد";
+    ViewBag.FinancialHeroChips = new[] { ("fas fa-coins", "ل.س.ج و $ منفصلان"), ("fas fa-link", "تكامل تلقائي") };
+    ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-secondary micro-btn"" href=""" + Url.RouteUrl("networkManager-cashbox", new { action = "Index", id = "" }) + @"""><i class=""fas fa-cash-register""></i> الصندوق</a>
+<a class=""btn btn-outline-secondary micro-btn"" href=""" + Url.RouteUrl("networkManager-money-diary", new { action = "Index", id = "" }) + @"""><i class=""fas fa-book""></i> الدفتر</a>
+<a class=""btn btn-outline-secondary micro-btn"" href=""" + Url.RouteUrl("networkManager-company-business", new { action = "Index", id = "" }) + @"""><i class=""fas fa-building""></i> إدارة الشركة</a>";
+}
+
+<div class="financial-page financial-hub-page company-business-page financial-reconciliation-page">
+    <partial name="_FinancialQuickNav" />
+    <partial name="_FinancialSysHero" />
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    @if (s != null)
+    {
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            <a class="btn btn-outline-primary btn-sm micro-btn" asp-route="networkManager-cashbox"><i class="fas fa-cash-register"></i> الصندوق النقدي</a>
+            <a class="btn btn-outline-success btn-sm micro-btn" asp-route="networkManager-money-diary"><i class="fas fa-book"></i> دفتر الإيراد والمصروف</a>
+            <a class="btn btn-outline-secondary btn-sm micro-btn" asp-route="networkManager-material-purchase"><i class="fas fa-cart-plus"></i> شراء مواد</a>
+            <a class="btn btn-outline-secondary btn-sm micro-btn" asp-route="networkManager-material-sales"><i class="fas fa-hand-holding-usd"></i> بيع مواد</a>
+        </div>
+
+        <section class="mb-4">
+            <h2 class="h6 text-muted mb-3"><i class="fas fa-gauge-high me-1"></i> أرصدة ومطابقة — @monthLabel</h2>
+            <div class="row g-3">
+                <div class="col-12 col-lg-5">
+                    <div class="card company-dual-currency-card h-100">
+                        <div class="card-header company-dual-currency-card__header py-2 d-flex justify-content-between align-items-center">
+                            <span class="fw-bold"><i class="fas fa-cash-register me-1"></i> الصندوق النقدي</span>
+                            <a class="btn btn-sm btn-outline-secondary micro-btn" asp-route="networkManager-cashbox">فتح</a>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="company-currency-mini-hero company-currency-mini-hero--syp">
+                                        <div class="company-currency-mini-hero__tag">ل.س.ج</div>
+                                        <div class="company-currency-mini-hero__amount">@CurrencyHelper.FormatAmount(s.CashBoxBalance, PricingCurrency.SYP_New)</div>
+                                        <div class="company-currency-mini-hero__meta">نقد باليد</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="company-currency-mini-hero company-currency-mini-hero--usd">
+                                        <div class="company-currency-mini-hero__tag">$</div>
+                                        <div class="company-currency-mini-hero__amount">@CurrencyHelper.FormatAmount(s.CashBoxBalanceUsd, PricingCurrency.USD)</div>
+                                        <div class="company-currency-mini-hero__meta">نقد باليد</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-7">
+                    <div class="card company-dual-currency-card h-100">
+                        <div class="card-header company-dual-currency-card__header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <span class="fw-bold"><i class="fas fa-book me-1"></i> دفتر الإيراد والمصروف</span>
+                                <span class="text-muted small ms-2">— الشهر الحالي</span>
+                            </div>
+                            <a class="btn btn-sm btn-success micro-btn" asp-route="networkManager-money-diary"><i class="fas fa-arrow-left"></i> فتح الدفتر</a>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <div class="company-currency-panel company-currency-panel--syp h-100">
+                                        <div class="company-currency-panel__head">
+                                            <span class="company-currency-panel__badge">ل.س.ج</span>
+                                            <span class="company-currency-panel__title">دفتر الليرة</span>
+                                        </div>
+                                        <dl class="company-currency-panel__stats mb-0">
+                                            <div>
+                                                <dt>إيراد</dt>
+                                                <dd class="text-success">@CurrencyHelper.FormatAmount(s.DiaryIncomeSypThisMonth, PricingCurrency.SYP_New)</dd>
+                                            </div>
+                                            <div>
+                                                <dt>مصروف</dt>
+                                                <dd class="text-danger">@CurrencyHelper.FormatAmount(s.DiaryExpenseSypThisMonth, PricingCurrency.SYP_New)</dd>
+                                            </div>
+                                            <div class="company-currency-panel__net">
+                                                <dt>صافي</dt>
+                                                <dd class="@(s.DiaryNetSypThisMonth >= 0 ? "text-success" : "text-danger") fw-bold">
+                                                    @CurrencyHelper.FormatAmount(s.DiaryNetSypThisMonth, PricingCurrency.SYP_New)
+                                                </dd>
+                                            </div>
+                                        </dl>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="company-currency-panel company-currency-panel--usd h-100">
+                                        <div class="company-currency-panel__head">
+                                            <span class="company-currency-panel__badge">$</span>
+                                            <span class="company-currency-panel__title">دفتر الدولار</span>
+                                        </div>
+                                        <dl class="company-currency-panel__stats mb-0">
+                                            <div>
+                                                <dt>إيراد</dt>
+                                                <dd class="text-success">@CurrencyHelper.FormatAmount(s.DiaryIncomeUsdThisMonth, PricingCurrency.USD)</dd>
+                                            </div>
+                                            <div>
+                                                <dt>مصروف</dt>
+                                                <dd class="text-danger">@CurrencyHelper.FormatAmount(s.DiaryExpenseUsdThisMonth, PricingCurrency.USD)</dd>
+                                            </div>
+                                            <div class="company-currency-panel__net">
+                                                <dt>صافي</dt>
+                                                <dd class="@(s.DiaryNetUsdThisMonth >= 0 ? "text-success" : "text-danger") fw-bold">
+                                                    @CurrencyHelper.FormatAmount(s.DiaryNetUsdThisMonth, PricingCurrency.USD)
+                                                </dd>
+                                            </div>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-4">
+            <h2 class="h6 text-muted mb-3"><i class="fas fa-file-invoice-dollar me-1"></i> ذمم غير مسدّدة</h2>
+            <div class="card company-dual-currency-card">
+                <div class="card-body p-3">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <div class="company-currency-panel company-currency-panel--syp h-100">
+                                <div class="company-currency-panel__head">
+                                    <span class="company-currency-panel__badge">ل.س.ج</span>
+                                    <span class="company-currency-panel__title">ذمم بالليرة</span>
+                                </div>
+                                <dl class="company-currency-panel__stats mb-0">
+                                    <div>
+                                        <dt>شراء مواد (غير مدفوع)</dt>
+                                        <dd class="text-warning">
+                                            @CurrencyHelper.FormatAmount(s.UnpaidPurchaseTotalSyp, PricingCurrency.SYP_New)
+                                            <span class="text-muted fw-normal small">(@s.UnpaidPurchaseCountSyp)</span>
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt>بيع مواد (غير محصّل)</dt>
+                                        <dd class="text-warning">
+                                            @CurrencyHelper.FormatAmount(s.UnpaidSalesTotalSyp, PricingCurrency.SYP_New)
+                                            <span class="text-muted fw-normal small">(@s.UnpaidSalesCountSyp)</span>
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="company-currency-panel company-currency-panel--usd h-100">
+                                <div class="company-currency-panel__head">
+                                    <span class="company-currency-panel__badge">$</span>
+                                    <span class="company-currency-panel__title">ذمم بالدولار</span>
+                                </div>
+                                <dl class="company-currency-panel__stats mb-0">
+                                    <div>
+                                        <dt>شراء مواد (غير مدفوع)</dt>
+                                        <dd class="text-warning">
+                                            @CurrencyHelper.FormatAmount(s.UnpaidPurchaseTotalUsd, PricingCurrency.USD)
+                                            <span class="text-muted fw-normal small">(@s.UnpaidPurchaseCountUsd)</span>
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt>بيع مواد (غير محصّل)</dt>
+                                        <dd class="text-warning">
+                                            @CurrencyHelper.FormatAmount(s.UnpaidSalesTotalUsd, PricingCurrency.USD)
+                                            <span class="text-muted fw-normal small">(@s.UnpaidSalesCountUsd)</span>
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    @if (s.UnpaidPurchaseCount == 0 && s.UnpaidSalesCount == 0)
+                    {
+                        <p class="small text-success mb-0 mt-3"><i class="fas fa-check-circle"></i> لا توجد فواتير مواد معلّقة.</p>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top">
+                            <a class="btn btn-sm btn-outline-secondary micro-btn" asp-route="networkManager-material-purchase">فواتير الشراء</a>
+                            <a class="btn btn-sm btn-outline-secondary micro-btn" asp-route="networkManager-material-sales">فواتير البيع</a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-4">
+            <h2 class="h6 text-muted mb-3"><i class="fas fa-check-double me-1"></i> فواتير مواد مدفوعة — هذا الشهر</h2>
+            <div class="card company-dual-currency-card">
+                <div class="card-header company-dual-currency-card__header py-2">
+                    <span class="small text-muted">المبالغ المسجّلة في الدفتر عند الدفع</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <div class="company-currency-panel company-currency-panel--syp h-100">
+                                <div class="company-currency-panel__head">
+                                    <span class="company-currency-panel__badge">ل.س.ج</span>
+                                    <span class="company-currency-panel__title">مدفوع بالليرة</span>
+                                </div>
+                                <dl class="company-currency-panel__stats mb-0">
+                                    <div>
+                                        <dt>شراء (مصروف)</dt>
+                                        <dd class="text-danger">@CurrencyHelper.FormatAmount(s.MaterialPurchasePaidSypThisMonth, PricingCurrency.SYP_New)</dd>
+                                    </div>
+                                    <div>
+                                        <dt>بيع (إيراد)</dt>
+                                        <dd class="text-success">@CurrencyHelper.FormatAmount(s.MaterialSalesPaidSypThisMonth, PricingCurrency.SYP_New)</dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="company-currency-panel company-currency-panel--usd h-100">
+                                <div class="company-currency-panel__head">
+                                    <span class="company-currency-panel__badge">$</span>
+                                    <span class="company-currency-panel__title">مدفوع بالدولار</span>
+                                </div>
+                                <dl class="company-currency-panel__stats mb-0">
+                                    <div>
+                                        <dt>شراء (مصروف)</dt>
+                                        <dd class="text-danger">@CurrencyHelper.FormatAmount(s.MaterialPurchasePaidUsdThisMonth, PricingCurrency.USD)</dd>
+                                    </div>
+                                    <div>
+                                        <dt>بيع (إيراد)</dt>
+                                        <dd class="text-success">@CurrencyHelper.FormatAmount(s.MaterialSalesPaidUsdThisMonth, PricingCurrency.USD)</dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-0">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h3 class="h6 mb-2"><i class="fas fa-info-circle text-primary me-1"></i> كيف يعمل التكامل</h3>
+                    <ul class="small text-muted mb-0 ps-3">
+                        <li>عند حفظ فاتورة مواد <strong>مدفوعة</strong> يُسجَّل المبلغ تلقائياً في دفتر الإيراد والمصروف <strong>بنفس عملة الفاتورة</strong>.</li>
+                        <li>إن لم تُفعَّل «محفظة الشركة» يُحرَّك الصندوق النقدي (سحب شراء / إيداع بيع) في العملة المناسبة.</li>
+                        <li>الإلغاء يعكس المستودع والدفتر والصندوق والمحفظة إن وُجدت.</li>
+                        <li>الجرد أعلاه يفصل <strong>ل.س.ج</strong> (أزرق) و<strong>$</strong> (أخضر) — لا يُجمع بين العملتين في رقم واحد.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    }
+</div>

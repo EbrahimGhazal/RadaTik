@@ -1,0 +1,1536 @@
+<div class="radtk-page-clients-index">
+@model IEnumerable<RadaTik.Models.Client>
+
+@{
+    ViewData["Title"] = "قائمة العملاء";
+
+    // حساب الإحصائيات
+    var totalClients = Model.Count();
+    var activeClients = Model.Count(c => c.IsActive);
+    var inactiveClients = Model.Count(c => !c.IsActive);
+
+    // حساب مجموع السرعات (بالميجابت)
+    var totalSpeed = 0m;
+    var activeSpeed = 0m;
+    var inactiveSpeed = 0m;
+    var connectedSpeed = 0m;
+    var disconnectedSpeed = 0m;
+
+    var connectedClients = ViewBag.ConnectedClientIds as ISet<int> ?? new HashSet<int>();
+    var connectionsReady = ViewBag.ConnectionsReady as bool? ?? false;
+
+    foreach (var item in Model)
+    {
+        decimal speed = 0;
+        if (item.Profile != null)
+        {
+            speed = item.Profile.DownloadSpeedMbps;
+        }
+        else if (!string.IsNullOrEmpty(item.ProfileName))
+        {
+            var numbers = System.Text.RegularExpressions.Regex.Match(item.ProfileName, @"\d+");
+            if (numbers.Success && int.TryParse(numbers.Value, out var parsedSpeed))
+            {
+                speed = parsedSpeed;
+            }
+        }
+
+        if (speed > 0)
+        {
+            totalSpeed += speed;
+            if (item.IsActive)
+            {
+                activeSpeed += speed;
+                if (connectedClients.Contains(item.Id))
+                {
+                    connectedSpeed += speed;
+                }
+                else
+                {
+                    disconnectedSpeed += speed;
+                }
+            }
+            else
+            {
+                inactiveSpeed += speed;
+            }
+        }
+    }
+
+    var disconnectedActiveClients = Model.Count(c => c.IsActive && !connectedClients.Contains(c.Id));
+    var averageTotalSpeed = totalClients > 0 ? Math.Round((double)totalSpeed / totalClients, 1) : 0;
+    var activePercent = totalClients > 0 ? Math.Round((double)activeClients / totalClients * 100, 0) : 0;
+    var connectedPercent = activeClients > 0 ? Math.Round((double)connectedClients.Count / activeClients * 100, 0) : 0;
+    var dbAccountMap = ViewBag.DbAccountMap as IDictionary<int, string> ?? new Dictionary<int, string>();
+    var pendingClientIds = ViewBag.PendingClientIds as ISet<int> ?? new HashSet<int>();
+}
+
+<!-- Page Header -->
+<div class="operational-page clients-list-page">
+    @{
+        ViewBag.OperationalHeroIcon = "fas fa-users";
+        ViewBag.OperationalHeroSubtitle = $"إجمالي {totalClients} مشترك — نشط {activeClients}";
+    }
+    <partial name="_OperationalSysHero" />
+    <div class="page-actions-toolbar clients-page-toolbar d-flex flex-wrap gap-2 mb-3 justify-content-end">
+            @if (User.IsInRole("SystemAdministrator") || User.IsInRole("Employee"))
+            {
+                <a asp-action="ExpiringIn3Days" class="btn btn-sm" style="background: var(--warning); color: white;" title="تنتهي قريباً">
+                    <i class="fas fa-clock"></i> <span class="clients-toolbar-label">تنتهي قريباً</span>
+                </a>
+                <a asp-action="ExpiredAccounts" class="btn btn-danger btn-sm" title="المنتهية">
+                    <i class="fas fa-exclamation-triangle"></i> <span class="clients-toolbar-label">المنتهية</span>
+                </a>
+            }
+            @if (User.IsInRole("SystemAdministrator"))
+            {
+                <a asp-action="CheckExpiredAccounts" class="btn btn-sm" style="background: var(--info); color: white;" title="فحص"
+                   onclick="return confirm('هل تريد التحقق من الحسابات المنتهية؟')">
+                    <i class="fas fa-sync-alt"></i> <span class="clients-toolbar-label">فحص</span>
+                </a>
+            }
+            @if (User.IsInRole("NetworkAdministrator") || User.IsInRole("Employee"))
+            {
+                <a asp-action="ImportFromServer" class="btn btn-warning btn-sm" title="استيراد من سيرفر">
+                    <i class="fas fa-download"></i> <span class="clients-toolbar-label">استيراد من سيرفر</span>
+                </a>
+            }
+            @if (User.IsInRole("NetworkAdministrator") || User.IsInRole("CompanyEmployee") || User.IsInRole("Employee") || User.IsInRole("EmployeeLegacy"))
+            {
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btnOpenClientInfoImport" title="استيراد معلومات من ملف">
+                    <i class="fas fa-file-excel"></i> <span class="clients-toolbar-label">استيراد من ملف</span>
+                </button>
+            }
+            @if (User.IsInRole("NetworkAdministrator") ||
+                 User.IsInRole("SystemAdministrator") ||
+                 User.IsInRole("CompanyEmployee") ||
+                 User.IsInRole("Employee") ||
+                 User.IsInRole("EmployeeLegacy"))
+            {
+                <a asp-route="networkManager-new-subscriber-wizard" asp-route-action="Index" asp-route-id="" class="btn btn-success btn-sm" title="إضافة مشترك جديد">
+                    <i class="fas fa-user-plus"></i> <span class="clients-toolbar-label">إضافة مشترك جديد</span>
+                </a>
+            }
+    </div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Success"]</div>
+        <button class="alert-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+    </div>
+}
+
+@if (TempData["Info"] != null)
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Info"]</div>
+        <button class="alert-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle alert-icon"></i>
+        <div class="alert-content">@TempData["Error"]</div>
+        <button class="alert-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+    </div>
+}
+
+@if (TempData["ClientInfoImportDetails"] is string importDetails && !string.IsNullOrWhiteSpace(importDetails))
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-list alert-icon"></i>
+        <div class="alert-content">
+            <div class="fw-semibold mb-1">تفاصيل الاستيراد من الملف:</div>
+            <div class="small">@importDetails</div>
+        </div>
+        <button class="alert-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+    </div>
+}
+
+@if (TempData["ImportFailedUsersDetails"] is string failedUsersJson && !string.IsNullOrWhiteSpace(failedUsersJson))
+{
+    var failedUsers = System.Text.Json.JsonSerializer.Deserialize<List<string>>(failedUsersJson) ?? new List<string>();
+    if (failedUsers.Any())
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-circle alert-icon"></i>
+            <div class="alert-content">
+                <div class="fw-semibold mb-1">تعذر إنشاء حسابات لبعض المستخدمين:</div>
+                <ul class="mb-0 ps-3">
+                    @foreach (var item in failedUsers)
+                    {
+                        <li>@item</li>
+                    }
+                </ul>
+            </div>
+            <button class="alert-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+        </div>
+    }
+}
+
+<!-- Compact Statistics Bar -->
+<div class="stats-bar">
+    <div class="stat-item stat-primary">
+        <div class="stat-icon-mini"><i class="fas fa-users"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalClients</span>
+            <span class="stat-label">إجمالي</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-success">
+        <div class="stat-icon-mini"><i class="fas fa-user-check"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@activeClients</span>
+            <span class="stat-label">نشط (@activePercent%)</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-info">
+        <div class="stat-icon-mini"><i class="fas fa-wifi"></i></div>
+        <div class="stat-data">
+            <span class="stat-number" id="statConnectedCount">@(connectionsReady ? connectedClients.Count.ToString() : "…")</span>
+            <span class="stat-label">متصل <span id="statConnectedPercent">@(connectionsReady ? $"({connectedPercent}%)" : "")</span></span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-warning">
+        <div class="stat-icon-mini"><i class="fas fa-user-clock"></i></div>
+        <div class="stat-data">
+            <span class="stat-number" id="statDisconnectedCount">@(connectionsReady ? disconnectedActiveClients.ToString() : "…")</span>
+            <span class="stat-label">غير متصل</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-danger">
+        <div class="stat-icon-mini"><i class="fas fa-user-times"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@inactiveClients</span>
+            <span class="stat-label">معطل</span>
+        </div>
+    </div>
+    
+    <div class="stat-divider"></div>
+    
+    <div class="stat-item stat-speed">
+        <div class="stat-icon-mini"><i class="fas fa-bolt"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalSpeed</span>
+            <span class="stat-label">Mbps كلي</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-speed-active">
+        <div class="stat-icon-mini"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="stat-data">
+            <span class="stat-number" id="statConnectedSpeed">@(connectionsReady ? connectedSpeed.ToString() : "…")</span>
+            <span class="stat-label">Mbps متصل</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-avg">
+        <div class="stat-icon-mini"><i class="fas fa-chart-line"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@averageTotalSpeed</span>
+            <span class="stat-label">Mbps متوسط</span>
+        </div>
+    </div>
+</div>
+
+<!-- Clients Table -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            قائمة العملاء
+        </h3>
+        <div class="card-actions">
+            <div class="filter-buttons">
+                <button class="filter-btn filter-btn--all active" onclick="filterByStatus('all')" data-filter="all">
+                    <span class="filter-btn__label">الكل</span>
+                    <span class="filter-count">@totalClients</span>
+                </button>
+                <button class="filter-btn filter-btn--active" onclick="filterByStatus('active')" data-filter="active">
+                    <span class="filter-btn__label">نشط</span>
+                    <span class="filter-count">@activeClients</span>
+                </button>
+                <button class="filter-btn filter-btn--connected" onclick="filterByStatus('connected')" data-filter="connected">
+                    <span class="filter-btn__label">متصل</span>
+                    <span class="filter-count" id="filterConnectedCount">@(connectionsReady ? connectedClients.Count.ToString() : "…")</span>
+                </button>
+                <button class="filter-btn filter-btn--disconnected" onclick="filterByStatus('disconnected')" data-filter="disconnected">
+                    <span class="filter-btn__label">غير متصل</span>
+                    <span class="filter-count" id="filterDisconnectedCount">@(connectionsReady ? disconnectedActiveClients.ToString() : "…")</span>
+                </button>
+                <button class="filter-btn filter-btn--inactive" onclick="filterByStatus('inactive')" data-filter="inactive">
+                    <span class="filter-btn__label">معطل</span>
+                    <span class="filter-count">@inactiveClients</span>
+                </button>
+            </div>
+            @if (User.IsInRole("NetworkAdministrator") || User.IsInRole("CompanyEmployee") || User.IsInRole("Employee") || User.IsInRole("EmployeeLegacy"))
+            {
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnOpenBulkExpiration" title="تعديل تاريخ انتهاء الصلاحية">
+                    <i class="fas fa-calendar-alt"></i> تعديل تاريخ الانتهاء
+                </button>
+            }
+            @if (User.IsInRole("SystemAdministrator") || User.IsInRole("NetworkAdministrator"))
+            {
+                <button type="button" class="btn btn-sm btn-outline-success" id="btnOpenBulkTopUp" title="شحن رصيد للمشتركين">
+                    <i class="fas fa-wallet"></i> شحن رصيد
+                </button>
+            }
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-columns"></i> الحقول
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-2 column-picker-menu">
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="fullName" checked /> الاسم الكامل</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="phone" checked /> الجوال</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="receiver" /> المستقبل</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="sender" /> المرسل</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="speed" checked /> السرعة</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="server" checked /> السيرفر</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="serverAccount" checked /> الحساب في السيرفر</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="duplicate" checked /> مكرر</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="dbAccount" /> الحساب في قاعدة البيانات</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="startDate" /> تاريخ بدء الصلاحية</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="endDate" checked /> تاريخ انتهاء الصلاحية</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="remainingDays" checked /> الأيام المتبقية</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="lastRenewal" /> آخر تجديد</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="location" /> الموقع</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="powerSource" /> مصدر الكهرباء</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="building" /> البناء</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="floor" /> الطابق</label>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-icon" onclick="refreshConnections()" title="تحديث">
+                <i class="fas fa-sync"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body clients-table-wrap">
+        <div class="table-container table-responsive">
+            <table class="table table-sm table-compact radtk-data-table radtk-data-table--cards" id="clientsTable">
+                <thead>
+                    <tr>
+                        <th class="no-sort clients-select-col" style="width:2.5rem;">
+                            <input type="checkbox" id="clientsSelectAll" class="form-check-input" title="تحديد الكل" />
+                        </th>
+                        <th data-col="fullName">الاسم الكامل</th>
+                        <th data-col="phone">الجوال</th>
+                        <th data-col="receiver">المستقبل</th>
+                        <th data-col="sender">المرسل</th>
+                        <th data-col="speed">السرعة</th>
+                        <th data-col="server">السيرفر</th>
+                        <th data-col="serverAccount">الحساب في السيرفر</th>
+                        <th data-col="duplicate">مكرر</th>
+                        <th data-col="dbAccount">الحساب في قاعدة البيانات</th>
+                        <th data-col="startDate">تاريخ بدء الصلاحية</th>
+                        <th data-col="endDate">تاريخ انتهاء الصلاحية</th>
+                        <th data-col="remainingDays">عدد الأيام المتبقية</th>
+                        <th data-col="lastRenewal">تاريخ آخر تجديد</th>
+                        <th data-col="location">الموقع</th>
+                        <th data-col="powerSource">مصدر الكهرباء</th>
+                        <th data-col="building">البناء</th>
+                        <th data-col="floor">الطابق</th>
+                        <th data-label="الحالة">الحالة</th>
+                        <th data-label="الاتصال">الاتصال</th>
+                        <th data-label="تاريخ الإضافة">تاريخ الإضافة</th>
+                        <th class="no-sort clients-actions-col">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        var speed = 0m;
+                        var profileName = item.Profile?.Name ?? item.ProfileName;
+                        if (item.Profile != null)
+                        {
+                            speed = item.Profile.DownloadSpeedMbps;
+                        }
+                        else if (!string.IsNullOrEmpty(item.ProfileName))
+                        {
+                            var numbers = System.Text.RegularExpressions.Regex.Match(item.ProfileName, @"\d+");
+                            if (numbers.Success && int.TryParse(numbers.Value, out var parsedSpeed))
+                            {
+                                speed = parsedSpeed;
+                            }
+                        }
+
+                        var isConnected = connectionsReady && connectedClients.Contains(item.Id);
+                        var isPendingApproval = pendingClientIds.Contains(item.Id) ||
+                            string.Equals(item.ConnectionStatus, "معلق بانتظار موافقة مدير الشركة", StringComparison.OrdinalIgnoreCase);
+                        var senderName = item.Receiver?.Sector?.Name ?? "-";
+                        var dbAccount = dbAccountMap.TryGetValue(item.Id, out var dbUser) ? dbUser : "-";
+                        var remainingDays = item.AccountExpirationDate.HasValue
+                            ? (item.AccountExpirationDate.Value.Date - DateTime.Now.Date).Days
+                            : (int?)null;
+
+                        <tr class="client-row"
+                            data-client-id="@item.Id"
+                            data-client-name="@(item.Name ?? item.UserName ?? ("#" + item.Id))"
+                            data-active="@item.IsActive.ToString().ToLower()"
+                            data-pending="@isPendingApproval.ToString().ToLower()"
+                            data-connected="@isConnected.ToString().ToLower()"
+                            data-speed="@speed"
+                            data-speed-display="@(item.Profile?.DownloadSpeedDisplay ?? speed.ToString())"
+                            data-profile-price="@((item.Profile?.Price ?? 0m).ToString(System.Globalization.CultureInfo.InvariantCulture))">
+                            <td class="clients-select-cell" data-label="تحديد">
+                                <input type="checkbox" class="form-check-input client-select-check" value="@item.Id" />
+                            </td>
+                            <td data-col="fullName" data-label="الاسم الكامل">
+                                <div class="client-info">
+                                    <div class="client-avatar js-client-avatar @(item.IsActive ? (connectionsReady ? (isConnected ? "online" : "away") : "away") : "offline")">
+                                        @(item.Name?.Substring(0, 1).ToUpper() ?? "?")
+                                    </div>
+                                    <div>
+                                        <div class="client-name">@item.Name</div>
+                                        @if (!string.IsNullOrEmpty(item.SID))
+                                        {
+                                            <div class="client-sid">#@item.SID</div>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                            <td data-col="phone" data-label="الجوال">
+                                <span class="text-muted">
+                                    <i class="fas fa-phone"></i> @item.PhoneNumber
+                                </span>
+                            </td>
+                            <td data-col="receiver" data-label="المستقبل">
+                                @if (item.Receiver != null)
+                                {
+                                    <span class="badge badge-info">@item.Receiver.Name</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td data-col="sender" data-label="المرسل">
+                                <span class="badge badge-light">@senderName</span>
+                            </td>
+                            <td data-col="speed" data-label="السرعة">
+                                <div class="profile-info">
+                                    <span class="badge @(item.IsActive ? "badge-success" : "badge-secondary")">
+                                        @(profileName ?? "غير محدد")
+                                    </span>
+                                    <small class="speed-value">@speed Mbps</small>
+                                </div>
+                            </td>
+                            <td data-col="server" data-label="السيرفر">
+                                @if (item.MikroTikServer != null)
+                                {
+                                    <span class="badge badge-primary" title="@item.MikroTikServer.Host">
+                                        <i class="fas fa-server"></i> @item.MikroTikServer.Name
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td data-col="serverAccount" data-label="الحساب في السيرفر">
+                                <code class="text-nowrap">@item.UserName</code>
+                            </td>
+                            <td data-col="duplicate" data-label="مكرر" data-order="@(item.IsCrossServerDuplicate ? 1 : 0)">
+                                @if (item.IsCrossServerDuplicate)
+                                {
+                                    <span class="badge bg-warning text-dark" title="نفس الحساب موجود على سيرفر MikroTik آخر ضمن الشبكة">
+                                        <i class="fas fa-clone"></i> مكرر
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td data-col="dbAccount" data-label="الحساب في قاعدة البيانات"><code class="text-nowrap">@dbAccount</code></td>
+                            <td data-col="startDate" data-label="تاريخ بدء الصلاحية">
+                                @(item.ServiceStartDate?.ToString("yyyy/MM/dd") ?? "-")
+                            </td>
+                            <td data-col="endDate" data-label="تاريخ انتهاء الصلاحية">
+                                @(item.AccountExpirationDate?.ToString("yyyy/MM/dd") ?? "-")
+                            </td>
+                            <td data-col="remainingDays" data-label="الأيام المتبقية">
+                                @if (remainingDays.HasValue)
+                                {
+                                    <span class="badge @(remainingDays.Value < 0 ? "badge-danger" : remainingDays.Value <= 3 ? "badge-warning" : "badge-success")">
+                                        @remainingDays يوم
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td data-col="lastRenewal" data-label="آخر تجديد">
+                                @(item.LastRenewalDate?.ToString("yyyy/MM/dd") ?? "-")
+                            </td>
+                            <td data-col="location" data-label="الموقع">
+                                <span title="@item.ResidenceAddress">@(string.IsNullOrWhiteSpace(item.ResidenceAddress) ? "-" : item.ResidenceAddress)</span>
+                                @if (item.Latitude.HasValue && item.Longitude.HasValue)
+                                {
+                                    <small class="text-muted d-block">@item.Latitude.Value.ToString("F4"), @item.Longitude.Value.ToString("F4")</small>
+                                }
+                            </td>
+                            <td data-col="powerSource" data-label="مصدر الكهرباء">@(string.IsNullOrWhiteSpace(item.PowerSource) ? "-" : item.PowerSource)</td>
+                            <td data-col="building" data-label="البناء">@(string.IsNullOrWhiteSpace(item.Building) ? "-" : item.Building)</td>
+                            <td data-col="floor" data-label="الطابق">@(string.IsNullOrWhiteSpace(item.Floor) ? "-" : item.Floor)</td>
+                            <td data-label="الحالة">
+                                @if (item.IsActive)
+                                {
+                                    <span class="status-badge status-active">
+                                        <i class="fas fa-check-circle"></i> مفعل
+                                    </span>
+                                }
+                                else if (isPendingApproval)
+                                {
+                                    <span class="status-badge status-awaiting">
+                                        <i class="fas fa-hourglass-half"></i> بانتظار موافقة المدير
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-inactive">
+                                        <i class="fas fa-times-circle"></i> معطل
+                                    </span>
+                                }
+                            </td>
+                            <td data-label="الاتصال">
+                                @if (isPendingApproval)
+                                {
+                                    <span class="js-client-connection status-badge status-awaiting">
+                                        <i class="fas fa-user-clock"></i> قيد الاعتماد
+                                    </span>
+                                }
+                                else if (item.IsActive)
+                                {
+                                    if (!connectionsReady)
+                                    {
+                                        <span class="js-client-connection status-badge status-away">
+                                            <i class="fas fa-spinner fa-spin"></i> جاري التحقق
+                                        </span>
+                                    }
+                                    else if (isConnected)
+                                    {
+                                        <span class="js-client-connection status-badge status-online">
+                                            <i class="fas fa-wifi"></i> متصل
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="js-client-connection status-badge status-away">
+                                            <i class="fas fa-wifi-slash"></i> غير متصل
+                                        </span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="js-client-connection text-muted">-</span>
+                                }
+                            </td>
+                            <td data-label="تاريخ الإضافة">
+                                <span class="text-muted text-sm">@item.CreatedDate.ToString("yyyy/MM/dd")</span>
+                            </td>
+                            <td class="clients-actions-cell radtk-col-actions" data-label="إجراءات">
+                                <div class="action-buttons">
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-icon btn-info" title="تفاصيل">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+
+                                    @if (User.IsInRole("NetworkAdministrator") || User.IsInRole("CompanyEmployee") || User.IsInRole("Employee") || User.IsInRole("EmployeeLegacy"))
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-icon btn-warning" title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    }
+
+                                    @if (User.IsInRole("NetworkAdministrator"))
+                                    {
+                                        <form asp-action="Freeze" method="post" class="clients-action-form">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button type="submit" class="btn btn-sm btn-icon btn-secondary" title="تجميد الإنترنت في MikroTik"
+                                                    onclick="return confirm('سيتم تجميد الإنترنت لهذا المشترك على المايكروتك فقط، هل تريد المتابعة؟');">
+                                                <i class="fas fa-pause"></i>
+                                            </button>
+                                        </form>
+
+                                        <form asp-action="RenewOneMonth" method="post" class="clients-action-form">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button type="submit" class="btn btn-sm btn-icon btn-success" title="تجديد اشتراك شهر"
+                                                    onclick="return confirm('سيتم تجديد الاشتراك لمدة شهر من تاريخ الانتهاء الحالي، متابعة؟');">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="footer-stats">
+            <span class="footer-stat">
+                <i class="fas fa-bolt text-warning"></i>
+                <span id="currentSpeedLabel">المجموع:</span>
+                <strong id="currentSpeedValue">@totalSpeed Mbps</strong>
+            </span>
+            <span class="footer-stat">
+                <i class="fas fa-wifi text-success"></i>
+                <span id="currentConnectedCount">@connectedClients.Count متصل</span>
+            </span>
+            <span class="footer-stat">
+                <i class="fas fa-clock text-muted"></i>
+                @DateTime.Now.ToString("HH:mm:ss")
+            </span>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+
+@Html.AntiForgeryToken()
+
+<!-- Bulk expiration modal -->
+<div class="modal fade" id="bulkExpirationModal" tabindex="-1" aria-labelledby="bulkExpirationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkExpirationModalLabel">
+                    <i class="fas fa-calendar-alt text-primary"></i>
+                    تعديل تاريخ انتهاء الصلاحية
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="bulkExpirationDate">تاريخ انتهاء الصلاحية الجديد</label>
+                    <input type="date" class="form-control" id="bulkExpirationDate" required />
+                </div>
+                <div class="mb-2 fw-semibold">تطبيق على:</div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="bulkExpirationScope" id="bulkScopeSelected" value="selected" checked>
+                    <label class="form-check-label" for="bulkScopeSelected">
+                        المشتركين المحددين
+                        <span class="text-muted" id="bulkSelectedCountHint">(0 محدد)</span>
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="bulkExpirationScope" id="bulkScopeAll" value="all">
+                    <label class="form-check-label" for="bulkScopeAll">
+                        جميع المشتركين في الشبكة الحالية
+                        <span class="text-muted">(@totalClients)</span>
+                    </label>
+                </div>
+                <div class="alert alert-info small mt-3 mb-0">
+                    <i class="fas fa-bolt"></i>
+                    التحديث سريع على قاعدة البيانات دفعة واحدة. إيقاف الحسابات المنتهية يتم لاحقاً عبر فحص النظام المعتاد.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmBulkExpiration">
+                    <i class="fas fa-check"></i> تنفيذ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Client info file import modal -->
+<div class="modal fade" id="clientInfoImportModal" tabindex="-1" aria-labelledby="clientInfoImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="ImportClientInfoFromFile" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="clientInfoImportModalLabel">
+                        <i class="fas fa-file-excel text-success"></i>
+                        استيراد معلومات المشتركين من ملف
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-2">
+                        يتم البحث عن مطابقة <strong>الحساب</strong> في الشبكة الحالية.
+                        عند التطابق تُنقل الحقول المتوفرة:
+                        <strong>الاسم الكامل، الجوال، آخر تجديد، البناء</strong>.
+                        إذا كان الحساب أو الاسم الكامل مكرراً في قاعدة البيانات تُدخل نفس المعلومات في كل التكرارات.
+                        إذا كان <strong>آخر تجديد</strong> خلال 30 يوماً من تاريخ الاستعادة يُجدَّد الاشتراك حتى يوم <strong>10</strong> من الشهر التالي.
+                    </p>
+                    <div class="alert alert-info small py-2 mb-3">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>ملاحظة:</strong> إذا احتوى ملف Excel على أكثر من ورقة (Sheet)،
+                        يُبحث تلقائياً عن الورقة التي يحتوي اسمها على
+                        «<strong>مشتركين كامل</strong>» وتُستخدم هي فقط للاستيراد.
+                        الحقول الفارغة في الصف تُتجاهل ولا تُمسح البيانات الحالية.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="clientInfoImportFile">ملف Excel أو CSV</label>
+                        <input type="file" class="form-control" id="clientInfoImportFile" name="file"
+                               accept=".xlsx,.xlsm,.csv,.txt" required />
+                    </div>
+                    <a asp-action="DownloadClientInfoImportTemplate" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-download"></i> تنزيل قالب Excel
+                    </a>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> استيراد
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk top-up modal -->
+<div class="modal fade" id="bulkTopUpModal" tabindex="-1" aria-labelledby="bulkTopUpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkTopUpModalLabel">
+                    <i class="fas fa-wallet text-success"></i>
+                    شحن رصيد للمشتركين
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2 fw-semibold">تطبيق على:</div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="bulkTopUpScope" id="bulkTopUpScopeSelected" value="selected" checked>
+                    <label class="form-check-label" for="bulkTopUpScopeSelected">
+                        المشتركين المحددين
+                        <span class="text-muted" id="bulkTopUpSelectedCountHint">(0 محدد)</span>
+                    </label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="radio" name="bulkTopUpScope" id="bulkTopUpScopeAll" value="all">
+                    <label class="form-check-label" for="bulkTopUpScopeAll">
+                        جميع المشتركين في الشبكة الحالية
+                        <span class="text-muted">(@totalClients)</span>
+                    </label>
+                </div>
+
+                <div class="mb-2 fw-semibold">نوع القيمة:</div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="bulkTopUpMode" id="bulkTopUpModeFixed" value="fixed" checked>
+                    <label class="form-check-label" for="bulkTopUpModeFixed">مبلغ ثابت لكل مشترك</label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="radio" name="bulkTopUpMode" id="bulkTopUpModePercent" value="percent">
+                    <label class="form-check-label" for="bulkTopUpModePercent">نسبة مئوية من سعر باقة كل مشترك</label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="bulkTopUpValue" id="bulkTopUpValueLabel">المبلغ (ل.س)</label>
+                    <input type="number" class="form-control" id="bulkTopUpValue" min="0.01" step="0.01" required />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="bulkTopUpNotes">ملاحظات (اختياري)</label>
+                    <input type="text" class="form-control" id="bulkTopUpNotes" maxlength="250" />
+                </div>
+
+                <div class="alert alert-secondary small mb-0" id="bulkTopUpEstimateHint">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="bulkTopUpEstimateText">حدد النطاق والقيمة لعرض تقدير الإجمالي.</span>
+                </div>
+                <div class="alert alert-warning small mt-2 mb-0">
+                    <i class="fas fa-balance-scale"></i>
+                    يُطبَّق نفس مسار الشحن الفردي: إضافة لرصيد المشترك وخصم من محفظة الشبكة مع تسجيل القيود المالية.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-success" id="btnConfirmBulkTopUp">
+                    <i class="fas fa-check"></i> تنفيذ الشحن
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress overlay (same style as Profile import) -->
+<div id="profileImportProgressOverlay" class="profile-import-overlay" hidden aria-live="polite">
+    <div class="profile-import-dialog" role="dialog" aria-modal="true" aria-labelledby="profileImportProgressTitle">
+        <div class="profile-import-dialog__icon">
+            <i class="fas fa-calendar-check fa-spin"></i>
+        </div>
+        <h5 id="profileImportProgressTitle" class="profile-import-dialog__title">جاري تحديث تواريخ الانتهاء</h5>
+        <p id="profileImportProgressStatus" class="profile-import-dialog__status">تحضير العملية...</p>
+        <div class="profile-import-progress">
+            <div id="profileImportProgressBar" class="profile-import-progress__bar" style="width: 0%"></div>
+        </div>
+        <div class="profile-import-meta">
+            <span id="profileImportProgressPercent">0%</span>
+            <span id="profileImportProgressCountdown">الوقت المتبقي: --</span>
+        </div>
+        <ul id="profileImportProgressLog" class="profile-import-log"></ul>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentFilter = 'all';
+        let clientsStatusFilterRegistered = false;
+
+        function rowMatchesStatusFilter(rowNode, filterType) {
+            const isActive = rowNode.getAttribute('data-active') === 'true';
+            const isConnected = rowNode.getAttribute('data-connected') === 'true';
+            switch (filterType) {
+                case 'active':
+                    return isActive;
+                case 'inactive':
+                    return !isActive;
+                case 'connected':
+                    return isActive && isConnected;
+                case 'disconnected':
+                    return isActive && !isConnected;
+                default:
+                    return true;
+            }
+        }
+
+        function ensureClientsStatusDataTableFilter() {
+            if (clientsStatusFilterRegistered || typeof $.fn.dataTable === 'undefined') {
+                return;
+            }
+            clientsStatusFilterRegistered = true;
+            $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                if (!settings.nTable || settings.nTable.id !== 'clientsTable') {
+                    return true;
+                }
+                const api = new $.fn.dataTable.Api(settings);
+                const rowNode = api.row(dataIndex).node();
+                if (!rowNode || !rowNode.classList.contains('client-row')) {
+                    return true;
+                }
+                return rowMatchesStatusFilter(rowNode, currentFilter);
+            });
+        }
+
+        function updateFilterFooterStats(visibleTotalSpeed, visibleConnectedCount, filterType) {
+            const speedValue = document.getElementById('currentSpeedValue');
+            const connectedCount = document.getElementById('currentConnectedCount');
+            const speedLabel = document.getElementById('currentSpeedLabel');
+            if (speedValue) {
+                speedValue.textContent = visibleTotalSpeed + ' Mbps';
+            }
+            if (connectedCount) {
+                connectedCount.textContent = visibleConnectedCount + ' متصل';
+            }
+            const labels = {
+                'all': 'المجموع:',
+                'active': 'النشطين:',
+                'inactive': 'المعطلين:',
+                'connected': 'المتصلين:',
+                'disconnected': 'غير المتصلين:'
+            };
+            if (speedLabel) {
+                speedLabel.textContent = labels[filterType] || labels.all;
+            }
+        }
+
+        function filterByStatus(filterType) {
+            currentFilter = filterType;
+            let visibleTotalSpeed = 0;
+            let visibleConnectedCount = 0;
+
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-filter') === filterType) {
+                    btn.classList.add('active');
+                }
+            });
+
+            const usingDataTable = typeof $.fn.DataTable !== 'undefined' &&
+                $.fn.DataTable.isDataTable('#clientsTable');
+
+            if (usingDataTable) {
+                ensureClientsStatusDataTableFilter();
+                document.querySelectorAll('.client-row').forEach(row => {
+                    row.style.display = '';
+                });
+                const api = $('#clientsTable').DataTable();
+                api.draw();
+                api.rows({ search: 'applied' }).every(function () {
+                    const row = this.node();
+                    if (!row) {
+                        return;
+                    }
+                    const speed = parseInt(row.getAttribute('data-speed')) || 0;
+                    const isActive = row.getAttribute('data-active') === 'true';
+                    const isConnected = row.getAttribute('data-connected') === 'true';
+                    visibleTotalSpeed += speed;
+                    if (isActive && isConnected) {
+                        visibleConnectedCount++;
+                    }
+                });
+            } else {
+                document.querySelectorAll('.client-row').forEach(row => {
+                    const isActive = row.getAttribute('data-active') === 'true';
+                    const isConnected = row.getAttribute('data-connected') === 'true';
+                    const speed = parseInt(row.getAttribute('data-speed')) || 0;
+                    const shouldShow = rowMatchesStatusFilter(row, filterType);
+
+                    if (shouldShow) {
+                        row.style.display = '';
+                        visibleTotalSpeed += speed;
+                        if (isActive && isConnected) {
+                            visibleConnectedCount++;
+                        }
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            }
+
+            updateFilterFooterStats(visibleTotalSpeed, visibleConnectedCount, filterType);
+        }
+
+        function refreshConnections() {
+            loadConnectionStatus(true);
+        }
+
+        function applyConnectedIds(connectedIds) {
+            const connectedSet = new Set((connectedIds || []).map(String));
+            let connectedCount = 0;
+            let disconnectedCount = 0;
+            let connectedSpeed = 0;
+            let activeCount = 0;
+
+            document.querySelectorAll('.client-row').forEach(row => {
+                const id = row.getAttribute('data-client-id');
+                const isActive = row.getAttribute('data-active') === 'true';
+                const isPending = row.getAttribute('data-pending') === 'true';
+                const speed = parseFloat(row.getAttribute('data-speed')) || 0;
+                const isConnected = isActive && connectedSet.has(String(id));
+                row.setAttribute('data-connected', isConnected ? 'true' : 'false');
+
+                const avatar = row.querySelector('.js-client-avatar');
+                if (avatar && isActive) {
+                    avatar.classList.remove('online', 'away', 'offline');
+                    avatar.classList.add(isConnected ? 'online' : 'away');
+                }
+
+                const badge = row.querySelector('.js-client-connection');
+                if (badge && !isPending && isActive) {
+                    if (isConnected) {
+                        badge.className = 'js-client-connection status-badge status-online';
+                        badge.innerHTML = '<i class="fas fa-wifi"></i> متصل';
+                    } else {
+                        badge.className = 'js-client-connection status-badge status-away';
+                        badge.innerHTML = '<i class="fas fa-wifi-slash"></i> غير متصل';
+                    }
+                }
+
+                if (isActive) {
+                    activeCount++;
+                    if (isConnected) {
+                        connectedCount++;
+                        connectedSpeed += speed;
+                    } else {
+                        disconnectedCount++;
+                    }
+                }
+            });
+
+            const connectedPercent = activeCount > 0
+                ? Math.round((connectedCount / activeCount) * 100)
+                : 0;
+
+            const setText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
+            };
+
+            setText('statConnectedCount', String(connectedCount));
+            setText('statDisconnectedCount', String(disconnectedCount));
+            setText('statConnectedSpeed', String(connectedSpeed));
+            setText('filterConnectedCount', String(connectedCount));
+            setText('filterDisconnectedCount', String(disconnectedCount));
+            const percentEl = document.getElementById('statConnectedPercent');
+            if (percentEl) {
+                percentEl.textContent = '(' + connectedPercent + '%)';
+            }
+
+            if (currentFilter === 'connected' || currentFilter === 'disconnected') {
+                filterByStatus(currentFilter);
+            }
+        }
+
+        let connectionStatusLoading = false;
+        function loadConnectionStatus(forceRefresh) {
+            if (connectionStatusLoading) {
+                return;
+            }
+            connectionStatusLoading = true;
+            const btn = document.querySelector('[onclick="refreshConnections()"]');
+            if (btn) {
+                btn.classList.add('disabled');
+                btn.setAttribute('aria-busy', 'true');
+            }
+
+            const url = '@Url.Action("ConnectionStatusJson", "Clients")' +
+                (forceRefresh ? '?forceRefresh=true' : '');
+
+            fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                .then(r => {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(data => {
+                    if (data && data.success) {
+                        applyConnectedIds(data.connectedIds || []);
+                    }
+                })
+                .catch(() => {
+                    // اترك شارات «جاري التحقق» أو الحالة السابقة
+                })
+                .finally(() => {
+                    connectionStatusLoading = false;
+                    if (btn) {
+                        btn.classList.remove('disabled');
+                        btn.removeAttribute('aria-busy');
+                    }
+                });
+        }
+
+        const CLIENTS_COLUMNS_STORAGE_KEY = 'clients.columns.visible.v2';
+        const CLIENTS_DEFAULT_VISIBLE_COLS = {
+            fullName: true,
+            phone: true,
+            receiver: false,
+            sender: false,
+            speed: true,
+            server: true,
+            serverAccount: true,
+            duplicate: true,
+            dbAccount: false,
+            startDate: false,
+            endDate: true,
+            remainingDays: true,
+            lastRenewal: false,
+            location: false,
+            powerSource: false,
+            building: false,
+            floor: false
+        };
+
+        function applyColumnVisibility() {
+            let saved = null;
+            try {
+                saved = JSON.parse(localStorage.getItem(CLIENTS_COLUMNS_STORAGE_KEY) || 'null');
+            } catch (e) {
+                saved = null;
+            }
+            const selected = Object.assign({}, CLIENTS_DEFAULT_VISIBLE_COLS, saved && typeof saved === 'object' ? saved : {});
+            const usingDt = typeof $.fn.DataTable !== 'undefined' && $.fn.DataTable.isDataTable('#clientsTable');
+            const api = usingDt ? $('#clientsTable').DataTable() : null;
+
+            document.querySelectorAll('.column-toggle').forEach(chk => {
+                const key = chk.getAttribute('data-col');
+                const visible = Object.prototype.hasOwnProperty.call(selected, key)
+                    ? !!selected[key]
+                    : !!CLIENTS_DEFAULT_VISIBLE_COLS[key];
+                chk.checked = visible;
+                document.querySelectorAll('[data-col="' + key + '"]').forEach(el => {
+                    el.style.display = visible ? '' : 'none';
+                });
+                if (api) {
+                    api.columns().every(function () {
+                        const header = this.header();
+                        if (header && header.getAttribute('data-col') === key) {
+                            this.visible(visible, false);
+                        }
+                    });
+                }
+            });
+
+            if (api) {
+                api.columns.adjust().draw(false);
+            }
+        }
+
+        function persistColumnVisibility() {
+            const data = {};
+            document.querySelectorAll('.column-toggle').forEach(chk => {
+                data[chk.getAttribute('data-col')] = chk.checked;
+            });
+            localStorage.setItem(CLIENTS_COLUMNS_STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function initClientsTableIfDesktop() {
+            if (!$('#clientsTable').length || typeof $.fn.DataTable === 'undefined') {
+                return;
+            }
+
+            const isCompact = window.matchMedia('(max-width: 1199.98px)').matches;
+            const already = $.fn.DataTable.isDataTable('#clientsTable');
+
+            if (isCompact) {
+                if (already) {
+                    $('#clientsTable').DataTable().destroy();
+                    $('#clientsTable').removeAttr('style');
+                }
+                document.body.classList.add('clients-cards-mode');
+                return;
+            }
+
+            document.body.classList.remove('clients-cards-mode');
+            if (!already) {
+                ensureClientsStatusDataTableFilter();
+                $('#clientsTable').DataTable({
+                    language: {
+                        url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+                    },
+                    order: [[20, 'desc']],
+                    responsive: false,
+                    autoWidth: false,
+                    scrollX: false,
+                    pageLength: 25,
+                    lengthMenu: [
+                        [10, 25, 50, 100, 200, 500, -1],
+                        [10, 25, 50, 100, 200, 500, 'الكل']
+                    ],
+                    columnDefs: [
+                        { orderable: false, targets: [0, 21] }
+                    ]
+                });
+            }
+        }
+
+        function getAntiForgeryToken() {
+            const el = document.querySelector('input[name="__RequestVerificationToken"]');
+            return el ? el.value : '';
+        }
+
+        function getSelectedClientRows() {
+            return Array.from(document.querySelectorAll('.client-select-check:checked')).map(function (chk) {
+                const row = chk.closest('.client-row');
+                return {
+                    id: chk.value,
+                    name: row ? (row.getAttribute('data-client-name') || ('#' + chk.value)) : ('#' + chk.value),
+                    profilePrice: row ? Number(row.getAttribute('data-profile-price') || 0) : 0
+                };
+            });
+        }
+
+        function getAllClientRows() {
+            return Array.from(document.querySelectorAll('.client-row[data-client-id]')).map(function (row) {
+                return {
+                    id: row.getAttribute('data-client-id'),
+                    name: row.getAttribute('data-client-name') || ('#' + row.getAttribute('data-client-id')),
+                    profilePrice: Number(row.getAttribute('data-profile-price') || 0)
+                };
+            });
+        }
+
+        function updateBulkSelectedHint() {
+            const count = getSelectedClientRows().length;
+            const hint = document.getElementById('bulkSelectedCountHint');
+            if (hint) {
+                hint.textContent = '(' + count + ' محدد)';
+            }
+            const topUpHint = document.getElementById('bulkTopUpSelectedCountHint');
+            if (topUpHint) {
+                topUpHint.textContent = '(' + count + ' محدد)';
+            }
+            updateBulkTopUpEstimate();
+        }
+
+        function ceilMoney(n) {
+            return Math.ceil(Number(n || 0) * 100) / 100;
+        }
+
+        function updateBulkTopUpEstimate() {
+            const estimateEl = document.getElementById('bulkTopUpEstimateText');
+            if (!estimateEl) return;
+
+            const scope = (document.querySelector('input[name="bulkTopUpScope"]:checked') || {}).value || 'selected';
+            const mode = (document.querySelector('input[name="bulkTopUpMode"]:checked') || {}).value || 'fixed';
+            const valueInput = document.getElementById('bulkTopUpValue');
+            const value = valueInput ? Number(valueInput.value) : 0;
+            const clients = scope === 'all' ? getAllClientRows() : getSelectedClientRows();
+
+            if (!clients.length) {
+                estimateEl.textContent = 'لا يوجد مشتركين في النطاق المحدد.';
+                return;
+            }
+            if (!value || value <= 0) {
+                estimateEl.textContent = 'عدد المستهدفين: ' + clients.length + ' — أدخل القيمة لعرض تقدير الإجمالي.';
+                return;
+            }
+
+            let total = 0;
+            let billable = 0;
+            let skipped = 0;
+            clients.forEach(function (c) {
+                if (mode === 'percent') {
+                    if (!c.profilePrice || c.profilePrice <= 0) {
+                        skipped++;
+                        return;
+                    }
+                    total += ceilMoney(c.profilePrice * value / 100);
+                    billable++;
+                } else {
+                    total += ceilMoney(value);
+                    billable++;
+                }
+            });
+
+            let text = 'المستهدفون: ' + clients.length + ' | سيُشحن: ' + billable;
+            if (skipped > 0) {
+                text += ' | بلا سعر باقة: ' + skipped;
+            }
+            text += ' | إجمالي تقديري: ' + total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' ل.س';
+            estimateEl.textContent = text;
+        }
+
+        function syncBulkTopUpValueLabel() {
+            const mode = (document.querySelector('input[name="bulkTopUpMode"]:checked') || {}).value || 'fixed';
+            const label = document.getElementById('bulkTopUpValueLabel');
+            const input = document.getElementById('bulkTopUpValue');
+            if (label) {
+                label.textContent = mode === 'percent' ? 'النسبة المئوية (%)' : 'المبلغ (ل.س)';
+            }
+            if (input) {
+                input.max = mode === 'percent' ? '100' : '';
+                input.placeholder = mode === 'percent' ? 'مثال: 10' : 'مثال: 5000';
+            }
+            updateBulkTopUpEstimate();
+        }
+
+        async function runBulkTopUp(clients, mode, value, applyToAll, notes) {
+            showImportProgressOverlay(true);
+            const title = document.getElementById('profileImportProgressTitle');
+            if (title) title.textContent = 'جاري شحن أرصدة المشتركين';
+            const log = document.getElementById('profileImportProgressLog');
+            if (log) log.innerHTML = '';
+            setImportProgressUi(20, 'التحقق من رصيد الشبكة وتنفيذ الشحن...', 8);
+            appendImportLog(mode === 'percent'
+                ? ('الوضع: نسبة ' + value + '% من سعر الباقة')
+                : ('الوضع: مبلغ ثابت ' + value + ' ل.س'), 'info');
+            appendImportLog(applyToAll
+                ? 'النطاق: جميع المشتركين في الشبكة'
+                : ('النطاق: المحددون (' + clients.length + ')'), 'info');
+
+            try {
+                const token = getAntiForgeryToken();
+                const body = new URLSearchParams();
+                body.set('mode', mode);
+                body.set('value', String(value));
+                body.set('applyToAll', applyToAll ? 'true' : 'false');
+                body.set('__RequestVerificationToken', token);
+                if (notes) body.set('notes', notes);
+                if (!applyToAll) {
+                    clients.forEach(function (c) {
+                        body.append('clientIds', c.id);
+                    });
+                }
+
+                setImportProgressUi(60, 'تنفيذ الشحن المالي...', 4);
+                const response = await fetch('@Url.Action("BulkTopUpBalanceJson", "Clients")', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                        'X-CSRF-TOKEN': token,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: body.toString()
+                });
+
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+
+                const result = await response.json();
+                setImportProgressUi(100, result.success ? 'اكتمل الشحن' : 'فشل الشحن', 0);
+                appendImportLog(result.message || (result.success ? 'تم' : 'فشل'), result.success ? 'ok' : 'err');
+                if (result.succeededCount != null) {
+                    appendImportLog('نجاح: ' + result.succeededCount + ' | تخطي: ' + (result.skippedCount || 0) + ' | فشل: ' + (result.failedCount || 0), 'info');
+                }
+
+                await new Promise(function (resolve) { setTimeout(resolve, 500); });
+                alert(result.message || (result.success ? 'تم الشحن بنجاح' : 'فشل الشحن'));
+                if (result.success) {
+                    window.location.reload();
+                } else {
+                    showImportProgressOverlay(false);
+                }
+            } catch (err) {
+                setImportProgressUi(100, 'فشل الاتصال', 0);
+                appendImportLog('تعذر تنفيذ الشحن الجماعي', 'err');
+                alert('تعذر تنفيذ الشحن الجماعي. حاول مرة أخرى.');
+                showImportProgressOverlay(false);
+            }
+        }
+
+        function formatCountdown(totalSeconds) {
+            const s = Math.max(0, Math.floor(totalSeconds));
+            const m = Math.floor(s / 60);
+            const r = s % 60;
+            return m > 0 ? (m + ':' + String(r).padStart(2, '0')) : (r + ' ث');
+        }
+
+        function setImportProgressUi(percent, statusText, remainingSeconds) {
+            const bar = document.getElementById('profileImportProgressBar');
+            const pct = document.getElementById('profileImportProgressPercent');
+            const status = document.getElementById('profileImportProgressStatus');
+            const countdown = document.getElementById('profileImportProgressCountdown');
+            const safePercent = Math.max(0, Math.min(100, Math.round(percent)));
+            if (bar) bar.style.width = safePercent + '%';
+            if (pct) pct.textContent = safePercent + '%';
+            if (status && statusText) status.textContent = statusText;
+            if (countdown && typeof remainingSeconds === 'number') {
+                countdown.textContent = 'الوقت المتبقي التقريبي: ' + formatCountdown(remainingSeconds);
+            }
+        }
+
+        function appendImportLog(text, kind) {
+            const log = document.getElementById('profileImportProgressLog');
+            if (!log) return;
+            const li = document.createElement('li');
+            li.className = 'profile-import-log__item' + (kind ? ' profile-import-log__item--' + kind : '');
+            li.textContent = text;
+            log.appendChild(li);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function showImportProgressOverlay(show) {
+            const overlay = document.getElementById('profileImportProgressOverlay');
+            if (!overlay) return;
+            overlay.hidden = !show;
+            document.body.classList.toggle('profile-import-busy', show);
+        }
+
+        async function runBulkExpirationUpdate(clients, expirationDate, applyToAll) {
+            showImportProgressOverlay(true);
+            const log = document.getElementById('profileImportProgressLog');
+            if (log) log.innerHTML = '';
+            setImportProgressUi(15, 'جاري التحديث الجماعي في قاعدة البيانات...', 3);
+            appendImportLog('التاريخ الجديد: ' + expirationDate, 'info');
+            appendImportLog(applyToAll
+                ? 'النطاق: جميع المشتركين في الشبكة'
+                : ('النطاق: المحددون (' + clients.length + ')'), 'info');
+
+            try {
+                const token = getAntiForgeryToken();
+                const body = new URLSearchParams();
+                body.set('expirationDate', expirationDate);
+                body.set('applyToAll', applyToAll ? 'true' : 'false');
+                body.set('__RequestVerificationToken', token);
+                if (!applyToAll) {
+                    clients.forEach(function (c) {
+                        body.append('clientIds', c.id);
+                    });
+                }
+
+                setImportProgressUi(55, 'تنفيذ التحديث...', 2);
+                const response = await fetch('@Url.Action("BulkSetExpirationDateJson", "Clients")', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                        'X-CSRF-TOKEN': token,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: body.toString()
+                });
+
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+
+                const result = await response.json();
+                setImportProgressUi(100, result.success ? 'اكتمل التحديث' : 'فشل التحديث', 0);
+                appendImportLog(result.message || (result.success ? 'تم' : 'فشل'), result.success ? 'ok' : 'err');
+
+                await new Promise(function (resolve) { setTimeout(resolve, 450); });
+                alert(result.message || (result.success ? 'تم التحديث بنجاح' : 'فشل التحديث'));
+                if (result.success) {
+                    window.location.reload();
+                } else {
+                    showImportProgressOverlay(false);
+                }
+            } catch (err) {
+                setImportProgressUi(100, 'فشل الاتصال', 0);
+                appendImportLog('تعذر تنفيذ التحديث الجماعي', 'err');
+                alert('تعذر تنفيذ التحديث الجماعي. حاول مرة أخرى.');
+                showImportProgressOverlay(false);
+            }
+        }
+
+        $(document).ready(function () {
+            applyColumnVisibility();
+            document.querySelectorAll('.column-toggle').forEach(chk => {
+                chk.addEventListener('change', function () {
+                    const key = this.getAttribute('data-col');
+                    document.querySelectorAll('[data-col="' + key + '"]').forEach(el => {
+                        el.style.display = this.checked ? '' : 'none';
+                    });
+                    persistColumnVisibility();
+                });
+            });
+
+            initClientsTableIfDesktop();
+            applyColumnVisibility();
+            loadConnectionStatus(false);
+            let resizeTimer = null;
+            $(window).on('resize', function () {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(initClientsTableIfDesktop, 180);
+            });
+
+            const selectAll = document.getElementById('clientsSelectAll');
+            if (selectAll) {
+                selectAll.addEventListener('change', function () {
+                    document.querySelectorAll('.client-select-check').forEach(function (chk) {
+                        const row = chk.closest('.client-row');
+                        if (row && row.style.display === 'none') return;
+                        chk.checked = selectAll.checked;
+                    });
+                    updateBulkSelectedHint();
+                });
+            }
+
+            document.addEventListener('change', function (e) {
+                if (e.target && e.target.classList && e.target.classList.contains('client-select-check')) {
+                    updateBulkSelectedHint();
+                }
+            });
+
+            const openBtn = document.getElementById('btnOpenBulkExpiration');
+            const confirmBtn = document.getElementById('btnConfirmBulkExpiration');
+            const modalEl = document.getElementById('bulkExpirationModal');
+
+            if (openBtn && modalEl && typeof bootstrap !== 'undefined') {
+                openBtn.addEventListener('click', function () {
+                    updateBulkSelectedHint();
+                    const dateInput = document.getElementById('bulkExpirationDate');
+                    if (dateInput && !dateInput.value) {
+                        const d = new Date();
+                        d.setMonth(d.getMonth() + 1);
+                        dateInput.value = d.toISOString().slice(0, 10);
+                    }
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                });
+            }
+
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', function () {
+                    const dateInput = document.getElementById('bulkExpirationDate');
+                    const expirationDate = dateInput ? dateInput.value : '';
+                    if (!expirationDate) {
+                        alert('الرجاء اختيار تاريخ انتهاء الصلاحية.');
+                        return;
+                    }
+
+                    const scope = (document.querySelector('input[name="bulkExpirationScope"]:checked') || {}).value || 'selected';
+                    const clients = scope === 'all' ? getAllClientRows() : getSelectedClientRows();
+                    if (!clients.length) {
+                        alert(scope === 'all'
+                            ? 'لا يوجد مشتركين لتحديثهم.'
+                            : 'الرجاء تحديد مشترك واحد على الأقل، أو اختر «جميع المشتركين».');
+                        return;
+                    }
+
+                    const scopeLabel = scope === 'all' ? 'جميع المشتركين' : ('المحددين (' + clients.length + ')');
+                    if (!confirm('سيتم تعيين تاريخ الانتهاء إلى ' + expirationDate + ' لـ ' + scopeLabel + '.\nهل تريد المتابعة؟')) {
+                        return;
+                    }
+
+                    if (modalEl && typeof bootstrap !== 'undefined') {
+                        bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                    }
+                    runBulkExpirationUpdate(clients, expirationDate, scope === 'all');
+                });
+            }
+
+            const openTopUpBtn = document.getElementById('btnOpenBulkTopUp');
+            const confirmTopUpBtn = document.getElementById('btnConfirmBulkTopUp');
+            const topUpModalEl = document.getElementById('bulkTopUpModal');
+
+            const openInfoImportBtn = document.getElementById('btnOpenClientInfoImport');
+            const infoImportModalEl = document.getElementById('clientInfoImportModal');
+            if (openInfoImportBtn && infoImportModalEl && typeof bootstrap !== 'undefined') {
+                openInfoImportBtn.addEventListener('click', function () {
+                    bootstrap.Modal.getOrCreateInstance(infoImportModalEl).show();
+                });
+            }
+
+            if (openTopUpBtn && topUpModalEl && typeof bootstrap !== 'undefined') {
+                openTopUpBtn.addEventListener('click', function () {
+                    updateBulkSelectedHint();
+                    syncBulkTopUpValueLabel();
+                    bootstrap.Modal.getOrCreateInstance(topUpModalEl).show();
+                });
+            }
+
+            document.querySelectorAll('input[name="bulkTopUpMode"], input[name="bulkTopUpScope"]').forEach(function (el) {
+                el.addEventListener('change', function () {
+                    syncBulkTopUpValueLabel();
+                });
+            });
+            const topUpValueInput = document.getElementById('bulkTopUpValue');
+            if (topUpValueInput) {
+                topUpValueInput.addEventListener('input', updateBulkTopUpEstimate);
+            }
+
+            if (confirmTopUpBtn) {
+                confirmTopUpBtn.addEventListener('click', function () {
+                    const mode = (document.querySelector('input[name="bulkTopUpMode"]:checked') || {}).value || 'fixed';
+                    const scope = (document.querySelector('input[name="bulkTopUpScope"]:checked') || {}).value || 'selected';
+                    const valueInput = document.getElementById('bulkTopUpValue');
+                    const value = valueInput ? Number(valueInput.value) : 0;
+                    const notesInput = document.getElementById('bulkTopUpNotes');
+                    const notes = notesInput ? (notesInput.value || '').trim() : '';
+
+                    if (!value || value <= 0) {
+                        alert(mode === 'percent' ? 'الرجاء إدخال نسبة صحيحة.' : 'الرجاء إدخال مبلغ صحيح.');
+                        return;
+                    }
+                    if (mode === 'percent' && value > 100) {
+                        alert('النسبة المئوية يجب ألا تتجاوز 100.');
+                        return;
+                    }
+
+                    const clients = scope === 'all' ? getAllClientRows() : getSelectedClientRows();
+                    if (!clients.length) {
+                        alert(scope === 'all'
+                            ? 'لا يوجد مشتركين لشحنهم.'
+                            : 'الرجاء تحديد مشترك واحد على الأقل، أو اختر «جميع المشتركين».');
+                        return;
+                    }
+
+                    const scopeLabel = scope === 'all' ? 'جميع المشتركين' : ('المحددين (' + clients.length + ')');
+                    const modeLabel = mode === 'percent' ? ('نسبة ' + value + '% من سعر الباقة') : ('مبلغ ثابت ' + value + ' ل.س');
+                    if (!confirm('سيتم شحن رصيد ' + scopeLabel + ' بـ ' + modeLabel + '.\nيُخصم الإجمالي من محفظة الشبكة وفق القواعد المالية.\nهل تريد المتابعة؟')) {
+                        return;
+                    }
+
+                    if (topUpModalEl && typeof bootstrap !== 'undefined') {
+                        bootstrap.Modal.getOrCreateInstance(topUpModalEl).hide();
+                    }
+                    runBulkTopUp(clients, mode, value, scope === 'all', notes);
+                });
+            }
+
+            updateBulkSelectedHint();
+        });
+    </script>
+}

@@ -1,4 +1,4 @@
-# 🚀 دليل التثبيت والإعداد - RadTik
+# 🚀 دليل التثبيت والإعداد - RadaTik
 
 ## متطلبات النظام
 
@@ -37,7 +37,7 @@
 
 ```bash
 git clone <repository-url>
-cd RadTik
+cd RadaTik
 ```
 
 أو قم بتحميل الملفات مباشرة.
@@ -49,13 +49,13 @@ cd RadTik
 افتح **SQL Server Management Studio (SSMS)** وأنشئ قاعدة بيانات جديدة:
 
 ```sql
-CREATE DATABASE RadTikDB;
+CREATE DATABASE RadaTikDB;
 ```
 
 أو استخدم Command Line:
 
 ```bash
-sqlcmd -S localhost -Q "CREATE DATABASE RadTikDB"
+sqlcmd -S localhost -Q "CREATE DATABASE RadaTikDB"
 ```
 
 #### ب. تحديث Connection String
@@ -65,14 +65,14 @@ sqlcmd -S localhost -Q "CREATE DATABASE RadTikDB"
 ```json
 {
   "ConnectionStrings": {
-    "MyDBConnection": "Server=localhost;Database=RadTikDB;Trusted_Connection=True;TrustServerCertificate=True;"
+    "MyDBConnection": "Server=localhost;Database=RadaTikDB;Trusted_Connection=True;TrustServerCertificate=True;"
   }
 }
 ```
 
 **للاستخدام مع SQL Server Authentication**:
 ```json
-"MyDBConnection": "Server=localhost;Database=RadTikDB;User Id=sa;Password=YourPassword;TrustServerCertificate=True;"
+"MyDBConnection": "Server=localhost;Database=RadaTikDB;User Id=sa;Password=YourPassword;TrustServerCertificate=True;"
 ```
 
 ### 3. تثبيت Entity Framework Tools
@@ -90,7 +90,7 @@ dotnet tool update --global dotnet-ef
 
 ```bash
 # الانتقال إلى مجلد المشروع
-cd RadTik
+cd RadaTik
 
 # تطبيق Migrations الموجودة
 dotnet ef database update
@@ -120,7 +120,7 @@ dotnet ef database update
 
 #### ج. إضافة خادم MikroTik في النظام
 
-1. سجل الدخول إلى RadTik
+1. سجل الدخول إلى RadaTik
 2. اذهب إلى: **الإدارة → خوادم المايكروتك**
 3. اضغط **إضافة خادم جديد**
 4. أدخل المعلومات:
@@ -142,7 +142,7 @@ dotnet run
 
 #### من Visual Studio:
 
-1. افتح `RadTik.sln`
+1. افتح `RadaTik.sln`
 2. اضغط **F5** أو **Ctrl+F5**
 
 #### من Visual Studio Code:
@@ -235,7 +235,7 @@ dotnet ef dbcontext info
 
 ```bash
 # اختبار الاتصال
-sqlcmd -S localhost -d RadTikDB -Q "SELECT 1"
+sqlcmd -S localhost -d RadaTikDB -Q "SELECT 1"
 ```
 
 ### مشكلة: خطأ في Migrations
@@ -290,16 +290,16 @@ dotnet list package --outdated
 ### نسخ احتياطي لقاعدة البيانات
 
 ```sql
-BACKUP DATABASE RadTikDB 
-TO DISK = 'C:\Backup\RadTikDB.bak'
-WITH FORMAT, INIT, NAME = 'RadTik Full Backup';
+BACKUP DATABASE RadaTikDB 
+TO DISK = 'C:\Backup\RadaTikDB.bak'
+WITH FORMAT, INIT, NAME = 'RadaTik Full Backup';
 ```
 
 ### استعادة من النسخة الاحتياطية
 
 ```sql
-RESTORE DATABASE RadTikDB 
-FROM DISK = 'C:\Backup\RadTikDB.bak'
+RESTORE DATABASE RadaTikDB 
+FROM DISK = 'C:\Backup\RadaTikDB.bak'
 WITH REPLACE;
 ```
 
@@ -322,7 +322,7 @@ WITH REPLACE;
 ### نشر على Linux
 
 ```bash
-dotnet publish -c Release -o /var/www/radtik
+dotnet publish -c Release -o /var/www/radatik
 ```
 
 ---

@@ -1,0 +1,26 @@
+@{
+    var moduleTitle = ViewBag.BusinessModuleTitle as string ?? "هذه الوحدة";
+    var moduleHint = ViewBag.BusinessModuleHint as string ?? "";
+}
+
+<div class="alert alert-light border business-module-guide mb-3" role="note">
+    <div class="d-flex gap-3 align-items-start">
+        <div class="text-primary fs-4 flex-shrink-0"><i class="fas fa-circle-info"></i></div>
+        <div>
+            <strong>@moduleTitle</strong>
+            @if (!string.IsNullOrWhiteSpace(moduleHint))
+            {
+                <p class="mb-2 mt-1 small text-muted">@moduleHint</p>
+            }
+            <ul class="small text-muted mb-0 ps-3">
+                <li><strong>المحفظة الإلكترونية</strong> — رصيد الشركة داخل RadaTik للاشتراكات والخدمات.</li>
+                <li><strong>الصندوق النقدي</strong> — النقد الموجود فعلياً باليد.</li>
+                <li><strong>دفتر الإيراد والمصروف</strong> — ماذا دخل وماذا خرج؛ فواتير المواد المدفوعة تُسجَّل تلقائياً.</li>
+                <li><strong>جرد مالي</strong> — مطابقة الصندوق والدفتر وفواتير المواد غير المسددة.</li>
+                <li><strong>المستودع</strong> — كميات المعدات والمواد فقط.</li>
+                <li><strong>الرواتب</strong> — متابعة رواتب فريق العمل شهرياً.</li>
+                <li><strong>فواتير الصيانة</strong> — السداد عبر محفظة العميل؛ التسجيل في الدفتر أو المستودع <em>اختياري</em>.</li>
+            </ul>
+        </div>
+    </div>
+</div>

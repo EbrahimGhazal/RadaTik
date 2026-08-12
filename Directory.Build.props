@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Light analyzers only; avoid latest-recommended on legacy code. -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>9.0</AnalysisLevel>
+    <NoWarn>$(NoWarn);CA1822;CA1852</NoWarn>
+    <!-- Avoid intermittent DefineStaticWebAssets file-lock races with VS design-time builds. -->
+    <StaticWebAssetsCacheDefineStaticWebAssetsEnabled>false</StaticWebAssetsCacheDefineStaticWebAssetsEnabled>
+  </PropertyGroup>
+</Project>

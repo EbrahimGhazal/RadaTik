@@ -1,0 +1,61 @@
+@model IEnumerable<RadaTik.Models.Business.ErpCustomer>
+@{
+    ViewData["Title"] = "عملاء ERP";
+    var query = ViewBag.Query as string;
+}
+
+<div class="financial-page financial-hub-page">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h4 mb-0"><i class="fas fa-handshake me-1"></i> عملاء ERP</h1>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary btn-sm" asp-route="networkManager-erp"><i class="fas fa-sitemap"></i> ERP</a>
+            <a class="btn btn-primary btn-sm" asp-action="Create"><i class="fas fa-plus"></i> إضافة</a>
+        </div>
+    </div>
+
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-auto">
+            <input type="text" name="q" value="@query" class="form-control form-control-sm" placeholder="بحث..." />
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-outline-primary">بحث</button>
+        </div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>الاسم</th>
+                    <th>الهاتف</th>
+                    <th>البريد</th>
+                    <th>مشترك ISP</th>
+                    <th>الحالة</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var c in Model)
+            {
+                <tr>
+                    <td>@c.Name</td>
+                    <td>@c.Phone</td>
+                    <td>@c.Email</td>
+                    <td>@(c.ClientId.HasValue ? c.ClientId : "—")</td>
+                    <td>
+                        @if (c.IsActive)
+                        {
+                            <span class="badge bg-success">نشط</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">موقوف</span>
+                        }
+                    </td>
+                    <td><a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary">تعديل</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

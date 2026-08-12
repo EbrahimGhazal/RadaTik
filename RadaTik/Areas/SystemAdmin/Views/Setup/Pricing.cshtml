@@ -1,0 +1,57 @@
+@model RadaTik.Services.SystemAdminPricingReadiness
+@{
+    Layout = "~/Areas/SystemAdmin/Views/Shared/_SetupLayout.cshtml";
+    ViewData["Title"] = "تهيئة أسعار الخدمات";
+}
+
+<div class="card system-admin-setup-card border-0">
+    <div class="card-body p-4 p-md-5">
+        <h1 class="h4 mb-2"><i class="fas fa-tags text-primary me-2"></i>@ViewData["Title"]</h1>
+        <p class="text-muted mb-4">
+            قبل فتح المنصة لمديري الشركات، يجب ضبط أسعار الإنشاء والتجديد لجميع الخدمات الأساسية.
+            يمكنك الوصول إلى <strong>كتالوج الخدمات</strong> فقط حتى إكمال التهيئة.
+        </p>
+
+        <partial name="_TempDataAlerts" />
+
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-1 small">
+                <span class="text-muted">التقدم</span>
+                <span class="fw-semibold"><span dir="ltr">@Model.ConfiguredCount / @Model.TotalRequired</span></span>
+            </div>
+            <div class="progress" style="height: 10px;" role="progressbar"
+                 aria-valuenow="@Model.ProgressPercent" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar bg-primary" style="width: @(Model.ProgressPercent)%"></div>
+            </div>
+        </div>
+
+        @if (Model.MissingItems.Count > 0)
+        {
+            <div class="alert alert-warning">
+                <div class="fw-semibold mb-2">عناصر ناقصة (@Model.MissingItems.Count):</div>
+                <ul class="mb-0 ps-3 small">
+                    @foreach (string item in Model.MissingItems)
+                    {
+                        <li>@item</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <div class="d-grid gap-2">
+            <a href="/systemAdmin/serviceCatalog" class="btn btn-primary btn-lg">
+                <i class="fas fa-layer-group me-1"></i> فتح كتالوج الخدمات وضبط الأسعار
+            </a>
+            <form method="get" asp-action="Pricing" class="m-0">
+                <button type="submit" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-rotate me-1"></i> تحقق من الاكتمال مرة أخرى
+                </button>
+            </form>
+        </div>
+
+        <form method="post" asp-area="" asp-controller="Account" asp-action="Logout" class="mt-4 text-center">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-link text-muted btn-sm">تسجيل الخروج</button>
+        </form>
+    </div>
+</div>

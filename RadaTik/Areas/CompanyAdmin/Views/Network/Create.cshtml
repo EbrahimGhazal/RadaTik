@@ -1,0 +1,373 @@
+@model RadaTik.ViewModels.Network.NetworkViewModel
+
+@{
+    ViewData["Title"] = "إنشاء شبكة جديدة";
+    var companyName = ViewBag.NetworkPricingCompanyName as string ?? "شبكة جديدة";
+    var totalNetworks = (ViewBag.NetworkPricingTotalNetworks as int?) ?? 0;
+    var hasInitialPricing = (ViewBag.NetworkPricingHasInitial as bool?) ?? false;
+    var hasRenewalPricing = (ViewBag.NetworkPricingHasRenewal as bool?) ?? false;
+    var pricingConfigured = (ViewBag.NetworkPricingIsConfigured as bool?) ?? (hasInitialPricing && hasRenewalPricing);
+    var shouldChargeNow = (ViewBag.NetworkPricingShouldChargeNow as bool?) ?? false;
+    var isFirstNetwork = (ViewBag.NetworkPricingIsFirstFree as bool?) ?? false;
+    var freeInitialUnits = (ViewBag.NetworkPricingFreeInitialUnits as int?) ?? 0;
+    var freeRenewalUnits = (ViewBag.NetworkPricingFreeRenewalUnits as int?) ?? 0;
+    var initialPriceSyp = (ViewBag.NetworkPricingInitialSyp as decimal?) ?? 0m;
+    var renewalPriceSyp = (ViewBag.NetworkPricingRenewalSyp as decimal?) ?? 0m;
+    var renewalPeriodLabel = ViewBag.NetworkPricingRenewalPeriodLabel as string ?? "غير محدد";
+    var expectedCharge = pricingConfigured && shouldChargeNow ? initialPriceSyp : 0m;
+    var isCompanyOnboarding = (ViewBag.IsCompanyOnboarding as bool?) ?? isFirstNetwork;
+    var canAccessWalletTopUp = (ViewBag.CanAccessWalletTopUp as bool?) ?? !isCompanyOnboarding;
+    var suggestTopUpAfterCreate = (ViewBag.SuggestTopUpAfterCreate as bool?) ?? false;
+    var deferredChargeOnCreate = (ViewBag.NetworkPricingDeferredOnCreate as bool?) ?? (isFirstNetwork && expectedCharge > 0m);
+    var walletTopUpRequired = TempData["WalletTopUpRequired"] != null;
+}
+
+<div class="sys-hero mb-4">
+    <div class="sys-hero-main">
+        <div class="sys-hero-icon"><i class="fas fa-plus-circle"></i></div>
+        <div>
+            <h1 class="sys-hero-title">@ViewData["Title"]</h1>
+            <p class="sys-hero-subtitle">أنشئ شبكة جديدة وأدر مواردها من لوحة واحدة — المخدمات، القطاعات، المشتركين، والبروفايلات.</p>
+        </div>
+    </div>
+    <div class="sys-hero-chips">
+        <span class="sys-hero-chip"><i class="fas fa-pen-to-square"></i> نموذج إنشاء</span>
+        @if (isFirstNetwork)
+        {
+            <span class="sys-hero-chip"><i class="fas fa-star"></i> الشبكة الأولى للشركة</span>
+        }
+        else
+        {
+            <span class="sys-hero-chip"><i class="fas fa-sitemap"></i> شبكة تابعة — @companyName</span>
+        }
+    </div>
+</div>
+
+@if (TempData["Info"] != null)
+{
+    <div class="alert alert-info alert-dismissible fade show" role="status">
+        <i class="fas fa-circle-info me-1"></i>
+        @TempData["Info"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-1"></i>
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+    </div>
+}
+
+@if (isCompanyOnboarding)
+{
+    <div class="network-onboarding-panel mb-4" role="region" aria-label="بدء استخدام النظام">
+        <div class="network-onboarding-panel__inner">
+            <div class="network-onboarding-panel__icon" aria-hidden="true">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <div class="network-onboarding-panel__content">
+                <h2 class="network-onboarding-panel__title">مرحباً بك في RadaTik</h2>
+                <p class="network-onboarding-panel__text mb-3">
+                    هذه أول زيارة لحساب مدير الشركة. أكمل الخطوتين التاليتين للبدء بإدارة شبكتك وخدماتك.
+                </p>
+                <ol class="network-onboarding-steps mb-0">
+                    <li class="network-onboarding-steps__item network-onboarding-steps__item--active">
+                        <span class="network-onboarding-steps__badge">1</span>
+                        <span class="network-onboarding-steps__label">إنشاء شبكتك الأولى (النموذج أدناه)</span>
+                    </li>
+                    <li class="network-onboarding-steps__item">
+                        <span class="network-onboarding-steps__badge">2</span>
+                        <span class="network-onboarding-steps__label">
+                            تغذية الرصيد بمبلغ لا يقل عن سعر إنشاء الشركة
+                            @if (initialPriceSyp > 0m)
+                            {
+                                <span>(@SyrianCurrencyHelper.FormatNew(initialPriceSyp) ل.س.ج)</span>
+                            }
+                        </span>
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+}
+
+@if (!pricingConfigured)
+{
+    <div class="alert alert-danger border-0 shadow-sm mb-4" id="network-pricing-alert" role="status">
+        <div class="d-flex flex-wrap align-items-start gap-3">
+            <div class="flex-shrink-0 fs-4 text-danger"><i class="fas fa-triangle-exclamation"></i></div>
+            <div class="flex-grow-1">
+                <strong>لا يمكن إنشاء شبكة حالياً</strong>
+                <p class="mb-2 small">تسعير خدمة «إدارة الشبكة» غير مكتمل في النظام. يجب على <strong>مدير النظام</strong> ضبط سعر الإنشاء (مرة واحدة) وسعر التجديد في <strong>كتالوج الخدمات → الخدمات الدورية</strong> ثم الضغط على «حفظ جميع الخدمات».</p>
+                <a href="#network-pricing-panel" class="btn btn-sm btn-outline-danger">
+                    <i class="fas fa-arrow-down me-1"></i> عرض تفاصيل النقص
+                </a>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row g-4 network-create-layout">
+    <div class="col-lg-8 order-2 order-lg-1">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent border-bottom d-flex align-items-center justify-content-between">
+                <h5 class="card-title mb-0"><i class="fas fa-network-wired text-primary me-2"></i>معلومات الشبكة</h5>
+                <a asp-route="networkManager-dashboard" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-times"></i> إلغاء
+                </a>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post" enctype="multipart/form-data" class="network-create-form">
+                    <div asp-validation-summary="All" class="alert alert-danger py-2" role="alert"></div>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Name" class="form-label">اسم الشبكة <span class="text-danger">*</span></label>
+                            <input asp-for="Name" class="form-control form-control-lg" placeholder="مثال: شبكة دمشق المركزية" autofocus />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Status" class="form-label">حالة الشبكة <span class="text-danger">*</span></label>
+                            <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<NetworkStatus>()"></select>
+                            <span asp-validation-for="Status" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="LogoFile" class="form-label">شعار الشبكة</label>
+                            <input asp-for="LogoFile" type="file" class="form-control" accept="image/*" data-max-bytes="3145728" data-size-message="حجم شعار الشبكة يجب ألا يتجاوز 3 ميغابايت." />
+                            <span asp-validation-for="LogoFile" class="text-danger small"></span>
+                            <div class="form-text">JPG أو PNG أو GIF — حتى 3 ميغابايت</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Governorates" class="form-label">المحافظات</label>
+                            <textarea asp-for="Governorates" class="form-control" rows="3" placeholder="دمشق، حلب، اللاذقية — كل محافظة في سطر أو مفصولة بفاصلة"></textarea>
+                            <span asp-validation-for="Governorates" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label">ملاحظات</label>
+                            <textarea asp-for="Notes" class="form-control" rows="2" placeholder="ملاحظات داخلية اختيارية"></textarea>
+                            <span asp-validation-for="Notes" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-3 mt-2 d-flex flex-wrap align-items-center gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg" @(pricingConfigured ? null : "disabled")>
+                            <i class="fas fa-save me-1"></i>
+                            إنشاء الشبكة
+                        </button>
+                        @if (!pricingConfigured)
+                        {
+                            <span class="text-danger small">
+                                <i class="fas fa-lock me-1"></i>
+                                الإنشاء معطّل حتى يكمل مدير النظام التسعير
+                            </span>
+                        }
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 d-flex flex-column gap-3 order-1 order-lg-2">
+        <div class="card border-0 shadow-sm network-topup-card">
+            <div class="card-header bg-transparent border-bottom py-3">
+                <h6 class="mb-0 fw-semibold">
+                    <i class="fas fa-wallet text-success me-2"></i>
+                    تغذية رصيد المحفظة
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-3">
+                    طلب التعبئة يُرسل إلى <strong>مدير النظام</strong> ولا يُضاف الرصيد حتى الموافقة.
+                    المحفظة منفصلة عن الصندوق النقدي.
+                </p>
+                @if (walletTopUpRequired)
+                {
+                    <div class="alert alert-warning border-warning-subtle small py-2 mb-3">
+                        <i class="fas fa-circle-exclamation me-1"></i>
+                        الرصيد غير كافٍ لإنشاء شبكة مدفوعة. يُفضّل تغذية المحفظة أولاً.
+                    </div>
+                }
+                @if (!canAccessWalletTopUp)
+                {
+                    <div class="alert alert-light border small py-2 mb-3">
+                        <i class="fas fa-lock text-muted me-1"></i>
+                        أنشئ الشبكة الرئيسية أولاً، ثم ستُوجَّه تلقائياً لصفحة <strong>طلب تغذية الرصيد</strong>.
+                    </div>
+                    @if (suggestTopUpAfterCreate && pricingConfigured)
+                    {
+                        <p class="small text-info-emphasis mb-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            بعد الإنشاء يجب تعبئة الرصيد بمبلغ لا يقل عن
+                            <strong>@SyrianCurrencyHelper.FormatNew(initialPriceSyp) ل.س.ج</strong>
+                            (سعر إنشاء الشركة).
+                        </p>
+                    }
+                    <button type="button" class="btn btn-success w-100" disabled title="أنشئ الشبكة الرئيسية أولاً">
+                        <i class="fas fa-plus-circle me-1"></i>
+                        طلب تغذية رصيد
+                    </button>
+                }
+                else
+                {
+                    <a asp-route="networkManager-wallet-topup" class="btn btn-success w-100">
+                        <i class="fas fa-plus-circle me-1"></i>
+                        طلب تغذية رصيد
+                    </a>
+                    <a asp-route="networkManager-wallet-index" class="btn btn-outline-secondary btn-sm w-100 mt-2">
+                        <i class="fas fa-wallet me-1"></i>
+                        عرض المحفظة
+                    </a>
+                }
+            </div>
+        </div>
+
+        <div id="network-pricing-panel" class="card border-0 shadow-sm @(pricingConfigured ? "border-success-subtle" : "border-danger-subtle")">
+            <div class="card-header bg-transparent border-bottom py-3">
+                <h6 class="mb-0 fw-semibold">
+                    <i class="fas fa-tags text-primary me-2"></i>
+                    التسعير والتجديد
+                </h6>
+            </div>
+            <div class="card-body">
+                @if (!pricingConfigured)
+                {
+                    <div class="alert alert-danger mb-3 py-2 small">
+                        <i class="fas fa-triangle-exclamation me-1"></i>
+                        <strong>إعدادات تسعير الشبكات غير مكتملة</strong> من مدير النظام.
+                        <div class="mt-2">يجب ضبط <strong>سعر الإضافة (مرة واحدة)</strong> و<strong>سعر التجديد الدوري</strong> لخدمة «إدارة الشبكة» في كتالوج الخدمات.</div>
+                    </div>
+                    <ul class="list-unstyled small mb-3">
+                        <li class="d-flex align-items-center gap-2 mb-2 @(hasInitialPricing ? "text-success" : "text-danger")">
+                            <i class="fas @(hasInitialPricing ? "fa-circle-check" : "fa-circle-xmark")"></i>
+                            سعر إنشاء الشبكة (مرة واحدة)
+                        </li>
+                        <li class="d-flex align-items-center gap-2 @(hasRenewalPricing ? "text-success" : "text-danger")">
+                            <i class="fas @(hasRenewalPricing ? "fa-circle-check" : "fa-circle-xmark")"></i>
+                            سعر وتكرار التجديد
+                        </li>
+                    </ul>
+                    <p class="text-muted small mb-0 border-top pt-3">
+                        <i class="fas fa-headset me-1"></i>
+                        مدير الشركة: أبلغ مدير النظام بإكمال صف «إدارة الشبكة» ثم أعد تحميل هذه الصفحة.
+                    </p>
+                }
+                else
+                {
+                    @if (!isFirstNetwork)
+                    {
+                        <p class="small text-muted mb-3">
+                            شبكة إضافية لـ <strong>@companyName</strong>
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis ms-1">@totalNetworks شبكة حالية</span>
+                        </p>
+                    }
+                    <dl class="row small mb-0 gy-2">
+                        <dt class="col-6 text-muted">سعر الإنشاء</dt>
+                        <dd class="col-6 text-end fw-semibold mb-0">@SyrianCurrencyHelper.FormatNew(initialPriceSyp) ل.س.ج</dd>
+                        <dt class="col-6 text-muted">التجديد</dt>
+                        <dd class="col-6 text-end fw-semibold mb-0">@SyrianCurrencyHelper.FormatNew(renewalPriceSyp) ل.س.ج / @renewalPeriodLabel</dd>
+                        <dt class="col-6 text-muted">مجاني (إنشاء)</dt>
+                        <dd class="col-6 text-end mb-0">@freeInitialUnits</dd>
+                        <dt class="col-6 text-muted">مجاني (تجديد)</dt>
+                        <dd class="col-6 text-end mb-0">@freeRenewalUnits</dd>
+                    </dl>
+                }
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="text-muted small">@(deferredChargeOnCreate ? "رسوم الإنشاء (بعد التغذية)" : "الخصم المتوقع الآن")</span>
+                    @if (!pricingConfigured)
+                    {
+                        <span class="badge bg-danger-subtle text-danger-emphasis">غير متاح</span>
+                    }
+                    else if (expectedCharge > 0m)
+                    {
+                        <span class="badge @(deferredChargeOnCreate ? "bg-info-subtle text-info-emphasis" : "bg-warning-subtle text-warning-emphasis")">@SyrianCurrencyHelper.FormatNew(expectedCharge) ل.س.ج</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success-subtle text-success-emphasis">0.00 ل.س.ج</span>
+                    }
+                </div>
+                @if (pricingConfigured && deferredChargeOnCreate)
+                {
+                    <p class="small text-muted mb-0 mt-2">
+                        <i class="fas fa-circle-info me-1"></i>
+                        يمكنك <strong>إنشاء الشبكة الآن برصيد 0</strong> — لا يُخصم المبلغ عند الحفظ؛ يُطبَّق تلقائياً بعد موافقة مدير النظام على تغذية المحفظة.
+                    </p>
+                }
+                else if (pricingConfigured && !shouldChargeNow && !isFirstNetwork)
+                {
+                    <p class="small text-muted mb-0 mt-2">
+                        <i class="fas fa-gift me-1"></i>
+                        ضمن الوحدات المجانية — لا خصم عند الإنشاء.
+                    </p>
+                }
+                else if (pricingConfigured && isFirstNetwork && expectedCharge == 0m)
+                {
+                    <p class="small text-muted mb-0 mt-2">
+                        <i class="fas fa-gift me-1"></i>
+                        الشبكة الأولى ضمن الحصة المجانية.
+                    </p>
+                }
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-2"><i class="fas fa-lightbulb text-primary me-1"></i> بعد الإنشاء</h6>
+                <ul class="small text-muted mb-0 ps-3">
+                    <li>إضافة خوادم MikroTik</li>
+                    <li>تعريف القطاعات والمستقبلات</li>
+                    <li>إدارة المشتركين والبروفايلات</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var validationSummary = document.querySelector('.network-create-form .alert-danger[role="alert"]');
+            if (validationSummary && validationSummary.textContent.indexOf('تسعير الشبكات') >= 0) {
+                var panel = document.getElementById('network-pricing-panel');
+                if (panel) {
+                    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    panel.classList.add('border', 'border-danger');
+                }
+            }
+
+            var logoInput = document.getElementById('LogoFile');
+            if (!logoInput) return;
+
+            var maxBytes = Number(logoInput.getAttribute('data-max-bytes') || (3 * 1024 * 1024));
+            var sizeMessage = logoInput.getAttribute('data-size-message') || 'حجم الصورة يجب ألا يتجاوز 3 ميغابايت.';
+            logoInput.addEventListener('change', function () {
+                var file = logoInput.files && logoInput.files.length ? logoInput.files[0] : null;
+                if (!file) {
+                    logoInput.setCustomValidity('');
+                    return;
+                }
+
+                if (file.size > maxBytes) {
+                    logoInput.value = '';
+                    logoInput.setCustomValidity(sizeMessage);
+                    logoInput.reportValidity();
+                } else {
+                    logoInput.setCustomValidity('');
+                }
+            });
+        });
+    </script>
+}

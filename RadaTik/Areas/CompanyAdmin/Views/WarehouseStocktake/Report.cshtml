@@ -1,0 +1,58 @@
+@using RadaTik.Areas.CompanyAdmin.ViewModels
+@model List<WarehouseInventoryReportRowViewModel>
+@{
+    ViewData["Title"] = "تقرير حركة المخزون";
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var from = (DateTime)ViewBag.PeriodFrom;
+    var to = (DateTime)ViewBag.PeriodTo;
+    var itemOptions = ViewBag.Items as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    int? selectedItem = ViewBag.WarehouseItemId as int?;
+}
+
+<div class="financial-page financial-hub-page">
+    <partial name="_WarehouseSubNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-chart-line";
+        ViewBag.FinancialHeroTheme = "warehouse";
+        ViewBag.FinancialHeroSubtitle = companyName + $" — {from:yyyy-MM-dd} → {to:yyyy-MM-dd}";
+    }
+    <partial name="_FinancialSysHero" />
+
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-3"><label class="form-label">من</label><input type="date" name="from" class="form-control" value="@from.ToString("yyyy-MM-dd")" /></div>
+        <div class="col-md-3"><label class="form-label">إلى</label><input type="date" name="to" class="form-control" value="@to.ToString("yyyy-MM-dd")" /></div>
+        <div class="col-md-4">
+            <label class="form-label">صنف</label>
+            <select name="warehouseItemId" class="form-select">
+                <option value="">— الكل —</option>
+                @foreach (var o in itemOptions) { <option value="@o.Id" selected="@(selectedItem == (int)o.Id)">@o.Name</option> }
+            </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100">عرض</button></div>
+    </form>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table mb-0 radtk-data-table radtk-data-table--cards">
+                <thead>
+                    <tr>
+                        <th>الصنف</th><th>افتتاحي</th><th>وارد</th><th>صادر</th><th>تصحيح</th><th>ختامي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var row in Model)
+                {
+                    <tr>
+                        <td>@row.Name @(row.ModelNumber != null ? $"({row.ModelNumber})" : "")</td>
+                        <td>@row.OpeningQuantity.ToString("N3")</td>
+                        <td>@row.InQuantity.ToString("N3")</td>
+                        <td>@row.OutQuantity.ToString("N3")</td>
+                        <td>@row.AdjustmentQuantity.ToString("N3")</td>
+                        <td class="fw-semibold">@row.ClosingQuantity.ToString("N3")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

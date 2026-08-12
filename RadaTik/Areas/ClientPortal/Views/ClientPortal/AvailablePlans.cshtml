@@ -1,0 +1,323 @@
+@model IEnumerable<RadaTik.Models.Profile>
+@using RadaTik.Models
+@{
+    ViewData["Title"] = "الباقات المتاحة";
+    var currentClient = ViewBag.CurrentClient as Client;
+    var currentProfileId = ViewBag.CurrentProfileId as int?;
+    ViewBag.PageHeroIcon = "fas fa-list-alt";
+    if (currentClient != null)
+    {
+        ViewBag.PageHeroBackUrl = Url.Action("Index");
+        ViewBag.PageHeroBackText = "العودة";
+    }
+}
+<div class="radtk-page--clientportal-views-clientportal-availableplans">
+
+<partial name="_CrudPageHero" />
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i> @TempData["Success"]
+    </div>
+}
+@if (TempData["Warning"] != null)
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i> @TempData["Warning"]
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+    </div>
+}
+
+@if (currentClient != null && currentClient.Profile != null)
+{
+    <div class="current-plan-banner">
+        <div class="current-plan-info">
+            <i class="fas fa-check-circle"></i>
+            <span>باقتك الحالية: <strong>@currentClient.Profile.Name</strong> - @currentClient.Profile.DownloadSpeedDisplay</span>
+        </div>
+        <a asp-action="SpeedChangeRequests" class="btn btn-light btn-sm">
+            <i class="fas fa-list"></i> طلباتي
+        </a>
+    </div>
+}
+
+<div class="plans-container">
+    @if (Model.Any())
+    {
+        <div class="plans-grid">
+            @foreach (var profile in Model)
+            {
+                var isCurrentPlan = currentProfileId.HasValue && currentProfileId.Value == profile.Id;
+                var isFeatured = profile.DisplayOrder == 1; // الباقة المميزة هي الأولى في الترتيب
+                
+                <div class="plan-card @(isCurrentPlan ? "current" : "") @(isFeatured ? "featured" : "")">
+                    @if (isFeatured)
+                    {
+                        <div class="plan-ribbon">
+                            <span>الأكثر طلباً</span>
+                        </div>
+                    }
+                    
+                    @if (isCurrentPlan)
+                    {
+                        <div class="current-badge">
+                            <i class="fas fa-check"></i> باقتك الحالية
+                        </div>
+                    }
+                    
+                    <div class="plan-header">
+                        <h3 class="plan-name">@profile.Name</h3>
+                        @if (!string.IsNullOrEmpty(profile.Description))
+                        {
+                            <p class="plan-description">@profile.Description</p>
+                        }
+                    </div>
+                    
+                    <div class="plan-price">
+                        <span class="price-amount">@profile.PriceWithVAT.ToString("N0")</span>
+                        <span class="price-currency">ل.س.جديدة</span>
+                        <span class="price-period">/ شهر</span>
+                    </div>
+                    
+                    <div class="plan-speed">
+                        <div class="speed-main">
+                            <i class="fas fa-download"></i>
+                            <span class="speed-value">@profile.DownloadSpeedDisplay</span>
+                        </div>
+                        @if (profile.UploadSpeed.HasValue)
+                        {
+                            <div class="speed-upload">
+                                <i class="fas fa-upload"></i> @profile.UploadSpeedDisplay رفع
+                            </div>
+                        }
+                    </div>
+                    
+                    <div class="plan-features">
+                        <ul>
+                            @if (profile.DataLimit.HasValue && profile.DataLimit > 0)
+                            {
+                                <li><i class="fas fa-database"></i> @profile.DataLimit GB حد البيانات</li>
+                            }
+                            else
+                            {
+                                <li><i class="fas fa-infinity"></i> استخدام غير محدود</li>
+                            }
+                            
+                            @if (profile.IPTVDevices.HasValue && profile.IPTVDevices > 0)
+                            {
+                                <li><i class="fas fa-tv"></i> @profile.IPTVDevices أجهزة IPTV</li>
+                            }
+
+                            <li><i class="fas fa-headset"></i> دعم فني على مدار الساعة</li>
+                            <li><i class="fas fa-shield-alt"></i> اتصال آمن ومستقر</li>
+
+                            @if (profile.MinDevices >= 0)
+                            {
+                                <li><i class="fas fa-mobile-alt"></i> @profile.MinDevices الحد الأدنى للأجهزة</li>
+                            }
+
+                            @if (profile.MaxDevices > 0)
+                            {
+                                <li><i class="fas fa-laptop-house"></i> @profile.MaxDevices الحد الأعلى للأجهزة</li>
+                            }
+
+                            @if (profile.MaxUsers > 0)
+                            {
+                                <li><i class="fas fa-users"></i> @profile.MaxUsers عدد المستخدمين</li>
+                            }
+                            
+                            @if (!string.IsNullOrEmpty(profile.Features))
+                            {
+                                @foreach (var feature in profile.Features.Split(','))
+                                {
+                                    <li><i class="fas fa-star"></i> @feature.Trim()</li>
+                                }
+                            }
+                        </ul>
+                    </div>
+                    
+                    <div class="plan-footer">
+                        @if (isCurrentPlan)
+                        {
+                            <button class="btn btn-secondary w-100" disabled>
+                                <i class="fas fa-check"></i> باقتك الحالية
+                            </button>
+                        }
+                        else if (currentClient != null)
+                        {
+                            <button type="button"
+                                    class="btn btn-primary w-100 open-change-plan-modal"
+                                    data-profile-id="@profile.Id"
+                                    data-profile-name="@profile.Name">
+                                <i class="fas fa-exchange-alt"></i> طلب التغيير لهذه الباقة
+                            </button>
+                        }
+                        else
+                        {
+                            <a asp-controller="Account" asp-action="Register" class="btn btn-primary w-100">
+                                <i class="fas fa-user-plus"></i> اشترك الآن
+                            </a>
+                        }
+                    </div>
+                    
+                    @if (profile.Type != ProfileType.Internet)
+                    {
+                        <div class="plan-type-badge">
+                            @GetProfileTypeName(profile.Type)
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-box-open"></i>
+            </div>
+            <h3>لا توجد باقات متاحة حالياً</h3>
+            <p>يرجى التواصل مع الإدارة للحصول على مزيد من المعلومات.</p>
+        </div>
+    }
+</div>
+
+@if (currentClient != null)
+{
+    <div id="changePlanModal" class="custom-modal-overlay" aria-hidden="true">
+        <div class="custom-modal-card" role="dialog" aria-modal="true" aria-labelledby="changePlanModalTitle">
+            <div class="custom-modal-header">
+                <h4 id="changePlanModalTitle" class="mb-0"><i class="fas fa-exchange-alt"></i> طلب تغيير الباقة</h4>
+                <button type="button" class="custom-modal-close" id="closeChangePlanModal" aria-label="إغلاق">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="custom-modal-body">
+                <p class="mb-2">
+                    سيتم إرسال طلب تغييرك إلى الباقة:
+                    <strong id="selectedPlanName">-</strong>
+                </p>
+                <div class="form-group mb-0">
+                    <label for="changePlanReason" class="form-label">سبب التغيير (اختياري)</label>
+                    <textarea id="changePlanReason"
+                              class="form-control"
+                              rows="4"
+                              placeholder="اكتب سبب طلب تغيير الباقة..."></textarea>
+                </div>
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn btn-light" id="cancelChangePlanModal">
+                    إلغاء
+                </button>
+                <form asp-action="CreateSpeedChangeRequest" method="post" id="submitChangePlanForm" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="RequestedProfileId" id="selectedRequestedProfileId" />
+                    <input type="hidden" name="Reason" id="selectedChangeReason" />
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> إرسال الطلب
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- معلومات إضافية -->
+<div class="info-section">
+    <div class="info-card">
+        <div class="info-icon">
+            <i class="fas fa-question-circle"></i>
+        </div>
+        <div class="info-content">
+            <h4>كيف أختار الباقة المناسبة؟</h4>
+            <p>اختر الباقة بناءً على عدد الأجهزة المتصلة ونوع الاستخدام. للاستخدام العادي (تصفح، سوشيال ميديا) يكفي 10-20 ميجا. للبث والألعاب ننصح بـ 50 ميجا أو أكثر.</p>
+        </div>
+    </div>
+    
+    <div class="info-card">
+        <div class="info-icon">
+            <i class="fas fa-sync-alt"></i>
+        </div>
+        <div class="info-content">
+            <h4>هل يمكنني تغيير الباقة؟</h4>
+            <p>نعم، يمكنك طلب تغيير الباقة في أي وقت. سيتم مراجعة طلبك وتنفيذه خلال 24 ساعة.</p>
+        </div>
+    </div>
+    
+    <div class="info-card">
+        <div class="info-icon">
+            <i class="fas fa-phone-alt"></i>
+        </div>
+        <div class="info-content">
+            <h4>تحتاج مساعدة؟</h4>
+            <p>تواصل معنا عبر الدعم الفني أو قدم طلب صيانة من خلال التطبيق.</p>
+        </div>
+    </div>
+</div>
+@functions {
+    string GetProfileTypeName(ProfileType type) => type switch
+    {
+        ProfileType.Internet => "إنترنت",
+        ProfileType.IPTV => "IPTV",
+        ProfileType.VoIP => "VoIP",
+        ProfileType.Bundle => "باقة مجمعة",
+        ProfileType.Custom => "مخصص",
+        _ => ""
+    };
+}
+
+
+</div>
+@section Scripts {
+    <script>
+        (function () {
+            var modal = document.getElementById('changePlanModal');
+            if (!modal) return;
+
+            var selectedPlanName = document.getElementById('selectedPlanName');
+            var selectedProfileIdInput = document.getElementById('selectedRequestedProfileId');
+            var reasonTextArea = document.getElementById('changePlanReason');
+            var reasonHiddenInput = document.getElementById('selectedChangeReason');
+            var closeBtn = document.getElementById('closeChangePlanModal');
+            var cancelBtn = document.getElementById('cancelChangePlanModal');
+            var submitForm = document.getElementById('submitChangePlanForm');
+
+            function openModal(profileId, profileName) {
+                selectedProfileIdInput.value = profileId;
+                selectedPlanName.textContent = profileName || '-';
+                reasonTextArea.value = '';
+                reasonHiddenInput.value = '';
+                modal.classList.add('show');
+                modal.setAttribute('aria-hidden', 'false');
+                setTimeout(function () { reasonTextArea.focus(); }, 0);
+            }
+
+            function closeModal() {
+                modal.classList.remove('show');
+                modal.setAttribute('aria-hidden', 'true');
+            }
+
+            document.querySelectorAll('.open-change-plan-modal').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    openModal(button.dataset.profileId, button.dataset.profileName);
+                });
+            });
+
+            closeBtn.addEventListener('click', closeModal);
+            cancelBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', function (event) {
+                if (event.target === modal) closeModal();
+            });
+
+            submitForm.addEventListener('submit', function () {
+                reasonHiddenInput.value = (reasonTextArea.value || '').trim();
+            });
+        })();
+    </script>
+}

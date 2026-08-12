@@ -1,15 +1,15 @@
-# 🏗️ الهندسة المعمارية - RadTik
+# 🏗️ الهندسة المعمارية - RadaTik
 
 ## نظرة عامة
 
-RadTik مبني على **ASP.NET Core MVC** باستخدام **Clean Architecture** principles مع فصل واضح للطبقات.
+RadaTik مبني على **ASP.NET Core MVC** باستخدام **Clean Architecture** principles مع فصل واضح للطبقات.
 
 ---
 
 ## الهيكل العام
 
 ```
-RadTik/
+RadaTik/
 ├── Controllers/          # Presentation Layer
 │   └── [Controllers]
 ├── Models/              # Data Models

@@ -1,0 +1,271 @@
+{
+  "app": { "name": "RadaTik" },
+  "roles": {
+    "systemAdmin": "System Admin",
+    "employee": "Employee",
+    "companyManager": "Company Manager",
+    "client": "Client",
+    "collectionPoint": "Collection Point"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "networks": "Networks",
+    "payments": "Payments",
+    "reports": "Reports",
+    "settings": "Settings",
+    "customerSupport": "Customer Support",
+    "tasks": "Tasks",
+    "billing": "Billing",
+    "team": "Team",
+    "myNetwork": "My Network",
+    "myTraffic": "My live traffic",
+    "support": "Support",
+    "transactions": "Transactions",
+    "mikrotikTraffic": "MikroTik traffic"
+  },
+  "auth": {
+    "login": "Log in",
+    "signup": "Create account",
+    "email": "Email",
+    "userNameOrEmail": "Username or email",
+    "userNameHint": "e.g. admin or your registered email",
+    "password": "Password",
+    "passwordRequired": "Enter your password",
+    "confirmPassword": "Confirm password",
+    "fullName": "Full name",
+    "role": "Role",
+    "toSignup": "Need an account? Sign up",
+    "toLogin": "Already have an account? Log in",
+    "logout": "Log out",
+    "loggingIn": "Signing in…",
+    "dbLoginHint": "Uses the same accounts as the MVC app (database). Default admin if seeded: admin / 123456",
+    "demoHint": "Demo: type admin + password admin@123Gh, or full emails from the seed list (see docs).",
+    "invalidCredentials": "Invalid username or password.",
+    "networkError": "Could not reach the server. Ensure the app is running (set VITE_MVC_ORIGIN during Vite dev if needed).",
+    "serverError": "Unexpected response from the server.",
+    "emailHint": "admin or full email (e.g. admin@radatik.dev)",
+    "heroTitle": "Network operations, unified in one place",
+    "heroSubtitle": "Monitor traffic, manage users, and stay on top of billing — from any device.",
+    "loginSubtitle": "Sign in with your RadaTik account",
+    "signupSubtitle": "Create a demo account for the SPA preview",
+    "signupHeroTitle": "Get started in minutes",
+    "signupHeroSubtitle": "Register a demo profile to explore dashboards by role — mobile, tablet, and desktop ready.",
+    "signupHint": "Demo signup stores data locally in your browser only.",
+    "passwordMismatch": "Passwords must match.",
+    "passwordMin": "At least 6 characters required.",
+    "fullNameRequired": "Enter your full name.",
+    "emailInvalid": "Enter a valid email.",
+    "emailTaken": "Email already registered — log in instead."
+  },
+  "header": {
+    "darkMode": "Dark mode",
+    "lightMode": "Light mode",
+    "language": "Language"
+  },
+  "quickNav": {
+    "title": "Quick navigation",
+    "open": "Search pages…",
+    "placeholder": "Type a page name…",
+    "noResults": "No matching pages.",
+    "hint": "Press ⌘K or Ctrl+K from anywhere to open"
+  },
+  "sidebar": {
+    "hint": "Use quick search for instant access to any page"
+  },
+  "mobileNav": {
+    "more": "More",
+    "allPages": "All pages"
+  },
+  "admin": {
+    "welcome": "Welcome back",
+    "stats": { "users": "Total users", "networks": "Active networks", "pending": "Pending payments" },
+    "traffic": "Traffic (GB)",
+    "userGrowth": "User growth",
+    "coverage": "Network coverage",
+    "activity": "Recent activity",
+    "financial": "Financial summary",
+    "dashboardHint": "Live telemetry snapshot — mock data refreshes with gentle jitter."
+  },
+  "employee": {
+    "tasks": "Assigned tasks",
+    "stats": { "done": "Completed", "pending": "Pending" },
+    "responseTime": "Support response time (mock)",
+    "completion": "Task completion",
+    "interactions": "Recent customer interactions"
+  },
+  "manager": {
+    "finance": "Financial performance",
+    "team": "Team",
+    "usage": "Network usage",
+    "collection": "Collection points status",
+    "dashboardTabOverview": "Overview",
+    "dashboardTabTraffic": "Live MikroTik traffic",
+    "openTrafficFullPage": "Open full page",
+    "traffic": {
+      "pageTitle": "MikroTik interface traffic",
+      "loadError": "Could not load MikroTik servers. Check you are logged in as a company manager and the API is reachable.",
+      "hubError": "MikroTik streaming error.",
+      "connectError": "Could not open real-time connection. Check VPN/firewall and that the app URL matches your auth cookie domain.",
+      "noServers": "No active MikroTik servers are linked to your network.",
+      "serverLabel": "Server",
+      "lastUpdate": "Last update",
+      "emptyInterfaces": "No interfaces returned from the router.",
+      "colInterface": "Interface",
+      "colType": "Type",
+      "colStatus": "Status",
+      "colBridge": "Bridge",
+      "colRx": "RX (total)",
+      "colTx": "TX (total)",
+      "colRxPacket": "RX packets",
+      "colTxPacket": "TX packets",
+      "colRxRate": "RX rate",
+      "colTxRate": "TX rate",
+      "statusUp": "Up",
+      "statusDown": "Down",
+      "badgeBridge": "Bridge",
+      "statsTitle": "Historical performance summary",
+      "statsLoadError": "Could not load historical statistics for this server.",
+      "trendTitle": "Traffic trend",
+      "trendLoadError": "Could not load trend chart.",
+      "kpiPeakRx": "Peak receive",
+      "kpiPeakTx": "Peak transmit",
+      "kpiLoadIndex": "Load index",
+      "kpiAt": "At",
+      "riskNormal": "Normal",
+      "riskMedium": "Warning",
+      "riskHigh": "High",
+      "overallStatus": "Overall status",
+      "recommendationsTitle": "Operational recommendations",
+      "recPeakRxWarn": "Receive peak is approaching warning range. Watch busy-hour congestion and rebalance sector load.",
+      "recPeakRxHigh": "Receive peak is very high. Consider adding capacity or shifting traffic to an additional link/server.",
+      "recPeakTxWarn": "Transmit peak is in warning range. Review heavy upload/backup activity in this period.",
+      "recPeakTxHigh": "Transmit peak is very high. Investigate top upload sources and apply QoS controls if needed.",
+      "recLoadWarn": "Load index is elevated. Prepare short-term capacity actions before demand spikes further.",
+      "recLoadHigh": "Load index is critical. Immediate capacity expansion or traffic redistribution is recommended.",
+      "recHealthy": "Indicators are currently within normal range. Continue routine monitoring.",
+      "periodDay": "Last 24 hours",
+      "periodWeek": "Last 7 days",
+      "periodMonth": "Last 30 days",
+      "samples": "Samples",
+      "rx": "Receive (RX)",
+      "tx": "Transmit (TX)",
+      "min": "Min",
+      "avg": "Avg",
+      "max": "Max"
+    }
+  },
+  "client": {
+    "plan": "Current plan",
+    "usage": "Usage",
+    "invoices": "Invoice history",
+    "status": "Network status",
+    "speedDown": "Download",
+    "speedUp": "Upload",
+    "linkStatus": "Link",
+    "latency": "Latency",
+    "speedTest": "Speed test",
+    "ticket": { "title": "Open a ticket", "subject": "Subject", "message": "Message", "send": "Submit", "sent": "Ticket submitted (mock)." },
+    "traffic": {
+      "pageTitle": "My connection rate",
+      "loadError": "Could not load current rate data.",
+      "statusLoadError": "Could not load test status.",
+      "connected": "Connection status: Connected",
+      "disconnected": "Connection status: Currently disconnected",
+      "startTest": "Start 10-second test",
+      "startWarning": "{{amount}} SYP will be deducted from your wallet to start a {{duration}}-second test. You can retest every {{cooldown}} hours. Continue?",
+      "chargeLine": "Charge per test: {{amount}} SYP",
+      "needStartTest": "No active test now. Start a new test to view rates for 10 seconds.",
+      "activeUntil": "Test active until",
+      "nextEligible": "Next test available at",
+      "availableNow": "Available now",
+      "insufficientBalance": "Your balance is insufficient to start the test.",
+      "cooldownActive": "You cannot start a new test before the 4-hour cooldown ends.",
+      "startFailed": "Could not start the test right now.",
+      "rxRate": "Receive rate",
+      "txRate": "Transmit rate",
+      "rxTotal": "Total receive",
+      "txTotal": "Total transmit",
+      "userName": "Username",
+      "serverName": "Server",
+      "uptime": "Uptime",
+      "address": "Address",
+      "rxPackets": "Receive packets",
+      "txPackets": "Transmit packets",
+      "trendTitle": "Live rate trend (recent samples)"
+    }
+  },
+  "collection": {
+    "summary": "Today's collection summary",
+    "table": "Recent payments",
+    "chart": "Collections trend",
+    "record": "Record payment",
+    "todayTotal": "Today (mock)",
+    "recordMock": "Payment recorded (mock flow)."
+  },
+  "table": {
+    "customer": "Customer",
+    "amount": "Amount",
+    "date": "Date",
+    "status": "Status",
+    "invoice": "Invoice",
+    "type": "Type",
+    "channel": "Channel"
+  },
+  "status": {
+    "paid": "Paid",
+    "pending": "Pending",
+    "done": "Done",
+    "inProgress": "In progress",
+    "active": "Active",
+    "suspended": "Suspended"
+  },
+  "directory": {
+    "search": "Search name or email",
+    "roleFilter": "Role",
+    "allRoles": "All roles",
+    "lastActive": "Last active"
+  },
+  "networksPage": {
+    "apTable": "Access points",
+    "coordinates": "Coordinates"
+  },
+  "paymentsPage": {
+    "filterStatus": "Status",
+    "all": "All"
+  },
+  "reportsPage": {
+    "kpis": "Key metrics",
+    "paymentMix": "Payment status mix"
+  },
+  "settingsPage": {
+    "title": "Workspace",
+    "notifyEmail": "Email notifications",
+    "notifyEmailDesc": "Receive alerts for payments and system events.",
+    "compactTables": "Compact tables",
+    "compactTablesDesc": "Show more rows with tighter spacing on lists.",
+    "saved": "Preferences saved locally (mock)."
+  },
+  "employeeSupport": {
+    "queue": "Support queue",
+    "notes": "Internal notes",
+    "save": "Save note (mock)"
+  },
+  "transactionsPage": {
+    "title": "Transaction log"
+  },
+  "common": {
+    "openMenu": "Menu",
+    "close": "Close",
+    "loading": "Loading…",
+    "noData": "No data available."
+  },
+  "pages": {
+    "users": "User management",
+    "networks": "Networks & coverage",
+    "payments": "Payments",
+    "reports": "Reports",
+    "settings": "Settings",
+    "placeholders": "This section uses the same mock API; extend with your own views."
+  }
+}

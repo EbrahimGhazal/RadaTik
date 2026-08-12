@@ -1,0 +1,41 @@
+@{
+    var mode = (ViewBag.WarehouseHintsMode as string ?? "warehouse").ToLowerInvariant();
+    var showPurchase = mode is "purchase" or "all";
+    var showWarehouse = mode is "warehouse" or "all";
+}
+
+<div class="warehouse-usage-hints alert alert-light border mb-3" role="note">
+    <div class="d-flex gap-2 align-items-start">
+        <div class="text-primary fs-5 flex-shrink-0"><i class="fas fa-lightbulb"></i></div>
+        <div class="small">
+            @if (showPurchase)
+            {
+                <p class="mb-2 fw-semibold text-body">مادة أو صنف جديد — هل أضيفه في المستودع أولاً؟</p>
+                <p class="mb-2 text-muted">
+                    <strong>لا، ليس ضرورياً.</strong>
+                    في <strong>فاتورة شراء مواد</strong> اختر «— مادة جديدة —» ثم اكتب <strong>اسم المادة</strong> و<strong>رقم الموديل</strong> (إن وُجد).
+                    عند الحفظ يُنشأ الصنف في المستودع <em>تلقائياً</em> وتُدخل الكمية مع الفاتورة.
+                    نموذج «إضافة صنف» في صفحة المستودع اختياري — للتعريف المسبق أو للحركات اليدوية فقط.
+                </p>
+            }
+
+            @if (showWarehouse)
+            {
+                <p class="mb-2 fw-semibold text-body">الكميات في الجدول دائماً بالقطعة</p>
+                <p class="mb-2 text-muted">
+                    لشراء بالكرتونة أو العلبة استخدم <a asp-area="CompanyAdmin" asp-controller="MaterialPurchaseInvoices" asp-action="Create">فاتورة شراء مواد</a>
+                    (وحدة الشراء + قطع داخل الوحدة + عدد الوحدات).
+                    مثال: <strong>4 كرتون</strong> × <strong>16 راوتر/كرتون</strong> = <strong>64 قطعة</strong> في المستودع.
+                </p>
+
+                <p class="mb-1 fw-semibold text-body">تسجيل حركة مخزون (يدوي)</p>
+                <ul class="mb-0 ps-3 text-muted">
+                    <li><strong>وارد:</strong> إدخال رصيد (مثال: 64 قطعة) — الكمية هنا بالقطعة وليس بعدد الكرتونات.</li>
+                    <li><strong>صادر:</strong> إخراج (تلف، استهلاك) — لا يتجاوز الرصيد المتاح.</li>
+                    <li><strong>تصحيح:</strong> فرق العدّ — موجب للزيادة، سالب للنقص (مثال: −2 لتصحيح خطأ).</li>
+                    <li>فواتير الشراء/البيع والجرد تُسجّل الحركة تلقائياً؛ لا تكررها يدوياً.</li>
+                </ul>
+            }
+        </div>
+    </div>
+</div>

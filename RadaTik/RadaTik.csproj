@@ -1,0 +1,84 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- تأكيد نسخ ملفات Razor عند النشر (لوحة networkManager وغيرها) -->
+    <CopyRazorGenerateFilesToPublishDirectory>true</CopyRazorGenerateFilesToPublishDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="9.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.10">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+	  <PackageReference Include="tik4net" Version="3.5.0" />
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\Sql\AddCompanyBusinessModuleTables.sql" />
+    <EmbeddedResource Include="Migrations\Sql\AddSubscriberInstallationModuleTables.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exclude local verification/build artifact folders from default SDK globs -->
+    <Compile Remove="_verify*/**;_build_out/**;publish-smarterasp/**;artifacts/**" />
+    <Content Remove="_verify*/**;_build_out/**;publish-smarterasp/**;artifacts/**" />
+    <None Remove="_verify*/**;_build_out/**;publish-smarterasp/**;artifacts/**" />
+    <EmbeddedResource Remove="_verify*/**;_build_out/**;publish-smarterasp/**;artifacts/**" />
+    <RazorGenerate Remove="publish-smarterasp/**;artifacts/**" />
+  </ItemGroup>
+
+  <!-- Frees bin/obj locks from a prior debug run (VS, Cursor, or dotnet run). -->
+  <Target Name="KillRunningRadaTikBeforeBuild"
+          BeforeTargets="BeforeBuild"
+          Condition="'$(Configuration)' == 'Debug' and '$(OS)' == 'Windows_NT' and '$(DesignTimeBuild)' != 'true'">
+    <Exec Command="taskkill /F /IM RadaTik.exe /T &gt;NUL 2&gt;NUL &amp; taskkill /F /IM RadTik.exe /T &gt;NUL 2&gt;NUL || exit /b 0"
+          ContinueOnError="true" />
+  </Target>
+
+  <!-- Reduce SWA fingerprint/compress races when VS design-time build holds wwwroot files. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <CompressionEnabled>false</CompressionEnabled>
+  </PropertyGroup>
+
+  <!-- بناء واجهة React ووضعها في wwwroot/app (مسار الويب /app) -->
+  <PropertyGroup>
+    <RadaTikWebDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\radatik-web'))</RadaTikWebDir>
+    <RunFrontendBuild Condition="'$(RunFrontendBuild)' == ''">true</RunFrontendBuild>
+    <SkipFrontendBuildFromEnv>$([System.Environment]::GetEnvironmentVariable('RADATIK_SKIP_FRONTEND_BUILD'))</SkipFrontendBuildFromEnv>
+  </PropertyGroup>
+  <Target Name="BuildRadaTikWeb"
+          BeforeTargets="BeforeBuild"
+          Condition="Exists('$(RadaTikWebDir)\package.json') and '$(RunFrontendBuild)' == 'true' and '$(SkipFrontendBuildFromEnv)' != 'true'">
+    <Exec WorkingDirectory="$(RadaTikWebDir)"
+          Command="npm run build" />
+  </Target>
+
+  <!-- Vite emits new content hashes under wwwroot/app; drop stale SWA manifests so DefineStaticWebAssets does not reference deleted files. -->
+  <Target Name="ClearStaleStaticWebAssetManifests"
+          BeforeTargets="ResolveStaticWebAssetsConfiguration;DefineStaticWebAssets"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <RemoveDir Directories="$(IntermediateOutputPath)compressed;$(IntermediateOutputPath)staticwebassets"
+               Condition="Exists('$(IntermediateOutputPath)compressed') or Exists('$(IntermediateOutputPath)staticwebassets')" />
+    <ItemGroup>
+      <_RadaTikStaleSwa Include="$(IntermediateOutputPath)staticwebassets*" />
+      <_RadaTikStaleSwa Include="$(IntermediateOutputPath)rpswa*" />
+    </ItemGroup>
+    <Delete Files="@(_RadaTikStaleSwa)" TreatErrorsAsWarnings="true" />
+  </Target>
+
+</Project>

@@ -1,0 +1,1 @@
+import{n as e,r as t}from"./cn-CO7O-Ahk.js";import{t as n}from"./Alert-BeRg0f8t.js";var r=e();function i({loading:e,error:i,hasData:a=!0}){let{t:o}=t();return i?(0,r.jsx)(n,{variant:`danger`,children:i}):e&&!a?(0,r.jsx)(`p`,{className:`text-sm text-rt-neutral-mid`,children:o(`common.loading`)}):null}export{i as t};

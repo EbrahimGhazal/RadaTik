@@ -1,0 +1,186 @@
+@model RadaTik.Models.MikroTikServer
+
+@{
+    ViewData["Title"] = "تفاصيل الخادم";
+    var hasRenewalPricing = (ViewBag.ServerRenewalHasPricing as bool?) ?? false;
+    var renewalPeriodLabel = ViewBag.ServerRenewalPeriodLabel as string ?? "غير محدد";
+    var activeServers = (ViewBag.ServerRenewalActiveServers as int?) ?? 0;
+    var additionalServers = (ViewBag.ServerRenewalAdditionalServers as int?) ?? 0;
+    var renewalUnitPrice = (ViewBag.ServerRenewalUnitPriceSyp as decimal?) ?? 0m;
+    var renewalEstimate = (ViewBag.ServerRenewalEstimatedAmountSyp as decimal?) ?? 0m;
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="alert @(hasRenewalPricing ? "alert-info" : "alert-warning")">
+    <i class="fas fa-receipt me-1"></i>
+    <strong>قراءة الفاتورة القادمة (سيرفرات الشركة)</strong>
+    @if (hasRenewalPricing)
+    {
+        <div class="small mt-2">
+            <div>زمن التجديد: <strong>@renewalPeriodLabel</strong></div>
+            <div>سعر التجديد لكل سيرفر إضافي: <strong>@SyrianCurrencyHelper.FormatNew(renewalUnitPrice) ل.س.ج</strong></div>
+            <div>إجمالي السيرفرات النشطة: <strong>@activeServers</strong> (الإضافية: <strong>@additionalServers</strong>)</div>
+            <div>التقدير المتوقع للدورة القادمة: <strong>@SyrianCurrencyHelper.FormatNew(renewalEstimate) ل.س.ج</strong></div>
+        </div>
+    }
+    else
+    {
+        <div class="small mt-2">مدير النظام لم يحدد بعد سياسة تجديد خدمة السيرفرات.</div>
+    }
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">
+                    <i class="fas fa-server"></i>
+                    @ViewData["Title"] - @Model.Name
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>معلومات الاتصال</h5>
+                        <table class="table table-borderless">
+                            <tr>
+                                <th width="40%">اسم الخادم:</th>
+                                <td>@Model.Name</td>
+                            </tr>
+                            <tr>
+                                <th>المضيف:</th>
+                                <td>@Model.Host</td>
+                            </tr>
+                            <tr>
+                                <th>المنفذ:</th>
+                                <td data-syp-skip-format="true" dir="ltr">@Model.Port</td>
+                            </tr>
+                            <tr>
+                                <th>اسم المستخدم:</th>
+                                <td>@Model.User</td>
+                            </tr>
+                            <tr>
+                                <th>حالة الخادم:</th>
+                                <td>
+                                    @if (Model.IsActive)
+                                    {
+                                        <span class="badge bg-success">نشط</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">غير نشط</span>
+                                    }
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h5>معلومات إضافية</h5>
+                        <table class="table table-borderless">
+                            <tr>
+                                <th width="40%">معرف المستخدم:</th>
+                                <td>@(Model.UserID ?? "غير محدد")</td>
+                            </tr>
+                            <tr>
+                                <th>تاريخ الإنشاء:</th>
+                                <td>@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            </tr>
+                            <tr>
+                                <th>آخر تحديث:</th>
+                                <td>@Model.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            </tr>
+                            <tr>
+                                <th>الملاحظات:</th>
+                                <td>@(string.IsNullOrEmpty(Model.Notes) ? "لا توجد ملاحظات" : Model.Notes)</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="btn-group" role="group">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> تعديل
+                    </a>
+                    <a asp-action="TestConnection" asp-route-id="@Model.Id" class="btn btn-info">
+                        <i class="fas fa-wifi"></i> اختبار الاتصال
+                    </a>
+                    <a asp-action="AllUsers" asp-route-id="@Model.Id" class="btn btn-primary">
+                        <i class="fas fa-users"></i> المستخدمين
+                    </a>
+                    <a asp-action="ActiveUsers" asp-route-id="@Model.Id" class="btn btn-success">
+                        <i class="fas fa-user-check"></i> المستخدمين النشطين
+                    </a>
+                    <a asp-action="Debug" asp-route-id="@Model.Id" class="btn btn-secondary">
+                        <i class="fas fa-bug"></i> تصحيح الأخطاء
+                    </a>
+                    <a asp-action="Index" class="btn btn-light">
+                        <i class="fas fa-arrow-right"></i> العودة للقائمة
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-tasks"></i> إجراءات سريعة
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-action="AllUsers" asp-route-id="@Model.Id" class="btn btn-primary">
+                        <i class="fas fa-users"></i> عرض جميع المستخدمين
+                    </a>
+                    <a asp-action="ActiveUsers" asp-route-id="@Model.Id" class="btn btn-success">
+                        <i class="fas fa-user-check"></i> عرض المستخدمين النشطين
+                    </a>
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> تعديل بيانات الخادم
+                    </a>
+                    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> حذف الخادم
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar"></i> إحصائيات
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="mb-3">
+                        <div class="fs-6">عدد القطاعات المرتبطة</div>
+                        <div class="fs-4 fw-bold">@Model.Sectors?.Count()</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="fs-6">تاريخ الإنشاء</div>
+                        <div class="fs-6">@Model.CreatedAt.ToString("yyyy-MM-dd")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

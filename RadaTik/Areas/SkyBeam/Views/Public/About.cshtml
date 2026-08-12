@@ -1,0 +1,401 @@
+@{
+    ViewData["Title"] = "من نحن";
+    Layout = "~/Areas/SkyBeam/Views/Shared/_PublicLayout.cshtml";
+}
+
+<style>
+    .page-hero {
+        background: var(--gradient-hero);
+        padding: 150px 0 100px;
+        text-align: center;
+        color: white;
+    }
+
+    .page-hero-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 30px;
+    }
+
+    .page-hero-title {
+        font-size: 48px;
+        font-weight: 800;
+        margin-bottom: 20px;
+    }
+
+    .page-hero-desc {
+        font-size: 20px;
+        color: rgba(255,255,255,0.8);
+    }
+
+    .about-section {
+        padding: 100px 0;
+    }
+
+    .about-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 30px;
+    }
+
+    .about-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 60px;
+        align-items: center;
+        margin-bottom: 100px;
+    }
+
+    .about-content h2 {
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--dark);
+        margin-bottom: 25px;
+    }
+
+    .about-content p {
+        color: var(--gray);
+        line-height: 1.9;
+        margin-bottom: 20px;
+        font-size: 17px;
+    }
+
+    .about-image {
+        position: relative;
+    }
+
+    .about-image-box {
+        background: var(--gradient-primary);
+        border-radius: 20px;
+        padding: 60px;
+        text-align: center;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .about-image-box::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    }
+
+    .about-image-box i {
+        font-size: 80px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .about-image-box h3 {
+        font-size: 28px;
+        font-weight: 700;
+        position: relative;
+    }
+
+    .values-section {
+        background: var(--light);
+        padding: 100px 0;
+    }
+
+    .values-header {
+        text-align: center;
+        margin-bottom: 60px;
+    }
+
+    .values-header h2 {
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--dark);
+        margin-bottom: 15px;
+    }
+
+    .values-header p {
+        color: var(--gray);
+        font-size: 18px;
+    }
+
+    .values-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 30px;
+    }
+
+    .value-card {
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+
+    .value-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+
+    .value-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, rgba(0, 102, 204, 0.1) 0%, rgba(0, 200, 83, 0.1) 100%);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 25px;
+        font-size: 32px;
+        color: var(--primary);
+    }
+
+    .value-card:hover .value-icon {
+        background: var(--gradient-primary);
+        color: white;
+    }
+
+    .value-card h3 {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 15px;
+    }
+
+    .value-card p {
+        color: var(--gray);
+        line-height: 1.7;
+    }
+
+    .team-section {
+        padding: 100px 0;
+    }
+
+    .team-header {
+        text-align: center;
+        margin-bottom: 60px;
+    }
+
+    .team-header h2 {
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--dark);
+        margin-bottom: 15px;
+    }
+
+    .team-header p {
+        color: var(--gray);
+        font-size: 18px;
+    }
+
+    .team-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 30px;
+    }
+
+    .team-card {
+        text-align: center;
+    }
+
+    .team-avatar {
+        width: 150px;
+        height: 150px;
+        background: var(--gradient-primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 60px;
+        color: white;
+    }
+
+    .team-card h4 {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 5px;
+    }
+
+    .team-card p {
+        color: var(--primary);
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    @@media (max-width: 992px) {
+        .about-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .values-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .team-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .page-hero-title {
+            font-size: 36px;
+        }
+
+        .values-grid,
+        .team-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<section class="page-hero">
+    <div class="page-hero-container">
+        <h1 class="page-hero-title">من نحن</h1>
+        <p class="page-hero-desc">تعرف على قصتنا ورسالتنا في تقديم أفضل خدمات الإنترنت</p>
+    </div>
+</section>
+
+<section class="about-section">
+    <div class="about-container">
+        <div class="about-grid">
+            <div class="about-content">
+                <h2>رؤيتنا ورسالتنا</h2>
+                <p>
+                    نحن في SkyBeam نسعى لأن نكون الشركة الرائدة في تقديم خدمات الإنترنت عالية السرعة والجودة في المنطقة. نؤمن بأن الاتصال بالإنترنت أصبح ضرورة أساسية في حياتنا اليومية، ولذلك نعمل جاهدين على توفير أفضل تجربة ممكنة لعملائنا.
+                </p>
+                <p>
+                    منذ تأسيسنا، التزمنا بتقديم خدمات موثوقة وبأسعار منافسة، مع دعم فني متميز على مدار الساعة. نفخر بثقة آلاف العملاء الذين اختارونا لتلبية احتياجاتهم من خدمات الإنترنت.
+                </p>
+            </div>
+            <div class="about-image">
+                <div class="about-image-box">
+                    <i class="fas fa-wifi"></i>
+                    <h3>اتصال بلا حدود</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="about-grid" style="direction: ltr;">
+            <div class="about-image">
+                <div class="about-image-box" style="background: linear-gradient(135deg, #00c853 0%, #00a854 100%);">
+                    <i class="fas fa-rocket"></i>
+                    <h3>سرعة وموثوقية</h3>
+                </div>
+            </div>
+            <div class="about-content" style="direction: rtl;">
+                <h2>قصة نجاحنا</h2>
+                <p>
+                    بدأنا رحلتنا بفريق صغير متحمس وحلم كبير بتغيير مفهوم خدمات الإنترنت في المنطقة. اليوم، نفتخر بأننا نخدم آلاف العملاء عبر شبكة واسعة من القطاعات ونقاط التوزيع.
+                </p>
+                <p>
+                    استثمرنا في أحدث التقنيات والبنية التحتية لضمان تقديم خدمة متميزة ومستقرة. فريقنا من المهندسين والفنيين المتخصصين يعمل على مدار الساعة لضمان رضا عملائنا.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="values-section">
+    <div class="about-container">
+        <div class="values-header">
+            <h2>قيمنا الأساسية</h2>
+            <p>المبادئ التي تقود عملنا كل يوم</p>
+        </div>
+
+        <div class="values-grid">
+            <div class="value-card">
+                <div class="value-icon">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <h3>العميل أولاً</h3>
+                <p>رضا العميل هو هدفنا الأول. نسعى دائماً لتجاوز توقعات عملائنا وتقديم خدمة استثنائية.</p>
+            </div>
+
+            <div class="value-card">
+                <div class="value-icon">
+                    <i class="fas fa-gem"></i>
+                </div>
+                <h3>الجودة</h3>
+                <p>نلتزم بأعلى معايير الجودة في جميع جوانب عملنا، من البنية التحتية إلى خدمة العملاء.</p>
+            </div>
+
+            <div class="value-card">
+                <div class="value-icon">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <h3>الابتكار</h3>
+                <p>نسعى دائماً لتبني أحدث التقنيات وتطوير حلول مبتكرة لتلبية احتياجات عملائنا المتغيرة.</p>
+            </div>
+
+            <div class="value-card">
+                <div class="value-icon">
+                    <i class="fas fa-handshake"></i>
+                </div>
+                <h3>النزاهة</h3>
+                <p>نتعامل بشفافية وصدق مع عملائنا وشركائنا، ونلتزم بالوفاء بجميع وعودنا.</p>
+            </div>
+
+            <div class="value-card">
+                <div class="value-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3>العمل الجماعي</h3>
+                <p>نؤمن بقوة الفريق وأن النجاح يتحقق من خلال التعاون والعمل المشترك.</p>
+            </div>
+
+            <div class="value-card">
+                <div class="value-icon">
+                    <i class="fas fa-leaf"></i>
+                </div>
+                <h3>المسؤولية</h3>
+                <p>نلتزم بمسؤوليتنا تجاه المجتمع والبيئة، ونسعى للمساهمة في تنمية مجتمعنا.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="team-section">
+    <div class="about-container">
+        <div class="team-header">
+            <h2>فريقنا</h2>
+            <p>نخبة من المتخصصين والخبراء لخدمتكم</p>
+        </div>
+
+        <div class="team-grid">
+            <div class="team-card">
+                <div class="team-avatar">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <h4>المدير العام</h4>
+                <p>الإدارة العليا</p>
+            </div>
+
+            <div class="team-card">
+                <div class="team-avatar">
+                    <i class="fas fa-code"></i>
+                </div>
+                <h4>الفريق التقني</h4>
+                <p>تطوير وصيانة الشبكات</p>
+            </div>
+
+            <div class="team-card">
+                <div class="team-avatar">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <h4>خدمة العملاء</h4>
+                <p>دعم على مدار الساعة</p>
+            </div>
+
+            <div class="team-card">
+                <div class="team-avatar">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <h4>الصيانة الميدانية</h4>
+                <p>تركيب وصيانة</p>
+            </div>
+        </div>
+    </div>
+</section>

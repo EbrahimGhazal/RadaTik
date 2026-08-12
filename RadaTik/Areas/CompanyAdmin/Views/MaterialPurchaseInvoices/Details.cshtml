@@ -1,0 +1,82 @@
+@using RadaTik.Helpers
+@using RadaTik.Models
+@using RadaTik.Models.Business
+@using RadaTik.Services
+@model MaterialPurchaseInvoice
+@{
+    ViewData["Title"] = $"فاتورة شراء #{Model.Id}";
+    var companyName = ViewBag.CompanyName as string ?? "";
+}
+
+<div class="financial-page financial-hub-page material-invoice-page">
+    <partial name="_WarehouseSubNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-file-invoice";
+        ViewBag.FinancialHeroTheme = "warehouse";
+        ViewBag.FinancialHeroSubtitle = companyName + " — " + Model.InvoiceDate.ToString("yyyy-MM-dd");
+    }
+    <partial name="_FinancialSysHero" />
+
+    <div class="card mb-3">
+        <div class="card-body row g-2">
+            <div class="col-md-3"><span class="text-muted small">المورد</span><div>@(!string.IsNullOrEmpty(Model.SupplierName) ? Model.SupplierName : "—")</div></div>
+            <div class="col-md-3"><span class="text-muted small">الإجمالي</span><div class="fw-semibold">@CurrencyHelper.FormatAmount(Model.TotalAmount, Model.Currency)</div></div>
+            <div class="col-md-3"><span class="text-muted small">الدفع</span><div>@(Model.IsPaid ? "مدفوعة" : "غير مدفوعة")</div></div>
+            <div class="col-md-3"><span class="text-muted small">ملاحظات</span><div>@(Model.Notes ?? "—")</div></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table mb-0 radtk-data-table radtk-data-table--cards">
+                <thead>
+                    <tr>
+                        <th>المادة</th>
+                        <th>الموديل</th>
+                        <th>الوحدة</th>
+                        <th>كمية شراء</th>
+                        <th>قطع في المستودع</th>
+                        <th>سعر الوحدة</th>
+                        <th>الإجمالي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var line in Model.Lines)
+                {
+                    <tr>
+                        <td>@line.ItemName</td>
+                        <td>@(line.ModelNumber ?? "—")</td>
+                        <td>@WarehouseMaterialQuantityHelper.DisplayPackageUnit(line.PackageUnit)@(line.PackageUnit != MaterialPackageUnit.Piece ? $" ×{line.UnitsPerPackage}" : "")</td>
+                        <td>@line.PackageQuantity.ToString("N3")</td>
+                        <td>@line.BaseQuantity.ToString("N3")</td>
+                        <td>@SyrianCurrencyHelper.FormatNew(line.UnitPrice)</td>
+                        <td>@SyrianCurrencyHelper.FormatNew(line.LineTotal)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+        <a class="btn btn-outline-secondary micro-btn" asp-action="Index">رجوع</a>
+        <a class="btn btn-outline-primary micro-btn" asp-action="Print" asp-route-id="@Model.Id" target="_blank"><i class="fas fa-print"></i> طباعة</a>
+        @if (!Model.IsCancelled)
+        {
+            <a class="btn btn-outline-info micro-btn" asp-action="Edit" asp-route-id="@Model.Id"><i class="fas fa-edit"></i> تعديل</a>
+            <form asp-action="Cancel" method="post" class="d-inline" onsubmit="return confirm('إلغاء الفاتورة وعكس المستودع؟');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="refundWallet" value="@(Model.WalletTransactionId.HasValue ? "true" : "false")" />
+                <button type="submit" class="btn btn-outline-danger micro-btn"><i class="fas fa-ban"></i> إلغاء</button>
+            </form>
+        }
+        else
+        {
+            <span class="badge bg-danger align-self-center">ملغاة @Model.CancelledAt?.ToString("yyyy-MM-dd")</span>
+        }
+        @if (Model.WalletTransactionId.HasValue)
+        {
+            <span class="badge bg-info align-self-center">مرتبطة بالمحفظة</span>
+        }
+    </div>
+</div>

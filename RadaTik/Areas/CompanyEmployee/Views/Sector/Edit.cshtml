@@ -1,0 +1,128 @@
+@model RadaTik.Models.Sector
+
+@{
+    ViewData["Title"] = "تعديل القطاع";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">
+        <i class="fas fa-edit text-warning"></i>
+        @ViewData["Title"]: @Model.Name
+    </h2>
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-eye"></i> تفاصيل
+        </a>
+        <a asp-action="Index" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-right"></i> رجوع
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form asp-action="Edit" method="post" class="radtk-form">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Name" class="form-label">اسم القطاع</label>
+                    <input asp-for="Name" class="form-control" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="MikroTikServerId" class="form-label">خادم MikroTik</label>
+                    <select asp-for="MikroTikServerId" class="form-select" asp-items="ViewBag.MikroTikServers">
+                        <option value="">-- اختر خادم --</option>
+                    </select>
+                    <span asp-validation-for="MikroTikServerId" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="IPAddress" class="form-label">عنوان IP</label>
+                    <input asp-for="IPAddress" class="form-control" />
+                    <span asp-validation-for="IPAddress" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="NetworkMask" class="form-label">قناع الشبكة</label>
+                    <input asp-for="NetworkMask" class="form-control" />
+                    <span asp-validation-for="NetworkMask" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="RadioInterfaceName" class="form-label">واجهة المراقبة الراديوية</label>
+                    <input asp-for="RadioInterfaceName" class="form-control" placeholder="wlan1 (اختياري)" />
+                    <span asp-validation-for="RadioInterfaceName" class="text-danger"></span>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="NoiseAlertThresholdDbm" class="form-label">حد Noise</label>
+                    <input asp-for="NoiseAlertThresholdDbm" class="form-control" type="number" placeholder="-90" />
+                    <span asp-validation-for="NoiseAlertThresholdDbm" class="text-danger"></span>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="SnrAlertMinDb" class="form-label">حد SNR</label>
+                    <input asp-for="SnrAlertMinDb" class="form-control" type="number" placeholder="20" />
+                    <span asp-validation-for="SnrAlertMinDb" class="text-danger"></span>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="CcqAlertMinPercent" class="form-label">حد CCQ</label>
+                    <input asp-for="CcqAlertMinPercent" class="form-control" type="number" placeholder="70" />
+                    <span asp-validation-for="CcqAlertMinPercent" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Latitude" class="form-label">Latitude</label>
+                    <input asp-for="Latitude" class="form-control" type="number" step="0.000001" />
+                    <span asp-validation-for="Latitude" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Longitude" class="form-label">Longitude</label>
+                    <input asp-for="Longitude" class="form-control" type="number" step="0.000001" />
+                    <span asp-validation-for="Longitude" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Direction" class="form-label">Direction</label>
+                    <input asp-for="Direction" class="form-control" type="number" min="0" max="360" step="1" />
+                    <span asp-validation-for="Direction" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="CoverageAngle" class="form-label">CoverageAngle</label>
+                    <input asp-for="CoverageAngle" class="form-control" type="number" min="1" max="360" step="1" />
+                    <span asp-validation-for="CoverageAngle" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="CoverageRange" class="form-label">CoverageRange (كم)</label>
+                    <input asp-for="CoverageRange" class="form-control" type="number" min="0.1" step="0.1" />
+                    <span asp-validation-for="CoverageRange" class="text-danger"></span>
+                </div>
+
+                <div class="col-12">
+                    <div class="form-check form-switch radtk-switch-left-label" dir="ltr">
+                        <label class="form-check-label" asp-for="IsActive">تفعيل القطاع</label>
+                        <input class="form-check-input" asp-for="IsActive" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-save"></i> حفظ
+                </button>
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info">
+                    تفاصيل
+                </a>
+                <a asp-action="Index" class="btn btn-secondary">
+                    إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+

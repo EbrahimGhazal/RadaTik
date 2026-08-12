@@ -1,0 +1,28 @@
+@model RadaTik.ViewModels.UI.MapEmbedViewModel
+@{
+    var map = Model ?? new RadaTik.ViewModels.UI.MapEmbedViewModel();
+    var legendTitle = map.LegendTitle ?? "التغطية";
+}
+<div class="radtk-map-wrap mb-2">
+    <div id="@map.MapElementId" class="radtk-map"></div>
+    @if (map.ShowMapTypeControls)
+    {
+        <div class="radtk-map-controls">
+            <div class="btn-group btn-group-sm" role="group" aria-label="نوع الخريطة">
+                <button type="button" class="btn btn-light map-type-btn active" data-map-type="streets">شوارع</button>
+                <button type="button" class="btn btn-light map-type-btn" data-map-type="satellite">قمر</button>
+                <button type="button" class="btn btn-light map-type-btn" data-map-type="terrain">تضاريس</button>
+            </div>
+        </div>
+    }
+    @if (map.ShowLegend && map.LegendItems.Count > 0)
+    {
+        <div class="radtk-map-legend small">
+            <div class="fw-semibold mb-1">@legendTitle</div>
+            @foreach (var item in map.LegendItems)
+            {
+                <div><span class="radtk-legend-dot" style="background:@item.Color"></span> @item.Label</div>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,81 @@
+@model IEnumerable<RadaTik.Models.NetworkWalletTransaction>
+@using RadaTik.Models
+@using RadaTik.Helpers
+@{
+    ViewData["Title"] = ViewData["Title"] ?? "محفظة الشركة";
+    var networkName = ViewBag.NetworkName as string ?? "";
+    var balanceSyp = ViewBag.NetworkBalance as decimal? ?? 0m;
+    var balanceUsd = ViewBag.NetworkBalanceUsd as decimal? ?? 0m;
+}
+
+<div class="financial-page financial-hub-page employee-wallet-page">
+    <div class="sys-hero financial-sys-hero financial-sys-hero--wallet mb-3">
+        <div class="sys-hero-main">
+            <div class="sys-hero-icon"><i class="fas fa-wallet"></i></div>
+            <div>
+                <h1 class="sys-hero-title mb-1">@ViewData["Title"]</h1>
+                <p class="sys-hero-subtitle mb-0">@networkName — عرض للقراءة فقط</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <div class="card financial-stat-card financial-stat-accent h-100">
+                <div class="card-body">
+                    <div class="financial-stat-label">رصيد ل.س.ج</div>
+                    <div class="financial-stat-value">@CurrencyHelper.FormatAmount(balanceSyp, PricingCurrency.SYP_New)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card financial-stat-card financial-stat-accent h-100">
+                <div class="card-body">
+                    <div class="financial-stat-label">رصيد $</div>
+                    <div class="financial-stat-value">@CurrencyHelper.FormatAmount(balanceUsd, PricingCurrency.USD)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card financial-table-card employee-wallet-table-card">
+        <div class="card-header bg-white">
+            <strong>آخر الحركات</strong>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 employee-wallet-table financial-table radtk-data-table radtk-data-table--cards">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>النوع</th>
+                            <th>المبلغ</th>
+                            <th>الرصيد بعد</th>
+                            <th>تفاصيل</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var t in Model)
+                        {
+                            var amountClass = t.SignedAmount >= 0 ? "text-success" : "text-danger";
+                            <tr>
+                                <td>@t.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td>@NetworkWalletTransactionDisplayHelper.TypeLabel(t.Type)</td>
+                                <td class="@amountClass">@CurrencyHelper.FormatAmount(t.SignedAmount, t.Currency)</td>
+                                <td>@CurrencyHelper.FormatAmount(t.NewBalance, t.Currency)</td>
+                                <td class="small">@NetworkWalletTransactionDisplayHelper.TypeDetails(t)</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-4">لا توجد حركات.</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

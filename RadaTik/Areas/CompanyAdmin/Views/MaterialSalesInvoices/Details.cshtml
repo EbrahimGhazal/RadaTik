@@ -1,0 +1,52 @@
+@using RadaTik.Helpers
+@using RadaTik.Models
+@using RadaTik.Models.Business
+@model MaterialSalesInvoice
+@{
+    ViewData["Title"] = $"فاتورة بيع #{Model.Id}";
+    var companyName = ViewBag.CompanyName as string ?? "";
+}
+
+<div class="financial-page financial-hub-page material-invoice-page">
+    <partial name="_WarehouseSubNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-file-invoice-dollar";
+        ViewBag.FinancialHeroTheme = "warehouse";
+        ViewBag.FinancialHeroSubtitle = companyName;
+    }
+    <partial name="_FinancialSysHero" />
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table mb-0 radtk-data-table radtk-data-table--cards">
+                <thead><tr><th>الصنف</th><th>نوع السعر</th><th>الكمية (قطعة)</th><th>السعر</th><th>الإجمالي</th></tr></thead>
+                <tbody>
+                @foreach (var line in Model.Lines)
+                {
+                    <tr>
+                        <td>@line.WarehouseItem?.Name</td>
+                        <td>@line.PriceMode</td>
+                        <td>@line.Quantity.ToString("N3")</td>
+                        <td>@SyrianCurrencyHelper.FormatNew(line.UnitPrice)</td>
+                        <td>@SyrianCurrencyHelper.FormatNew(line.LineTotal)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p class="mt-2 fw-semibold">الإجمالي: @CurrencyHelper.FormatAmount(Model.TotalAmount, Model.Currency) — @(Model.IsPaid ? "مدفوعة" : "غير مدفوعة")</p>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+        <a class="btn btn-outline-secondary micro-btn" asp-action="Index">رجوع</a>
+        <a class="btn btn-outline-primary micro-btn" asp-action="Print" asp-route-id="@Model.Id" target="_blank"><i class="fas fa-print"></i> طباعة</a>
+        @if (!Model.IsCancelled)
+        {
+            <a class="btn btn-outline-info micro-btn" asp-action="Edit" asp-route-id="@Model.Id"><i class="fas fa-edit"></i> تعديل</a>
+            <form asp-action="Cancel" method="post" class="d-inline" onsubmit="return confirm('إلغاء الفاتورة؟');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="refundWallet" value="@(Model.WalletTransactionId.HasValue ? "true" : "false")" />
+                <button type="submit" class="btn btn-outline-danger micro-btn"><i class="fas fa-ban"></i> إلغاء</button>
+            </form>
+        }
+    </div>
+</div>

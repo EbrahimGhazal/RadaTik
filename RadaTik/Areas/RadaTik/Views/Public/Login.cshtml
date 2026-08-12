@@ -1,0 +1,132 @@
+@model RadaTik.ViewModels.Account.LoginViewModel
+@{
+    ViewData["Title"] = "تسجيل الدخول";
+    var returnUrl = ViewData["ReturnUrl"] as string ?? "/RadaTik";
+}
+
+@section Styles {
+<link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+<style>
+    .rt-login-wrap {
+        min-height: calc(100vh - 80px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 120px 24px 60px;
+        background:
+            radial-gradient(circle at 10% 10%, rgba(37, 99, 235, 0.08), transparent 35%),
+            radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.08), transparent 30%),
+            var(--rt-bg);
+    }
+
+    .rt-login-card {
+        width: 100%;
+        max-width: 460px;
+        background: #fff;
+        border: 1px solid var(--rt-border);
+        border-radius: 20px;
+        padding: 36px;
+        box-shadow: var(--rt-shadow);
+    }
+
+    .rt-login-head {
+        text-align: center;
+        margin-bottom: 28px;
+    }
+
+    .rt-login-head p {
+        color: var(--rt-muted);
+        margin-top: 10px;
+        font-size: 0.95rem;
+    }
+
+    .rt-login-card .form-group { margin-bottom: 18px; }
+    .rt-login-card .form-label { display: block; margin-bottom: 8px; font-weight: 600; }
+    .rt-login-card .form-control {
+        width: 100%;
+        border: 1px solid var(--rt-border);
+        border-radius: 12px;
+        padding: 12px 14px;
+    }
+
+    .rt-login-submit {
+        width: 100%;
+        border: none;
+        cursor: pointer;
+        padding: 14px;
+        border-radius: 12px;
+        background: var(--rt-gradient-accent);
+        color: #fff;
+        font-weight: 700;
+        font-family: inherit;
+        margin-top: 8px;
+    }
+
+    .rt-login-links {
+        margin-top: 20px;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        font-size: 14px;
+    }
+
+    .rt-login-links a {
+        color: var(--rt-primary);
+        text-decoration: none;
+        font-weight: 600;
+    }
+</style>
+}
+
+<div class="rt-login-wrap">
+    <div class="rt-login-card">
+        <div class="rt-login-head">
+            @{ ViewData["RtBrandVariant"] = "hero"; }
+            <partial name="~/Views/Shared/_RadaTikBrandLogo.cshtml" />
+            <p>تسجيل دخول مدير شركة، موظف، أو مدير نظام</p>
+        </div>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger" style="margin-bottom: 16px;">@TempData["Error"]</div>
+        }
+
+        <form asp-route="reglog-login" method="post">
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="UserName" class="form-label">اسم المستخدم</label>
+                <input asp-for="UserName" class="form-control" autocomplete="username" />
+                <span asp-validation-for="UserName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Password" class="form-label">كلمة المرور</label>
+                <input asp-for="Password" class="form-control" autocomplete="current-password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;">
+                    <input asp-for="RememberMe" />
+                    <span>تذكرني</span>
+                </label>
+            </div>
+
+            <button type="submit" class="rt-login-submit">
+                <i class="fas fa-sign-in-alt"></i> دخول
+            </button>
+        </form>
+
+        <div class="rt-login-links">
+            <a href="@Url.Action("ForgotPassword", "Account")">نسيت كلمة المرور؟</a>
+            <a href="/Account/RegisterNetworkAdmin">سجّل شركتك</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

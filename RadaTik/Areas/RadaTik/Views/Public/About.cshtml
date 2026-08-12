@@ -1,0 +1,132 @@
+@{
+    ViewData["Title"] = "من نحن";
+}
+
+@section Styles {
+<style>
+    .rt-page-hero {
+        background: var(--rt-gradient);
+        padding: 140px 0 80px;
+        text-align: center;
+        color: #fff;
+    }
+
+    .rt-page-hero h1 { font-size: 2.8rem; margin-bottom: 12px; }
+    .rt-page-hero p { color: rgba(255,255,255,0.82); font-size: 1.1rem; max-width: 720px; margin: 0 auto; }
+
+    .rt-about {
+        padding: 80px 0;
+    }
+
+    .rt-about-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 24px;
+        display: grid;
+        gap: 40px;
+    }
+
+    .rt-about-block {
+        background: #fff;
+        border: 1px solid var(--rt-border);
+        border-radius: var(--rt-radius);
+        padding: 36px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    }
+
+    .rt-about-block h2 {
+        font-size: 1.6rem;
+        margin-bottom: 14px;
+        color: var(--rt-primary-deep);
+    }
+
+    .rt-about-block p {
+        color: var(--rt-muted);
+        margin-bottom: 12px;
+    }
+
+    .rt-values {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+        margin-top: 24px;
+    }
+
+    .rt-value {
+        background: var(--rt-bg);
+        border-radius: 14px;
+        padding: 20px;
+    }
+
+    .rt-value strong {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--rt-text);
+    }
+
+    .rt-value span { color: var(--rt-muted); font-size: 0.95rem; }
+
+    @@media (max-width: 900px) {
+        .rt-values { grid-template-columns: 1fr; }
+    }
+</style>
+}
+
+<section class="rt-page-hero">
+    <h1>من نحن</h1>
+    <p>RadaTik منصة تقنية متخصصة في تمكين مزودي خدمة الإنترنت من إدارة أعمالهم بكفاءة وشفافية.</p>
+</section>
+
+<section class="rt-about">
+    <div class="rt-about-inner">
+        <article class="rt-about-block">
+            <h2>رسالتنا</h2>
+            <p>
+                نؤمن أن نجاح مزود الإنترنت لا يعتمد على السرعة فقط، بل على قدرة الفريق على
+                إدارة المشتركين، التحصيل، الدعم، والمخزون بسلاسة. RadaTik وُجدت لتجميع هذه
+                العمليات في نظام واحد قابل للتوسع.
+            </p>
+            <p>
+                المنصة مبنية على ASP.NET Core متعدد الأدوار (Areas)، مع عزل شبكات، صلاحيات
+                دقيقة، وتكامل MikroTik — لتخدم شركات ISP من الحجم الصغير إلى الشبكات
+                متعددة الفروع.
+            </p>
+        </article>
+
+        <article class="rt-about-block">
+            <h2>ما الذي نقدمه؟</h2>
+            <p>
+                ليس موقعاً تسويقياً فقط — RadaTik هي البنية التشغيلية الكاملة: لوحة مدير
+                الشركة، بوابة العميل، نقاط التحصيل، موظفو الميدان، ومدير النظام.
+            </p>
+            <div class="rt-values">
+                <div class="rt-value">
+                    <strong><i class="fas fa-check-circle" style="color: var(--rt-primary);"></i> موثوقية</strong>
+                    <span>بيانات منظمة، صلاحيات واضحة، وسجل عمليات.</span>
+                </div>
+                <div class="rt-value">
+                    <strong><i class="fas fa-expand-arrows-alt" style="color: var(--rt-accent);"></i> قابلية التوسع</strong>
+                    <span>شبكات فرعية، خدمات اختيارية، وتسعير مرن.</span>
+                </div>
+                <div class="rt-value">
+                    <strong><i class="fas fa-handshake" style="color: var(--rt-accent-soft);"></i> شراكة</strong>
+                    <span>ننمو مع شركتك — من التشغيل اليومي إلى التقارير الاستراتيجية.</span>
+                </div>
+            </div>
+        </article>
+
+        <article class="rt-about-block">
+            <h2>SkyBeam و RadaTik</h2>
+            <p>
+                SkyBeam مثال حي لشركة ISP تستخدم المنصة لخدمة مشتركيها. موقع SkyBeam
+                مخصص للعملاء (باقات، اشتراك، دعم)، بينما موقع RadaTik مخصص للشركات
+                الراغبة في استخدام المنصة لإدارة شبكاتها.
+            </p>
+            <p style="margin-bottom: 0;">
+                <a href="@Url.Action("Index", "Public", new { area = "SkyBeam" })" style="color: var(--rt-primary); font-weight: 700; text-decoration: none;">
+                    زيارة موقع SkyBeam <i class="fas fa-arrow-left"></i>
+                </a>
+            </p>
+        </article>
+    </div>
+</section>

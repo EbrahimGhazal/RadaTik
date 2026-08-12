@@ -1,0 +1,483 @@
+@model RadaTik.ViewModels.Account.ProfileViewModel
+@{
+    ViewData["Title"] = "الملف الشخصي";
+    var initial = char.ToUpper(
+        (!string.IsNullOrWhiteSpace(Model.FullName) ? Model.FullName!.Trim()[0]
+            : !string.IsNullOrWhiteSpace(Model.UserName) ? Model.UserName![0]
+            : 'م'));
+    var roleCount = Model.Roles?.Count ?? 0;
+    var emailPreview = string.IsNullOrEmpty(Model.Email) ? "—" : (Model.Email!.Length > 28 ? Model.Email[..25] + "…" : Model.Email);
+}
+
+<!-- نفس هيكل صفحة employee/Clients: رأس + شريط إحصاءات + بطاقات -->
+<div class="account-profile-page">
+    <div class="page-header">
+        <div class="page-header-content">
+            <h1 class="page-title">
+                <i class="fas fa-user-circle"></i>
+                @ViewData["Title"]
+            </h1>
+            <div class="page-actions">
+                <a asp-controller="Home" asp-action="Index" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-home"></i>
+                    الرئيسية
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- شريط إحصاءات بنفس أسلوب Clients (متغيرات CSS تدعم الدارك/اللايت) -->
+    <div class="stats-bar">
+        <div class="stat-item stat-success">
+            <div class="stat-icon-mini"><i class="fas fa-check-circle"></i></div>
+            <div class="stat-data">
+                <span class="stat-number">نشط</span>
+                <span class="stat-label">حالة الحساب</span>
+            </div>
+        </div>
+        <div class="stat-item stat-primary">
+            <div class="stat-icon-mini"><i class="fas fa-user-shield"></i></div>
+            <div class="stat-data">
+                <span class="stat-number">@roleCount</span>
+                <span class="stat-label">عدد الأدوار</span>
+            </div>
+        </div>
+        <div class="stat-item stat-info">
+            <div class="stat-icon-mini"><i class="fas fa-at"></i></div>
+            <div class="stat-data">
+                <span class="stat-number stat-number--text" title="@Model.Email">@emailPreview</span>
+                <span class="stat-label">البريد / التعريف</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="account-profile-columns">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-id-badge"></i>
+                    بطاقة المستخدم
+                </h3>
+            </div>
+            <div class="card-body account-profile-card-body">
+                <div class="profile-avatar-wrap" aria-hidden="true">@initial</div>
+                <div class="profile-display-name">@(string.IsNullOrWhiteSpace(Model.FullName) ? "—" : Model.FullName)</div>
+                <div class="profile-display-user text-muted">@@@(Model.UserName ?? "—")</div>
+
+                @if (Model.Roles != null && Model.Roles.Count > 0)
+                {
+                    <div class="profile-roles">
+                        @foreach (var role in Model.Roles.OrderBy(r => r))
+                        {
+                            var pr = RolePill(role);
+                            <span class="role-pill @pr.CssClass" title="@role">@pr.Label</span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <span class="text-muted small">لا أدوار مسجّلة</span>
+                }
+
+                <hr class="profile-divider" />
+
+                <div class="profile-status-line text-success">
+                    <i class="fas fa-check-circle"></i>
+                    <span>الحساب نشط وجاهز للاستخدام</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-address-card"></i>
+                    معلومات الحساب
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="detail-row">
+                    <div class="detail-icon"><i class="fas fa-user"></i></div>
+                    <div class="detail-meta">
+                        <div class="detail-label">اسم المستخدم</div>
+                        <div class="detail-value">@(Model.UserName ?? "—")</div>
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-icon"><i class="fas fa-envelope"></i></div>
+                    <div class="detail-meta">
+                        <div class="detail-label">البريد الإلكتروني</div>
+                        <div class="detail-value">@(Model.Email ?? "—")</div>
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-icon"><i class="fas fa-signature"></i></div>
+                    <div class="detail-meta">
+                        <div class="detail-label">الاسم الكامل</div>
+                        <div class="detail-value @(string.IsNullOrWhiteSpace(Model.FullName) ? "empty" : "")">
+                            @(string.IsNullOrWhiteSpace(Model.FullName) ? "غير محدد" : Model.FullName)
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-icon"><i class="fas fa-phone"></i></div>
+                    <div class="detail-meta">
+                        <div class="detail-label">رقم الهاتف</div>
+                        <div class="detail-value @(string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "empty" : "")">
+                            @(string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "غير محدد" : Model.PhoneNumber)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* مطابقة employee/Clients — Page header */
+    .account-profile-page .page-header {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .account-profile-page .page-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--spacing-md);
+    }
+
+    .account-profile-page .page-title {
+        font-size: var(--font-2xl);
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        color: var(--text-primary);
+    }
+
+    .account-profile-page .page-title i {
+        color: var(--primary);
+    }
+
+    .account-profile-page .btn {
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    .account-profile-page .btn i {
+        width: 1rem;
+        font-size: .9rem;
+        line-height: 1;
+        text-align: center;
+    }
+
+    .account-profile-page .btn.btn-sm {
+        min-height: 32px;
+    }
+
+    .account-profile-page .page-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        flex-wrap: wrap;
+    }
+
+    /* مطابقة Clients — stats-bar */
+    .account-profile-page .stats-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-md);
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: var(--spacing-lg);
+        align-items: center;
+        border: 1px solid var(--border-light);
+    }
+
+    .account-profile-page .stat-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-sm);
+        background: var(--bg-hover);
+        min-width: 90px;
+    }
+
+    .account-profile-page .stat-icon-mini {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: white;
+    }
+
+    .account-profile-page .stat-data {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+        min-width: 0;
+    }
+
+    .account-profile-page .stat-number {
+        font-size: var(--font-lg);
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .account-profile-page .stat-number--text {
+        font-size: var(--font-sm);
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+    }
+
+    .account-profile-page .stat-label {
+        font-size: 10px;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+
+    .account-profile-page .stat-primary .stat-icon-mini { background: var(--primary); }
+    .account-profile-page .stat-primary .stat-number { color: var(--primary); }
+
+    .account-profile-page .stat-success .stat-icon-mini { background: var(--success); }
+    .account-profile-page .stat-success .stat-number { color: var(--success); }
+
+    .account-profile-page .stat-info .stat-icon-mini { background: var(--info); }
+    .account-profile-page .stat-info .stat-number { color: var(--info); }
+
+    /* أعمدة البطاقات */
+    .account-profile-page .account-profile-columns {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: var(--spacing-lg);
+        align-items: start;
+    }
+
+    /* بطاقة — نفس تسمية Clients */
+    .account-profile-page .card .card-title {
+        margin: 0;
+        font-size: var(--font-base);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        color: var(--text-primary);
+    }
+
+    .account-profile-page .card .card-title i {
+        color: var(--primary);
+    }
+
+    .account-profile-page .account-profile-card-body {
+        text-align: center;
+    }
+
+    .account-profile-page .profile-avatar-wrap {
+        width: 112px;
+        height: 112px;
+        border-radius: 50%;
+        margin: 0 auto var(--spacing-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--text-on-primary);
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        box-shadow: var(--shadow-md);
+        letter-spacing: -0.02em;
+    }
+
+    .account-profile-page .profile-display-name {
+        font-weight: 700;
+        font-size: var(--font-xl);
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+
+    .account-profile-page .profile-display-user {
+        font-size: var(--font-sm);
+        margin-bottom: var(--spacing-md);
+    }
+
+    .account-profile-page .profile-roles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+        justify-content: center;
+    }
+
+    .account-profile-page .role-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: var(--radius-full);
+        font-size: var(--font-xs);
+        font-weight: 600;
+        border: 1px solid var(--border-color);
+        background: var(--bg-hover);
+        color: var(--text-secondary);
+    }
+
+    .account-profile-page .role-pill.role-admin {
+        background: var(--danger-bg);
+        color: var(--danger);
+        border-color: var(--border-color);
+    }
+
+    .account-profile-page .role-pill.role-employee {
+        background: var(--success-bg);
+        color: var(--success-dark);
+        border-color: var(--border-color);
+    }
+
+    .account-profile-page .role-pill.role-client {
+        background: var(--info-bg);
+        color: var(--info-dark);
+        border-color: var(--border-color);
+    }
+
+    .account-profile-page .role-pill.role-collection {
+        background: var(--warning-bg);
+        color: var(--warning-dark);
+        border-color: var(--border-color);
+    }
+
+    .account-profile-page .profile-divider {
+        margin: var(--spacing-lg) 0;
+        border: 0;
+        border-top: 1px solid var(--border-color);
+        opacity: 1;
+    }
+
+    .account-profile-page .profile-status-line {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        font-size: var(--font-sm);
+        font-weight: 600;
+    }
+
+    .account-profile-page .profile-status-line i {
+        color: var(--success);
+    }
+
+    /* صفوف التفاصيل — حدود وخلفيات من متغيرات الثيم */
+    .account-profile-page .detail-row {
+        display: flex;
+        gap: var(--spacing-md);
+        padding: var(--spacing-md) 0;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .account-profile-page .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .account-profile-page .detail-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        background: var(--bg-hover);
+        color: var(--primary);
+        border: 1px solid var(--border-color);
+    }
+
+    .account-profile-page .detail-label {
+        font-size: var(--font-xs);
+        color: var(--text-muted);
+        margin-bottom: 0.15rem;
+    }
+
+    .account-profile-page .detail-value {
+        font-weight: 600;
+        font-size: var(--font-sm);
+        color: var(--text-primary);
+        word-break: break-word;
+    }
+
+    .account-profile-page .detail-value.empty {
+        color: var(--text-muted);
+        font-weight: 500;
+        font-style: italic;
+    }
+
+    /* دارك مود: خلفيات وألوان أوضح للشارات */
+    [data-theme="dark"] .account-profile-page .role-pill.role-admin {
+        background: var(--alert-danger-bg);
+        color: var(--alert-danger-text);
+        border-color: var(--alert-danger-border);
+    }
+
+    [data-theme="dark"] .account-profile-page .role-pill.role-employee {
+        background: var(--alert-success-bg);
+        color: var(--alert-success-text);
+        border-color: var(--alert-success-border);
+    }
+
+    [data-theme="dark"] .account-profile-page .role-pill.role-client {
+        background: var(--alert-info-bg);
+        color: var(--alert-info-text);
+        border-color: var(--alert-info-border);
+    }
+
+    [data-theme="dark"] .account-profile-page .role-pill.role-collection {
+        background: var(--alert-warning-bg);
+        color: var(--alert-warning-text);
+        border-color: var(--alert-warning-border);
+    }
+
+    [data-theme="dark"] .account-profile-page .profile-avatar-wrap {
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+    }
+
+    [data-theme="dark"] .account-profile-page .profile-status-line {
+        color: var(--alert-success-text);
+    }
+
+    @@media (max-width: 768px) {
+        .account-profile-page .stats-bar {
+            justify-content: center;
+        }
+
+        .account-profile-page .page-header-content {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .account-profile-page .stat-number--text {
+            max-width: 160px;
+        }
+    }
+</style>
+
+@functions {
+    private static (string Label, string CssClass) RolePill(string role) => role switch
+    {
+        "SystemAdministrator" => ("مدير النظام", "role-admin"),
+        "NetworkAdministrator" => ("مدير الشركة", "role-admin"),
+        "CompanyEmployee" => ("موظف شركة", "role-employee"),
+        "Employee" => ("موظف", "role-employee"),
+        "SystemEmployee" => ("موظف النظام", "role-employee"),
+        "Client" => ("عميل", "role-client"),
+        "CollectionPoint" => ("نقطة تحصيل", "role-collection"),
+        _ => (role, "")
+    };
+}

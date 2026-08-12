@@ -1,0 +1,24 @@
+@model RadaTik.ViewModels.UI.UnifiedStepperViewModel
+@{
+    var stepper = Model ?? new RadaTik.ViewModels.UI.UnifiedStepperViewModel();
+}
+<nav class="radtk-stepper" aria-label="خطوات المعالج">
+    <ol class="radtk-stepper__list">
+        @foreach (var step in stepper.Steps)
+        {
+            var state = step.Number < stepper.CurrentStep ? "done"
+                : step.Number == stepper.CurrentStep ? "current"
+                : "upcoming";
+            <li class="radtk-stepper__item radtk-stepper__item--@state">
+                <span class="radtk-stepper__marker" aria-hidden="true">@step.Number</span>
+                <span class="radtk-stepper__text">
+                    <span class="radtk-stepper__title">@step.Title</span>
+                    @if (!string.IsNullOrWhiteSpace(step.Subtitle))
+                    {
+                        <span class="radtk-stepper__subtitle">@step.Subtitle</span>
+                    }
+                </span>
+            </li>
+        }
+    </ol>
+</nav>

@@ -1,0 +1,170 @@
+@model IEnumerable<int>?
+@using RadaTik.ViewModels.Admin
+@{
+    var selected = (Model ?? Enumerable.Empty<int>()).ToHashSet();
+    var rows = ViewBag.EmployeeServicePermissionRows as List<EmployeeServicePermissionUiRow> ?? new List<EmployeeServicePermissionUiRow>();
+}
+
+@if (rows.Count == 0)
+{
+    <div class="alert alert-warning mb-0">
+        لا توجد صلاحيات خدمات موظفين متاحة حالياً في قاعدة البيانات. تأكد من تجهيز صلاحيات الخدمات من مدير النظام.
+    </div>
+}
+else
+{
+    <div class="row g-3 employee-perm-matrix">
+        @foreach (var row in rows)
+        {
+            <div class="col-12 col-lg-6">
+                <div class="employee-perm-service-card h-100 p-3">
+                    <div class="employee-perm-service-title mb-2">
+                        <i class="fas fa-puzzle-piece text-primary"></i>
+                        @row.Title
+                    </div>
+                    <div class="row g-2">
+                        @foreach (var slot in row.Slots)
+                        {
+                            var allOn = slot.PermissionIds.Count > 0 && slot.PermissionIds.All(id => selected.Contains(id));
+                            <div class="col-6 col-md-3">
+                                @if (slot.PermissionIds.Count == 1)
+                                {
+                                    var pid = slot.PermissionIds[0];
+                                    <label class="employee-perm-slot w-100 mb-0">
+                                        <input type="checkbox"
+                                               class="form-check-input perm-any"
+                                               name="SelectedPermissionIds"
+                                               value="@pid"
+                                               @(selected.Contains(pid) ? "checked" : null) />
+                                        <span class="employee-perm-slot-label">@slot.Label</span>
+                                        @if (!string.IsNullOrEmpty(slot.Hint))
+                                        {
+                                            <span class="employee-perm-hint d-block" title="@slot.Hint">@slot.Hint</span>
+                                        }
+                                    </label>
+                                }
+                                else
+                                {
+                                    <div class="employee-perm-slot w-100 perm-slot-multi" data-perm-multi="1">
+                                        <label class="mb-0 w-100">
+                                            <input type="checkbox" class="form-check-input perm-master perm-any" @(allOn ? "checked" : null) />
+                                            <span class="employee-perm-slot-label">@slot.Label</span>
+                                        </label>
+                                        @if (!string.IsNullOrEmpty(slot.Hint))
+                                        {
+                                            <span class="employee-perm-hint d-block" title="@slot.Hint">@slot.Hint</span>
+                                        }
+                                        @foreach (var pid in slot.PermissionIds)
+                                        {
+                                            <input type="checkbox"
+                                                   name="SelectedPermissionIds"
+                                                   value="@pid"
+                                                   class="perm-value perm-any visually-hidden-position"
+                                                   @(selected.Contains(pid) ? "checked" : null) />
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<style>
+    .employee-perm-service-card {
+        border: 1px solid rgba(37, 99, 235, 0.18);
+        border-radius: 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        box-shadow: 0 10px 26px -22px rgba(15, 23, 42, 0.45);
+    }
+    .employee-perm-service-title {
+        font-weight: 800;
+        color: #0f172a;
+        font-size: 0.95rem;
+    }
+    .employee-perm-slot {
+        display: block;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.45rem 0.5rem;
+        background: #fff;
+        cursor: pointer;
+        transition: border-color .15s ease, background .15s ease;
+    }
+    .employee-perm-slot:hover {
+        border-color: #93c5fd;
+        background: #f8fbff;
+    }
+    .employee-perm-slot-label {
+        display: block;
+        font-weight: 700;
+        font-size: 0.82rem;
+        color: #334155;
+        margin-top: 0.15rem;
+    }
+    .employee-perm-hint {
+        font-size: 0.68rem;
+        color: #64748b;
+        line-height: 1.25;
+        margin-top: 0.15rem;
+        max-height: 2.5rem;
+        overflow: hidden;
+    }
+    .visually-hidden-position {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+    }
+    .perm-slot-multi {
+        position: relative;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.45rem 0.5rem;
+        background: #fff;
+    }
+</style>
+
+<script>
+    (function () {
+        function initMultiSlots(root) {
+            root = root || document;
+            root.querySelectorAll('.perm-slot-multi').forEach(function (slot) {
+                var master = slot.querySelector('.perm-master');
+                var values = slot.querySelectorAll('.perm-value');
+                if (!master || !values.length) return;
+
+                function syncMaster() {
+                    master.checked = Array.prototype.every.call(values, function (v) { return v.checked; });
+                }
+
+                master.addEventListener('change', function () {
+                    Array.prototype.forEach.call(values, function (v) { v.checked = master.checked; });
+                    document.dispatchEvent(new Event('employeePermChanged'));
+                });
+                Array.prototype.forEach.call(values, function (v) {
+                    v.addEventListener('change', function () { syncMaster(); document.dispatchEvent(new Event('employeePermChanged')); });
+                });
+                syncMaster();
+            });
+        }
+
+        initMultiSlots(document);
+
+        document.addEventListener('employeePermChanged', function () {
+            var el = document.getElementById('permSelectedCount');
+            if (!el) return;
+            var set = new Set();
+            document.querySelectorAll('input[name="SelectedPermissionIds"]:checked').forEach(function (i) { set.add(i.value); });
+            el.textContent = set.size.toString();
+        });
+    })();
+</script>

@@ -1,0 +1,327 @@
+@{
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var areaRoute = new { area = "RadaTik" };
+}
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="RadaTik - منصة متكاملة لإدارة مزودي خدمة الإنترنت" />
+    <title>@ViewData["Title"] - RadaTik</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="~/css/radatik-spa-logo.css" asp-append-version="true" />
+    <style>
+        :root {
+            --rt-primary: #2563eb;
+            --rt-primary-deep: #1e3a8a;
+            --rt-accent: #06b6d4;
+            --rt-accent-soft: #8b5cf6;
+            --rt-dark: #0b1733;
+            --rt-dark-mid: #12478f;
+            --rt-text: #0f172a;
+            --rt-muted: #64748b;
+            --rt-surface: #ffffff;
+            --rt-bg: #f1f5f9;
+            --rt-border: rgba(148, 163, 184, 0.25);
+            --rt-gradient: linear-gradient(135deg, #0b1733 0%, #12478f 52%, #1f2a6b 100%);
+            --rt-gradient-accent: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+            --rt-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+            --rt-radius: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: var(--rt-bg);
+            color: var(--rt-text);
+            line-height: 1.7;
+        }
+
+        .rt-nav {
+            position: fixed;
+            inset: 0 0 auto 0;
+            z-index: 1000;
+            padding: 16px 0;
+            transition: all 0.3s ease;
+        }
+
+        .rt-nav.scrolled {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+            padding: 10px 0;
+        }
+
+        .rt-nav-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .rt-nav-brand {
+            text-decoration: none;
+            color: #fff;
+        }
+
+        .rt-nav.scrolled .rt-nav-brand { color: var(--rt-text); }
+        .rt-nav.scrolled .rt-svg-ring { stroke: #2563eb; }
+        .rt-nav.scrolled .rt-svg-accent { stroke: #06b6d4; }
+        .rt-nav.scrolled .rt-svg-glow { fill: #22d3ee; }
+
+        .rt-nav-toggle {
+            display: none;
+            border: none;
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .rt-nav.scrolled .rt-nav-toggle {
+            background: var(--rt-bg);
+            color: var(--rt-text);
+        }
+
+        .rt-nav-links {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            list-style: none;
+        }
+
+        .rt-nav-link {
+            text-decoration: none;
+            color: rgba(255,255,255,0.92);
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-weight: 600;
+            transition: all 0.25s ease;
+        }
+
+        .rt-nav.scrolled .rt-nav-link { color: var(--rt-muted); }
+        .rt-nav-link:hover,
+        .rt-nav-link.active {
+            background: rgba(255,255,255,0.12);
+            color: #fff;
+        }
+
+        .rt-nav.scrolled .rt-nav-link:hover,
+        .rt-nav.scrolled .rt-nav-link.active {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--rt-primary);
+        }
+
+        .rt-nav-link--cta {
+            background: var(--rt-gradient-accent);
+            color: #fff !important;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+        }
+
+        .rt-nav.scrolled .rt-nav-link--cta {
+            color: #fff !important;
+        }
+
+        .rt-alert-bar {
+            position: fixed;
+            top: 88px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1100;
+            min-width: 320px;
+            max-width: 90vw;
+            padding: 14px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--rt-shadow);
+            animation: rtSlideDown 0.35s ease;
+        }
+
+        .rt-alert-bar.success { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .rt-alert-bar.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+
+        @@keyframes rtSlideDown {
+            from { opacity: 0; transform: translate(-50%, -12px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+
+        main { min-height: 60vh; }
+
+        .rt-footer {
+            background: var(--rt-gradient);
+            color: rgba(255,255,255,0.88);
+            padding: 70px 0 30px;
+            margin-top: 80px;
+        }
+
+        .rt-footer-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .rt-footer-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .rt-footer-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+
+        .rt-footer-links {
+            list-style: none;
+            display: grid;
+            gap: 10px;
+        }
+
+        .rt-footer-links a {
+            color: rgba(255,255,255,0.75);
+            text-decoration: none;
+        }
+
+        .rt-footer-links a:hover { color: #fff; }
+
+        .rt-footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.12);
+            padding-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 14px;
+            color: rgba(255,255,255,0.65);
+        }
+
+        @@media (max-width: 900px) {
+            .rt-nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
+            .rt-nav-links {
+                position: fixed;
+                top: 72px;
+                right: 16px;
+                left: 16px;
+                flex-direction: column;
+                background: #fff;
+                border-radius: 16px;
+                padding: 16px;
+                box-shadow: var(--rt-shadow);
+                display: none;
+            }
+            .rt-nav-links.open { display: flex; }
+            .rt-nav-link { color: var(--rt-text) !important; width: 100%; text-align: center; }
+            .rt-footer-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <nav class="rt-nav" id="rtNav">
+        <div class="rt-nav-inner">
+            <a href="@Url.Action("Index", "Public", areaRoute)" class="rt-nav-brand">
+                @{ ViewData["RtBrandVariant"] = "hero"; }
+                <partial name="~/Views/Shared/_RadaTikBrandLogo.cshtml" />
+            </a>
+            <button type="button" class="rt-nav-toggle" id="rtNavToggle" aria-label="القائمة">
+                <i class="fas fa-bars"></i>
+            </button>
+            <ul class="rt-nav-links" id="rtNavLinks">
+                <li><a href="@Url.Action("Index", "Public", areaRoute)" class="rt-nav-link @(currentAction == "Index" ? "active" : "")">الرئيسية</a></li>
+                <li><a href="@Url.Action("About", "Public", areaRoute)" class="rt-nav-link @(currentAction == "About" ? "active" : "")">من نحن</a></li>
+                <li><a href="@Url.Action("Services", "Public", areaRoute)" class="rt-nav-link @(currentAction == "Services" ? "active" : "")">خدماتنا</a></li>
+                <li><a href="@Url.Action("Contact", "Public", areaRoute)" class="rt-nav-link @(currentAction == "Contact" ? "active" : "")">اتصل بنا</a></li>
+                <li><a href="/Account/login?returnUrl=%2FRadaTik" class="rt-nav-link rt-nav-link--cta">تسجيل الدخول</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="rt-alert-bar success" id="rtAlert">
+            <i class="fas fa-check-circle"></i>
+            <span>@TempData["Success"]</span>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="rt-alert-bar error" id="rtAlert">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>@TempData["Error"]</span>
+        </div>
+    }
+
+    <main>
+        @RenderBody()
+    </main>
+
+    <footer class="rt-footer">
+        <div class="rt-footer-inner">
+            <div class="rt-footer-grid">
+                <div>
+                    <div style="margin-bottom: 16px;">
+                        @{ ViewData["RtBrandVariant"] = "hero"; }
+                        <partial name="~/Views/Shared/_RadaTikBrandLogo.cshtml" />
+                    </div>
+                    <p>منصة RadaTik لإدارة مزودي خدمة الإنترنت: مشتركون، MikroTik، محافظ، نقاط تحصيل، مخازن، رواتب، وتقارير — في نظام واحد.</p>
+                </div>
+                <div>
+                    <h4 class="rt-footer-title">روابط سريعة</h4>
+                    <ul class="rt-footer-links">
+                        <li><a href="@Url.Action("Index", "Public", areaRoute)">الرئيسية</a></li>
+                        <li><a href="@Url.Action("About", "Public", areaRoute)">من نحن</a></li>
+                        <li><a href="@Url.Action("Services", "Public", areaRoute)">خدماتنا</a></li>
+                        <li><a href="@Url.Action("Contact", "Public", areaRoute)">اتصل بنا</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="rt-footer-title">للشركات</h4>
+                    <ul class="rt-footer-links">
+                        <li><a href="/Account/RegisterNetworkAdmin">سجّل شركتك</a></li>
+                        <li><a href="/Account/login?returnUrl=%2FRadaTik">تسجيل الدخول</a></li>
+                        <li><a href="@Url.Action("Index", "Public", new { area = "SkyBeam" })">موقع SkyBeam</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="rt-footer-bottom">
+                <span>© @DateTime.Now.Year RadaTik. جميع الحقوق محفوظة.</span>
+                <span>منصة B2B لإدارة شبكات ISP</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const rtNav = document.getElementById('rtNav');
+        window.addEventListener('scroll', () => {
+            rtNav.classList.toggle('scrolled', window.scrollY > 40);
+        });
+        document.getElementById('rtNavToggle').addEventListener('click', () => {
+            document.getElementById('rtNavLinks').classList.toggle('open');
+        });
+        const rtAlert = document.getElementById('rtAlert');
+        if (rtAlert) {
+            setTimeout(() => {
+                rtAlert.style.opacity = '0';
+                rtAlert.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => rtAlert.remove(), 300);
+            }, 5000);
+        }
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

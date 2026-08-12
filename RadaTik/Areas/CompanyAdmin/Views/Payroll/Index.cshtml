@@ -1,0 +1,327 @@
+@model RadaTik.Areas.CompanyAdmin.ViewModels.PayrollIndexViewModel
+@using RadaTik.Helpers
+@{
+    ViewData["Title"] = "رواتب الموظفين";
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var monthNames = new[] { "", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
+    var monthLabel = monthNames[Model.Month];
+    var pendingWithdrawals = ViewBag.PendingWithdrawalRequests as IReadOnlyList<RadaTik.Models.Business.PayrollWithdrawalRequest> ?? Array.Empty<RadaTik.Models.Business.PayrollWithdrawalRequest>();
+    var paidCount = Model.Rows.Count(r => r.IsPaid);
+    var pendingCount = Model.Rows.Count(r => !r.IsPaid);
+}
+
+<div class="financial-page financial-hub-page payroll-admin-page">
+    @{
+        ViewBag.FinancialNavCurrent = "payroll";
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-money-check-alt";
+        ViewBag.FinancialHeroTheme = "payroll";
+        ViewBag.FinancialHeroSubtitle = companyName + " — كشف رواتب " + monthLabel + " " + Model.Year;
+        ViewBag.FinancialHeroChips = new (string Icon, string Text)[]
+        {
+            ("fas fa-users", $"{Model.Rows.Count} سجل"),
+            ("fas fa-clock", $"{pendingCount} معلّق"),
+            ("fas fa-check-circle", $"{paidCount} مُصروف")
+        };
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-light btn-sm micro-btn"" href=""" + Url.RouteUrl("networkManager-payroll", new { action = "Employees" }) + @"""><i class=""fas fa-users-cog""></i> إدارة الموظفين</a>";
+    }
+    <partial name="_FinancialSysHero" />
+
+    <details class="payroll-guide-details mb-3">
+        <summary class="payroll-guide-summary">
+            <i class="fas fa-circle-info"></i>
+            <span>دليل الرواتب والمحفظة</span>
+        </summary>
+        <partial name="_BusinessModuleGuide" />
+    </details>
+
+    @if (TempData["Success"] != null) { <div class="alert alert-success payroll-alert">@TempData["Success"]</div> }
+    @if (TempData["Error"] != null) { <div class="alert alert-danger payroll-alert">@TempData["Error"]</div> }
+
+    @if (TempData["SuggestMoneyDiaryAmount"] is string suggestAmt)
+    {
+        var suggestDesc = TempData["SuggestMoneyDiaryDescription"] as string;
+        <div class="alert alert-info payroll-alert d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="fas fa-book"></i> تم الصرف — يمكنك تسجيل المبلغ في دفتر الإيراد والمصروف (اختياري).</span>
+            <a class="btn btn-sm btn-outline-primary micro-btn"
+               asp-area="CompanyAdmin" asp-controller="MoneyDiary" asp-action="Index"
+               asp-route-prefillAmount="@suggestAmt"
+               asp-route-prefillEntryType="2"
+               asp-route-prefillCategoryKey="expense_salary"
+               asp-route-prefillDescription="@suggestDesc">فتح الدفتر</a>
+        </div>
+    }
+
+    <div class="card payroll-toolbar-card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-3 align-items-end justify-content-between">
+                <form method="get" class="d-flex flex-wrap gap-2 align-items-end payroll-period-form">
+                    <div>
+                        <label class="form-label form-label-sm mb-0" for="payrollYear">السنة</label>
+                        <input id="payrollYear" type="number" name="year" class="form-control form-control-sm" value="@Model.Year" min="2000" max="2100" />
+                    </div>
+                    <div>
+                        <label class="form-label form-label-sm mb-0" for="payrollMonth">الشهر</label>
+                        <select id="payrollMonth" name="month" class="form-select form-select-sm">
+                            @for (int i = 1; i <= 12; i++)
+                            {
+                                if (i == Model.Month)
+                                {
+                                    <option value="@i" selected>@monthNames[i]</option>
+                                }
+                                else
+                                {
+                                    <option value="@i">@monthNames[i]</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm micro-btn">
+                        <i class="fas fa-calendar-alt"></i> عرض
+                    </button>
+                </form>
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-outline-secondary btn-sm micro-btn" asp-action="Print" asp-route-year="@Model.Year" asp-route-month="@Model.Month" target="_blank">
+                        <i class="fas fa-print"></i> طباعة
+                    </a>
+                    <a class="btn btn-outline-success btn-sm micro-btn" asp-action="ExportExcel" asp-route-year="@Model.Year" asp-route-month="@Model.Month">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card payroll-prepare-card border-0 shadow-sm mb-3">
+        <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="payroll-prepare-text">
+                <div class="fw-bold"><i class="fas fa-calendar-plus text-primary"></i> تجهيز رواتب @monthLabel @Model.Year</div>
+                <div class="small text-muted mt-1">
+                    يُنشئ سجلاً لكل موظف مستحق بالراتب المُناسَب (تعيين · فصل · دوام جزئي).
+                    التسوية التلقائية: الساعة <strong>23</strong> من آخر يوم في الشهر.
+                </div>
+            </div>
+            <form asp-action="PrepareMonth" method="post" class="mb-0">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="year" value="@Model.Year" />
+                <input type="hidden" name="month" value="@Model.Month" />
+                <button type="submit" class="btn btn-primary micro-btn">
+                    <i class="fas fa-bolt"></i> تجهيز الشهر
+                </button>
+            </form>
+        </div>
+    </div>
+
+    @if (pendingWithdrawals.Any())
+    {
+        <div class="card payroll-withdrawals-card border-0 shadow-sm mb-3">
+            <div class="card-header payroll-withdrawals-head">
+                <span><i class="fas fa-hand-holding-usd"></i> طلبات سحب بانتظار الموافقة</span>
+                <span class="badge rounded-pill">@pendingWithdrawals.Count</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0 payroll-withdrawals-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>الموظف</th>
+                            <th>الشهر</th>
+                            <th>المبلغ</th>
+                            <th>ملاحظات</th>
+                            <th class="text-end">إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var req in pendingWithdrawals)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@(req.PayrollEmployee?.FullName ?? "—")</td>
+                            <td>@monthNames[req.Month] @req.Year</td>
+                            <td><span class="payroll-amount-pill">@req.Amount.ToString("N0") ل.س</span></td>
+                            <td class="small text-muted">@(req.Notes ?? "—")</td>
+                            <td class="text-end text-nowrap">
+                                <form asp-action="ReviewWithdrawalRequest" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@req.Id" />
+                                    <input type="hidden" name="approve" value="true" />
+                                    <input type="hidden" name="year" value="@Model.Year" />
+                                    <input type="hidden" name="month" value="@Model.Month" />
+                                    <button type="submit" class="btn btn-success btn-sm micro-btn">قبول</button>
+                                </form>
+                                <form asp-action="ReviewWithdrawalRequest" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@req.Id" />
+                                    <input type="hidden" name="approve" value="false" />
+                                    <input type="hidden" name="year" value="@Model.Year" />
+                                    <input type="hidden" name="month" value="@Model.Month" />
+                                    <button type="submit" class="btn btn-outline-danger btn-sm micro-btn">رفض</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card payroll-stat-card payroll-stat-total h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="payroll-stat-icon"><i class="fas fa-coins"></i></div>
+                    <div class="financial-stat-label">المستحق للصرف</div>
+                    <div class="financial-stat-value">@SyrianCurrencyHelper.FormatNew(Model.TotalNetPayable)</div>
+                    <div class="financial-stat-meta">مجموع الصافي لجميع السجلات</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card payroll-stat-card payroll-stat-paid h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="payroll-stat-icon"><i class="fas fa-check-double"></i></div>
+                    <div class="financial-stat-label">مُصروف</div>
+                    <div class="financial-stat-value text-success">@SyrianCurrencyHelper.FormatNew(Model.TotalPaid)</div>
+                    <div class="financial-stat-meta">@paidCount موظف</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card payroll-stat-card payroll-stat-pending h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="payroll-stat-icon"><i class="fas fa-hourglass-half"></i></div>
+                    <div class="financial-stat-label">معلق</div>
+                    <div class="financial-stat-value text-warning">@SyrianCurrencyHelper.FormatNew(Model.TotalPending)</div>
+                    <div class="financial-stat-meta">@pendingCount بانتظار الصرف</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card financial-table-card payroll-ledger-card border-0 shadow-sm">
+        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h6 class="mb-0"><i class="fas fa-table"></i> سجلات @monthLabel @Model.Year</h6>
+            <span class="small text-muted">الصافي = أساسي + مكافآت − حسومات − سحوبات − سلف</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 payroll-ledger-table align-middle">
+                <thead>
+                    <tr>
+                        <th>الموظف</th>
+                        <th class="text-center">أساسي</th>
+                        <th class="text-center">مكافآت</th>
+                        <th class="text-center">حسومات</th>
+                        <th class="text-center">سحوبات</th>
+                        <th class="text-center">سلف</th>
+                        <th class="text-center">المستحق</th>
+                        <th class="text-center">الحالة</th>
+                        <th class="text-end">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (!Model.Rows.Any())
+                {
+                    <tr>
+                        <td colspan="9" class="text-center py-5">
+                            <div class="payroll-empty-state">
+                                <i class="fas fa-folder-open"></i>
+                                <p class="mb-2 fw-semibold">لا توجد سجلات لهذا الشهر</p>
+                                <p class="small text-muted mb-0">أضف موظفين من «إدارة الموظفين» ثم اضغط «تجهيز الشهر».</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @foreach (var row in Model.Rows)
+                {
+                    var rowClass = row.IsPaid ? "payroll-row-paid" : "payroll-row-pending";
+                    <tr class="@rowClass">
+                        <td class="payroll-employee-cell">
+                            <a asp-action="EmployeeDetails" asp-route-id="@row.PayrollEmployeeId" asp-route-year="@Model.Year" asp-route-month="@Model.Month" class="payroll-employee-link">
+                                <strong>@row.EmployeeName</strong>
+                            </a>
+                            @if (!string.IsNullOrEmpty(row.EmploymentLabel))
+                            {
+                                <span class="payroll-emp-badge">@row.EmploymentLabel</span>
+                            }
+                        </td>
+                        @if (!row.IsPaid)
+                        {
+                            <td class="text-center">
+                                <form asp-action="UpdatePayment" method="post" id="pay-form-@row.Id" class="payroll-inline-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@row.Id" />
+                                    <input type="hidden" name="year" value="@Model.Year" />
+                                    <input type="hidden" name="month" value="@Model.Month" />
+                                    <input name="baseAmount" type="number" step="0.01" min="0" class="form-control form-control-sm payroll-num-input" value="@row.BaseAmount" title="الراتب الأساسي" />
+                                </form>
+                            </td>
+                            <td class="text-center">
+                                <input form="pay-form-@row.Id" name="bonus" type="number" step="0.01" min="0" class="form-control form-control-sm payroll-num-input" value="@row.Bonus" title="مكافأة السجل" />
+                                @if (row.TransactionBonus > 0)
+                                {
+                                    <small class="d-block text-success">+@row.TransactionBonus.ToString("N0") حركات</small>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <input form="pay-form-@row.Id" name="deduction" type="number" step="0.01" min="0" class="form-control form-control-sm payroll-num-input" value="@row.Deduction" title="حسم السجل" />
+                                @if (row.TransactionDeduction > 0)
+                                {
+                                    <small class="d-block text-danger">−@row.TransactionDeduction.ToString("N0") حركات</small>
+                                }
+                            </td>
+                            <td class="text-center payroll-readonly-cell">@row.Withdrawals.ToString("N0")</td>
+                            <td class="text-center payroll-readonly-cell">@row.Advances.ToString("N0")</td>
+                            <td class="text-center">
+                                <span class="payroll-net-pill">@row.NetPayable.ToString("N0")</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge payroll-status-pending">معلق</span>
+                            </td>
+                            <td class="text-end">
+                                <div class="payroll-row-actions">
+                                    <button form="pay-form-@row.Id" type="submit" class="btn btn-sm btn-outline-primary micro-btn" title="حفظ">
+                                        <i class="fas fa-save"></i>
+                                    </button>
+                                    <form asp-action="MarkPaid" method="post" class="payroll-mark-paid-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@row.Id" />
+                                        <input type="hidden" name="year" value="@Model.Year" />
+                                        <input type="hidden" name="month" value="@Model.Month" />
+                                        <label class="payroll-diary-check">
+                                            <input class="form-check-input" type="checkbox" name="postToMoneyDiary" value="true" />
+                                            <span>دفتر</span>
+                                        </label>
+                                        <button type="submit" class="btn btn-sm btn-success micro-btn">
+                                            <i class="fas fa-check"></i> صرف
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        }
+                        else
+                        {
+                            <td class="text-center tabular-nums">@row.BaseAmount.ToString("N0")</td>
+                            <td class="text-center tabular-nums text-success">@((row.Bonus + row.TransactionBonus).ToString("N0"))</td>
+                            <td class="text-center tabular-nums text-danger">@((row.Deduction + row.TransactionDeduction).ToString("N0"))</td>
+                            <td class="text-center tabular-nums">@row.Withdrawals.ToString("N0")</td>
+                            <td class="text-center tabular-nums">@row.Advances.ToString("N0")</td>
+                            <td class="text-center">
+                                <span class="payroll-net-pill payroll-net-pill--paid">@row.NetPayable.ToString("N0")</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge payroll-status-paid">مُصروف</span>
+                                @if (row.PaidAt.HasValue)
+                                {
+                                    <small class="d-block text-muted mt-1">@row.PaidAt.Value.ToLocalTime().ToString("yyyy-MM-dd")</small>
+                                }
+                            </td>
+                            <td class="text-end text-muted small">—</td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

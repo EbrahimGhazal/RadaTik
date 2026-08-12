@@ -1,0 +1,648 @@
+@using System.Globalization
+@model RadaTik.Areas.SystemAdmin.ViewModels.ServiceCatalogPageViewModel
+@using RadaTik.Areas.SystemAdmin.ViewModels
+@using RadaTik.Helpers
+@using RadaTik.Models
+@{
+    ViewData["Title"] = ViewData["Title"] ?? "كتالوج الخدمات";
+    var list = Model.Items;
+    var renewalPeriods = Model.RenewalPeriods;
+    var maxFreeUnitsLimit = Model.MaxFreeUnitsLimit;
+    var nonNegativeFreeUnitsMessage = Model.NonNegativeFreeUnitsMessage;
+    var maxFreeUnitsExceededMessage = Model.MaxFreeUnitsExceededMessage;
+
+    var recurringRows = new (string Prefix, ServicePricingCardViewModel Pricing, string Icon)[]
+    {
+        ("Network", Model.NetworkPricing, "fa-network-wired"),
+        ("Server", Model.ServerPricing, "fa-server"),
+        ("Sector", Model.SectorPricing, "fa-satellite-dish"),
+        ("Receiver", Model.ReceiverPricing, "fa-broadcast-tower"),
+        ("Client", Model.ClientPricing, "fa-user-tag"),
+        ("User", Model.UserPricing, "fa-user-gear"),
+        ("SpeedProfile", Model.SpeedProfilePricing, "fa-gauge-high")
+    };
+
+    bool IsRecurringConfigured(ServicePricingCardViewModel pricing) =>
+        pricing.HasInitialPricing && pricing.HasRenewalPricing;
+
+    var readinessConfigured = (int?)ViewBag.PricingReadinessConfigured ?? 0;
+    var readinessTotal = (int?)ViewBag.PricingReadinessTotal ?? RadaTik.Services.SystemAdminPricingReadinessService.TotalRequiredPricingChecks;
+    var readinessMissing = (int?)ViewBag.PricingSetupMissingCount ?? 0;
+    var showSaveSuccess = string.Equals(Context.Request.Query["saved"], "1", StringComparison.Ordinal);
+}
+
+@if (showSaveSuccess)
+{
+    <div id="serviceCatalogSaveSuccess" class="alert alert-success border-success shadow-sm mb-3" role="status" aria-live="polite">
+        <i class="fas fa-check-circle me-1"></i>
+        <strong>تم حفظ جميع الخدمات بنجاح.</strong>
+    </div>
+}
+
+@if (ViewBag.PricingSetupIncomplete == true)
+{
+    <div class="alert alert-warning border-warning mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+                <strong>تهيئة الأسعار غير مكتملة.</strong>
+                متبقي @(ViewBag.PricingSetupMissingCount ?? 0) عنصر. أكمل الإعداد لتفعيل قبول طلبات الشركات.
+            </div>
+            <a href="/systemAdmin/setup/pricing" class="btn btn-sm btn-warning">عرض قائمة النواقص</a>
+        </div>
+    </div>
+}
+
+<div class="sys-hero mb-4">
+    <div class="sys-hero-main">
+        <div class="sys-hero-icon"><i class="fas fa-layer-group"></i></div>
+        <div>
+            <h1 class="sys-hero-title">@ViewData["Title"]</h1>
+            <p class="sys-hero-subtitle mb-0">
+                مرجع مدير النظام: <strong>شرح عمل كل خدمة</strong>، <strong>سياسة التسعير</strong>، و<strong>سياسة التجديد</strong> — تظهر لمدير الشركة عند طلب الاشتراك.
+                الأسعار في القسم السفلي تُطبَّق فعلياً على المحفظة والاشتراكات.
+            </p>
+        </div>
+    </div>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+@{
+    var docItems = Model.DocumentationItems ?? new List<ServiceCatalogDocumentationItemViewModel>();
+    var docCategories = docItems.Select(d => d.Category).Distinct().OrderBy(c => c).ToList();
+    var showDocSaved = string.Equals(Context.Request.Query["docSaved"], "1", StringComparison.Ordinal);
+}
+
+@if (showDocSaved)
+{
+    <div class="alert alert-success border-success mb-3" role="status">
+        <i class="fas fa-check-circle me-1"></i> تم حفظ توثيق الخدمات.
+    </div>
+}
+
+<div class="card border-0 shadow-sm mb-4" id="service-catalog-documentation">
+    <div class="card-header py-3">
+        <h2 class="h5 mb-1"><i class="fas fa-book-open text-primary ms-2"></i> توثيق الخدمات (للعرض على مدير الشركة)</h2>
+        <p class="text-muted small mb-0">هذا القسم لا يخصم مبالغاً — يشرح فقط. التسعير الفعلي في «أسعار الخدمات» أدناه. استخدم شريط التنسيق للكتابة دون التعامل مع HTML.</p>
+    </div>
+    <div class="card-body">
+        <form id="serviceDocumentationForm" method="post" asp-area="SystemAdmin" asp-controller="ServiceCatalog" asp-action="SaveDocumentation">
+            @Html.AntiForgeryToken()
+            <div class="accordion" id="serviceDocAccordion">
+                @{ var docIdx = 0; }
+                @foreach (var cat in docCategories)
+                {
+                    var catItems = docItems.Where(d => d.Category == cat).ToList();
+                    var catId = "docCat_" + docIdx;
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button @(docIdx > 0 ? "collapsed" : "")" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#@catId" aria-expanded="@(docIdx == 0 ? "true" : "false")">
+                                @cat <span class="badge bg-light text-dark ms-2">@catItems.Count</span>
+                            </button>
+                        </h3>
+                        <div id="@catId" class="accordion-collapse collapse @(docIdx == 0 ? "show" : "")" data-bs-parent="#serviceDocAccordion">
+                            <div class="accordion-body">
+                                @foreach (var doc in catItems)
+                                {
+                                    var safeKey = new string(doc.FeatureKey.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_').ToArray());
+                                    var detailValue = string.IsNullOrWhiteSpace(doc.DetailHtml)
+                                        ? $"<p><strong>{doc.DisplayName}</strong></p><p>{doc.Description}</p>"
+                                        : doc.DetailHtml;
+                                    var pricingValue = string.IsNullOrWhiteSpace(doc.PricingPolicyHtml)
+                                        ? RadaTik.Helpers.ServiceCatalogDocumentationHelper.BuildDefaultPricingPolicyHtml(doc.DisplayName)
+                                        : doc.PricingPolicyHtml;
+                                    var renewalValue = string.IsNullOrWhiteSpace(doc.RenewalPolicyHtml)
+                                        ? (doc.SuggestedRenewalPolicyHtml ?? RadaTik.Helpers.ServiceCatalogDocumentationHelper.BuildDefaultRenewalPolicyHtml(doc.DisplayName))
+                                        : doc.RenewalPolicyHtml;
+
+                                    <div class="border rounded-3 p-3 mb-3 bg-light-subtle">
+                                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                                            <div>
+                                                <div class="fw-bold">@doc.DisplayName</div>
+                                                <code class="small text-muted">@doc.FeatureKey</code>
+                                            </div>
+                                        </div>
+                                        <div class="small text-muted mb-3">
+                                            <strong>الأسعار النشطة الحالية:</strong>
+                                            @Html.Raw(doc.PricingPlansSummaryHtml)
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label fw-semibold" for="DocDetail_@safeKey">شرح عمل الخدمة</label>
+                                            <textarea class="form-control service-doc-editor" rows="4" id="DocDetail_@safeKey"
+                                                      name="DocDetail_@safeKey">@detailValue</textarea>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label fw-semibold" for="DocPricing_@safeKey">سياسة التسعير</label>
+                                            <textarea class="form-control service-doc-editor" rows="4" id="DocPricing_@safeKey"
+                                                      name="DocPricing_@safeKey">@pricingValue</textarea>
+                                        </div>
+                                        <div class="mb-0">
+                                            <label class="form-label fw-semibold" for="DocRenewal_@safeKey">سياسة التجديد</label>
+                                            @if (!string.IsNullOrWhiteSpace(doc.SuggestedRenewalPolicyHtml) && string.IsNullOrWhiteSpace(doc.RenewalPolicyHtml))
+                                            {
+                                                <p class="text-muted small">اقتراح من الأسعار المضبوطة — عدّل النص إن لزم.</p>
+                                            }
+                                            <textarea class="form-control service-doc-editor" rows="4" id="DocRenewal_@safeKey"
+                                                      name="DocRenewal_@safeKey">@renewalValue</textarea>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    docIdx++;
+                }
+            </div>
+            <div class="text-end mt-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save ms-1"></i> حفظ توثيق الخدمات
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="service-catalog-page">
+<aside class="service-catalog-currency-note mb-4" role="note" aria-label="ملاحظة العملة">
+    <div class="service-catalog-currency-note__inner">
+        <div class="service-catalog-currency-note__icon" aria-hidden="true">
+            <i class="fas fa-coins"></i>
+        </div>
+        <div class="service-catalog-currency-note__content">
+            <h2 class="service-catalog-currency-note__title">ملاحظة عامة — العملة</h2>
+            <p class="service-catalog-currency-note__text">
+                جميع حقول الأسعار في هذه الصفحة تُدخل بالليرة السورية الجديدة.
+            </p>
+            <div class="service-catalog-currency-note__rule">
+                <span class="currency-pill currency-pill--new">ل.س.ج</span>
+                <span class="currency-pill currency-pill--arrow" aria-hidden="true">
+                    <i class="fas fa-arrow-left-long"></i>
+                </span>
+                <span class="currency-pill currency-pill--ratio" dir="ltr">1 = @SyrianCurrencyHelper.OldLiraPerNewLira</span>
+                <span class="currency-pill currency-pill--old">ل.س قديمة</span>
+            </div>
+            <div class="service-catalog-currency-note__example">
+                <i class="fas fa-lightbulb" aria-hidden="true"></i>
+                <span>
+                    <strong>مثال:</strong>
+                    <span dir="ltr" class="currency-example-num">10,000</span> ل.س.ج
+                    <span class="currency-example-sep">≈</span>
+                    <span dir="ltr" class="currency-example-num">1,000,000</span> ل.س قديمة
+                </span>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<div class="service-catalog-toolbar mb-3">
+    <div class="row g-2 align-items-stretch">
+        <div class="col-6 col-md-4">
+            <div class="kpi-tile">
+                <div class="kpi-value"><span dir="ltr">@readinessConfigured / @readinessTotal</span></div>
+                <div class="kpi-label">عناصر التهيئة المكتملة</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="kpi-tile">
+                <div class="kpi-value"><span dir="ltr">@readinessMissing</span></div>
+                <div class="kpi-label">عناصر ناقصة</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <label for="serviceCatalogSearchInput" class="form-label mb-1">بحث سريع</label>
+            <input id="serviceCatalogSearchInput"
+                   type="search"
+                   class="form-control"
+                   placeholder="ابحث عن خدمة..."
+                   autocomplete="off" />
+        </div>
+    </div>
+</div>
+
+<form method="post"
+      action="/systemAdmin/serviceCatalog/SaveAllPricing"
+      id="serviceCatalogForm"
+      class="service-catalog-form"
+      data-syp-page-amount-note="true">
+    @Html.AntiForgeryToken()
+
+    <div class="card mb-3">
+        <div class="card-header d-flex align-items-center gap-2">
+            <i class="fas fa-money-check-dollar text-primary"></i>
+            <strong>الخدمات الدورية</strong>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive service-catalog-shell">
+                <table class="table table-hover align-middle mb-0 service-catalog-table service-catalog-table--recurring">
+                    <thead class="table-light">
+                        <tr>
+                            <th>الخدمة</th>
+                            <th class="text-end">سعر الإضافة</th>
+                            <th>دورة التجديد</th>
+                            <th class="text-end">سعر التجديد</th>
+                            <th class="text-end">مجاني (إضافة)</th>
+                            <th class="text-end">مجاني (تجديد)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in recurringRows)
+                        {
+                            var p = row.Pricing;
+                            var prefix = row.Prefix;
+                            var configured = IsRecurringConfigured(p);
+                            <tr class="service-row @(configured ? "service-priced" : "service-unpriced")"
+                                data-search="@($"{p.ServiceName} {p.Description}")">
+                                <td class="service-catalog-cell--lead">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="fas @row.Icon text-primary"></i>
+                                        <div>
+                                            <div class="fw-semibold">@p.ServiceName</div>
+                                            <div class="text-muted small">@p.Description</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="سعر الإضافة (ل.س.ج)">
+                                    <input type="number" min="0" step="0.01"
+                                           name="@($"{prefix}.InitialPriceSyp")"
+                                           class="form-control form-control-sm text-end pricing-input"
+                                           value="@p.InitialPriceSyp.ToString("0.##", CultureInfo.InvariantCulture)" required />
+                                </td>
+                                <td data-label="دورة التجديد">
+                                    <select name="@($"{prefix}.RenewalBillingPeriod")"
+                                            class="form-select form-select-sm" required>
+                                        @foreach (var period in renewalPeriods)
+                                        {
+                                            <option value="@((int)period)" selected="@(period == p.RenewalBillingPeriod ? "selected" : null)">
+                                                @PricingDisplay.BillingPeriodLabel(period)
+                                            </option>
+                                        }
+                                    </select>
+                                </td>
+                                <td data-label="سعر التجديد (ل.س.ج)">
+                                    <input type="number" min="0" step="0.01"
+                                           name="@($"{prefix}.RenewalPricePerUnitSyp")"
+                                           class="form-control form-control-sm text-end pricing-input"
+                                           value="@p.RenewalPricePerUnitSyp.ToString("0.##", CultureInfo.InvariantCulture)" required />
+                                </td>
+                                <td data-label="مجاني (إضافة)">
+                                    <input type="number" min="0" max="@maxFreeUnitsLimit" step="1"
+                                           name="@($"{prefix}.FreeInitialUnits")"
+                                           class="form-control form-control-sm text-end free-units-input"
+                                           value="@p.FreeInitialUnits" />
+                                </td>
+                                <td data-label="مجاني (تجديد)">
+                                    <input type="number" min="0" max="@maxFreeUnitsLimit" step="1"
+                                           name="@($"{prefix}.FreeRenewalUnits")"
+                                           class="form-control form-control-sm text-end free-units-input"
+                                           value="@p.FreeRenewalUnits" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header d-flex align-items-center gap-2">
+            <i class="fas fa-percent text-primary"></i>
+            <strong>خدمات مستقلة</strong>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive service-catalog-shell">
+                <table class="table table-hover align-middle mb-0 service-catalog-table service-catalog-table--standalone">
+                    <thead class="table-light">
+                        <tr>
+                            <th>الخدمة</th>
+                            <th>الإعداد</th>
+                            <th class="text-end">القيمة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="service-row @(Model.ReportPricing.HasInitialPricing ? "service-priced" : "service-unpriced")"
+                            data-search="التقارير @Model.ReportPricing.Description">
+                            <td class="service-catalog-cell--lead">
+                                <div class="fw-semibold"><i class="fas fa-file-lines text-primary me-1"></i> @Model.ReportPricing.ServiceName</div>
+                                <div class="text-muted small">@Model.ReportPricing.Description</div>
+                            </td>
+                            <td data-label="الإعداد" class="text-muted">سعر إنشاء التقرير (ل.س.ج)</td>
+                            <td data-label="القيمة">
+                                <input type="number" min="0" step="0.01"
+                                       name="ReportInitialPriceSyp"
+                                       class="form-control form-control-sm text-end pricing-input"
+                                       value="@Model.ReportPricing.InitialPriceSyp.ToString("0.##", CultureInfo.InvariantCulture)" required />
+                            </td>
+                        </tr>
+                        <tr class="service-row @(Model.MaintenanceCommission.CommissionValue > 0m ? "service-priced" : "service-unpriced")"
+                            data-search="عمولة الصيانة @Model.MaintenanceCommission.Description">
+                            <td class="service-catalog-cell--lead">
+                                <div class="fw-semibold"><i class="fas fa-wrench text-primary me-1"></i> @Model.MaintenanceCommission.ServiceName</div>
+                                <div class="text-muted small">@Model.MaintenanceCommission.Description</div>
+                            </td>
+                            <td data-label="الإعداد">
+                                <select name="MaintenanceCommissionMode" class="form-select form-select-sm">
+                                    <option value="@((int)MaintenanceCommissionMode.Fixed)" selected="@(Model.MaintenanceCommission.CommissionMode == MaintenanceCommissionMode.Fixed ? "selected" : null)">مبلغ ثابت</option>
+                                    <option value="@((int)MaintenanceCommissionMode.Percent)" selected="@(Model.MaintenanceCommission.CommissionMode == MaintenanceCommissionMode.Percent ? "selected" : null)">نسبة مئوية</option>
+                                </select>
+                            </td>
+                            <td data-label="القيمة">
+                                <input type="number" min="0" step="0.01"
+                                       name="MaintenanceCommissionValue"
+                                       class="form-control form-control-sm text-end pricing-input"
+                                       value="@Model.MaintenanceCommission.CommissionValue.ToString("0.##", CultureInfo.InvariantCulture)" required />
+                            </td>
+                        </tr>
+                        <tr class="service-row @(Model.ProfilePriceTax.HasPricing ? "service-priced" : "service-unpriced")"
+                            data-search="ضريبة البروفايل @Model.ProfilePriceTax.Description">
+                            <td class="service-catalog-cell--lead">
+                                <div class="fw-semibold"><i class="fas fa-percent text-primary me-1"></i> @Model.ProfilePriceTax.ServiceName</div>
+                                <div class="text-muted small">@Model.ProfilePriceTax.Description</div>
+                            </td>
+                            <td data-label="الإعداد" class="text-muted">نسبة الضريبة (%)</td>
+                            <td data-label="القيمة">
+                                <input type="number" min="0" max="100" step="0.01"
+                                       name="ProfileTaxPercentage"
+                                       class="form-control form-control-sm text-end pricing-input"
+                                       value="@Model.ProfilePriceTax.Price.ToString("0.##", CultureInfo.InvariantCulture)" required />
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="service-catalog-save-bar">
+        <span class="text-muted small" id="serviceCatalogDirtyHint">عدّل القيم ثم احفظ جميع التغييرات</span>
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="fas fa-floppy-disk"></i>
+            حفظ جميع الخدمات
+        </button>
+    </div>
+</form>
+
+@if (list.Count > 0)
+{
+    <div class="card mt-4" id="custom-services">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-puzzle-piece text-info"></i>
+                <strong>الخدمات المخصصة</strong>
+            </div>
+            <span class="badge bg-secondary">@list.Count</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive service-catalog-shell">
+                <table class="table align-middle mb-0 service-catalog-table service-catalog-table--custom">
+                    <thead class="table-light">
+                        <tr>
+                            <th>الاسم</th>
+                            <th>المفتاح</th>
+                            <th>الحالة</th>
+                            <th class="text-end">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in list)
+                        {
+                            <tr>
+                                <td class="service-catalog-cell--lead">
+                                    @if (!string.IsNullOrWhiteSpace(s.IconClass))
+                                    {
+                                        <i class="@s.IconClass me-1"></i>
+                                    }
+                                    @s.DisplayName
+                                </td>
+                                <td data-label="المفتاح"><code class="small text-break">@s.Key</code></td>
+                                <td data-label="الحالة">
+                                    @if (s.IsActive)
+                                    {
+                                        <span class="badge bg-success">نشط</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">معطّل</span>
+                                    }
+                                </td>
+                                <td data-label="إجراءات" class="service-catalog-actions">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal_@s.Id">تعديل</button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal_@s.Id">حذف</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+</div>
+
+<div id="serviceCatalogNoResults" class="alert alert-warning d-none mt-3">
+    لا توجد نتائج مطابقة لبحثك.
+</div>
+
+<script>
+    (function () {
+        const form = document.getElementById("serviceCatalogForm");
+        const searchInput = document.getElementById("serviceCatalogSearchInput");
+        const noResults = document.getElementById("serviceCatalogNoResults");
+        const rows = Array.from(document.querySelectorAll(".service-row"));
+        const maxFreeUnitsLimit = @maxFreeUnitsLimit;
+        const nonNegativeFreeUnitsMessage = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(nonNegativeFreeUnitsMessage));
+        const maxFreeUnitsExceededMessage = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(maxFreeUnitsExceededMessage));
+
+        const isRowPriced = (row) => {
+            const inputs = row.querySelectorAll(".pricing-input");
+            return Array.from(inputs).some((input) => Number(input.value || 0) > 0);
+        };
+
+        const updateRowStatus = () => {
+            rows.forEach((row) => {
+                const priced = isRowPriced(row);
+                row.classList.toggle("service-priced", priced);
+                row.classList.toggle("service-unpriced", !priced);
+            });
+        };
+
+        const applySearch = () => {
+            if (!searchInput) return;
+            const q = (searchInput.value || "").trim().toLowerCase();
+            let visible = 0;
+            rows.forEach((row) => {
+                const haystack = (row.getAttribute("data-search") || row.textContent || "").toLowerCase();
+                const matched = !q || haystack.includes(q);
+                row.classList.toggle("d-none", !matched);
+                if (matched) visible += 1;
+            });
+            if (noResults) {
+                noResults.classList.toggle("d-none", visible > 0 || !q);
+            }
+        };
+
+        document.querySelectorAll(".pricing-input").forEach((input) => {
+            input.addEventListener("input", updateRowStatus);
+        });
+
+        if (searchInput) {
+            searchInput.addEventListener("input", applySearch);
+        }
+
+        if (form) {
+            form.addEventListener("submit", (e) => {
+                const freeInputs = form.querySelectorAll(".free-units-input");
+                for (const input of freeInputs) {
+                    const value = Number(input.value || 0);
+                    if (value < 0) {
+                        e.preventDefault();
+                        input.focus();
+                        alert(nonNegativeFreeUnitsMessage);
+                        return;
+                    }
+                    if (value > maxFreeUnitsLimit) {
+                        e.preventDefault();
+                        input.focus();
+                        alert(maxFreeUnitsExceededMessage);
+                        return;
+                    }
+                }
+            });
+        }
+
+        updateRowStatus();
+
+        const saveSuccess = document.getElementById("serviceCatalogSaveSuccess");
+        if (saveSuccess) {
+            saveSuccess.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    })();
+</script>
+
+@foreach (var s in list)
+{
+    <div class="modal fade" id="editModal_@s.Id" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="post" asp-area="SystemAdmin" asp-controller="ServiceCatalog" asp-action="Update">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@s.Id" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">تعديل خدمة</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-2 text-muted small"><code>@s.Key</code></div>
+                        <div class="mb-3">
+                            <label class="form-label">اسم الخدمة</label>
+                            <input type="text" name="displayName" class="form-control" value="@s.DisplayName" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">أيقونة</label>
+                            <input type="text" name="iconClass" class="form-control" value="@s.IconClass" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">وصف</label>
+                            <textarea name="description" class="form-control" rows="2">@s.Description</textarea>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="isActive" value="true" checked="@(s.IsActive ? "checked" : null)" />
+                            <label class="form-check-label">نشط</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary">حفظ</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteModal_@s.Id" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="post" asp-area="SystemAdmin" asp-controller="ServiceCatalog" asp-action="Delete">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@s.Id" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">تأكيد الحذف</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        هل أنت متأكد من حذف الخدمة: <strong>@s.DisplayName</strong>؟
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-danger">حذف</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/tinymce@7.6.1/tinymce.min.js" referrerpolicy="origin"></script>
+    <script>
+        (function () {
+            var accordion = document.getElementById('serviceDocAccordion');
+            var form = document.getElementById('serviceDocumentationForm');
+
+            var editorOptions = {
+                height: 240,
+                menubar: false,
+                branding: false,
+                promotion: false,
+                license_key: 'gpl',
+                directionality: 'rtl',
+                language: 'ar',
+                language_url: 'https://cdn.jsdelivr.net/npm/tinymce-i18n@25.11.17/langs7/ar.js',
+                plugins: 'lists link autoresize wordcount',
+                toolbar: 'undo redo | blocks | bold italic underline | forecolor | alignright aligncenter alignleft | bullist numlist | link | removeformat',
+                content_style: 'body { font-family: system-ui, "Segoe UI", Tahoma, Arial, sans-serif; font-size: 15px; direction: rtl; line-height: 1.6; } p { margin: 0.4em 0; }',
+                convert_urls: false,
+                paste_data_images: false,
+                autoresize_bottom_margin: 16
+            };
+
+            function initDocEditors(root) {
+                if (!root || typeof tinymce === 'undefined') {
+                    return;
+                }
+
+                root.querySelectorAll('textarea.service-doc-editor').forEach(function (el) {
+                    if (!el.id || tinymce.get(el.id)) {
+                        return;
+                    }
+
+                    tinymce.init(Object.assign({ target: el }, editorOptions));
+                });
+            }
+
+            if (accordion) {
+                accordion.querySelectorAll('.accordion-collapse.show').forEach(initDocEditors);
+                accordion.addEventListener('shown.bs.collapse', function (e) {
+                    initDocEditors(e.target);
+                });
+            }
+
+            if (form) {
+                form.addEventListener('submit', function () {
+                    if (typeof tinymce !== 'undefined') {
+                        tinymce.triggerSave();
+                    }
+                });
+            }
+        })();
+    </script>
+}

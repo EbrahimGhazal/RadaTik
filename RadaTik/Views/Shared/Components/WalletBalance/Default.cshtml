@@ -1,0 +1,87 @@
+@model RadaTik.ViewModels.HeaderWalletBalanceViewModel?
+@using RadaTik.Helpers
+@using RadaTik.Models
+@if (Model != null)
+{
+    var balanceClass = "header-wallet-balance" + (Model.StackCurrencies ? " header-wallet-balance--stacked" : "");
+    var balanceLabel = string.IsNullOrWhiteSpace(Model.BalanceLabel) ? "رصيد المحفظة" : Model.BalanceLabel;
+    var titleText = $"{balanceLabel} — @SyrianCurrencyHelper.FormatNew(Model.BalanceSyp) ل.س.ج" +
+        (Model.ShowDualCurrency && Model.BalanceUsd.HasValue
+            ? $" · {CurrencyHelper.FormatAmount(Model.BalanceUsd.Value, PricingCurrency.USD)}"
+            : "");
+
+    @if (Model.StackCurrencies)
+    {
+        if (!string.IsNullOrWhiteSpace(Model.WalletUrl))
+        {
+            <a class="@balanceClass header-wallet-balance--link" href="@Model.WalletUrl" title="@titleText">
+                <div class="header-wallet-balance__head">
+                    <i class="fas fa-wallet" aria-hidden="true"></i>
+                    <span class="header-wallet-balance__label">@balanceLabel</span>
+                </div>
+                <div class="header-wallet-balance__lines">
+                    <div class="header-wallet-balance__line">
+                        <span class="header-wallet-amount" data-syp-new="@Model.BalanceSyp.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-syp-decimals="0">@SyrianCurrencyHelper.FormatNew(Model.BalanceSyp, 0)</span>
+                        <span class="header-wallet-currency syp-currency-suffix">ل.س.ج</span>
+                    </div>
+                    @if (Model.ShowDualCurrency && Model.BalanceUsd.HasValue)
+                    {
+                        <div class="header-wallet-balance__line header-wallet-balance__line--usd">
+                            <span class="header-wallet-usd">@CurrencyHelper.FormatAmount(Model.BalanceUsd.Value, PricingCurrency.USD)</span>
+                        </div>
+                    }
+                </div>
+            </a>
+        }
+        else
+        {
+            <div class="@balanceClass" title="الرصيد بالليرة السورية الجديدة (ل.س.ج) — ≈ @SyrianCurrencyHelper.FormatOld(Model.BalanceSyp) ل.س قديمة">
+                <div class="header-wallet-balance__head">
+                    <i class="fas fa-wallet" aria-hidden="true"></i>
+                    <span class="header-wallet-balance__label">@balanceLabel</span>
+                </div>
+                <div class="header-wallet-balance__lines">
+                    <div class="header-wallet-balance__line">
+                        <span class="header-wallet-amount" data-syp-new="@Model.BalanceSyp.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-syp-decimals="0">@SyrianCurrencyHelper.FormatNew(Model.BalanceSyp, 0)</span>
+                        <span class="header-wallet-currency syp-currency-suffix">ل.س.ج</span>
+                    </div>
+                    @if (Model.ShowDualCurrency && Model.BalanceUsd.HasValue)
+                    {
+                        <div class="header-wallet-balance__line header-wallet-balance__line--usd">
+                            <span class="header-wallet-usd">@CurrencyHelper.FormatAmount(Model.BalanceUsd.Value, PricingCurrency.USD)</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+    else if (!string.IsNullOrWhiteSpace(Model.WalletUrl))
+    {
+        <a class="@balanceClass header-wallet-balance--link"
+           href="@Model.WalletUrl"
+           title="@titleText">
+            <i class="fas fa-wallet"></i>
+            <span class="header-wallet-amount" data-syp-new="@Model.BalanceSyp.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-syp-decimals="0">@SyrianCurrencyHelper.FormatNew(Model.BalanceSyp, 0)</span>
+            <span class="header-wallet-currency syp-currency-suffix">ل.س.ج</span>
+            @if (Model.ShowDualCurrency && Model.BalanceUsd.HasValue)
+            {
+                <span class="header-wallet-sep" aria-hidden="true">·</span>
+                <span class="header-wallet-usd">@CurrencyHelper.FormatAmount(Model.BalanceUsd.Value, PricingCurrency.USD)</span>
+            }
+        </a>
+    }
+    else
+    {
+        <div class="@balanceClass"
+           title="الرصيد بالليرة السورية الجديدة (ل.س.ج) — ≈ @SyrianCurrencyHelper.FormatOld(Model.BalanceSyp) ل.س قديمة">
+            <i class="fas fa-wallet"></i>
+            <span class="header-wallet-amount" data-syp-new="@Model.BalanceSyp.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-syp-decimals="0">@SyrianCurrencyHelper.FormatNew(Model.BalanceSyp, 0)</span>
+            <span class="header-wallet-currency syp-currency-suffix">ل.س.ج</span>
+            @if (Model.ShowDualCurrency && Model.BalanceUsd.HasValue)
+            {
+                <span class="header-wallet-sep" aria-hidden="true">·</span>
+                <span class="header-wallet-usd">@CurrencyHelper.FormatAmount(Model.BalanceUsd.Value, PricingCurrency.USD)</span>
+            }
+        </div>
+    }
+}

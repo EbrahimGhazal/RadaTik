@@ -1,0 +1,131 @@
+@model RadaTik.ViewModels.CollectionPoint.ReceivePaymentViewModel
+@using RadaTik.Helpers
+@using RadaTik.Models
+@using RadaTik.ViewModels.UI
+
+@{
+    ViewData["Title"] = "تسجيل تحصيل";
+    bool usdAccount = Model.RequiresExchange;
+    string balanceDisplay = CurrencyHelper.FormatAmount(Model.CurrentClientBalance, Model.AccountCurrency);
+    var hero = new PageHeroViewModel
+    {
+        Title = ViewData["Title"] as string ?? "تسجيل تحصيل",
+        Subtitle = $"العميل: {Model.ClientName} ({Model.ClientUserName})",
+        IconClass = "fas fa-hand-holding-usd",
+        Theme = "finance"
+    };
+}
+
+<partial name="~/Views/Shared/_PageHero.cshtml" model="hero" />
+
+@if (usdAccount)
+{
+    <div class="alert alert-info">
+        <i class="fas fa-dollar-sign"></i>
+        حساب العميل بالدولار — أدخل المبلغ المستلم بالليرة السورية وسعر الصرف.
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-receipt"></i>
+                    بيانات التحصيل
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="ReceivePayment" method="post" id="receivePaymentForm">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="All" class="alert alert-danger"></div>
+                    <input asp-for="ClientId" type="hidden" />
+                    <input asp-for="AccountCurrency" type="hidden" />
+                    <input asp-for="RequiresExchange" type="hidden" />
+
+                    <div class="mb-3">
+                        <label class="form-label">رصيد العميل الحالي</label>
+                        <input class="form-control" value="@balanceDisplay" readonly />
+                    </div>
+
+                    @if (usdAccount)
+                    {
+                        <div class="mb-3">
+                            <label asp-for="ExchangeRate" class="form-label"></label>
+                            <input asp-for="ExchangeRate" class="form-control" id="exchangeRate" step="0.0001" min="0.0001" />
+                            <span asp-validation-for="ExchangeRate" class="text-danger"></span>
+                            <small class="text-muted">مثال: 140 يعني 1$ = 140 ل.س.ج</small>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label asp-for="Amount" class="form-label"></label>
+                        <input asp-for="Amount" class="form-control" id="paymentAmount" placeholder="المبلغ النقدي المستلم" />
+                        <span asp-validation-for="Amount" class="text-danger"></span>
+                    </div>
+
+                    @if (usdAccount)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">يُضاف لحساب العميل ($)</label>
+                            <div class="form-control bg-light" id="accountAmountPreview">—</div>
+                            <small class="text-muted">يُحسب تلقائياً من المبلغ وسعر الصرف عند الحفظ.</small>
+                        </div>
+                        <div class="alert alert-light border" id="conversionHint"></div>
+                    }
+
+                    <div class="mb-3">
+                        <label asp-for="Notes" class="form-label"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="3" placeholder="ملاحظات (اختياري)"></textarea>
+                        <span asp-validation-for="Notes" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i>
+                            حفظ
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right"></i>
+                            رجوع
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @if (usdAccount)
+    {
+        <script>
+            (function () {
+                const rateInput = document.getElementById('exchangeRate');
+                const payInput = document.getElementById('paymentAmount');
+                const acctPreview = document.getElementById('accountAmountPreview');
+                const hint = document.getElementById('conversionHint');
+
+                function recalc() {
+                    const rate = parseFloat(rateInput?.value || '0');
+                    const pay = parseFloat(payInput?.value || '0');
+                    if (!rate || rate <= 0 || !pay || pay <= 0) {
+                        if (acctPreview) acctPreview.textContent = '—';
+                        if (hint) hint.textContent = '';
+                        return;
+                    }
+                    const usd = Math.round((pay / rate) * 100) / 100;
+                    if (acctPreview) acctPreview.textContent = usd.toFixed(2) + ' $';
+                    if (hint) {
+                        hint.textContent = 'سيُضاف للحساب: ' + usd.toFixed(2) + ' $ مقابل ' + pay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ل.س.ج';
+                    }
+                }
+
+                rateInput?.addEventListener('input', recalc);
+                payInput?.addEventListener('input', recalc);
+                recalc();
+            })();
+        </script>
+    }
+}

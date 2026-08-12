@@ -1,0 +1,85 @@
+@using RadaTik.Helpers
+@model RadaTik.Areas.CompanyAdmin.ViewModels.SubscriberInstallationInvoicesIndexViewModel
+@{
+    ViewData["Title"] = "فواتير تجهيز المشتركين";
+}
+
+<div class="financial-page financial-hub-page">
+    @{
+        ViewBag.FinancialNavCurrent = "installation";
+        ViewBag.FinancialNavShowWarehouse = false;
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-file-invoice";
+        ViewBag.FinancialHeroTheme = "default";
+        ViewBag.FinancialHeroSubtitle = Model.NetworkName;
+    }
+    <partial name="_FinancialSysHero" />
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="text-muted small">الشبكة الحالية</div>
+        <div class="fw-semibold">@Model.NetworkName</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle radtk-data-table radtk-data-table--cards">
+                <thead>
+                    <tr>
+                        <th>رقم الفاتورة</th>
+                        <th>العميل</th>
+                        <th>النوع</th>
+                        <th>الحالة</th>
+                        <th>الإجمالي</th>
+                        <th>المدفوع</th>
+                        <th>المتبقي</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Rows.Count == 0)
+                {
+                    <tr>
+                        <td colspan="9" class="text-center py-4 text-muted">لا توجد فواتير تجهيز حالياً.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var row in Model.Rows)
+                    {
+                        var kindText = row.Kind == RadaTik.Models.SubscriberInstallationInvoiceKind.InitialSetup ? "تجهيز أولي" : "تحويل لمشترك";
+                        <tr>
+                            <td>#@row.Id</td>
+                            <td>@row.ClientName</td>
+                            <td>@kindText</td>
+                            <td>@SubscriberInstallationInvoiceStatusLabels.Get(row.Status)</td>
+                            <td>@row.TotalAmount.ToString("N0")</td>
+                            <td>@row.PaidAmount.ToString("N0")</td>
+                            <td class="@(row.RemainingAmount > 0 ? "text-danger fw-semibold" : "text-success fw-semibold")">@row.RemainingAmount.ToString("N0")</td>
+                            <td>@row.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                            <td>
+                                <a asp-action="Details" asp-route-id="@row.Id" class="btn btn-sm btn-outline-primary">عرض</a>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div>

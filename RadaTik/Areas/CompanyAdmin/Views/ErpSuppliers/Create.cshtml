@@ -1,0 +1,21 @@
+@model RadaTik.Models.Business.ErpSupplier
+@{ ViewData["Title"] = "إضافة مورد"; }
+
+<div class="financial-page financial-hub-page col-lg-8">
+    <h1 class="h4 mb-3">إضافة مورد</h1>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" required />
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control" /></div>
+            <div class="col-md-6"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" /></div>
+        </div>
+        <div class="mb-3 mt-3"><label asp-for="Address" class="form-label"></label><input asp-for="Address" class="form-control" /></div>
+        <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="2"></textarea></div>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+    </form>
+</div>

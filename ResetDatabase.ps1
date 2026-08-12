@@ -9,7 +9,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # الانتقال إلى مجلد المشروع
-$projectPath = ".\RadTik"
+$projectPath = ".\RadaTik"
 if (-not (Test-Path $projectPath)) {
     Write-Host "✗ خطأ: لم يتم العثور على مجلد المشروع" -ForegroundColor Red
     exit 1

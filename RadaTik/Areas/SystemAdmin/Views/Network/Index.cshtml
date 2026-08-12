@@ -1,0 +1,407 @@
+@model IEnumerable<RadaTik.Models.Network>
+
+@{
+    Layout = "~/Areas/SystemAdmin/Views/Shared/_Layout.cshtml";
+
+    ViewData["Title"] = "إدارة شبكات الشركات";
+    ViewData["BodyClass"] = "sysadmin-network-index";
+
+    var totalCompanies = (int)(ViewBag.TotalCompanies ?? 0);
+    var activeCompanies = (int)(ViewBag.ActiveCompanies ?? 0);
+    var inactiveCompanies = (int)(ViewBag.InactiveCompanies ?? 0);
+    var underConstructionCompanies = (int)(ViewBag.UnderConstructionCompanies ?? 0);
+
+    var statusFilter = (ViewBag.StatusFilter as string) ?? "";
+    var q = (ViewBag.Query as string) ?? "";
+    var managerNames = ViewBag.ManagerNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+
+    var companies = Model?.ToList() ?? new List<RadaTik.Models.Network>();
+    var hasItems = companies.Any();
+}
+
+@section Styles {
+    <style>
+        /* Keep content aligned near sidebar (avoid centered max-width gaps). */
+        .sysadmin-network-index .page-content { max-width: none; }
+
+        .sysadmin-network-filters .form-control,
+        .sysadmin-network-filters .form-select { border-radius: 12px; }
+
+        .sysadmin-stat-link { text-decoration: none; color: inherit; }
+        .sysadmin-stat-link:hover .card { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .sysadmin-stat-link .card { transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
+        .sysadmin-stat-link.is-selected .card { border-color: var(--primary) !important; box-shadow: 0 0 0 2px rgba(0,102,204,.20); }
+
+        .sysadmin-network-table td { vertical-align: middle; }
+        .sysadmin-network-table-wrap {
+            border: 1px solid rgba(148, 163, 184, 0.26);
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+            padding: .35rem;
+        }
+
+        .sysadmin-network-table {
+            margin-bottom: 0;
+            min-width: 940px;
+        }
+
+        .sysadmin-network-table thead th {
+            font-size: .82rem;
+            letter-spacing: .03em;
+            font-weight: 700;
+            color: var(--text-muted);
+            background: linear-gradient(180deg, rgba(37, 99, 235, .08) 0%, rgba(37, 99, 235, .02) 100%);
+            border-bottom: 1px solid var(--border-light);
+            white-space: nowrap;
+        }
+
+        [data-theme="dark"] .sysadmin-network-table-wrap {
+            background: linear-gradient(180deg, rgba(15, 23, 42, .78) 0%, rgba(15, 23, 42, .92) 100%);
+            border-color: rgba(148, 163, 184, .26);
+        }
+
+        [data-theme="dark"] .sysadmin-network-table thead th {
+            background: linear-gradient(180deg, rgba(59, 130, 246, .14) 0%, rgba(59, 130, 246, .05) 100%);
+            border-bottom-color: rgba(148, 163, 184, .28);
+        }
+
+        .sysadmin-network-logo {
+            width: 40px; height: 40px; border-radius: 12px; object-fit: cover;
+            border: 1px solid var(--border-light);
+            background: var(--bg-card);
+        }
+        .sysadmin-network-logo-placeholder {
+            width: 40px; height: 40px; border-radius: 12px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(0,102,204,.10); color: var(--primary);
+            border: 1px solid var(--border-light);
+        }
+        .sysadmin-muted-small { font-size: .85rem; color: var(--text-muted); }
+        .sysadmin-actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-start; }
+        .sysadmin-actions form { display: inline; margin: 0; }
+
+        @@media (max-width: 991.98px) {
+            .sysadmin-network-table-wrap {
+                padding: .2rem;
+                border-radius: 14px;
+            }
+
+            .sysadmin-network-table {
+                min-width: 100%;
+            }
+
+            .sysadmin-network-table thead {
+                display: none;
+            }
+
+            .sysadmin-network-table tbody tr {
+                display: block;
+                border: 1px solid rgba(148, 163, 184, 0.24);
+                border-radius: 14px;
+                margin-bottom: .75rem;
+                box-shadow: 0 10px 22px rgba(15, 23, 42, .08);
+                background: rgba(255, 255, 255, .9);
+            }
+
+            [data-theme="dark"] .sysadmin-network-table tbody tr {
+                background: rgba(30, 41, 59, .86);
+                border-color: rgba(148, 163, 184, .3);
+            }
+
+            .sysadmin-network-table tbody td {
+                display: grid;
+                grid-template-columns: minmax(110px, 38%) 1fr;
+                gap: .55rem;
+                align-items: center;
+                width: 100%;
+                padding: .68rem .82rem;
+                border: 0;
+                border-bottom: 1px dashed rgba(148, 163, 184, 0.3);
+                text-align: start !important;
+            }
+
+            .sysadmin-network-table tbody td::before {
+                content: attr(data-label);
+                font-size: .75rem;
+                font-weight: 700;
+                color: var(--text-muted);
+            }
+
+            .sysadmin-network-table tbody td:first-child {
+                border-radius: 14px 14px 0 0;
+            }
+
+            .sysadmin-network-table tbody td:last-child {
+                border-bottom: 0;
+                border-radius: 0 0 14px 14px;
+            }
+
+            .sysadmin-actions {
+                justify-content: flex-start;
+            }
+        }
+    </style>
+}
+
+<div class="sys-hero mb-4">
+    <div class="sys-hero-main">
+        <div class="sys-hero-icon"><i class="fas fa-network-wired"></i></div>
+        <div>
+            <h1 class="sys-hero-title">@ViewData["Title"]</h1>
+            <p class="sys-hero-subtitle">عرض وإدارة شبكات الشركات مع مراقبة الحالة والرصيد ضمن واجهة موحدة.</p>
+        </div>
+    </div>
+    <div class="sys-hero-chips">
+        <span class="sys-hero-chip"><i class="fas fa-building"></i> إجمالي الشبكات: @totalCompanies</span>
+        <span class="sys-hero-chip"><i class="fas fa-circle-check"></i> النشطة: @activeCompanies</span>
+        <span class="sys-hero-chip"><i class="fas fa-snowflake"></i> المجمدة: @inactiveCompanies</span>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-3 sysadmin-network-filters">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-12 col-lg-5">
+                <label class="form-label mb-1">بحث</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" class="form-control" name="q" value="@q" placeholder="بحث باسم الشركة أو مدير الشركة..." />
+                </div>
+            </div>
+            <div class="col-12 col-lg-3">
+                <label class="form-label mb-1">الحالة</label>
+                <select class="form-select form-select-sm" name="status">
+                    <option value="" selected="@(string.IsNullOrWhiteSpace(statusFilter))">الكل</option>
+                    <option value="Active" selected="@(string.Equals(statusFilter, "Active", StringComparison.OrdinalIgnoreCase))">نشطة</option>
+                    <option value="Inactive" selected="@(string.Equals(statusFilter, "Inactive", StringComparison.OrdinalIgnoreCase))">مجمدة</option>
+                    <option value="UnderConstruction" selected="@(string.Equals(statusFilter, "UnderConstruction", StringComparison.OrdinalIgnoreCase))">قيد الإنشاء</option>
+                </select>
+            </div>
+            <div class="col-12 col-lg-4 d-flex gap-2 flex-wrap">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter me-1"></i> تطبيق
+                </button>
+                <a asp-area="SystemAdmin" asp-controller="Network" asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="fas fa-undo me-1"></i> إعادة ضبط
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Quick stats -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-6 col-lg-3">
+        <a class="sysadmin-stat-link @(string.IsNullOrWhiteSpace(statusFilter) ? "is-selected" : "")"
+           asp-area="SystemAdmin" asp-controller="Network" asp-action="Index" asp-route-q="@q">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">إجمالي الشبكات</p>
+                            <h3 class="mb-0">@totalCompanies</h3>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 rounded-3 p-3">
+                            <i class="fas fa-building text-primary fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+        <a class="sysadmin-stat-link @(string.Equals(statusFilter, "Active", StringComparison.OrdinalIgnoreCase) ? "is-selected" : "")"
+           asp-area="SystemAdmin" asp-controller="Network" asp-action="Index" asp-route-status="Active" asp-route-q="@q">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">نشطة</p>
+                            <h3 class="mb-0">@activeCompanies</h3>
+                        </div>
+                        <div class="bg-success bg-opacity-10 rounded-3 p-3">
+                            <i class="fas fa-check-circle text-success fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+        <a class="sysadmin-stat-link @(string.Equals(statusFilter, "Inactive", StringComparison.OrdinalIgnoreCase) ? "is-selected" : "")"
+           asp-area="SystemAdmin" asp-controller="Network" asp-action="Index" asp-route-status="Inactive" asp-route-q="@q">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">مجمدة</p>
+                            <h3 class="mb-0">@inactiveCompanies</h3>
+                        </div>
+                        <div class="bg-danger bg-opacity-10 rounded-3 p-3">
+                            <i class="fas fa-snowflake text-danger fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-12 col-md-6 col-lg-3">
+        <a class="sysadmin-stat-link @(string.Equals(statusFilter, "UnderConstruction", StringComparison.OrdinalIgnoreCase) ? "is-selected" : "")"
+           asp-area="SystemAdmin" asp-controller="Network" asp-action="Index" asp-route-status="UnderConstruction" asp-route-q="@q">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1 small">قيد الإنشاء</p>
+                            <h3 class="mb-0">@underConstructionCompanies</h3>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 rounded-3 p-3">
+                            <i class="fas fa-hard-hat text-warning fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+@if (!hasItems)
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <div class="mb-3">
+                <span class="sysadmin-network-logo-placeholder"><i class="fas fa-building"></i></span>
+            </div>
+            <h5 class="mb-2">لا توجد شبكات مطابقة</h5>
+            <p class="text-muted mb-3">جرّب تغيير الفلترة أو إزالة البحث.</p>
+            <a asp-area="SystemAdmin" asp-controller="Network" asp-action="Index" class="btn btn-outline-primary">
+                <i class="fas fa-list me-1"></i> عرض الكل
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 py-3 d-flex flex-wrap gap-2 align-items-center justify-content-between">
+            <h5 class="mb-0">
+                <i class="fas fa-list text-primary me-2"></i>
+                قائمة الشركات
+            </h5>
+            <span class="sysadmin-muted-small">الإجمالي: @companies.Count</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive sysadmin-network-table-wrap">
+                <table class="table table-hover align-middle mb-0 sysadmin-network-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>الشركة</th>
+                            <th>مدير الشركة</th>
+                            <th class="text-center">الحالة</th>
+                            <th class="text-center">الرصيد</th>
+                            <th>المحافظات</th>
+                            <th class="text-center">شبكات فرعية</th>
+                            <th class="text-center">مشتركين</th>
+                            <th class="text-center">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var company in companies)
+                        {
+                            var subCount = company.ChildNetworks?.Count ?? 0;
+                            var clientsCount = company.Clients?.Count ?? 0;
+                            <tr>
+                                <td data-label="الشركة">
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (!string.IsNullOrEmpty(company.LogoPath))
+                                        {
+                                            <img src="@company.LogoPath" alt="@company.Name" class="sysadmin-network-logo" />
+                                        }
+                                        else
+                                        {
+                                            <span class="sysadmin-network-logo-placeholder" title="لا يوجد شعار">
+                                                <i class="fas fa-building"></i>
+                                            </span>
+                                        }
+                                        <div class="min-w-0">
+                                            <div class="fw-bold">@company.Name</div>
+                                            <div class="sysadmin-muted-small">
+                                                <i class="fas fa-calendar-alt me-1"></i>@company.CreationDate.ToString("yyyy/MM/dd")
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="مدير الشركة">@(managerNames.GetValueOrDefault(company.Id, "-"))</td>
+                                <td class="text-center" data-label="الحالة">
+                                    @if (company.Status == RadaTik.Models.NetworkStatus.Active)
+                                    {
+                                        <span class="badge bg-success">نشط</span>
+                                    }
+                                    else if (company.Status == RadaTik.Models.NetworkStatus.Inactive)
+                                    {
+                                        <span class="badge bg-danger">مجمد</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">قيد الإنشاء</span>
+                                    }
+                                </td>
+                                <td class="text-center" data-label="الرصيد">
+                                    <span class="fw-bold text-primary">@company.Balance.ToString("N2")</span>
+                                </td>
+                                <td data-label="المحافظات">
+                                    @if (!string.IsNullOrWhiteSpace(company.Governorates))
+                                    {
+                                        <span>@company.Governorates</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td class="text-center" data-label="شبكات فرعية">@subCount</td>
+                                <td class="text-center" data-label="مشتركين">@clientsCount</td>
+                                <td class="text-center" data-label="إجراءات">
+                                    <div class="sysadmin-actions">
+                                        <a asp-area="SystemAdmin" asp-controller="Network" asp-action="Details" asp-route-id="@company.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-info-circle me-1"></i> التفاصيل
+                                        </a>
+                                        <a asp-area="SystemAdmin" asp-controller="Network" asp-action="AddBalance" asp-route-id="@company.Id" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-plus-circle me-1"></i> رصيد
+                                        </a>
+
+                                        @if (company.Status == RadaTik.Models.NetworkStatus.Active)
+                                        {
+                                            <form asp-area="SystemAdmin" asp-controller="Network" asp-action="EditManagerStatus" method="post"
+                                                  onsubmit="return confirm('تجميد الشركة: سيتم تعطيل حساب مدير الشركة وجميع الشبكات التابعة له. هل أنت متأكد؟');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="networkId" value="@company.Id" />
+                                                <input type="hidden" name="isActive" value="false" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="تجميد الشركة">
+                                                    <i class="fas fa-snowflake me-1"></i> تجميد
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <form asp-area="SystemAdmin" asp-controller="Network" asp-action="EditManagerStatus" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="networkId" value="@company.Id" />
+                                                <input type="hidden" name="isActive" value="true" />
+                                                <button type="submit" class="btn btn-sm btn-outline-success" title="إلغاء التجميد">
+                                                    <i class="fas fa-user-check me-1"></i> إلغاء التجميد
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+

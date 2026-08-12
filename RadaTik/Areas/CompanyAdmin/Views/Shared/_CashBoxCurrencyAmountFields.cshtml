@@ -1,0 +1,29 @@
+@using RadaTik.Helpers
+@using RadaTik.Models
+@{
+    var fieldName = ViewData["FieldName"] as string ?? "amount";
+    var label = ViewData["Label"] as string ?? "المبلغ";
+    var placeholder = ViewData["Placeholder"] as string ?? "مثال: 1,000";
+    var selectedCurrency = ViewData["SelectedCurrency"] as PricingCurrency? ?? PricingCurrency.SYP_New;
+}
+<div class="mb-2">
+    <label class="form-label">العملة</label>
+    <select name="currency" class="form-select cashbox-currency-sel">
+        <option value="@((int)PricingCurrency.SYP_New)" selected="@(selectedCurrency == PricingCurrency.SYP_New)">ل.س.ج (ليرة جديدة)</option>
+        <option value="@((int)PricingCurrency.USD)" selected="@(selectedCurrency == PricingCurrency.USD)">$ (دولار)</option>
+    </select>
+</div>
+<div class="mb-2 cashbox-amount-syp" style="@(selectedCurrency == PricingCurrency.USD ? "display:none" : null)">
+    @{
+        var sypViewData = new ViewDataDictionary(ViewData) {
+            ["FieldName"] = fieldName,
+            ["Label"] = label + " (ل.س.ج)",
+            ["Placeholder"] = placeholder
+        };
+    }
+    <partial name="_SypAmountInput" view-data="sypViewData" />
+</div>
+<div class="mb-2 cashbox-amount-usd" style="@(selectedCurrency != PricingCurrency.USD ? "display:none" : null)">
+    <label class="form-label">@label ($)</label>
+    <input type="number" name="@fieldName" class="form-control cashbox-usd-amount" step="0.01" min="0.01" placeholder="@placeholder" @(selectedCurrency != PricingCurrency.USD ? "disabled" : null) />
+</div>

@@ -1,0 +1,238 @@
+@using RadaTik.Models
+@{
+    ViewData["Title"] = "طلب تغذية رصيد المحفظة";
+    var accountBalance = ViewBag.AccountBalance as decimal? ?? 0m;
+    var networkName = ViewBag.NetworkName as string ?? "";
+    var pendingCount = ViewBag.PendingCount as int? ?? 0;
+    var paymentMethods = ViewBag.PaymentMethods as IEnumerable<PaymentMethod> ?? Enumerable.Empty<PaymentMethod>();
+    var pmList = paymentMethods.ToList();
+    var shamCashQrPath = ViewBag.CollectionPointShamCashQrCodePath as string;
+}
+<div class="radtk-page--collectionpoint-views-wallet-topup">
+
+<div class="wallet-topup-page">
+    <div class="page-header wallet-topup-header">
+        <div>
+            <h1>
+                <i class="fas fa-wallet"></i>
+                طلب تغذية رصيد المحفظة
+            </h1>
+            <p class="text-muted mb-0">يُرسل الطلب إلى <strong>مدير النظام</strong> حصرياً لمراجعته والموافقة عليه.</p>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i>
+            @TempData["Success"]
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i>
+            @TempData["Error"]
+        </div>
+    }
+    @if (TempData["Info"] != null)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            @TempData["Info"]
+        </div>
+    }
+
+    <div class="row g-4 align-items-start">
+        <div class="col-xl-8">
+            <div class="card wallet-form-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-plus-circle text-success"></i>
+                        طلب تغذية رصيد جديد
+                    </h5>
+                    <p class="text-muted mb-0 mt-2">املأ البيانات بدقة ليتم مراجعة الطلب بشكل أسرع.</p>
+                </div>
+                <div class="card-body">
+                    <form asp-area="CollectionPoint" asp-controller="Wallet" asp-action="TopUp" method="post" id="topUpForm" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="requestTargetType" value="@((int)CollectionPointTopUpTarget.SystemAdmin)" />
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                @if (pmList.Any())
+                                {
+                                    <label for="paymentMethodId" class="form-label">طريقة الدفع</label>
+                                    <select class="form-select" id="paymentMethodId" name="paymentMethodId" required data-placeholder="اختر طريقة الدفع...">
+                                        <option value=""></option>
+                                        @foreach (var m in pmList)
+                                        {
+                                            <option value="@m.Id">@m.Name</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <label for="paymentMethodManual" class="form-label">طريقة الدفع</label>
+                                    <input type="text" id="paymentMethodManual" class="form-control" name="method" required placeholder="مثال: كاش، تحويل..." />
+                                    <div class="text-muted small mt-1">لا توجد طرق دفع معرفة حالياً. يمكن لمدير النظام إضافتها.</div>
+                                }
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="referenceNumber" class="form-label">رقم إشعار/مرجع الدفع</label>
+                                <input type="text" id="referenceNumber" name="referenceNumber" class="form-control" required placeholder="رقم إيصال/مرجع الدفع" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="amount" class="form-label">المبلغ المطلوب (ل.س)</label>
+                                <input type="number" id="amount" name="amount" class="form-control" min="0.01" step="0.01" required placeholder="أدخل المبلغ المطلوب" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="receiptImage" class="form-label">صورة الإيصال</label>
+                                <input type="file" id="receiptImage" name="receiptImage" class="form-control" required accept="image/*" data-max-bytes="3145728" data-size-message="حجم صورة الإيصال يجب ألا يتجاوز 3 ميغابايت." />
+                                <small class="text-muted">يرجى رفع صورة واضحة للإيصال (الحد الأقصى: 3 ميغابايت).</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="notes" class="form-label">ملاحظات (اختياري)</label>
+                                <textarea id="notes" name="notes" class="form-control" rows="3" placeholder="أي ملاحظات إضافية..."></textarea>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 mt-4">
+                            <i class="fas fa-paper-plane"></i>
+                            إرسال الطلب
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card wallet-stat-card mb-4">
+                <div class="card-body">
+                    <div class="wallet-stat-label">الرصيد الحالي</div>
+                    <div class="wallet-stat-value">
+                        @accountBalance.ToString("N0")
+                        <span class="wallet-currency">ل.س</span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(networkName))
+                    {
+                        <div class="wallet-stat-meta">الشبكة: @networkName</div>
+                    }
+                </div>
+            </div>
+
+            @if (pendingCount > 0)
+            {
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-clock"></i>
+                    لديك <strong>@pendingCount</strong> طلب/طلبات قيد الانتظار. سيتم إشعارك عند الموافقة أو الرفض.
+                </div>
+            }
+
+            <div class="card wallet-help-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-circle-question text-info"></i>
+                        خطوات سريعة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="wallet-help-list">
+                        <li><span>1</span> أدخل طريقة الدفع ورقم المرجع كما هو في الإيصال.</li>
+                        <li><span>2</span> ارفع صورة واضحة للإيصال ثم أرسل الطلب.</li>
+                        <li><span>3</span> سيتم إرسال الطلب إلى مدير النظام للمراجعة.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card wallet-help-card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-qrcode text-primary"></i>
+                        QR شام كاش الخاص بك
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-area="CollectionPoint" asp-controller="Wallet" asp-action="UpdateShamCashQr" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <label for="shamCashQrCodeFile" class="form-label">رفع صورة QR</label>
+                        <input type="file" id="shamCashQrCodeFile" name="shamCashQrCodeFile" class="form-control" accept="image/*" data-max-bytes="3145728" data-size-message="حجم صورة QR يجب ألا يتجاوز 3 ميغابايت." />
+                        <div class="form-text mt-1">الحد الأقصى لحجم صورة QR: 3 ميغابايت.</div>
+                        @if (!string.IsNullOrWhiteSpace(shamCashQrPath))
+                        {
+                            <div class="mt-2">
+                                <img src="@shamCashQrPath" alt="QR شام كاش" class="img-thumbnail" style="max-width:220px;" />
+                            </div>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" name="removeShamCashQrCode" id="removeShamCashQrCode" value="true" />
+                                <label class="form-check-label" for="removeShamCashQrCode">حذف QR الحالي</label>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="form-text mt-2">لم يتم إضافة QR شام كاش بعد.</div>
+                        }
+                        <button type="submit" class="btn btn-outline-primary w-100 mt-3">
+                            حفظ QR شام كاش
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+}
+
+
+</div>
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function bindImageSizeValidation(selector) {
+            var input = document.querySelector(selector);
+            if (!input) return;
+
+            var maxBytes = Number(input.getAttribute('data-max-bytes') || (3 * 1024 * 1024));
+            var sizeMessage = input.getAttribute('data-size-message') || 'حجم الصورة يجب ألا يتجاوز 3 ميغابايت.';
+            input.addEventListener('change', function () {
+                var file = input.files && input.files.length ? input.files[0] : null;
+                if (!file) {
+                    input.setCustomValidity('');
+                    return;
+                }
+
+                if (file.size > maxBytes) {
+                    input.value = '';
+                    input.setCustomValidity(sizeMessage);
+                    input.reportValidity();
+                } else {
+                    input.setCustomValidity('');
+                }
+            });
+        }
+
+        bindImageSizeValidation('input[name="receiptImage"]');
+        bindImageSizeValidation('input[name="shamCashQrCodeFile"]');
+
+        if (window.jQuery && jQuery.fn.select2) {
+            var $pm = jQuery('#paymentMethodId');
+            if ($pm.length) {
+                if ($pm.hasClass('select2-hidden-accessible')) {
+                    $pm.select2('destroy');
+                }
+                $pm.select2({
+                    theme: 'bootstrap-5',
+                    dir: 'rtl',
+                    width: '100%',
+                    allowClear: true,
+                    placeholder: 'اختر طريقة الدفع...'
+                });
+            }
+        }
+    });
+</script>
+}

@@ -1,0 +1,218 @@
+@model List<RadaTik.Models.Business.PayrollEmployee>
+@using RadaTik.Models.Business
+@using RadaTik.Services
+@{
+    ViewData["Title"] = "إدارة موظفي الشركة";
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var linkableUsers = ViewBag.LinkableUsers as List<RadaTik.Areas.CompanyAdmin.ViewModels.PayrollSystemUserOptionViewModel> ?? new();
+    var unlinkedCount = (int?)ViewBag.UnlinkedSystemEmployeeCount ?? linkableUsers.Count;
+}
+
+<div class="financial-page financial-hub-page">
+    @{
+        ViewBag.FinancialNavCurrent = "payroll";
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-users-cog";
+        ViewBag.FinancialHeroTheme = "default";
+        ViewBag.FinancialHeroSubtitle = companyName + " — الدوام، الراتب، الربط بحساب النظام";
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-secondary micro-btn"" href=""" + Url.RouteUrl("networkManager-payroll", new { action = "Index", id = "" }) + @"""><i class=""fas fa-arrow-right""></i> رواتب الشهر</a>";
+    }
+    <partial name="_FinancialSysHero" />
+
+    @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+    @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+    @if (unlinkedCount > 0)
+    {
+        <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="fas fa-link"></i> يوجد <strong>@unlinkedCount</strong> موظف نظام بدون سجل رواتب.</span>
+            <form asp-action="SyncSystemEmployees" method="post" class="mb-0">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm btn-warning">مزامنة تلقائية</button>
+            </form>
+        </div>
+    }
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card financial-form-card">
+                <div class="card-header"><h6 class="mb-0">إضافة موظف</h6></div>
+                <div class="card-body">
+                    <form asp-action="CreateEmployee" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-2">
+                            <label class="form-label">الاسم الكامل</label>
+                            <input name="fullName" class="form-control" required maxlength="120" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">المسمى الوظيفي</label>
+                            <input name="jobTitle" class="form-control" maxlength="80" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">الهاتف</label>
+                            <input name="phone" class="form-control" maxlength="30" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">نوع الدوام</label>
+                            <select name="employmentType" class="form-select emp-type-select">
+                                <option value="@((int)PayrollEmploymentType.FullTime)">دوام كامل (40 س/أسبوع)</option>
+                                <option value="@((int)PayrollEmploymentType.PartTime)">دوام جزئي</option>
+                            </select>
+                        </div>
+                        <div class="mb-2 part-time-hours" style="display:none">
+                            <label class="form-label">ساعات العمل أسبوعياً</label>
+                            <input name="weeklyWorkHours" type="number" step="0.5" min="1" max="168" class="form-control" value="20" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">الراتب الشهري المتفق (ل.س)</label>
+                            <input name="monthlySalary" type="number" step="0.01" min="0" class="form-control" required />
+                            <div class="form-text">للجزئي يُحسب الأساسي شهرياً بنسبة الساعات/40 عند تجهيز الراتب.</div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">تاريخ التعيين</label>
+                            <input name="hireDate" type="date" class="form-control" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">ربط بحساب النظام (اختياري)</label>
+                            <select name="applicationUserId" class="form-select">
+                                <option value="">— بدون ربط —</option>
+                                @foreach (var u in linkableUsers)
+                                {
+                                    <option value="@u.Id">@u.DisplayName</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 micro-btn">إضافة موظف</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header"><h6 class="mb-0">القائمة (@Model.Count)</h6></div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle radtk-data-table radtk-data-table--cards">
+                        <thead>
+                            <tr>
+                                <th>الاسم</th>
+                                <th>الدوام</th>
+                                <th>الراتب</th>
+                                <th>الحالة</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr><td colspan="5" class="text-center text-muted py-4">لا يوجد موظفون بعد.</td></tr>
+                        }
+                        @foreach (var e in Model)
+                        {
+                            var editUsers = linkableUsers.ToList();
+                            if (!string.IsNullOrEmpty(e.ApplicationUserId) && e.ApplicationUser != null)
+                            {
+                                editUsers.Insert(0, new RadaTik.Areas.CompanyAdmin.ViewModels.PayrollSystemUserOptionViewModel
+                                {
+                                    Id = e.ApplicationUserId,
+                                    DisplayName = $"{e.ApplicationUser.FullName ?? e.ApplicationUser.UserName} (حالي)"
+                                });
+                            }
+                            <tr class="@(!e.IsActive ? "table-secondary" : "")">
+                                <td>
+                                    <strong>@e.FullName</strong>
+                                    @if (!string.IsNullOrEmpty(e.JobTitle)) { <br /><small class="text-muted">@e.JobTitle</small> }
+                                </td>
+                                <td>
+                                    @CompanyPayrollService.EmploymentTypeLabel(e.EmploymentType)
+                                    <br /><small class="text-muted">@e.WeeklyWorkHours س/أسبوع</small>
+                                </td>
+                                <td>@e.MonthlySalary.ToString("N0")</td>
+                                <td>@(e.IsActive ? "نشط" : "موقوف")</td>
+                                <td class="text-nowrap">
+                                    <a asp-action="EmployeeDetails" asp-route-id="@e.Id" class="btn btn-sm btn-outline-primary">الملف</a>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#edit-emp-@e.Id">تعديل</button>
+                                    <form asp-action="ToggleEmployee" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@e.Id" />
+                                        <input type="hidden" name="isActive" value="@(!e.IsActive ? "true" : "false")" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">@(e.IsActive ? "إيقاف" : "تفعيل")</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr class="collapse" id="edit-emp-@e.Id">
+                                <td colspan="5" class="bg-light">
+                                    <form asp-action="UpdateEmployee" method="post" class="p-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@e.Id" />
+                                        <div class="row g-2">
+                                            <div class="col-md-3">
+                                                <label class="form-label small">الاسم</label>
+                                                <input name="fullName" class="form-control form-control-sm" value="@e.FullName" required />
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small">الوظيفة</label>
+                                                <input name="jobTitle" class="form-control form-control-sm" value="@e.JobTitle" />
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small">الهاتف</label>
+                                                <input name="phone" class="form-control form-control-sm" value="@e.Phone" />
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small">الدوام</label>
+                                                <select name="employmentType" class="form-select form-select-sm emp-type-select">
+                                                    <option value="@((int)PayrollEmploymentType.FullTime)" selected="@(e.EmploymentType == PayrollEmploymentType.FullTime)">كامل</option>
+                                                    <option value="@((int)PayrollEmploymentType.PartTime)" selected="@(e.EmploymentType == PayrollEmploymentType.PartTime)">جزئي</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2 part-time-hours" style="@(e.EmploymentType == PayrollEmploymentType.PartTime ? "" : "display:none")">
+                                                <label class="form-label small">ساعات/أسبوع</label>
+                                                <input name="weeklyWorkHours" type="number" step="0.5" class="form-control form-control-sm" value="@e.WeeklyWorkHours" />
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small">الراتب</label>
+                                                <input name="monthlySalary" type="number" step="0.01" class="form-control form-control-sm" value="@e.MonthlySalary" />
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small">حساب النظام</label>
+                                                <select name="applicationUserId" class="form-select form-select-sm">
+                                                    <option value="">—</option>
+                                                    @foreach (var u in editUsers)
+                                                    {
+                                                        <option value="@u.Id" selected="@(e.ApplicationUserId == u.Id)">@u.DisplayName</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2 align-self-end">
+                                                <button type="submit" class="btn btn-sm btn-primary w-100">حفظ</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.querySelectorAll('.emp-type-select').forEach(sel => {
+    const toggle = () => {
+        const row = sel.closest('form') || sel.closest('.card-body');
+        const hours = row?.querySelector('.part-time-hours');
+        if (!hours) return;
+        hours.style.display = sel.value === '@((int)PayrollEmploymentType.PartTime)' ? '' : 'none';
+    };
+    sel.addEventListener('change', toggle);
+    toggle();
+});
+</script>
+}
+
+

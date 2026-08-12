@@ -1,0 +1,28 @@
+@{
+    Layout = "~/Views/Shared/_Shell.cshtml";
+    ViewData["BodyClass"] = "client-portal-setup-page";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/main.css" asp-append-version="true" />
+    <style>
+        .client-portal-setup-wrap {
+            max-width: 720px;
+            margin: 2rem auto;
+            padding: 0 1rem 3rem;
+        }
+        .client-portal-setup-card {
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+        }
+    </style>
+    @await RenderSectionAsync("Styles", required: false)
+}
+
+<div class="client-portal-setup-wrap">
+    @RenderBody()
+</div>
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}

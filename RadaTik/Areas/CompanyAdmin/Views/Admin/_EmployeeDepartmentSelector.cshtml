@@ -1,0 +1,180 @@
+@model RadaTik.Models.EmployeeDepartment
+@using RadaTik.Models
+@using RadaTik.ViewModels.Admin
+@{
+    var groups = ViewBag.EmployeeDepartmentGroups as IReadOnlyList<EmployeeDepartmentGroupUiItem>
+        ?? Array.Empty<EmployeeDepartmentGroupUiItem>();
+    var templatesJson = ViewBag.EmployeeDepartmentTemplatesJson as string ?? "[]";
+    var selected = Model;
+    var showCopyFrom = ViewBag.EmployeeCopySourcesJson as string;
+}
+<div class="radtk-page--companyadmin-views-admin--employeedepartmentselector">
+
+<input type="hidden" name="Department" id="employeeDepartmentValue" value="@((int)Model)" />
+
+<div class="employee-dept-selector mb-3">
+    <div class="section-title mb-2">
+        <i class="fas fa-sitemap"></i>
+        دور الموظف
+    </div>
+    <p class="text-muted small mb-3">
+        اختر القالب الأقرب لمهمة الموظف — تُعبّأ الصلاحيات تلقائياً. للشركات الصغيرة يكفي اختيار قالب واحد والمتابعة.
+    </p>
+
+    @if (!string.IsNullOrWhiteSpace(showCopyFrom) && showCopyFrom != "[]")
+    {
+        <div class="employee-copy-from mb-3">
+            <label class="form-label fw-semibold small mb-1" for="employeeCopyFromSelect">
+                <i class="fas fa-clone text-primary"></i>
+                أو انسخ صلاحيات موظف موجود
+            </label>
+            <select id="employeeCopyFromSelect" class="form-select form-select-sm elegant-input">
+                <option value="">— لا — اختر قالباً أدناه —</option>
+            </select>
+        </div>
+    }
+
+    @foreach (var group in groups)
+    {
+        <div class="employee-dept-group mb-3">
+            <div class="employee-dept-group-title">
+                <i class="fas @group.Icon"></i>
+                @group.Title
+            </div>
+            <div class="row g-2">
+                @foreach (var item in group.Departments)
+                {
+                    var isActive = selected == item.Department;
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <button type="button"
+                                class="employee-dept-card w-100 text-start @(isActive ? "is-active" : "")"
+                                data-dept="@((int)item.Department)"
+                                aria-pressed="@(isActive ? "true" : "false")">
+                            <div class="employee-dept-card-icon">
+                                <i class="fas @item.Icon"></i>
+                            </div>
+                            <div class="employee-dept-card-body">
+                                <div class="employee-dept-card-title">@item.Title</div>
+                                <div class="employee-dept-card-desc">@item.Description</div>
+                            </div>
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    <span class="text-danger d-block mt-1" data-valmsg-for="Department" data-valmsg-replace="true"></span>
+</div>
+
+<script type="application/json" id="employeeDepartmentTemplatesData">@Html.Raw(templatesJson)</script>
+@if (!string.IsNullOrWhiteSpace(showCopyFrom))
+{
+    <script type="application/json" id="employeeCopySourcesData">@Html.Raw(showCopyFrom)</script>
+}
+<script>
+    (function () {
+        var hidden = document.getElementById('employeeDepartmentValue');
+        var cardsRoot = document.querySelector('.employee-dept-selector');
+        var dataEl = document.getElementById('employeeDepartmentTemplatesData');
+        if (!hidden || !cardsRoot || !dataEl) return;
+
+        var templates = [];
+        try { templates = JSON.parse(dataEl.textContent || '[]'); } catch (e) { templates = []; }
+
+        var copySources = [];
+        var copyEl = document.getElementById('employeeCopySourcesData');
+        if (copyEl) {
+            try { copySources = JSON.parse(copyEl.textContent || '[]'); } catch (e) { copySources = []; }
+        }
+
+        function templateByDept(dept) {
+            return templates.find(function (t) { return t.department === dept; }) || null;
+        }
+
+        function setActiveCard(dept) {
+            cardsRoot.querySelectorAll('.employee-dept-card').forEach(function (btn) {
+                var active = parseInt(btn.getAttribute('data-dept'), 10) === dept;
+                btn.classList.toggle('is-active', active);
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+        }
+
+        function applyPermissionIds(ids) {
+            var set = new Set((ids || []).map(String));
+            document.querySelectorAll('input[name="SelectedPermissionIds"]').forEach(function (cb) {
+                cb.checked = set.has(cb.value);
+            });
+            document.querySelectorAll('.perm-slot-multi').forEach(function (slot) {
+                var master = slot.querySelector('.perm-master');
+                var values = slot.querySelectorAll('.perm-value');
+                if (!master || !values.length) return;
+                master.checked = Array.prototype.every.call(values, function (v) { return v.checked; });
+            });
+            document.dispatchEvent(new Event('employeePermChanged'));
+        }
+
+        function applyTemplate(dept, opts) {
+            opts = opts || {};
+            hidden.value = String(dept);
+            setActiveCard(dept);
+            var tpl = templateByDept(dept);
+            if (!tpl || dept === 99) {
+                document.dispatchEvent(new CustomEvent('employeeDeptChanged', { detail: { department: dept } }));
+                return;
+            }
+
+            if (!opts.skipPermissions) {
+                applyPermissionIds(tpl.permissionIds || []);
+            }
+
+            var payrollTitle = document.getElementById('PayrollJobTitle');
+            if (payrollTitle && tpl.payrollJobTitle && (!payrollTitle.value.trim() || opts.overwritePayrollTitle)) {
+                payrollTitle.value = tpl.payrollJobTitle;
+            }
+
+            document.dispatchEvent(new CustomEvent('employeeDeptChanged', { detail: { department: dept, template: tpl } }));
+        }
+
+        cardsRoot.addEventListener('click', function (e) {
+            var btn = e.target.closest('.employee-dept-card');
+            if (!btn) return;
+            var copySelect = document.getElementById('employeeCopyFromSelect');
+            if (copySelect) copySelect.value = '';
+            var dept = parseInt(btn.getAttribute('data-dept'), 10);
+            applyTemplate(dept);
+        });
+
+        var copySelect = document.getElementById('employeeCopyFromSelect');
+        if (copySelect && copySources.length) {
+            copySources.forEach(function (src) {
+                var opt = document.createElement('option');
+                opt.value = src.id;
+                opt.textContent = src.label;
+                opt.dataset.department = String(src.department || 99);
+                opt.dataset.permissionIds = JSON.stringify(src.permissionIds || []);
+                copySelect.appendChild(opt);
+            });
+
+            copySelect.addEventListener('change', function () {
+                var opt = copySelect.selectedOptions[0];
+                if (!opt || !opt.value) return;
+                var dept = parseInt(opt.dataset.department || '99', 10);
+                var ids = [];
+                try { ids = JSON.parse(opt.dataset.permissionIds || '[]'); } catch (e) { ids = []; }
+                hidden.value = String(dept);
+                setActiveCard(dept);
+                applyPermissionIds(ids);
+                document.dispatchEvent(new CustomEvent('employeeDeptChanged', {
+                    detail: { department: dept, copied: true, permissionIds: ids }
+                }));
+            });
+        }
+
+        var initial = parseInt(hidden.value || '0', 10);
+        if (initial > 0) setActiveCard(initial);
+
+        window.employeeDeptApplyTemplate = applyTemplate;
+        window.employeeDeptGetSelected = function () { return parseInt(hidden.value || '0', 10); };
+    })();
+</script>
+</div>

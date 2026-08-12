@@ -1,0 +1,18 @@
+# Build / IDE
+**/bin/
+**/obj/
+**/_build_out/
+**/_verify*/
+**/_compile_out/
+**/_test_out/
+**/_safety_backup/
+**/_b*/
+.vs/
+.idea/
+
+# Published artifact copy (do not version — use CI publish output)
+RadaTik/publish-smarterasp/
+
+# Local env
+**/.env
+**/appsettings.*.local.json

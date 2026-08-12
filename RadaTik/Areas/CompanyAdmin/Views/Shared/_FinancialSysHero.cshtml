@@ -1,0 +1,36 @@
+@{
+    var title = ViewData["Title"] as string ?? "";
+    var subtitle = ViewBag.FinancialHeroSubtitle as string
+        ?? ViewBag.CompanyName as string
+        ?? "";
+    var icon = ViewBag.FinancialHeroIcon as string ?? "fas fa-coins";
+    var theme = ViewBag.FinancialHeroTheme as string ?? "default";
+    var chips = ViewBag.FinancialHeroChips as IEnumerable<(string Icon, string Text)>;
+}
+<div class="sys-hero financial-sys-hero financial-sys-hero--@theme mb-3">
+    <div class="sys-hero-main">
+        <div class="sys-hero-icon"><i class="@icon"></i></div>
+        <div>
+            <h1 class="sys-hero-title mb-1">@title</h1>
+            @if (!string.IsNullOrWhiteSpace(subtitle))
+            {
+                <p class="sys-hero-subtitle mb-0">@subtitle</p>
+            }
+        </div>
+    </div>
+    @if (chips != null && chips.Any())
+    {
+        <div class="sys-hero-chips">
+            @foreach (var chip in chips)
+            {
+                <span class="sys-hero-chip"><i class="@chip.Icon"></i> @chip.Text</span>
+            }
+        </div>
+    }
+    @if (ViewBag.FinancialHeroActions != null)
+    {
+        <div class="sys-hero-actions d-flex flex-wrap gap-2">
+            @Html.Raw(ViewBag.FinancialHeroActions)
+        </div>
+    }
+</div>

@@ -1,0 +1,222 @@
+<div class="radtk-page-admin-clients">
+<div class="radtk-page-admin-clients">
+@model List<RadaTik.Controllers.AdminClientListItem>
+
+@{
+    ViewData["Title"] = "مشتركو الشركة";
+    var searchValue = (ViewBag.Search as string) ?? string.Empty;
+    var today = DateTime.Today;
+    var hasRows = Model != null && Model.Any();
+    var totalClients = Model?.Count ?? 0;
+    var expiredClients = Model?.Count(c => c.ExpirationDate.HasValue && c.ExpirationDate.Value.Date < today) ?? 0;
+    var expiringSoonClients = Model?.Count(c =>
+        c.ExpirationDate.HasValue &&
+        c.ExpirationDate.Value.Date >= today &&
+        c.ExpirationDate.Value.Date <= today.AddDays(7)) ?? 0;
+}
+
+<div class="admin-clients-page">
+    <div class="admin-clients-hero">
+        <div class="admin-clients-hero-main">
+            <div class="admin-clients-hero-icon"><i class="fas fa-users"></i></div>
+            <div>
+                <div class="admin-clients-chip"><i class="fas fa-network-wired"></i> إدارة المشتركين</div>
+                <h1 class="admin-clients-title">@ViewData["Title"]</h1>
+                <p class="admin-clients-subtitle">عرض وبحث وتعديل مشتركي الشبكة الحالية مع إحصاءات سريعة للاشتراكات.</p>
+            </div>
+        </div>
+        <div class="admin-clients-actions">
+            <a asp-route="networkManager-clients" asp-route-action="ImportFromServer" class="btn btn-admin-clients btn-import">
+                <i class="fas fa-download"></i> استيراد من السيرفر
+            </a>
+            <a asp-route="networkManager-clients" asp-route-action="Create" class="btn btn-admin-clients btn-create">
+                <i class="fas fa-user-plus"></i> إضافة مشترك
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3 admin-clients-kpis">
+        <div class="col-12 col-sm-6 col-xl-4">
+            <div class="admin-kpi-card admin-kpi-total">
+                <div class="admin-kpi-icon"><i class="fas fa-users"></i></div>
+                <div>
+                    <div class="admin-kpi-label">إجمالي المشتركين</div>
+                    <div class="admin-kpi-value">@totalClients</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-4">
+            <div class="admin-kpi-card admin-kpi-soon">
+                <div class="admin-kpi-icon"><i class="fas fa-hourglass-half"></i></div>
+                <div>
+                    <div class="admin-kpi-label">ينتهي خلال 7 أيام</div>
+                    <div class="admin-kpi-value">@expiringSoonClients</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-4">
+            <div class="admin-kpi-card admin-kpi-expired">
+                <div class="admin-kpi-icon"><i class="fas fa-exclamation-circle"></i></div>
+                <div>
+                    <div class="admin-kpi-label">منتهي الصلاحية</div>
+                    <div class="admin-kpi-value">@expiredClients</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-clients-search-card">
+        <form method="get" asp-route="networkManager-users-clients" class="row g-3 align-items-end">
+            <div class="col-lg">
+                <label class="form-label admin-clients-label"><i class="fas fa-search me-1"></i> بحث</label>
+                <div class="admin-clients-input-wrap">
+                    <input type="text" name="q" value="@searchValue" class="form-control"
+                           placeholder="اسم المشترك، اسم المستخدم، اللاقط، القطاع، السيرفر…" autocomplete="off" />
+                </div>
+            </div>
+            <div class="col-lg-auto d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="fas fa-filter"></i> تطبيق
+                </button>
+                <a asp-route="networkManager-users-clients" class="btn btn-outline-secondary px-3">
+                    <i class="fas fa-undo"></i> إعادة التعيين
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="admin-clients-table-card">
+        <div class="admin-clients-table-toolbar">
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-columns"></i> الأعمدة
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-2 shadow admin-clients-col-menu">
+                    <div class="form-check"><input class="form-check-input admin-col-toggle" type="checkbox" data-col="0" id="admin-col-network" checked><label class="form-check-label" for="admin-col-network">اسم الشبكة</label></div>
+                    <div class="form-check"><input class="form-check-input admin-col-toggle" type="checkbox" data-col="1" id="admin-col-client" checked><label class="form-check-label" for="admin-col-client">اسم المشترك</label></div>
+                    <div class="form-check"><input class="form-check-input admin-col-toggle" type="checkbox" data-col="2" id="admin-col-username" checked><label class="form-check-label" for="admin-col-username">اسم المستخدم</label></div>
+                    <div class="form-check"><input class="form-check-input admin-col-toggle" type="checkbox" data-col="3" id="admin-col-receiver" checked><label class="form-check-label" for="admin-col-receiver">اللاقط</label></div>
+                    <div class="form-check"><input class="form-check-input admin-col-toggle" type="checkbox" data-col="4" id="admin-col-sector" checked><label class="form-check-label" for="admin-col-sector">القطاع</label></div>
+                    <div class="form-check"><input class="form-check-input admin-col-toggle" type="checkbox" data-col="5" id="admin-col-created" checked><label class="form-check-label" for="admin-col-created">تاريخ التسجيل</label></div>
+                    <div class="form-check"><input class="form-check-input admin-col-toggle" type="checkbox" data-col="6" id="admin-col-expiration" checked><label class="form-check-label" for="admin-col-expiration">انتهاء الصلاحية</label></div>
+                    <div class="form-check"><input class="form-check-input admin-col-toggle" type="checkbox" data-col="7" id="admin-col-updated" checked><label class="form-check-label" for="admin-col-updated">آخر تعديل</label></div>
+                    <div class="form-check"><input class="form-check-input admin-col-toggle" type="checkbox" data-col="8" id="admin-col-server" checked><label class="form-check-label" for="admin-col-server">السيرفر</label></div>
+                </div>
+            </div>
+            @if (hasRows)
+            {
+                <span class="small admin-clients-meta">@totalClients مشترك في القائمة الحالية</span>
+            }
+        </div>
+
+        @if (!hasRows)
+        {
+            <div class="admin-clients-empty">
+                <div class="admin-clients-empty-icon"><i class="fas fa-user-slash"></i></div>
+                <h3>لا يوجد مشتركون</h3>
+                <p>لم يُعثر على مشتركين للشبكة الحالية@(string.IsNullOrWhiteSpace(searchValue) ? "" : " ضمن نتائج البحث").</p>
+                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                    <a asp-route="networkManager-clients" asp-route-action="Create" class="btn btn-success"><i class="fas fa-user-plus"></i> إضافة مشترك</a>
+                    @if (!string.IsNullOrWhiteSpace(searchValue))
+                    {
+                        <a asp-route="networkManager-users-clients" class="btn btn-outline-secondary">مسح البحث</a>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="admin-clients-table-wrapper">
+                <table class="table table-hover align-middle w-100 mb-0 radtk-data-table radtk-data-table--cards" id="adminClientsTable">
+                    <thead>
+                        <tr>
+                            <th>اسم الشبكة</th>
+                            <th>اسم المشترك</th>
+                            <th>اسم المستخدم</th>
+                            <th>اللاقط</th>
+                            <th>القطاع</th>
+                            <th>تاريخ التسجيل</th>
+                            <th>انتهاء الصلاحية</th>
+                            <th>آخر تعديل</th>
+                            <th>السيرفر</th>
+                            <th class="text-center">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Model!)
+                        {
+                            var expirationClass = "";
+                            if (c.ExpirationDate.HasValue)
+                            {
+                                if (c.ExpirationDate.Value.Date < today)
+                                {
+                                    expirationClass = "admin-exp-expired";
+                                }
+                                else if (c.ExpirationDate.Value.Date <= today.AddDays(7))
+                                {
+                                    expirationClass = "admin-exp-soon";
+                                }
+                            }
+
+                            <tr>
+                                <td>@(string.IsNullOrWhiteSpace(c.NetworkName) ? "—" : c.NetworkName)</td>
+                                <td class="fw-semibold admin-clients-name">@c.ClientName</td>
+                                <td><span class="client-username">@c.UserName</span></td>
+                                <td>@(string.IsNullOrWhiteSpace(c.ReceiverName) ? "—" : c.ReceiverName)</td>
+                                <td>@(string.IsNullOrWhiteSpace(c.SectorName) ? "—" : c.SectorName)</td>
+                                <td data-order="@c.CreatedDate.Ticks">@c.CreatedDate.ToString("yyyy/MM/dd")</td>
+                                <td class="@expirationClass" data-order="@(c.ExpirationDate?.Ticks ?? 0)">@(c.ExpirationDate.HasValue ? c.ExpirationDate.Value.ToString("yyyy/MM/dd") : "—")</td>
+                                <td data-order="@c.LastUpdated.Ticks">@c.LastUpdated.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td>
+                                    @if (string.IsNullOrWhiteSpace(c.ServerName))
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge admin-server-badge">@c.ServerName</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a asp-route="networkManager-clients" asp-route-action="Details" asp-route-id="@c.Id" class="btn btn-outline-info" title="تفاصيل"><i class="fas fa-eye"></i></a>
+                                        <a asp-route="networkManager-clients" asp-route-action="Edit" asp-route-id="@c.Id" class="btn btn-outline-warning" title="تعديل"><i class="fas fa-edit"></i></a>
+                                        <a asp-route="networkManager-clients" asp-route-action="Delete" asp-route-id="@c.Id" class="btn btn-outline-danger" title="حذف"><i class="fas fa-trash"></i></a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    @if (hasRows)
+    {
+        <script>
+            $(document).ready(function () {
+                var table = $('#adminClientsTable').DataTable({
+                    scrollX: true,
+                    autoWidth: false,
+                    language: {
+                        url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+                    },
+                    order: [[5, 'desc']],
+                    pageLength: 25,
+                    lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+                    columnDefs: [
+                        { targets: 9, orderable: false, className: 'text-center' }
+                    ]
+                });
+
+                $('.admin-col-toggle').on('change', function () {
+                    var colIndex = $(this).data('col');
+                    table.column(colIndex).visible(this.checked);
+                });
+            });
+        </script>
+    }
+}

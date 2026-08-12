@@ -1,0 +1,136 @@
+@model IEnumerable<RadaTik.Models.Business.EmployeeWalletTopUpRequest>
+@using RadaTik.Helpers
+@using RadaTik.Models.Business
+@{
+    ViewData["Title"] = "طلبات تغذية محافظ الموظفين";
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var selectedStatus = ViewBag.SelectedStatus as EmployeeWalletTopUpRequestStatus?;
+    var pendingCount = ViewBag.PendingCount as int? ?? 0;
+    var employees = ViewBag.Employees as IReadOnlyList<PayrollEmployee> ?? Array.Empty<PayrollEmployee>();
+    var companyWallet = ViewBag.CompanyWalletBalance as decimal? ?? 0m;
+}
+
+<div class="financial-page financial-hub-page">
+    @{
+        ViewBag.FinancialNavShowWarehouse = false;
+        ViewBag.FinancialNavCurrent = "employee-topups";
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-users-cog";
+        ViewBag.FinancialHeroTheme = "wallet";
+        ViewBag.FinancialHeroSubtitle = companyName + " — تغذية محافظ الموظفين من محفظة الشركة";
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-secondary micro-btn"" href=""" + Url.RouteUrl("networkManager-wallet-index") + @"""><i class=""fas fa-wallet""></i> المحفظة</a>
+<a class=""btn btn-outline-primary micro-btn"" href=""" + Url.RouteUrl("networkManager-payroll", new { action = "Index", id = "" }) + @"""><i class=""fas fa-money-check-alt""></i> الرواتب</a>";
+    }
+    <partial name="_FinancialSysHero" />
+
+    @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+    @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">رصيد محفظة الشركة</div>
+                    <div class="fs-4 fw-bold">@SyrianCurrencyHelper.FormatNew(companyWallet) ل.س.ج</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="mb-3"><i class="fas fa-bolt text-primary"></i> تغذية مباشرة (بدون طلب)</h6>
+                    <form asp-action="DirectTopUp" method="post" class="row g-2 align-items-end">
+                        @Html.AntiForgeryToken()
+                        <div class="col-md-5">
+                            <label class="form-label small">الموظف</label>
+                            <select name="payrollEmployeeId" class="form-select form-select-sm" required>
+                                <option value="">— اختر —</option>
+                                @foreach (var e in employees)
+                                {
+                                    <option value="@e.Id">@e.FullName (@SyrianCurrencyHelper.FormatNew(e.WalletBalance) ل.س.ج)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">المبلغ (ل.س.ج)</label>
+                            <input type="number" name="amount" class="form-control form-control-sm" min="1" step="1" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">ملاحظة</label>
+                            <input type="text" name="notes" class="form-control form-control-sm" maxlength="200" placeholder="اختياري" />
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('تأكيد التغذية المباشرة؟ سيُخصم المبلغ + عمولة المنصة (إن وُجدت) من محفظة الشركة.');">
+                                <i class="fas fa-plus-circle"></i> تنفيذ التغذية
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="btn-group mb-3 flex-wrap" role="group">
+        <a class="btn btn-sm @(selectedStatus == null ? "btn-primary" : "btn-outline-primary")" asp-action="Index">الكل</a>
+        <a class="btn btn-sm @(selectedStatus == EmployeeWalletTopUpRequestStatus.Pending ? "btn-primary" : "btn-outline-primary")" asp-action="Index" asp-route-status="@EmployeeWalletTopUpRequestStatus.Pending">معلّقة (@pendingCount)</a>
+        <a class="btn btn-sm @(selectedStatus == EmployeeWalletTopUpRequestStatus.Approved ? "btn-primary" : "btn-outline-primary")" asp-action="Index" asp-route-status="@EmployeeWalletTopUpRequestStatus.Approved">مقبولة</a>
+        <a class="btn btn-sm @(selectedStatus == EmployeeWalletTopUpRequestStatus.Rejected ? "btn-primary" : "btn-outline-primary")" asp-action="Index" asp-route-status="@EmployeeWalletTopUpRequestStatus.Rejected">مرفوضة</a>
+    </div>
+
+    <div class="card financial-table-card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0 financial-table radtk-data-table radtk-data-table--cards">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>الموظف</th>
+                        <th>المبلغ</th>
+                        <th>عمولة متوقعة</th>
+                        <th>المصدر</th>
+                        <th>الحالة</th>
+                        <th>التاريخ</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Any())
+                {
+                    foreach (var r in Model)
+                    {
+                        <tr>
+                            <td>@r.Id</td>
+                            <td>@(r.PayrollEmployee?.FullName ?? $"#{r.PayrollEmployeeId}")</td>
+                            <td>@SyrianCurrencyHelper.FormatNew(r.Amount) ل.س.ج</td>
+                            <td>@SyrianCurrencyHelper.FormatNew(r.PlatformCommissionAmount) ل.س.ج</td>
+                            <td>@PricingDisplay.EmployeeWalletTopUpSourceLabel(r.RequestSource)</td>
+                            <td>@PricingDisplay.EmployeeWalletTopUpRequestStatusLabel(r.Status)</td>
+                            <td>@r.RequestedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</td>
+                            <td class="text-nowrap">
+                                @if (r.Status == EmployeeWalletTopUpRequestStatus.Pending)
+                                {
+                                    <form asp-action="Approve" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@r.Id" />
+                                        <button type="submit" class="btn btn-sm btn-success micro-btn" title="موافقة" onclick="return confirm('تأكيد الموافقة؟ سيُخصم @(SyrianCurrencyHelper.FormatNew(r.Amount + r.PlatformCommissionAmount)) ل.س.ج من محفظة الشركة.');"><i class="fas fa-check"></i></button>
+                                    </form>
+                                    <form asp-action="Reject" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@r.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger micro-btn" title="رفض" onclick="return confirm('تأكيد رفض الطلب؟');"><i class="fas fa-times"></i></button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr><td colspan="8" class="text-center text-muted py-4">لا توجد طلبات.</td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

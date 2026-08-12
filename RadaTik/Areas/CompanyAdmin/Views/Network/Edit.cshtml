@@ -1,0 +1,124 @@
+@model RadaTik.ViewModels.Network.NetworkViewModel
+@using RadaTik.Helpers
+
+@{
+    ViewData["Title"] = "تعديل الشبكة";
+    ViewBag.PageHeroIcon = "fas fa-edit";
+    ViewBag.PageHeroBackUrl = Url.Action("Index");
+}
+
+<partial name="_CrudPageHero" />
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">معلومات الشبكة</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post" enctype="multipart/form-data" class="radtk-form">
+                    <input type="hidden" asp-for="Id" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label">اسم الشبكة <span class="text-danger">*</span></label>
+                        <input asp-for="Name" class="form-control form-control-sm" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Governorates" class="form-label">المحافظات</label>
+                        <textarea asp-for="Governorates" class="form-control form-control-sm" rows="4"></textarea>
+                        <span asp-validation-for="Governorates" class="text-danger"></span>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.LogoPath))
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">الشعار الحالي</label>
+                            <div>
+                                <img src="@Model.LogoPath" alt="شعار الشبكة" class="img-thumbnail" style="max-height: 150px;" />
+                            </div>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label asp-for="LogoFile" class="form-label">تغيير الشعار</label>
+                        <input asp-for="LogoFile" type="file" class="form-control form-control-sm" accept="image/*" data-max-bytes="3145728" data-size-message="حجم شعار الشبكة يجب ألا يتجاوز 3 ميغابايت." />
+                        <span asp-validation-for="LogoFile" class="text-danger"></span>
+                        <small class="form-text text-muted">اتركه فارغاً للاحتفاظ بالشعار الحالي (الحد الأقصى للحجم: 3MB).</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Status" class="form-label">حالة الشبكة <span class="text-danger">*</span></label>
+                        <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<NetworkStatus>()"></select>
+                        <span asp-validation-for="Status" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Notes" class="form-label">ملاحظات</label>
+                        <textarea asp-for="Notes" class="form-control form-control-sm" rows="3"></textarea>
+                        <span asp-validation-for="Notes" class="text-danger"></span>
+                    </div>
+
+                    @if (Model.IsMainCompanyNetwork)
+                    {
+                        <div class="mb-3 border-top pt-3">
+                            <h6 class="text-muted">العملات (للتحصيل)</h6>
+                            <label asp-for="DefaultUsdToSypExchangeRate" class="form-label"></label>
+                            <input asp-for="DefaultUsdToSypExchangeRate" class="form-control form-control-sm" step="0.0001" min="0.0001" />
+                            <span asp-validation-for="DefaultUsdToSypExchangeRate" class="text-danger"></span>
+                            <small class="form-text text-muted">يُستخدم كافتراضي عند تحصيل مشتركين حسابهم بالدولار. اتركه فارغاً إن لم تُفعّل USD.</small>
+                            <label asp-for="DefaultMaterialInvoiceCurrency" class="form-label mt-2"></label>
+                            <select asp-for="DefaultMaterialInvoiceCurrency" class="form-select" asp-items="CurrencyHelper.GetCompanyOperatingCurrencySelectItems(Model.DefaultMaterialInvoiceCurrency)"></select>
+                            <small class="form-text text-muted">عملة افتراضية لفواتير شراء/بيع المواد الجديدة.</small>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="DefaultUsdToSypExchangeRate" />
+                    }
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            حفظ التغييرات
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-times"></i>
+                            إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var logoInput = document.getElementById('LogoFile');
+            if (!logoInput) return;
+
+            var maxBytes = Number(logoInput.getAttribute('data-max-bytes') || (3 * 1024 * 1024));
+            var sizeMessage = logoInput.getAttribute('data-size-message') || 'حجم الصورة يجب ألا يتجاوز 3 ميغابايت.';
+            logoInput.addEventListener('change', function () {
+                var file = logoInput.files && logoInput.files.length ? logoInput.files[0] : null;
+                if (!file) {
+                    logoInput.setCustomValidity('');
+                    return;
+                }
+
+                if (file.size > maxBytes) {
+                    logoInput.value = '';
+                    logoInput.setCustomValidity(sizeMessage);
+                    logoInput.reportValidity();
+                } else {
+                    logoInput.setCustomValidity('');
+                }
+            });
+        });
+    </script>
+}

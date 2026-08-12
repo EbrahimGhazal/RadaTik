@@ -1,0 +1,22 @@
+@model RadaTik.ViewComponents.ClientPortalNetworkBrandModel
+@if (Model != null && (!string.IsNullOrWhiteSpace(Model.NetworkName) || Model.HasLogo))
+{
+    <div class="client-portal-network-brand" dir="rtl">
+        @if (Model.HasLogo)
+        {
+            <div class="client-portal-network-logo-wrap">
+                <img src="@Model.LogoPath" alt="@(Model.NetworkName ?? "شعار الشبكة")" class="client-portal-network-logo" loading="lazy" />
+            </div>
+        }
+        else
+        {
+            <div class="client-portal-network-icon-fallback" title="@Model.NetworkName">
+                <i class="fas fa-network-wired"></i>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.NetworkName))
+        {
+            <small class="client-portal-network-name">@Model.NetworkName</small>
+        }
+    </div>
+}

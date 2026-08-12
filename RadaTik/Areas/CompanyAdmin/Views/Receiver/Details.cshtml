@@ -1,0 +1,210 @@
+<div class="radtk-page--companyadmin-views-receiver-details">
+<div class="radtk-page--companyadmin-views-receiver-details">
+@model RadaTik.Models.Receiver
+
+@{
+    ViewData["Title"] = "تفاصيل المستقبل";
+    ViewBag.PageHeroIcon = "fas fa-info-circle";
+    ViewBag.PageHeroSubtitle = Model.Name;
+    ViewBag.PageHeroBackUrl = Url.Action("Index");
+    ViewBag.PageHeroBackText = "رجوع";
+    ViewBag.PageHeroExtraActions = new[]
+    {
+        new RadaTik.ViewModels.UI.PageHeroActionViewModel { Text = "تعديل", Url = Url.Action("Edit", new { id = Model.Id })!, CssClass = "btn btn-warning btn-sm", IconClass = "fas fa-edit" },
+        new RadaTik.ViewModels.UI.PageHeroActionViewModel { Text = "حذف", Url = Url.Action("Delete", new { id = Model.Id })!, CssClass = "btn btn-danger btn-sm", IconClass = "fas fa-trash" }
+    };
+    var isPendingApproval = (bool?)ViewBag.IsPendingReceiverApproval == true;
+}
+
+<partial name="_CrudPageHero" />
+
+<!-- Stats Bar -->
+<div class="stats-bar">
+    <div class="stat-item stat-primary">
+        <div class="stat-icon-mini"><i class="fas fa-wifi"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@(Model.IsActive ? "نشط" : isPendingApproval ? "بانتظار الموافقة" : "متوقف")</span>
+            <span class="stat-label">الحالة</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-warning">
+        <div class="stat-icon-mini"><i class="fas fa-users"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@Model.UserCount</span>
+            <span class="stat-label">مستخدمين</span>
+        </div>
+    </div>
+    
+    <div class="stat-item stat-info">
+        <div class="stat-icon-mini"><i class="fas fa-broadcast-tower"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@(Model.Sector?.Name ?? "غير محدد")</span>
+            <span class="stat-label">القطاع</span>
+        </div>
+    </div>
+</div>
+
+<div class="details-grid">
+    <!-- Info Card -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-info-circle"></i>
+                معلومات المستقبل
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="info-list">
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-tag"></i> اسم المستقبل</span>
+                    <span class="info-value"><strong>@Model.Name</strong></span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-broadcast-tower"></i> القطاع التابع له</span>
+                    <span class="info-value">
+                        @if (Model.Sector != null)
+                        {
+                            <a asp-controller="Sector" asp-action="Details" asp-route-id="@Model.Sector.Id" class="badge badge-info">
+                                @Model.Sector.Name
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">غير مرتبط</span>
+                        }
+                    </span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-network-wired"></i> عنوان IP</span>
+                    <span class="info-value"><code>@Model.IPAddress</code></span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-mask"></i> قناع الشبكة</span>
+                    <span class="info-value">@Model.NetworkMask</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-map-marker-alt"></i> خط العرض</span>
+                    <span class="info-value">@Model.Latitude.ToString("F6")</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-map-marker-alt"></i> خط الطول</span>
+                    <span class="info-value">@Model.Longitude.ToString("F6")</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-database"></i> البروفايلات</span>
+                    <span class="info-value">
+                        @if (!string.IsNullOrEmpty(Model.ProfileNames))
+                        {
+                            <span class="badge badge-info">@Model.ProfileNames</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">لا يوجد بروفايلات</span>
+                        }
+                    </span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-users"></i> عدد المستخدمين</span>
+                    <span class="info-value">
+                        <span class="badge badge-warning">@Model.UserCount مستخدم</span>
+                    </span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-calendar-plus"></i> تاريخ الإضافة</span>
+                    <span class="info-value">@Model.CreatedDate.ToString("yyyy-MM-dd hh:mm tt")</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-toggle-on"></i> الحالة</span>
+                    <span class="info-value">
+                        @if (Model.IsActive)
+                        {
+                            <span class="status-badge status-active">
+                                <i class="fas fa-check-circle"></i> نشط
+                            </span>
+                        }
+                        else if (isPendingApproval)
+                        {
+                            <span class="status-badge status-awaiting">
+                                <i class="fas fa-hourglass-half"></i> بانتظار موافقة المدير
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="status-badge status-inactive">
+                                <i class="fas fa-times-circle"></i> غير نشط
+                            </span>
+                        }
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map Card -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-map-marked-alt"></i>
+                موقع المستقبل
+            </h3>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div id="map"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var lat = @Model.Latitude;
+            var lng = @Model.Longitude;
+
+            var map = L.map('map').setView([lat, lng], 15);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            var receiverIcon = L.AwesomeMarkers.icon({
+                icon: 'wifi',
+                markerColor: '@(Model.IsActive ? "green" : "red")',
+                prefix: 'fa',
+                iconColor: 'white'
+            });
+
+            L.marker([lat, lng], {icon: receiverIcon}).addTo(map)
+                .bindPopup('<strong>@Model.Name</strong><br>IP: @Model.IPAddress')
+                .openPopup();
+
+            @if (Model.Sector != null)
+            {
+                @:var sectorIcon = L.AwesomeMarkers.icon({
+                @:    icon: 'broadcast-tower',
+                @:    markerColor: 'blue',
+                @:    prefix: 'fa',
+                @:    iconColor: 'white'
+                @:});
+                @:
+                @:L.marker([@Model.Sector.Latitude, @Model.Sector.Longitude], {icon: sectorIcon}).addTo(map)
+                @:    .bindPopup('<strong>@Model.Sector.Name</strong><br>القطاع');
+                @:
+                @:L.polyline([[lat, lng], [@Model.Sector.Latitude, @Model.Sector.Longitude]], {
+                @:    color: '#007bff',
+                @:    weight: 2,
+                @:    dashArray: '5, 10'
+                @:}).addTo(map);
+            }
+        });
+    </script>
+}

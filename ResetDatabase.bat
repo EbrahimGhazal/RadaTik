@@ -5,7 +5,7 @@ echo إعادة إنشاء قاعدة البيانات
 echo ========================================
 echo.
 
-cd RadTik
+cd RadaTik
 
 echo جاري حذف قاعدة البيانات...
 dotnet ef database drop --force

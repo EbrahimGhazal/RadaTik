@@ -1,0 +1,318 @@
+@model RadaTik.Models.Profile
+@{
+    ViewData["Title"] = "تفاصيل البروفايل";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>تفاصيل البروفايل: @Model.Name
+                    </h4>
+                    <div>
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm me-2">
+                            <i class="fas fa-edit me-1"></i>تعديل
+                        </a>
+                        <a asp-action="Index" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-arrow-right me-1"></i>العودة للقائمة
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- معلومات MikroTik -->
+                    @if (Model.IsSyncedWithMikroTik && ViewBag.MikroTikInfo != null)
+                    {
+                        <div class="alert alert-success mb-4">
+                            <h5 class="alert-heading">
+                                <i class="fas fa-check-circle me-2"></i>معلومات من MikroTik
+                            </h5>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <strong>معرف البروفايل:</strong> @ViewBag.MikroTikInfo.Id
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>الحالة:</strong>
+                                    @if (ViewBag.MikroTikInfo.IsDisabled)
+                                    {
+                                        <span class="badge bg-danger">معطل</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">مفعل</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (ViewBag.MikroTikError != null)
+                    {
+                        <div class="alert alert-danger mb-4">
+                            <i class="fas fa-exclamation-triangle me-2"></i>@ViewBag.MikroTikError
+                        </div>
+                    }
+
+                    <div class="row">
+                        <!-- المعلومات الأساسية -->
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-id-card me-2"></i>المعلومات الأساسية
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <dl class="row">
+                                        <dt class="col-sm-4">الاسم:</dt>
+                                        <dd class="col-sm-8">@Model.Name</dd>
+
+                                        <dt class="col-sm-4">الوصف:</dt>
+                                        <dd class="col-sm-8">@(Model.Description ?? "لا يوجد")</dd>
+
+                                        <dt class="col-sm-4">النوع:</dt>
+                                        <dd class="col-sm-8">
+                                            <span class="badge bg-info">@Model.Type</span>
+                                        </dd>
+
+                                        <dt class="col-sm-4">دورة الفاتورة:</dt>
+                                        <dd class="col-sm-8">@Model.BillingCycle</dd>
+
+                                        <dt class="col-sm-4">الحالة:</dt>
+                                        <dd class="col-sm-8">
+                                            @if (Model.IsActive)
+                                            {
+                                                <span class="badge bg-success">مفعل</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">معطل</span>
+                                            }
+                                        </dd>
+
+                                        <dt class="col-sm-4">للعملاء الجدد:</dt>
+                                        <dd class="col-sm-8">
+                                            @if (Model.IsForNewClients)
+                                            {
+                                                <span class="badge bg-success">نعم</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">لا</span>
+                                            }
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- المعلومات المالية -->
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-money-bill-wave me-2"></i>المعلومات المالية
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <dl class="row">
+                                        <dt class="col-sm-4">السعر (ل.س جديد):</dt>
+                                        <dd class="col-sm-8">
+                                            @SyrianCurrencyHelper.FormatNew(Model.Price) ل.س جديد
+                                            <br />
+                                            <small class="text-muted">
+                                                <i class="fas fa-coins"></i>
+                                                القيمة بالليرة القديمة: @((Model.Price * 100).ToString("N0")) ل.س
+                                            </small>
+                                        </dd>
+
+                                        <dt class="col-sm-4">الضريبة:</dt>
+                                        <dd class="col-sm-8">@Model.VATPercentage%</dd>
+
+                                        <dt class="col-sm-4">السعر شامل الضريبة:</dt>
+                                        <dd class="col-sm-8">
+                                            @SyrianCurrencyHelper.FormatNew(Model.PriceWithVAT) ل.س جديد
+                                            <br />
+                                            <small class="text-muted">
+                                                <i class="fas fa-coins"></i>
+                                                القيمة بالليرة القديمة: @((Model.PriceWithVAT * 100).ToString("N0")) ل.س
+                                            </small>
+                                        </dd>
+
+                                        <dt class="col-sm-4">سرعة التنزيل:</dt>
+                                        <dd class="col-sm-8">@Model.DownloadSpeedDisplay</dd>
+
+                                        <dt class="col-sm-4">سرعة الرفع:</dt>
+                                        <dd class="col-sm-8">@(Model.UploadSpeedDisplay ?? "غير محدد")</dd>
+
+                                        <dt class="col-sm-4">حد البيانات:</dt>
+                                        <dd class="col-sm-8">@(Model.DataLimit?.ToString() + " GB" ?? "غير محدود")</dd>
+
+                                        <dt class="col-sm-4">حد الوقت:</dt>
+                                        <dd class="col-sm-8">@(Model.TimeLimit?.ToString() + " ساعة" ?? "غير محدود")</dd>
+
+                                        <dt class="col-sm-4">عدد الأجهزة:</dt>
+                                        <dd class="col-sm-8">
+                                            <span class="badge bg-secondary">@Model.MinDevices - @Model.MaxDevices</span>
+                                            <small class="text-muted ms-1">(أدنى - أقصى)</small>
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- معلومات MikroTik التفصيلية -->
+                    @if (Model.MikroTikServerId > 0)
+                    {
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card mb-4">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-server me-2"></i>معلومات MikroTik
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <dl class="row">
+                                                    <dt class="col-sm-4">خادم MikroTik:</dt>
+                                                    <dd class="col-sm-8">
+                                                        @if (Model.MikroTikServer != null)
+                                                        {
+                                                            <span>@Model.MikroTikServer.Name</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted">غير معروف</span>
+                                                        }
+                                                    </dd>
+
+                                                    <dt class="col-sm-4">معرف البروفايل:</dt>
+                                                    <dd class="col-sm-8">@(Model.MikroTikProfileId ?? "غير معروف")</dd>
+
+                                                    <dt class="col-sm-4">حالة المزامنة:</dt>
+                                                    <dd class="col-sm-8">
+                                                        @if (Model.IsSyncedWithMikroTik)
+                                                        {
+                                                            <span class="badge bg-success">مزامن</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-warning">غير مزامن</span>
+                                                        }
+                                                    </dd>
+
+                                                    <dt class="col-sm-4">آخر مزامنة:</dt>
+                                                    <dd class="col-sm-8">@Model.LastSyncDate?.ToString("yyyy-MM-dd HH:mm")</dd>
+                                                </dl>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <dl class="row">
+                                                    <dt class="col-sm-4">Local Address:</dt>
+                                                    <dd class="col-sm-8">@(Model.MikroTikLocalAddress ?? "غير محدد")</dd>
+
+                                                    <dt class="col-sm-4">Remote Address:</dt>
+                                                    <dd class="col-sm-8">@(Model.MikroTikRemoteAddress ?? "غير محدد")</dd>
+
+                                                    <dt class="col-sm-4">Rate Limit:</dt>
+                                                    <dd class="col-sm-8">@(Model.MikroTikRateLimit ?? "غير محدد")</dd>
+
+                                                    <dt class="col-sm-4">Service:</dt>
+                                                    <dd class="col-sm-8">@(Model.MikroTikService ?? "pppoe")</dd>
+
+                                                    <dt class="col-sm-4">Only One:</dt>
+                                                    <dd class="col-sm-8">
+                                                        @if (Model.MikroTikOnlyOne)
+                                                        {
+                                                            <span class="badge bg-info">نعم</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary">لا</span>
+                                                        }
+                                                    </dd>
+                                                </dl>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- العملاء المرتبطين -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-users me-2"></i>العملاء المرتبطين (@Model.Clients.Count)
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    @if (Model.Clients.Any())
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-hover radtk-data-table radtk-data-table--cards">
+                                                <thead>
+                                                    <tr>
+                                                        <th>اسم العميل</th>
+                                                        <th>اسم المستخدم</th>
+                                                        <th>رقم الهاتف</th>
+                                                        <th>الحالة</th>
+                                                        <th>تاريخ الإنشاء</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var client in Model.Clients.Take(10))
+                                                    {
+                                                        <tr>
+                                                            <td>@client.Name</td>
+                                                            <td>@client.UserName</td>
+                                                            <td>@client.PhoneNumber</td>
+                                                            <td>
+                                                                @if (client.IsActive)
+                                                                {
+                                                                    <span class="badge bg-success">مفعل</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-danger">معطل</span>
+                                                                }
+                                                            </td>
+                                                            <td>@client.CreatedDate.ToString("yyyy-MM-dd")</td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                            @if (Model.Clients.Count > 10)
+                                            {
+                                                <div class="text-center mt-2">
+                                                    <small class="text-muted">عرض 10 من @Model.Clients.Count عميل</small>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>لا يوجد عملاء مرتبطين بهذا البروفايل
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">
+                        <i class="fas fa-calendar me-1"></i>تم الإنشاء في: @Model.CreatedDate.ToString("yyyy-MM-dd HH:mm") |
+                        <i class="fas fa-history me-1"></i>آخر تحديث: @Model.UpdatedDate.ToString("yyyy-MM-dd HH:mm")
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

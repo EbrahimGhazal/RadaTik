@@ -1,0 +1,55 @@
+@using RadaTik.Models.Business
+@model IEnumerable<EmployeeRewardPenalty>
+@{
+    ViewData["Title"] = "المكافآت والعقوبات";
+    string TypeLabel(EmployeeRewardPenaltyType t) => t == EmployeeRewardPenaltyType.Reward ? "مكافأة" : "عقوبة";
+    string StatusLabel(EmployeeRewardPenaltyStatus s) => s switch
+    {
+        EmployeeRewardPenaltyStatus.Pending => "بانتظار الاعتماد",
+        EmployeeRewardPenaltyStatus.Approved => "معتمد",
+        EmployeeRewardPenaltyStatus.Rejected => "مرفوض",
+        EmployeeRewardPenaltyStatus.AppliedToPayroll => "مطبّق على الراتب",
+        _ => s.ToString()
+    };
+}
+
+<div class="financial-page financial-hub-page">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h4 mb-0"><i class="fas fa-award me-1"></i> المكافآت والعقوبات</h1>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary btn-sm" asp-route="networkManager-erp">ERP</a>
+            <a class="btn btn-primary btn-sm" asp-action="Create"><i class="fas fa-plus"></i> إضافة</a>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+                <tr><th>الموظف</th><th>النوع</th><th>المبلغ</th><th>السبب</th><th>الحالة</th><th></th></tr>
+            </thead>
+            <tbody>
+            @foreach (var r in Model)
+            {
+                <tr>
+                    <td>@(r.PayrollEmployee?.FullName)</td>
+                    <td><span class="badge @(r.Type == EmployeeRewardPenaltyType.Reward ? "bg-success" : "bg-danger")">@TypeLabel(r.Type)</span></td>
+                    <td>@r.Amount.ToString("N0")</td>
+                    <td>@r.Reason</td>
+                    <td>@StatusLabel(r.Status)</td>
+                    <td>
+                        @if (r.Status == EmployeeRewardPenaltyStatus.Pending)
+                        {
+                            <form asp-action="Review" method="post" class="d-inline-flex gap-1">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@r.Id" />
+                                <button type="submit" name="approve" value="true" class="btn btn-sm btn-success">اعتماد</button>
+                                <button type="submit" name="approve" value="false" class="btn btn-sm btn-outline-danger">رفض</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

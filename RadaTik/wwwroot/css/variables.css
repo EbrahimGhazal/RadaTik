@@ -1,0 +1,213 @@
+/* ============================================
+   RadaTik - CSS Variables
+   متغيرات التصميم الأساسية
+   ============================================ */
+
+:root {
+    /* Primary Colors - الألوان الرئيسية */
+    --primary: #0066CC;
+    --primary-dark: #004C99;
+    --primary-light: #3399FF;
+    --primary-gradient: linear-gradient(135deg, #0066CC 0%, #004C99 100%);
+    
+    /* Secondary Colors - الألوان الثانوية */
+    --secondary: #6C757D;
+    --secondary-dark: #545B62;
+    --secondary-light: #ADB5BD;
+    
+    /* Accent Colors - ألوان التمييز */
+    --accent: #00B4D8;
+    --accent-dark: #0096B4;
+    --accent-light: #48CAE4;
+    
+    /* Status Colors - ألوان الحالة */
+    --success: #00C853;
+    --success-dark: #00A844;
+    --success-light: #69F0AE;
+    --success-bg: rgba(0, 200, 83, 0.1);
+    
+    --warning: #FF9800;
+    --warning-dark: #F57C00;
+    --warning-light: #FFB74D;
+    --warning-bg: rgba(255, 152, 0, 0.1);
+    
+    --danger: #F44336;
+    --danger-dark: #D32F2F;
+    --danger-light: #EF5350;
+    --danger-bg: rgba(244, 67, 54, 0.1);
+    
+    --info: #2196F3;
+    --info-dark: #1976D2;
+    --info-light: #64B5F6;
+    --info-bg: rgba(33, 150, 243, 0.1);
+
+    /* Alert System - هوية موحدة للتنبيهات */
+    --alert-radius: 10px;
+    --alert-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    --alert-success-bg: rgba(0, 200, 83, 0.11);
+    --alert-success-border: rgba(0, 168, 68, 0.45);
+    --alert-success-text: #0f7a42;
+    --alert-warning-bg: rgba(255, 152, 0, 0.14);
+    --alert-warning-border: rgba(245, 124, 0, 0.45);
+    --alert-warning-text: #9a5a00;
+    --alert-danger-bg: rgba(244, 67, 54, 0.12);
+    --alert-danger-border: rgba(211, 47, 47, 0.5);
+    --alert-danger-text: #b42318;
+    --alert-info-bg: rgba(33, 150, 243, 0.12);
+    --alert-info-border: rgba(25, 118, 210, 0.45);
+    --alert-info-text: #0f5ea8;
+
+    /* Badges & Pills - هوية موحدة */
+    --badge-radius: 999px;
+    --badge-border-width: 1px;
+    --badge-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    --badge-transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
+    --badge-neutral-bg: rgba(108, 117, 125, 0.14);
+    --badge-neutral-border: rgba(108, 117, 125, 0.28);
+    --badge-neutral-text: #495057;
+    
+    /* Background Colors - ألوان الخلفية */
+    --bg-body: #F0F4F8;
+    --bg-card: #FFFFFF;
+    --bg-sidebar: #1A237E;
+    --bg-header: #FFFFFF;
+    --bg-hover: #F5F7FA;
+    --bg-selected: #E3F2FD;
+    
+    /* Text Colors - ألوان النص */
+    --text-primary: #1A202C;
+    --text-secondary: #4A5568;
+    --text-muted: #718096;
+    --text-light: #A0AEC0;
+    --text-white: #FFFFFF;
+    --text-on-primary: #FFFFFF;
+    --text-contrast: #0F172A;
+    
+    /* Border Colors - ألوان الحدود */
+    --border-color: #E2E8F0;
+    --border-light: #EDF2F7;
+    --border-focus: var(--primary);
+    --border-strong: #CBD5E1;
+    
+    /* Shadows - الظلال */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+    --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.15);
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --shadow-dropdown: 0 14px 34px rgba(15, 23, 42, 0.14);
+    
+    /* Border Radius - الزوايا */
+    --radius-sm: 4px;
+    --radius: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-full: 9999px;
+    
+    /* Transitions - الانتقالات */
+    --transition-fast: 0.15s ease;
+    --transition: 0.25s ease;
+    --transition-slow: 0.4s ease;
+
+    /* Scrollbar - شريط التمرير (Global) */
+    --scrollbar-track: rgba(15, 107, 255, 0.08);
+    --scrollbar-thumb: rgba(15, 107, 255, 0.42);
+    --scrollbar-thumb-hover: rgba(15, 107, 255, 0.62);
+    
+    /* Spacing - المسافات */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    
+    /* Font Sizes - أحجام الخط */
+    --font-xs: 0.75rem;
+    --font-sm: 0.875rem;
+    --font-base: 1rem;
+    --font-lg: 1.125rem;
+    --font-xl: 1.25rem;
+    --font-2xl: 1.5rem;
+    --font-3xl: 1.875rem;
+    --font-4xl: 2.25rem;
+    
+    /* Layout - التخطيط */
+    --sidebar-width: 280px;
+    --sidebar-collapsed: 70px;
+    --header-height: 70px;
+
+    /* Dropdowns & Tables */
+    --dropdown-bg: #FFFFFF;
+    --dropdown-item-hover: #F8FAFC;
+    --table-head-bg: #EEF4FF;
+    --table-row-hover: #F8FBFF;
+    --table-card-bg: #FFFFFF;
+    --table-card-border: #DCE6F5;
+}
+
+/* Dark Mode - الوضع الليلي */
+[data-theme="dark"] {
+    --bg-body: #0F172A;
+    --bg-card: #1E293B;
+    --bg-sidebar: #0F172A;
+    --bg-header: #1E293B;
+    --bg-hover: #334155;
+    --bg-selected: #1E3A5F;
+    
+    --text-primary: #F8FAFC;
+    --text-secondary: #E2E8F0;
+    --text-muted: #B8C5D7;
+    --text-light: #64748B;
+    --text-contrast: #F8FAFC;
+    
+    --border-color: #334155;
+    --border-light: #475569;
+    --border-strong: #5B6C84;
+    
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.6);
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-dropdown: 0 18px 38px rgba(2, 6, 23, 0.58);
+    
+    --primary: #60A5FA;
+    --primary-dark: #3B82F6;
+    --primary-light: #93C5FD;
+
+    /* Alert System - Dark mode */
+    --alert-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    --alert-success-bg: rgba(0, 200, 83, 0.16);
+    --alert-success-border: rgba(105, 240, 174, 0.38);
+    --alert-success-text: #86efac;
+    --alert-warning-bg: rgba(255, 152, 0, 0.18);
+    --alert-warning-border: rgba(255, 183, 77, 0.4);
+    --alert-warning-text: #ffd08a;
+    --alert-danger-bg: rgba(244, 67, 54, 0.18);
+    --alert-danger-border: rgba(239, 83, 80, 0.42);
+    --alert-danger-text: #ffb4ae;
+    --alert-info-bg: rgba(33, 150, 243, 0.18);
+    --alert-info-border: rgba(100, 181, 246, 0.4);
+    --alert-info-text: #9ad0ff;
+
+    --badge-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+    --badge-neutral-bg: rgba(148, 163, 184, 0.2);
+    --badge-neutral-border: rgba(148, 163, 184, 0.36);
+    --badge-neutral-text: #e2e8f0;
+
+    /* Scrollbar - شريط التمرير (Global - Dark) */
+    --scrollbar-track: rgba(148, 163, 184, 0.12);
+    --scrollbar-thumb: rgba(96, 165, 250, 0.46);
+    --scrollbar-thumb-hover: rgba(147, 197, 253, 0.68);
+
+    --dropdown-bg: #172235;
+    --dropdown-item-hover: #22324A;
+    --table-head-bg: #1E2F46;
+    --table-row-hover: #20324A;
+    --table-card-bg: #16263A;
+    --table-card-border: #2B3F5E;
+}

@@ -1,0 +1,271 @@
+@model RadaTik.ViewModels.CollectionPoints.CreateCollectionPointViewModel
+@{
+    ViewData["Title"] = "إنشاء حساب نقطة تحصيل";
+    ViewData["BodyClass"] = "login-page register-page login-page--radatik-spa-identity register-page--radatik-spa-identity";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <style>
+        #collectionPointMap {
+            height: 300px;
+            border: 1px solid #d8dee6;
+            border-radius: 10px;
+        }
+    </style>
+}
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-brand" dir="ltr">
+                <div class="login-brand-inner">
+                    @{
+                        ViewData["RtBrandVariant"] = "auth";
+                    }
+                    <partial name="_RadaTikBrandLogo" />
+                </div>
+            </div>
+            <p class="login-subtitle login-subtitle--muted">إنشاء حساب نقطة تحصيل · سيتم إرسال الطلب للمراجعة قبل التفعيل</p>
+        </div>
+
+        <div class="login-body">
+            <div class="rt-register-info" role="note">
+                <i class="fas fa-info-circle" aria-hidden="true"></i>
+                <span><strong>ملاحظة:</strong> سيتم إرسال الطلب إلى إدارة النظام للمراجعة. بعد الموافقة سيتم إنشاء حساب نقطة التحصيل وتفعيل الدخول.</span>
+            </div>
+
+            <form asp-action="RegisterCollectionPoint" asp-controller="Account" asp-area="" method="post" novalidate>
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="validation-error"></div>
+
+                <div class="form-group">
+                    <label asp-for="UserName" class="form-label">اسم المستخدم <span class="text-danger">*</span></label>
+                    <div class="input-wrapper">
+                        <input asp-for="UserName" class="form-control rt-input" autocomplete="username" />
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <span asp-validation-for="UserName" class="validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Password" class="form-label">كلمة المرور <span class="text-danger">*</span></label>
+                    <div class="input-wrapper">
+                        <input asp-for="Password" class="form-control rt-input" autocomplete="new-password" />
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <span asp-validation-for="Password" class="validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="ConfirmPassword" class="form-label">تأكيد كلمة المرور <span class="text-danger">*</span></label>
+                    <div class="input-wrapper">
+                        <input asp-for="ConfirmPassword" class="form-control rt-input" autocomplete="new-password" />
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <span asp-validation-for="ConfirmPassword" class="validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="FullName" class="form-label">الاسم الثلاثي <span class="text-danger">*</span></label>
+                    <div class="input-wrapper">
+                        <input asp-for="FullName" class="form-control rt-input" placeholder="الاسم الثلاثي" />
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                    <span asp-validation-for="FullName" class="validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Email" class="form-label">البريد الإلكتروني <span class="text-danger">*</span></label>
+                    <div class="input-wrapper">
+                        <input asp-for="Email" class="form-control rt-input" autocomplete="email" />
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <span asp-validation-for="Email" class="validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="PhoneNumber" class="form-label">رقم الجوال</label>
+                    <div class="input-wrapper">
+                        <input asp-for="PhoneNumber" class="form-control rt-input" autocomplete="tel" />
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <span asp-validation-for="PhoneNumber" class="validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Address" class="form-label">العنوان</label>
+                    <div class="input-wrapper">
+                        <input asp-for="Address" class="form-control rt-input" />
+                        <i class="fas fa-location-dot"></i>
+                    </div>
+                    <span asp-validation-for="Address" class="validation-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="MapLocation" class="form-label">الموقع على الخريطة</label>
+                    <div class="input-wrapper">
+                        <input asp-for="MapLocation" class="form-control rt-input" placeholder="انقر على الخريطة لتحديد الموقع" />
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <small class="text-muted d-block mt-1">يمكنك النقر على الخريطة أو سحب الدبوس لتحديث الإحداثيات.</small>
+                    <span asp-validation-for="MapLocation" class="validation-error"></span>
+                </div>
+
+                <div class="form-group mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted">يمكنك تحديد الموقع يدوياً أو استخدام موقعك الحالي.</small>
+                        <button type="button" id="useCurrentLocationBtn" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-location-crosshairs"></i>
+                            استخدام موقعي الحالي
+                        </button>
+                    </div>
+                    <div id="collectionPointMap" aria-label="خريطة تحديد موقع نقطة التحصيل"></div>
+                    <small id="locationFeedback" class="text-muted d-block mt-2"></small>
+                </div>
+
+                <button type="submit" class="btn btn-primary rt-btn-submit">
+                    <i class="fas fa-paper-plane"></i>
+                    إرسال طلب إنشاء الحساب
+                </button>
+
+                <a href="@Url.RouteUrl("reglog-login")" class="btn-register-outline">
+                    <i class="fas fa-arrow-right"></i>
+                    العودة لتسجيل الدخول
+                </a>
+            </form>
+        </div>
+
+        <div class="login-footer">
+            <p class="login-footer-copy">© @DateTime.Now.Year RadaTik — نظام إدارة مزود خدمة الإنترنت</p>
+            <div class="login-footer-links">
+                <a class="back-link back-link--emphasis" asp-route="reglog-login">تسجيل الدخول</a>
+                <span class="login-footer-sep">·</span>
+                <a href="@Url.Action("Index", "Public", new { area = "SkyBeam" })" class="back-link">الصفحة الرئيسية</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script>
+        (function () {
+            const input = document.getElementById("MapLocation");
+            const defaultLat = 33.3152;
+            const defaultLng = 44.3661;
+            const defaultZoom = 12;
+
+            if (!input || typeof L === "undefined") {
+                return;
+            }
+
+            let lat = defaultLat;
+            let lng = defaultLng;
+
+            if (input.value && input.value.includes(",")) {
+                const parts = input.value.split(",");
+                const parsedLat = parseFloat(parts[0]);
+                const parsedLng = parseFloat(parts[1]);
+                if (!Number.isNaN(parsedLat) && !Number.isNaN(parsedLng)) {
+                    lat = parsedLat;
+                    lng = parsedLng;
+                }
+            }
+
+            const map = L.map("collectionPointMap").setView([lat, lng], defaultZoom);
+            const useCurrentLocationBtn = document.getElementById("useCurrentLocationBtn");
+            const locationFeedback = document.getElementById("locationFeedback");
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+                attribution: "&copy; OpenStreetMap contributors"
+            }).addTo(map);
+
+            const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+            function setLocation(latLng) {
+                input.value = latLng.lat.toFixed(6) + "," + latLng.lng.toFixed(6);
+                marker.setLatLng(latLng);
+            }
+
+            marker.on("dragend", function () {
+                setLocation(marker.getLatLng());
+            });
+
+            map.on("click", function (e) {
+                setLocation(e.latlng);
+            });
+
+            if (useCurrentLocationBtn) {
+                useCurrentLocationBtn.addEventListener("click", function () {
+                    if (!navigator.geolocation) {
+                        if (locationFeedback) {
+                            locationFeedback.textContent = "المتصفح لا يدعم تحديد الموقع الجغرافي.";
+                            locationFeedback.className = "text-danger d-block mt-2";
+                        }
+                        return;
+                    }
+
+                    useCurrentLocationBtn.setAttribute("disabled", "disabled");
+                    if (locationFeedback) {
+                        locationFeedback.textContent = "جاري تحديد موقعك...";
+                        locationFeedback.className = "text-muted d-block mt-2";
+                    }
+
+                    navigator.geolocation.getCurrentPosition(
+                        function (position) {
+                            const currentLatLng = {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                            };
+                            map.setView([currentLatLng.lat, currentLatLng.lng], 16);
+                            setLocation(currentLatLng);
+
+                            if (locationFeedback) {
+                                locationFeedback.textContent = "تم تحديد موقعك الحالي بنجاح.";
+                                locationFeedback.className = "text-success d-block mt-2";
+                            }
+                            useCurrentLocationBtn.removeAttribute("disabled");
+                        },
+                        function (error) {
+                            let errorMessage = "تعذر الوصول إلى موقعك.";
+                            if (error && typeof error.code !== "undefined") {
+                                switch (error.code) {
+                                    case 1:
+                                        errorMessage = "تم رفض إذن الموقع. يرجى السماح بالوصول للموقع من إعدادات المتصفح.";
+                                        break;
+                                    case 2:
+                                        errorMessage = "تعذر تحديد الموقع حالياً. تأكد من تفعيل خدمة الموقع أو اتصال الشبكة.";
+                                        break;
+                                    case 3:
+                                        errorMessage = "انتهت مهلة تحديد الموقع. حاول مرة أخرى في مكان تغطية أفضل.";
+                                        break;
+                                    default:
+                                        errorMessage = "حدث خطأ غير متوقع أثناء تحديد الموقع.";
+                                        break;
+                                }
+                            }
+
+                            if (locationFeedback) {
+                                locationFeedback.textContent = errorMessage;
+                                locationFeedback.className = "text-danger d-block mt-2";
+                            }
+                            useCurrentLocationBtn.removeAttribute("disabled");
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        }
+                    );
+                });
+            }
+
+            setLocation(marker.getLatLng());
+            setTimeout(function () { map.invalidateSize(); }, 200);
+        })();
+    </script>
+}

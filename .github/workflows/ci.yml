@@ -30,39 +30,42 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: "radtik-web/package-lock.json"
+          cache-dependency-path: "radatik-web/package-lock.json"
 
       - name: Install frontend dependencies
-        working-directory: radtik-web
+        working-directory: radatik-web
         run: npm ci
 
       - name: Lint frontend
-        working-directory: radtik-web
+        working-directory: radatik-web
         run: npm run lint
 
       - name: Build frontend
-        working-directory: radtik-web
+        working-directory: radatik-web
         run: npm run build
 
       - name: Test frontend
-        working-directory: radtik-web
+        working-directory: radatik-web
         run: npm run test:run
 
       - name: Restore backend
-        run: dotnet restore RadTik/RadTik.csproj
+        run: dotnet restore RadaTik/RadaTik.csproj
 
       - name: Build backend
-        run: dotnet build RadTik/RadTik.csproj --configuration Release --no-restore
+        run: dotnet build RadaTik/RadaTik.csproj --configuration Release --no-restore
+
+      - name: Build tests
+        run: dotnet build RadaTik.Tests/RadaTik.Tests.csproj --configuration Release --no-restore
 
       - name: Validate EF migrations are in sync
-        run: dotnet ef migrations has-pending-model-changes --project RadTik/RadTik.csproj --startup-project RadTik/RadTik.csproj --configuration Release
+        run: dotnet ef migrations has-pending-model-changes --project RadaTik/RadaTik.csproj --startup-project RadaTik/RadaTik.csproj --configuration Release
 
       - name: Run tests
-        run: dotnet test RadTik.Tests/RadTik.Tests.csproj --configuration Release --no-build
+        run: dotnet test RadaTik.Tests/RadaTik.Tests.csproj --configuration Release --no-build
 
       - name: Audit frontend dependencies
-        working-directory: radtik-web
+        working-directory: radatik-web
         run: npm audit --audit-level=high
 
       - name: Check backend dependency vulnerabilities
-        run: dotnet list RadTik/RadTik.csproj package --vulnerable --include-transitive
+        run: dotnet list RadaTik/RadaTik.csproj package --vulnerable --include-transitive

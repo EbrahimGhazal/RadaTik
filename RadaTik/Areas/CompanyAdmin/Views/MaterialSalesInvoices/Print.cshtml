@@ -1,0 +1,42 @@
+@using RadaTik.Models.Business
+@model MaterialSalesInvoice
+@{
+    Layout = null;
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var printDate = ViewBag.PrintDate as string ?? DateTime.Today.ToString("yyyy-MM-dd");
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>فاتورة بيع #@Model.Id</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; margin: 24px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th, td { border: 1px solid #ccc; padding: 6px; text-align: right; }
+        th { background: #f0f4f8; }
+        .no-print { margin-bottom: 12px; }
+        @@media print { .no-print { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="no-print"><button type="button" onclick="window.print()">طباعة / PDF</button></div>
+    <h1>فاتورة بيع مواد #@Model.Id</h1>
+    <p>@companyName — @printDate</p>
+    <p>التاريخ: @Model.InvoiceDate.ToString("yyyy-MM-dd") | العميل: @(Model.CustomerName ?? "—") | الإجمالي: @SyrianCurrencyHelper.FormatNew(Model.TotalAmount) ل.س</p>
+    <table>
+        <thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
+        <tbody>
+        @foreach (var line in Model.Lines)
+        {
+            <tr>
+                <td>@line.WarehouseItem?.Name</td>
+                <td>@line.Quantity.ToString("N3")</td>
+                <td>@SyrianCurrencyHelper.FormatNew(line.UnitPrice)</td>
+                <td>@SyrianCurrencyHelper.FormatNew(line.LineTotal)</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</body>
+</html>

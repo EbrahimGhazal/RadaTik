@@ -1,1 +1,0 @@
-import{CollectionTransactionsPage as e}from"./CollectionTransactionsPage-x7Mic9Dr.js";export{e as CollectionPaymentsPage};

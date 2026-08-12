@@ -1,12 +1,41 @@
-**/.git
-**/.vs
-**/bin
-**/obj
-**/node_modules
-**/TestResults
-**/*.user
-**/*.rsuser
-RadTik.Tests
-**/.env
-**/.env.*
-!**/.env.example
+# Visual Studio
+.vs/
+.vscode/
+*.user
+*.suo
+
+# .NET
+**/bin/
+**/obj/
+
+# Build / publish artifacts
+artifacts/
+_build_out/
+_build_verify/
+_build_verify2/
+_compile_out/
+_test_out/
+_verify/
+_verify*/
+publish-iis/
+publish-smarterasp/
+
+# Node / React
+radatik-web/node_modules/
+radatik-web/dist/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp

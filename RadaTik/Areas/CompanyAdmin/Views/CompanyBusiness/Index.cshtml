@@ -1,0 +1,271 @@
+@using RadaTik.Helpers
+@using RadaTik.Models
+@using RadaTik.Services
+@{
+    ViewData["Title"] = "إدارة الشركة";
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var summary = ViewBag.Summary as CompanyBusinessSummary;
+    bool canWarehouse = ViewBag.CanWarehouse == true;
+    bool canMoneyDiary = ViewBag.CanMoneyDiary == true;
+    bool canPayroll = ViewBag.CanPayroll == true;
+    var monthLabel = DateTime.Now.ToString("yyyy/MM");
+
+    ViewBag.FinancialHeroIcon = "fas fa-building";
+    ViewBag.FinancialHeroTheme = "default";
+    ViewBag.FinancialHeroSubtitle = companyName;
+    ViewBag.FinancialHeroChips = new[] { ("fas fa-layer-group", "وحدات منفصلة") };
+}
+
+<div class="financial-page financial-hub-page company-business-page">
+    <partial name="_FinancialQuickNav" />
+    <partial name="_FinancialSysHero" />
+
+    <partial name="_BusinessModuleGuide" />
+
+    <div class="d-flex flex-wrap gap-2 mb-4 company-business-quick-actions">
+        @if (canWarehouse)
+        {
+            <a class="btn btn-outline-secondary btn-sm micro-btn" asp-area="CompanyAdmin" asp-controller="Warehouse" asp-action="Print" target="_blank"><i class="fas fa-print"></i> طباعة المخزون</a>
+        }
+        @if (canMoneyDiary)
+        {
+            <a class="btn btn-outline-secondary btn-sm micro-btn" asp-area="CompanyAdmin" asp-controller="MoneyDiary" asp-action="Print" asp-route-year="@DateTime.Now.Year" asp-route-month="@DateTime.Now.Month" target="_blank"><i class="fas fa-print"></i> طباعة الدفتر (@monthLabel)</a>
+        }
+        @if (canPayroll)
+        {
+            <a class="btn btn-outline-secondary btn-sm micro-btn" asp-area="CompanyAdmin" asp-controller="Payroll" asp-action="Print" asp-route-year="@DateTime.Now.Year" asp-route-month="@DateTime.Now.Month" target="_blank"><i class="fas fa-print"></i> طباعة الرواتب (@monthLabel)</a>
+        }
+    </div>
+
+    @if (summary != null)
+    {
+        <section class="mb-4">
+            <h2 class="h6 text-muted mb-3"><i class="fas fa-gauge-high me-1"></i> ملخص سريع</h2>
+            <div class="row g-3">
+                @if (canWarehouse)
+                {
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <a class="text-decoration-none" asp-route="networkManager-warehouse">
+                            <div class="card company-module-stat h-100 hover-shadow">
+                                <div class="card-body">
+                                    <div class="company-module-stat__label"><i class="fas fa-warehouse text-primary"></i> المستودع</div>
+                                    <div class="company-module-stat__value">@summary.ActiveWarehouseItems</div>
+                                    <div class="company-module-stat__meta">صنف نشط</div>
+                                    @if (summary.LowOrEmptyStockItems > 0)
+                                    {
+                                        <span class="badge bg-warning text-dark mt-2">@summary.LowOrEmptyStockItems نفد أو فارغ</span>
+                                    }
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                }
+
+                @if (canMoneyDiary)
+                {
+                    <div class="col-12 col-md-6 col-xl-5">
+                        <div class="card company-dual-currency-card h-100">
+                            <div class="card-header company-dual-currency-card__header py-2 d-flex justify-content-between align-items-center">
+                                <span class="fw-bold"><i class="fas fa-cash-register me-1"></i> الصندوق النقدي</span>
+                                <a class="btn btn-sm btn-outline-secondary micro-btn" asp-route="networkManager-cashbox">فتح</a>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <div class="company-currency-mini-hero company-currency-mini-hero--syp">
+                                            <div class="company-currency-mini-hero__tag">ل.س.ج</div>
+                                            <div class="company-currency-mini-hero__amount">@CurrencyHelper.FormatAmount(summary.CashBoxBalance, PricingCurrency.SYP_New)</div>
+                                            <div class="company-currency-mini-hero__meta">رصيد نقدي</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="company-currency-mini-hero company-currency-mini-hero--usd">
+                                            <div class="company-currency-mini-hero__tag">$</div>
+                                            <div class="company-currency-mini-hero__amount">@CurrencyHelper.FormatAmount(summary.CashBoxBalanceUsd, PricingCurrency.USD)</div>
+                                            <div class="company-currency-mini-hero__meta">رصيد نقدي</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-xl-4">
+                        <a class="text-decoration-none" asp-route="networkManager-financial-reconciliation">
+                            <div class="card company-module-stat h-100 hover-shadow">
+                                <div class="card-body">
+                                    <div class="company-module-stat__label"><i class="fas fa-balance-scale text-secondary"></i> جرد مالي</div>
+                                    <div class="company-module-stat__meta mb-2">مطابقة الصندوق والدفتر والفواتير</div>
+                                    @if (summary.UnpaidMaterialPurchaseTotal > 0 || summary.UnpaidMaterialSalesTotal > 0)
+                                    {
+                                        <div class="small text-warning">ذمم شراء/بيع غير مسدّدة</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="small text-muted">لا توجد تنبيهات ذمم</div>
+                                    }
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                }
+
+                @if (canPayroll)
+                {
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <a class="text-decoration-none" asp-route="networkManager-payroll">
+                            <div class="card company-module-stat h-100 hover-shadow">
+                                <div class="card-body">
+                                    <div class="company-module-stat__label"><i class="fas fa-users text-info"></i> رواتب الشهر</div>
+                                    <div class="company-module-stat__value text-warning">@SyrianCurrencyHelper.FormatNew(summary.PayrollPendingAmount)</div>
+                                    <div class="company-module-stat__meta">@summary.PayrollPendingCount معلّق / @summary.ActivePayrollEmployees موظف</div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                }
+
+                @if (summary.PendingMaintenanceInvoices > 0)
+                {
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <a class="text-decoration-none" asp-route="networkManager-maintenance-invoices">
+                            <div class="card company-module-stat h-100 hover-shadow border-primary">
+                                <div class="card-body">
+                                    <div class="company-module-stat__label"><i class="fas fa-file-invoice text-primary"></i> صيانة معلّقة</div>
+                                    <div class="company-module-stat__value text-primary">@summary.PendingMaintenanceInvoices</div>
+                                    <div class="company-module-stat__meta">@summary.PendingMaintenanceInvoicesAmount.ToString("N0") ل.س</div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                }
+            </div>
+        </section>
+
+        @if (canMoneyDiary && summary != null)
+        {
+            <section class="mb-4">
+                <div class="card company-dual-currency-card company-diary-hub-card">
+                    <div class="card-header company-dual-currency-card__header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <span class="fw-bold"><i class="fas fa-book me-1"></i> دفتر الإيراد والمصروف</span>
+                            <span class="text-muted small ms-2">— الشهر الحالي (@monthLabel)</span>
+                        </div>
+                        <a class="btn btn-sm btn-success micro-btn" asp-route="networkManager-money-diary"><i class="fas fa-arrow-left"></i> فتح الدفتر</a>
+                    </div>
+                    <div class="card-body p-3">
+                        <p class="small text-muted mb-3 mb-md-2">كل عملة في بطاقة مستقلة — نفس ألوان الصندوق (أزرق ل.س.ج · أخضر $).</p>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <div class="company-currency-panel company-currency-panel--syp h-100">
+                                    <div class="company-currency-panel__head">
+                                        <span class="company-currency-panel__badge">ل.س.ج</span>
+                                        <span class="company-currency-panel__title">دفتر الليرة</span>
+                                    </div>
+                                    <dl class="company-currency-panel__stats mb-0">
+                                        <div>
+                                            <dt>إيراد</dt>
+                                            <dd class="text-success">@CurrencyHelper.FormatAmount(summary.MoneyDiaryIncomeThisMonth, PricingCurrency.SYP_New)</dd>
+                                        </div>
+                                        <div>
+                                            <dt>مصروف</dt>
+                                            <dd class="text-danger">@CurrencyHelper.FormatAmount(summary.MoneyDiaryExpenseThisMonth, PricingCurrency.SYP_New)</dd>
+                                        </div>
+                                        <div class="company-currency-panel__net">
+                                            <dt>صافي</dt>
+                                            <dd class="@(summary.MoneyDiaryNetThisMonth >= 0 ? "text-success" : "text-danger") fw-bold">
+                                                @CurrencyHelper.FormatAmount(summary.MoneyDiaryNetThisMonth, PricingCurrency.SYP_New)
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="company-currency-panel company-currency-panel--usd h-100">
+                                    <div class="company-currency-panel__head">
+                                        <span class="company-currency-panel__badge">$</span>
+                                        <span class="company-currency-panel__title">دفتر الدولار</span>
+                                    </div>
+                                    <dl class="company-currency-panel__stats mb-0">
+                                        <div>
+                                            <dt>إيراد</dt>
+                                            <dd class="text-success">@CurrencyHelper.FormatAmount(summary.MoneyDiaryIncomeUsdThisMonth, PricingCurrency.USD)</dd>
+                                        </div>
+                                        <div>
+                                            <dt>مصروف</dt>
+                                            <dd class="text-danger">@CurrencyHelper.FormatAmount(summary.MoneyDiaryExpenseUsdThisMonth, PricingCurrency.USD)</dd>
+                                        </div>
+                                        <div class="company-currency-panel__net">
+                                            <dt>صافي</dt>
+                                            <dd class="@(summary.MoneyDiaryNetUsdThisMonth >= 0 ? "text-success" : "text-danger") fw-bold">
+                                                @CurrencyHelper.FormatAmount(summary.MoneyDiaryNetUsdThisMonth, PricingCurrency.USD)
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        }
+    }
+
+    <section>
+        <h2 class="h6 text-muted mb-3"><i class="fas fa-th-large me-1"></i> الوحدات</h2>
+        <div class="row g-3">
+            @if (canWarehouse)
+            {
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="card company-module-link-card h-100">
+                        <div class="card-body">
+                            <h5 class="mb-2"><i class="fas fa-warehouse text-primary"></i> المستودع</h5>
+                            <p class="small text-muted">فواتير شراء/بيع، جرد، أسعار جملة ومفرق.</p>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a class="btn btn-outline-primary btn-sm micro-btn" asp-route="networkManager-warehouse">المستودع</a>
+                                <a class="btn btn-outline-secondary btn-sm micro-btn" asp-route="networkManager-material-purchase">شراء</a>
+                                <a class="btn btn-outline-success btn-sm micro-btn" asp-route="networkManager-material-sales">بيع</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            @if (canMoneyDiary)
+            {
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="card company-module-link-card h-100">
+                        <div class="card-body">
+                            <h5 class="mb-2"><i class="fas fa-book text-success"></i> دفتر الإيراد والمصروف</h5>
+                            <p class="small text-muted">تسجيل إيراد ومصروف — ل.س.ج و $ منفصلان في الدفتر.</p>
+                            <a class="btn btn-outline-success btn-sm micro-btn" asp-route="networkManager-money-diary">فتح الدفتر</a>
+                        </div>
+                    </div>
+                </div>
+            }
+            @if (canPayroll)
+            {
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="card company-module-link-card h-100">
+                        <div class="card-body">
+                            <h5 class="mb-2"><i class="fas fa-users text-info"></i> رواتب الموظفين</h5>
+                            <p class="small text-muted">قائمة الموظفين ورواتب شهرية.</p>
+                            <a class="btn btn-outline-info btn-sm micro-btn" asp-route="networkManager-payroll">فتح الرواتب</a>
+                        </div>
+                    </div>
+                </div>
+            }
+            @if (summary != null && summary.PendingMaintenanceInvoices > 0)
+            {
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="card company-module-link-card h-100 border-primary border-opacity-25">
+                        <div class="card-body">
+                            <h5 class="mb-2"><i class="fas fa-file-invoice text-primary"></i> فواتير الصيانة</h5>
+                            <p class="small text-muted">@summary.PendingMaintenanceInvoices فاتورة معلّقة.</p>
+                            <a class="btn btn-outline-primary btn-sm micro-btn" asp-route="networkManager-maintenance-invoices">عرض الفواتير</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+</div>

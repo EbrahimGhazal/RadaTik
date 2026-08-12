@@ -1,0 +1,76 @@
+{
+  "name": "RadaTik Design Tokens",
+  "version": "1.0.0",
+  "description": "Export for Figma Variables / Code Connect. Source of truth: src/index.css",
+  "modes": {
+    "light": {
+      "color/rt-primary": "#2563EB",
+      "color/rt-primary-dark": "#1D4ED8",
+      "color/rt-primary-soft": "#DBEAFE",
+      "color/rt-secondary": "#0891B2",
+      "color/rt-green": "#059669",
+      "color/rt-danger": "#DC2626",
+      "color/rt-page": "#F1F5F9",
+      "color/rt-surface": "#FFFFFF",
+      "color/rt-elevated": "#FFFFFF",
+      "color/rt-neutral-bg": "#F8FAFC",
+      "color/rt-neutral-mid": "#64748B",
+      "color/rt-neutral-text": "#0F172A",
+      "color/rt-border": "#E2E8F0",
+      "color/rt-accent-orange": "#EA580C",
+      "color/rt-accent-purple": "#7C3AED",
+      "color/rt-logo-cyan": "#06B6D4"
+    },
+    "dark": {
+      "color/rt-primary": "#60A5FA",
+      "color/rt-primary-dark": "#93C5FD",
+      "color/rt-primary-soft": "rgba(59,130,246,0.14)",
+      "color/rt-secondary": "#22D3EE",
+      "color/rt-green": "#34D399",
+      "color/rt-danger": "#F87171",
+      "color/rt-page": "#050810",
+      "color/rt-surface": "#0C1222",
+      "color/rt-elevated": "#151D2E",
+      "color/rt-neutral-bg": "#1A2332",
+      "color/rt-neutral-mid": "#94A3B8",
+      "color/rt-neutral-text": "#F1F5F9",
+      "color/rt-border": "rgba(148,163,184,0.12)",
+      "color/rt-accent-orange": "#FB923C",
+      "color/rt-accent-purple": "#C4B5FD",
+      "color/rt-logo-cyan": "#22D3EE"
+    }
+  },
+  "spacing": {
+    "page-gap": 24,
+    "card-padding": 20,
+    "radius-card": 16,
+    "radius-control": 12
+  },
+  "typography": {
+    "fontSans": "Poppins",
+    "fontArabic": "Cairo",
+    "pageTitle": { "size": 24, "weight": 700 },
+    "sectionTitle": { "size": 14, "weight": 600 },
+    "body": { "size": 14, "weight": 400 },
+    "caption": { "size": 12, "weight": 500 }
+  },
+  "components": [
+    "Button",
+    "Card",
+    "StatCard",
+    "DataTable",
+    "Input",
+    "Select",
+    "Textarea",
+    "StatusBadge",
+    "TabGroup",
+    "Alert",
+    "PageHeader",
+    "QuickNav"
+  ],
+  "breakpoints": {
+    "mobile": "<768px",
+    "tablet": "768px–1023px",
+    "laptop": "≥1024px"
+  }
+}

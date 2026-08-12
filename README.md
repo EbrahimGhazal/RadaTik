@@ -1,4 +1,4 @@
-# RadTik - نظام إدارة مزود خدمة الإنترنت (ISP Management System)
+# RadaTik - نظام إدارة مزود خدمة الإنترنت (ISP Management System)
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![.NET](https://img.shields.io/badge/.NET-9.0-purple.svg)
@@ -6,7 +6,7 @@
 
 ## 📋 نظرة عامة
 
-**RadTik** هو نظام شامل لإدارة مزود خدمة الإنترنت (ISP) مبني على ASP.NET Core MVC. يوفر النظام إدارة متكاملة للعملاء، القطاعات، المستقبلات، خوادم MikroTik، والبروفايلات مع مزامنة مباشرة مع أجهزة MikroTik RouterOS.
+**RadaTik** هو نظام شامل لإدارة مزود خدمة الإنترنت (ISP) مبني على ASP.NET Core MVC. يوفر النظام إدارة متكاملة للعملاء، القطاعات، المستقبلات، خوادم MikroTik، والبروفايلات مع مزامنة مباشرة مع أجهزة MikroTik RouterOS.
 
 ## ✨ الميزات الرئيسية
 
@@ -79,7 +79,7 @@
 ### 1. استنساخ المشروع
 ```bash
 git clone <repository-url>
-cd RadTik
+cd RadaTik
 ```
 
 ### 2. تحديث سلسلة الاتصال
@@ -87,7 +87,7 @@ cd RadTik
 ```json
 {
   "ConnectionStrings": {
-    "MyDBConnection": "Server=YOUR_SERVER;Database=RadTikDB;Trusted_Connection=True;TrustServerCertificate=True;"
+    "MyDBConnection": "Server=YOUR_SERVER;Database=RadaTikDB;Trusted_Connection=True;TrustServerCertificate=True;"
   }
 }
 ```
@@ -105,12 +105,12 @@ dotnet run
 ### 5. تهيئة حساب مدير النظام (Bootstrap)
 قبل أول تشغيل، عرّف متغير البيئة التالي:
 
-- `RADTIK_BOOTSTRAP_ADMIN_PASSWORD`
+- `RADATIK_BOOTSTRAP_ADMIN_PASSWORD`
 
 مثال (PowerShell):
 
 ```powershell
-$env:RADTIK_BOOTSTRAP_ADMIN_PASSWORD = "StrongPasswordHere!"
+$env:RADATIK_BOOTSTRAP_ADMIN_PASSWORD = "StrongPasswordHere!"
 ```
 
 عند التشغيل الأول سيتم إنشاء المستخدم `admin` تلقائياً بكلمة المرور الموجودة في متغير البيئة.
@@ -127,7 +127,7 @@ $env:RADTIK_BOOTSTRAP_ADMIN_PASSWORD = "StrongPasswordHere!"
 ## 📁 هيكل المشروع
 
 ```
-RadTik/
+RadaTik/
 ├── Controllers/          # Controllers MVC
 │   ├── AccountController.cs
 │   ├── AdminController.cs
@@ -238,5 +238,5 @@ RadTik/
 
 ---
 
-**تم التطوير بواسطة**: فريق RadTik  
+**تم التطوير بواسطة**: فريق RadaTik  
 **آخر تحديث**: يناير 2025

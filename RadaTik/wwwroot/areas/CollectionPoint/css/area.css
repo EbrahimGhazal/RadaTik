@@ -1,0 +1,10 @@
+/* CollectionPoint Area CSS */
+
+/* Preserve previous sidebar theme (CollectionPoint) */
+.sidebar.sidebar-pro {
+    background: linear-gradient(180deg, #064E3B 0%, #0F766E 55%, #064E3B 100%) !important;
+    --sidebar-sub-rail: rgba(52, 211, 153, 0.3);
+    --sidebar-sub-bg: rgba(4, 47, 36, 0.35);
+    --sidebar-sub-border: rgba(52, 211, 153, 0.15);
+}
+

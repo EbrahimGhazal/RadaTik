@@ -1,0 +1,390 @@
+@using RadaTik.Areas.CompanyAdmin.ViewModels
+@using RadaTik.Models
+@using RadaTik.Models.Business
+@model MaterialSalesInvoiceFormViewModel
+@{
+    ViewData["Title"] = "فاتورة بيع مواد";
+    var companyName = ViewBag.CompanyName as string ?? "";
+    var items = Model.WarehouseItems;
+    var requireExplicitChoice = true;
+}
+
+<div class="financial-page financial-hub-page material-invoice-page material-invoice-page--sales material-invoice-page--create">
+    <partial name="_WarehouseSubNav" />
+
+    <div class="sys-hero material-invoice-hero mb-3">
+        <div class="sys-hero-main">
+            <div class="sys-hero-icon"><i class="fas fa-cash-register"></i></div>
+            <div>
+                <h1 class="sys-hero-title mb-1">@ViewData["Title"]</h1>
+                <p class="sys-hero-subtitle mb-0">@companyName</p>
+            </div>
+        </div>
+        <div class="sys-hero-chips">
+            <span class="sys-hero-chip"><i class="fas fa-arrow-up-from-bracket"></i> بيع / خروج</span>
+        </div>
+    </div>
+
+    @if (TempData["Error"] != null) { <div class="alert alert-danger mb-3">@TempData["Error"]</div> }
+
+    <details class="material-invoice-help mb-3">
+        <summary class="material-invoice-help__summary"><i class="fas fa-circle-info"></i> مساعدة وإرشادات</summary>
+        <div class="material-invoice-help__body">
+            <partial name="_BusinessModuleGuide" />
+            @{ ViewData["SypNoteText"] = "حقل السعر المخصص (ل.س.ج) بالليرة السورية الجديدة."; }
+            <partial name="_SypCurrencyPageNote" />
+            <p class="small text-muted mb-0 mt-2">
+                بعد اختيار <strong>العملة</strong> و<strong>الدفع</strong> و<strong>نوع السعر</strong>، أضف البنود:
+                <strong>المادة · الافرادي · الكمية (عدد صحيح) · الإجمالي</strong>.
+                الإجمالي = الافرادي × الكمية.
+            </p>
+        </div>
+    </details>
+
+    <form method="post" id="sales-form" class="material-invoice-form" data-syp-page-amount-note="true">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="currency" id="currency-locked-input" disabled />
+
+        <div class="card material-invoice-section material-invoice-section--meta border-0 shadow-sm mb-3">
+            <div class="card-header material-invoice-section__header py-2">
+                <h2 class="h6 mb-0"><i class="fas fa-file-invoice me-1"></i> بيانات الفاتورة</h2>
+            </div>
+            <div class="card-body py-3">
+                <div class="row g-2 g-md-3 material-invoice-meta-row">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <label class="form-label form-label-sm mb-1">تاريخ الفاتورة</label>
+                        <input type="date" name="invoiceDate" class="form-control form-control-sm" value="@Model.InvoiceDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <label class="form-label form-label-sm mb-1">عميل ERP</label>
+                        @{
+                            var erpCustomers = ViewBag.ErpCustomers as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+                        }
+                        <select name="erpCustomerId" class="form-select form-select-sm mb-1">
+                            <option value="">— اختر من سجل ERP —</option>
+                            @foreach (var c in erpCustomers)
+                            {
+                                <option value="@c.Value" selected="@(Model.ErpCustomerId?.ToString() == c.Value)">@c.Text</option>
+                            }
+                        </select>
+                        <label class="form-label form-label-sm mb-1 text-muted">أو اسم حر</label>
+                        <input name="customerName" class="form-control form-control-sm" value="@Model.CustomerName" maxlength="120" placeholder="اسم العميل (إن لم تختر من ERP)" />
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        <label class="form-label form-label-sm mb-1">ملاحظات</label>
+                        <input name="notes" class="form-control form-control-sm" value="@Model.Notes" maxlength="500" placeholder="اختياري" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card material-invoice-section material-invoice-section--choices border-0 shadow-sm mb-3">
+            <div class="card-body p-3">
+                <div class="row g-3 material-invoice-choice-row">
+                    <div class="col-12 col-lg-4">
+                        @{
+                            ViewData["MaterialInvoiceRequireExplicitChoice"] = requireExplicitChoice;
+                            ViewData["CurrencySelected"] = Model.Currency;
+                        }
+                        <partial name="_MaterialInvoiceCurrencyPanel" />
+                        <p class="small text-muted mb-0 mt-2" id="currency-hint">عند «مخصص» تُثبَّت العملة على عملة شراء المواد.</p>
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        @{
+                            ViewData["MaterialInvoiceRequireExplicitChoice"] = requireExplicitChoice;
+                            ViewData["PaymentStatus"] = Model.PaymentStatus;
+                            ViewData["MaterialInvoiceKind"] = "sales";
+                        }
+                        <partial name="_MaterialInvoicePaymentPanel" />
+                    </div>
+                    <div class="col-12 col-lg-4">
+                        @{
+                            ViewData["MaterialInvoiceRequireExplicitChoice"] = requireExplicitChoice;
+                            ViewData["PriceModeSelected"] = Model.PriceMode;
+                        }
+                        <partial name="_MaterialInvoicePriceModePanel" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card material-invoice-section material-invoice-section--lines border-0 shadow-sm mb-3">
+            <div class="card-header material-invoice-section__header py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h2 class="h6 mb-0"><i class="fas fa-list me-1"></i> بنود البيع</h2>
+                <button type="button" class="btn btn-sm btn-success" id="add-line"><i class="fas fa-plus"></i> بند</button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive material-invoice-lines-shell">
+                    <table class="table table-sm mb-0 material-invoice-lines-table material-invoice-lines-table--compact material-invoice-lines-table--sales" id="lines-table">
+                        <colgroup>
+                            <col class="mat-col-item" />
+                            <col class="mat-col-unit" />
+                            <col class="mat-col-qty" />
+                            <col class="mat-col-total" />
+                            <col class="mat-col-actions" />
+                        </colgroup>
+                        <thead>
+                            <tr class="material-invoice-lines-table__cols">
+                                <th>المادة</th>
+                                <th>الافرادي</th>
+                                <th>الكمية</th>
+                                <th>الإجمالي</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="lines-body"></tbody>
+                        <tfoot>
+                            <tr class="material-sales-invoice-total-row">
+                                <td colspan="3" class="text-end fw-bold">إجمالي الفاتورة</td>
+                                <td class="fw-bold text-success" id="invoice-grand-total">0</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="px-3 py-2 border-top material-invoice-lines-formula material-invoice-lines-formula--sales small text-muted">
+                    <i class="fas fa-calculator me-1"></i>
+                    الإجمالي = الافرادي × الكمية (كمية صحيحة — قطع)
+                </div>
+            </div>
+        </div>
+
+        <div class="material-invoice-actions">
+            <button type="submit" class="btn btn-success btn-lg micro-btn"><i class="fas fa-save"></i> حفظ وخصم المستودع</button>
+            <a class="btn btn-outline-secondary btn-lg micro-btn" asp-action="Index">إلغاء</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<partial name="_MaterialInvoiceChoicePanelsScript" />
+<script>
+(function () {
+    const items = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(items.Select(i => new {
+        id = i.Id,
+        name = i.Name,
+        onHand = i.OnHand,
+        wholesalePrice = i.WholesalePrice,
+        retailPrice = i.RetailPrice,
+        purchaseCurrency = i.PurchaseCurrency.HasValue ? (int?)i.PurchaseCurrency.Value : null
+    })));
+    let idx = 0;
+    const body = document.getElementById('lines-body');
+    const grandTotalEl = document.getElementById('invoice-grand-total');
+    const currencyHint = document.getElementById('currency-hint');
+    const currencyPanel = document.querySelector('[data-material-currency-panel]');
+    const currencyLockedInput = document.getElementById('currency-locked-input');
+
+    function num(v) {
+        if (v == null || v === '') return 0;
+        const n = typeof v === 'number' ? v : parseFloat(String(v).replace(/,/g, ''));
+        return isFinite(n) ? n : 0;
+    }
+
+    function fmtMoney(v) {
+        const n = num(v);
+        if (n <= 0) return '0';
+        return Number.isInteger(n) ? String(n) : n.toFixed(2);
+    }
+
+    function readInputValue(input) {
+        if (!input) return 0;
+        const wrap = input.closest('.fmt-number-field');
+        if (wrap) {
+            const hidden = wrap.querySelector('.fmt-number-value');
+            if (hidden && hidden.value !== '') return num(hidden.value);
+            const display = wrap.querySelector('.fmt-number-display');
+            if (display) return num(display.value);
+        }
+        return num(input.value);
+    }
+
+    function writeInputValue(input, value) {
+        if (!input) return;
+        const str = value > 0 ? String(value) : '';
+        input.value = str;
+        const wrap = input.closest('.fmt-number-field');
+        if (wrap) {
+            const display = wrap.querySelector('.fmt-number-display');
+            const hidden = wrap.querySelector('.fmt-number-value');
+            if (display) display.value = str;
+            if (hidden) hidden.value = str;
+        }
+    }
+
+    function findItem(id) {
+        return items.find(x => String(x.id) === String(id));
+    }
+
+    function getInvoicePriceMode() {
+        const inp = document.querySelector('input[name="priceMode"]:checked');
+        return inp ? inp.value : null;
+    }
+
+    function isCustomMode() {
+        return getInvoicePriceMode() === '3';
+    }
+
+    /** سعر افتراضي من البطاقة حسب نوع الفاتورة */
+    function defaultUnitPrice(item, mode) {
+        if (!item || !mode) return 0;
+        if (mode === '1') return num(item.wholesalePrice);
+        if (mode === '2') return num(item.retailPrice);
+        return 0;
+    }
+
+    function syncCurrencyLockForCustom() {
+        if (!isCustomMode()) {
+            if (currencyPanel) {
+                currencyPanel.classList.remove('is-currency-locked');
+                currencyPanel.querySelectorAll('[name="currency"]').forEach(function (r) { r.disabled = false; });
+            }
+            if (currencyLockedInput) {
+                currencyLockedInput.disabled = true;
+                currencyLockedInput.removeAttribute('value');
+            }
+            if (currencyHint) currencyHint.textContent = 'عند «مخصص» تُثبَّت العملة على عملة شراء المواد إن لزم.';
+            return;
+        }
+        const selected = Array.from(body.querySelectorAll('.item-sel'))
+            .map(function (s) { return findItem(s.value); })
+            .filter(Boolean);
+        if (!selected.length) return;
+        const currencies = selected.map(function (i) { return i.purchaseCurrency; }).filter(function (c) { return c != null; });
+        if (currencies.length && currencies.every(function (c) { return c === currencies[0]; })) {
+            const cur = currencies[0];
+            const choice = String(cur) === '2' ? 'usd' : 'syp';
+            const radio = currencyPanel?.querySelector('[data-currency-choice="' + choice + '"]');
+            if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change')); }
+            currencyPanel?.classList.add('is-currency-locked');
+            currencyPanel?.querySelectorAll('[name="currency"]').forEach(function (r) { r.disabled = true; });
+            if (currencyLockedInput) {
+                currencyLockedInput.disabled = false;
+                currencyLockedInput.value = String(cur);
+            }
+        }
+    }
+
+    function syncLineTotal(tr) {
+        const unit = readInputValue(tr.querySelector('.unit-price'));
+        const qty = readInputValue(tr.querySelector('.qty-input'));
+        const totalCell = tr.querySelector('.line-total');
+        const total = unit > 0 && qty > 0 ? Math.round(unit * qty * 100) / 100 : 0;
+        if (totalCell) totalCell.textContent = fmtMoney(total);
+        return total;
+    }
+
+    function syncGrandTotal() {
+        let sum = 0;
+        body.querySelectorAll('tr').forEach(function (tr) { sum += syncLineTotal(tr); });
+        if (grandTotalEl) grandTotalEl.textContent = fmtMoney(sum);
+    }
+
+    function applyDefaultUnitPrice(tr, force) {
+        const sel = tr.querySelector('.item-sel');
+        const unitInput = tr.querySelector('.unit-price');
+        const mode = getInvoicePriceMode();
+        const item = findItem(sel?.value);
+        if (!item || !mode || mode === '3') {
+            if (mode === '3' && force) writeInputValue(unitInput, 0);
+            return;
+        }
+        const current = readInputValue(unitInput);
+        if (!force && current > 0) return;
+        const def = defaultUnitPrice(item, mode);
+        writeInputValue(unitInput, def);
+    }
+
+    function syncLine(tr) {
+        const mode = getInvoicePriceMode();
+        const unitInput = tr.querySelector('.unit-price');
+        const sel = tr.querySelector('.item-sel');
+
+        if (!mode) {
+            unitInput.placeholder = 'اختر نوع السعر أولاً';
+            unitInput.disabled = true;
+        } else {
+            unitInput.disabled = false;
+            unitInput.placeholder = mode === '1' ? 'سعر الجملة' : (mode === '2' ? 'سعر المفرق' : 'سعر يدوي');
+        }
+
+        if (sel?.value && mode) {
+            applyDefaultUnitPrice(tr, false);
+        }
+        syncLineTotal(tr);
+    }
+
+    function syncAllLines(forcePrice) {
+        body.querySelectorAll('tr').forEach(function (tr) {
+            if (forcePrice) applyDefaultUnitPrice(tr, true);
+            syncLine(tr);
+        });
+        syncGrandTotal();
+        syncCurrencyLockForCustom();
+    }
+
+    function addLine() {
+        const i = idx++;
+        const tr = document.createElement('tr');
+        const opts = items.map(function (x) {
+            const q = Math.floor(num(x.onHand));
+            return '<option value="' + x.id + '">' + x.name + ' (متوفر: ' + q + ')</option>';
+        }).join('');
+        tr.innerHTML = `
+            <td data-label="المادة" class="mat-cell-item">
+                <select name="lines[${i}].WarehouseItemId" class="form-select form-select-sm item-sel" required>
+                    <option value="">— اختر مادة —</option>${opts}
+                </select>
+            </td>
+            <td data-label="الافرادي" class="mat-cell-unit">
+                <input name="lines[${i}].UnitPrice" type="number" step="0.01" min="0.01"
+                       class="form-control form-control-sm unit-price" data-syp-skip-format="true"
+                       placeholder="الافرادي" required disabled />
+            </td>
+            <td data-label="الكمية" class="mat-cell-qty">
+                <input name="lines[${i}].Quantity" type="number" step="1" min="1"
+                       class="form-control form-control-sm qty-input" data-syp-skip-format="true"
+                       placeholder="0" required inputmode="numeric" />
+            </td>
+            <td data-label="الإجمالي" class="mat-cell-total">
+                <span class="line-total form-control form-control-sm bg-light text-end">0</span>
+            </td>
+            <td data-label="" class="mat-cell-actions text-center">
+                <button type="button" class="btn btn-sm btn-outline-danger remove px-2" title="حذف">&times;</button>
+            </td>`;
+        body.appendChild(tr);
+
+        const itemSel = tr.querySelector('.item-sel');
+        const unitInput = tr.querySelector('.unit-price');
+        const qtyInput = tr.querySelector('.qty-input');
+
+        itemSel.addEventListener('change', function () {
+            applyDefaultUnitPrice(tr, true);
+            syncLine(tr);
+            syncGrandTotal();
+            syncCurrencyLockForCustom();
+        });
+        unitInput.addEventListener('input', function () { syncLineTotal(tr); syncGrandTotal(); });
+        qtyInput.addEventListener('input', function () {
+            const v = readInputValue(qtyInput);
+            if (v > 0 && v !== Math.floor(v)) {
+                writeInputValue(qtyInput, Math.floor(v));
+            }
+            syncLineTotal(tr);
+            syncGrandTotal();
+        });
+        tr.querySelector('.remove').addEventListener('click', function () {
+            tr.remove();
+            syncGrandTotal();
+            syncCurrencyLockForCustom();
+        });
+        syncLine(tr);
+    }
+
+    document.getElementById('add-line').addEventListener('click', addLine);
+    document.addEventListener('material-price-mode-changed', function () { syncAllLines(true); });
+    addLine();
+    setTimeout(function () { syncAllLines(false); }, 400);
+})();
+</script>
+}

@@ -1,0 +1,35 @@
+@{
+    var title = ViewData["Title"] as string ?? "";
+    var subtitle = ViewBag.PageHeroSubtitle as string;
+    var icon = ViewBag.PageHeroIcon as string ?? "fas fa-file-alt";
+    var theme = ViewBag.PageHeroTheme as string ?? "default";
+    var backUrl = ViewBag.PageHeroBackUrl as string;
+    var backText = ViewBag.PageHeroBackText as string ?? "رجوع للقائمة";
+    var extraActions = ViewBag.PageHeroExtraActions as IReadOnlyList<RadaTik.ViewModels.UI.PageHeroActionViewModel>;
+
+    var actions = new List<RadaTik.ViewModels.UI.PageHeroActionViewModel>();
+    if (extraActions != null && extraActions.Count > 0)
+    {
+        actions.AddRange(extraActions);
+    }
+    if (!string.IsNullOrWhiteSpace(backUrl))
+    {
+        actions.Add(new RadaTik.ViewModels.UI.PageHeroActionViewModel
+        {
+            Text = backText,
+            Url = backUrl,
+            CssClass = "btn btn-outline-secondary btn-sm",
+            IconClass = "fas fa-arrow-right"
+        });
+    }
+
+    var hero = new RadaTik.ViewModels.UI.PageHeroViewModel
+    {
+        Title = title,
+        Subtitle = subtitle,
+        IconClass = icon,
+        Theme = theme,
+        Actions = actions
+    };
+}
+<partial name="_PageHero" model="hero" />

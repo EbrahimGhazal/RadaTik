@@ -1,0 +1,253 @@
+@{
+
+    var isAuthenticated = (bool?)(ViewData["Layout_IsAuthenticated"]) == true;
+
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+
+
+
+    var financeWalletOpen = controller == "Wallet";
+
+    var financeCashOpen = controller == "CashBox" || controller == "Receipts" || (controller == "CollectionPoint" && action == "History");
+
+}
+
+
+
+<aside class="sidebar sidebar-pro" id="sidebar">
+
+    <div class="sidebar-header">
+
+        <div class="sidebar-logo">
+
+            <i class="fas fa-map-marker-alt"></i>
+
+        </div>
+
+        <div class="sidebar-brand">
+
+            <span class="sidebar-brand-name">RadaTik</span>
+
+            <small class="sidebar-brand-sub">نقطة التحصيل</small>
+
+        </div>
+
+    </div>
+
+
+
+    <nav class="sidebar-nav" data-single-open="true">
+
+        @if (!isAuthenticated)
+
+        {
+
+            <div class="nav-section">
+
+                <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="true">
+
+                    <i class="fas fa-bars"></i>
+
+                    <span>القائمة</span>
+
+                    <i class="fas fa-chevron-down nav-section-chevron"></i>
+
+                </div>
+
+                <ul class="nav-list">
+
+                    <li class="nav-item">
+
+                        <a class="nav-link" asp-route="reglog-login">
+
+                            <span class="nav-icon"><i class="fas fa-sign-in-alt"></i></span>
+
+                            <span>تسجيل الدخول</span>
+
+                        </a>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+        }
+
+        else
+
+        {
+
+            @* ——— 1. وصول سريع ——— *@
+
+            <div class="nav-section nav-section-quick" data-section-key="quick-access">
+
+                <div class="nav-section-title nav-section-static">
+
+                    <i class="fas fa-bolt"></i>
+
+                    <span>وصول سريع</span>
+
+                </div>
+
+                <ul class="nav-list">
+
+                    <li class="nav-item">
+
+                        <a class="nav-link nav-link-featured @((controller == "CollectionPoint" && action == "Index") ? "active" : "")"
+
+                           asp-route="collectionPoint-actions" asp-route-action="Index">
+
+                            <span class="nav-icon"><i class="fas fa-cash-register"></i></span>
+
+                            <span>لوحة التحصيل</span>
+
+                        </a>
+
+                    </li>
+
+                    <li class="nav-item">
+
+                        <a class="nav-link @((controller == "CollectionPoint" && action == "History") ? "active" : "")"
+
+                           asp-route="collectionPoint-actions" asp-route-action="History">
+
+                            <span class="nav-icon"><i class="fas fa-history"></i></span>
+
+                            <span>سجل التحصيل</span>
+
+                        </a>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+
+
+            @* ——— 2. المالية ——— *@
+
+            <div class="nav-section" data-section-key="finance">
+
+                <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="true">
+
+                    <i class="fas fa-coins"></i>
+
+                    <span>المالية</span>
+
+                    <i class="fas fa-chevron-down nav-section-chevron"></i>
+
+                </div>
+
+                <ul class="nav-list">
+
+                    <li class="nav-item has-dropdown @(financeWalletOpen ? "open" : "")">
+
+                        <div class="nav-link-toggle" role="button" tabindex="0">
+
+                            <span class="nav-icon"><i class="fas fa-wallet"></i></span>
+
+                            <span>المحفظة</span>
+
+                            <i class="fas fa-chevron-down nav-chevron"></i>
+
+                        </div>
+
+                        <ul class="nav-sublist">
+
+                            <li class="nav-group-label">رصيد نقطة التحصيل</li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link nav-link-sub @(controller == "Wallet" && action == "TopUp" ? "active" : "")"
+
+                                   asp-route="collectionPoint-wallet-topup">
+
+                                    <i class="fas fa-plus-circle"></i>
+
+                                    <span>طلب تغذية رصيد</span>
+
+                                </a>
+
+                            </li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link nav-link-sub @(controller == "Wallet" && action == "ClientTopUpRequests" ? "active" : "")"
+
+                                   asp-route="collectionPoint-wallet-client-topups">
+
+                                    <i class="fas fa-user-check"></i>
+
+                                    <span>طلبات تغذية المشتركين</span>
+
+                                </a>
+
+                            </li>
+
+                        </ul>
+
+                    </li>
+
+                    <li class="nav-item has-dropdown @(financeCashOpen ? "open" : "")">
+
+                        <div class="nav-link-toggle" role="button" tabindex="0">
+
+                            <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
+
+                            <span>النقد والقبض</span>
+
+                            <i class="fas fa-chevron-down nav-chevron"></i>
+
+                        </div>
+
+                        <ul class="nav-sublist">
+
+                            <li class="nav-group-label">نقد باليد</li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link nav-link-sub @(controller == "CashBox" ? "active" : "")"
+
+                                   asp-area="CollectionPoint" asp-controller="CashBox" asp-action="Index">
+
+                                    <i class="fas fa-cash-register"></i>
+
+                                    <span>الصندوق النقدي</span>
+
+                                </a>
+
+                            </li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link nav-link-sub @(controller == "Receipts" ? "active" : "")"
+
+                                   asp-route="collectionPoint-receipts">
+
+                                    <i class="fas fa-receipt"></i>
+
+                                    <span>سجل القبض</span>
+
+                                </a>
+
+                            </li>
+
+                        </ul>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+        }
+
+    </nav>
+
+</aside>
+
+

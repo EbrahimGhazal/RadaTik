@@ -1,0 +1,220 @@
+@model RadaTik.ViewModels.Sector.SectorRadioMonitoringViewModel
+
+@{
+    ViewData["Title"] = "مراقبة القطاعات الراديوية";
+}
+
+<div class="radio-study-page">
+    <div class="sys-hero mb-3">
+        <div class="sys-hero-main">
+            <h1 class="h4 mb-2"><i class="fas fa-wave-square me-2 text-primary"></i>@ViewData["Title"]</h1>
+            <p class="text-muted mb-0">Phase 0 PoC: عرض آخر القياسات المقروءة لكل قطاع مع حالة التحديث.</p>
+        </div>
+        <div class="sys-hero-actions d-flex gap-2">
+            <a asp-route="networkManager-sector" asp-route-action="RadioMonitoring" asp-route-refresh="1" class="btn btn-primary btn-sm">
+                <i class="fas fa-rotate"></i> تحديث القياسات
+            </a>
+            <a asp-route="networkManager-sector" asp-route-action="Index" asp-route-id="" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-right"></i> العودة للقطاعات
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-2 mb-3">
+        <div class="col-12 col-md-4">
+            <div class="card rs-stat h-100">
+                <div class="card-body py-2">
+                    <small>إجمالي القطاعات</small>
+                    <div class="v">@Model.TotalSectors</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card rs-stat h-100">
+                <div class="card-body py-2">
+                    <small>قياسات حديثة (آخر 10 دقائق)</small>
+                    <div class="v text-success">@Model.MetricsFreshCount</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card rs-stat h-100">
+                <div class="card-body py-2">
+                    <small>قياسات متأخرة/غير متوفرة</small>
+                    <div class="v text-warning">@Model.StaleCount</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card rs-stat h-100">
+                <div class="card-body py-2">
+                    <small>تنبيهات آخر 24 ساعة</small>
+                    <div class="v text-danger">@Model.ActiveAlertsCount</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">Trend SNR (6h)</div>
+                <div class="card-body">
+                    <div class="rs-trend-bars">
+                        @foreach (var p in Model.TrendPoints)
+                        {
+                            var h = Math.Clamp((int)Math.Round(((p.AvgSnrDb ?? 0m) / 40m) * 100m), 8, 100);
+                            <span class="rs-trend-bar rs-trend-bar-snr" style="height:@h%" title="@p.BucketAt.ToString("HH:mm") - @(p.AvgSnrDb?.ToString("N1") ?? "—") dB"></span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">Trend CCQ (6h)</div>
+                <div class="card-body">
+                    <div class="rs-trend-bars">
+                        @foreach (var p in Model.TrendPoints)
+                        {
+                            var h = Math.Clamp((int)Math.Round((p.AvgCcqPercent ?? 0m)), 8, 100);
+                            <span class="rs-trend-bar rs-trend-bar-ccq" style="height:@h%" title="@p.BucketAt.ToString("HH:mm") - @(p.AvgCcqPercent?.ToString("N1") ?? "—") %"></span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">Trend Noise (6h)</div>
+                <div class="card-body">
+                    <div class="rs-trend-bars">
+                        @foreach (var p in Model.TrendPoints)
+                        {
+                            var normalized = Math.Clamp((int)Math.Round((((p.AvgNoiseDbm ?? -110m) + 120m) / 40m) * 100m), 8, 100);
+                            <span class="rs-trend-bar rs-trend-bar-noise" style="height:@normalized%" title="@p.BucketAt.ToString("HH:mm") - @(p.AvgNoiseDbm?.ToString("N1") ?? "—") dBm"></span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-table me-1"></i> آخر عينة لكل قطاع</span>
+            <small class="text-muted">آخر تحديث: @Model.GeneratedAt.ToString("yyyy/MM/dd HH:mm:ss")</small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0 radtk-data-table radtk-data-table--cards">
+                    <thead class="table-light">
+                        <tr>
+                            <th>القطاع</th>
+                            <th>IP</th>
+                            <th>السيرفر</th>
+                            <th>التردد</th>
+                            <th>Signal</th>
+                            <th>Noise</th>
+                            <th>SNR</th>
+                            <th>CCQ</th>
+                            <th>Alert</th>
+                            <th>آخر قراءة</th>
+                            <th>الحالة</th>
+                            <th class="text-center" style="width: 90px;">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            var stale = !row.CapturedAt.HasValue || row.CapturedAt.Value < DateTime.Now.AddMinutes(-10);
+                            <tr class="@(stale ? "table-warning" : "")">
+                                <td class="fw-semibold">
+                                    <a asp-action="Details" asp-route-id="@row.SectorId" class="text-decoration-none">@row.SectorName</a>
+                                </td>
+                                <td>@(string.IsNullOrWhiteSpace(row.SectorIp) ? "—" : row.SectorIp)</td>
+                                <td>@row.ServerName</td>
+                                <td>@(row.FrequencyMhz?.ToString() ?? "—")</td>
+                                <td>@(row.SignalDbm?.ToString() ?? "—")</td>
+                                <td>@(row.NoiseFloorDbm?.ToString() ?? "—")</td>
+                                <td>@(row.SnrDb?.ToString() ?? "—")</td>
+                                <td>@(row.CcqPercent.HasValue ? $"{row.CcqPercent.Value}%" : "—")</td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(row.LastSeverity))
+                                    {
+                                        <span class="badge bg-danger">@row.LastSeverity</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>@(row.CapturedAt?.ToString("yyyy/MM/dd HH:mm:ss") ?? "—")</td>
+                                <td class="small">@row.StatusMessage</td>
+                                <td class="text-center">
+                                    <div class="action-buttons d-flex justify-content-center gap-1">
+                                        <a asp-action="Details" asp-route-id="@row.SectorId" class="btn btn-sm btn-icon btn-secondary" title="تفاصيل القطاع">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@row.SectorId" class="btn btn-sm btn-icon btn-warning" title="تعديل القطاع">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-triangle-exclamation me-1"></i> سجل أحداث الراديو (Threshold Alerts)</span>
+            <small class="text-muted">آخر @Model.RecentEvents.Count حدث</small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0 radtk-data-table radtk-data-table--cards">
+                    <thead class="table-light">
+                        <tr>
+                            <th>الوقت</th>
+                            <th>القطاع</th>
+                            <th>Severity</th>
+                            <th>Metric</th>
+                            <th>Value</th>
+                            <th>Threshold</th>
+                            <th>الرسالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.RecentEvents.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-3">لا توجد أحداث حتى الآن.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var evt in Model.RecentEvents)
+                            {
+                                <tr>
+                                    <td>@evt.CreatedAt.ToString("yyyy/MM/dd HH:mm:ss")</td>
+                                    <td class="fw-semibold">
+                                        <a asp-action="Details" asp-route-id="@evt.SectorId" class="text-decoration-none">@evt.SectorName</a>
+                                    </td>
+                                    <td><span class="badge bg-danger">@evt.Severity</span></td>
+                                    <td>@evt.MetricName</td>
+                                    <td>@(evt.MetricValue?.ToString("N1") ?? "—")</td>
+                                    <td>@(evt.ThresholdValue?.ToString("N1") ?? "—")</td>
+                                    <td class="small">@evt.Message</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

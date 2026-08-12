@@ -1,0 +1,98 @@
+@model List<RadaTik.Models.PaymentTransaction>
+@using RadaTik.Helpers
+@using RadaTik.ViewModels.UI
+
+@{
+    ViewData["Title"] = "سجل التحصيل";
+}
+
+<partial name="~/Views/Shared/_PageHero.cshtml" model='new PageHeroViewModel { Title = "سجل التحصيل", Subtitle = "آخر 200 عملية تحصيل", IconClass = "fas fa-list", Theme = "finance" }' />
+
+<div class="mb-3 d-print-none">
+    <button type="button" class="btn btn-outline-primary" onclick="window.print();">
+        <i class="fas fa-print"></i> طباعة
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle radtk-data-table radtk-data-table--cards">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>التاريخ</th>
+                        <th>نوع العملية</th>
+                        <th>المنفذ</th>
+                        <th>العميل</th>
+                        <th>المبلغ</th>
+                        <th>رصيد العميل قبل</th>
+                        <th>رصيد العميل بعد</th>
+                        <th>رصيد النقطة قبل</th>
+                        <th>رصيد النقطة بعد</th>
+                        <th>رقم المرجع</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var t in Model)
+                        {
+                            <tr>
+                                <td>@t.Id</td>
+                                <td>@t.PaymentDate.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td>
+                                    @if (t.OperationType == "Renewal")
+                                    {
+                                        <span class="badge bg-success">تجديد</span>
+                                    }
+                                    else if (t.OperationType == "ClientTopUp")
+                                    {
+                                        <span class="badge bg-info">تغذية رصيد</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary">تحصيل</span>
+                                    }
+                                </td>
+                                <td>@(t.ReceivedByUser?.UserName ?? t.ReceivedByUserId)</td>
+                                <td>@(t.Client?.Name ?? t.ClientId.ToString())</td>
+                                <td>
+                                    @if (t.ExchangeRate.HasValue && t.AccountCurrency == RadaTik.Models.PricingCurrency.USD)
+                                    {
+                                        <span>@SyrianCurrencyHelper.FormatNew(t.PaymentAmount) ل.س.ج</span>
+                                        <br /><small class="text-muted">→ @CurrencyHelper.FormatAmount(t.AccountAmount, t.AccountCurrency)</small>
+                                    }
+                                    else
+                                    {
+                                        <span>@SyrianCurrencyHelper.FormatNew(t.PaymentAmount) ل.س.ج</span>
+                                    }
+                                </td>
+                                <td>@t.PreviousClientBalance.ToString("0.##")</td>
+                                <td>@t.NewClientBalance.ToString("0.##")</td>
+                                <td>@t.PreviousPointBalance.ToString("0.##")</td>
+                                <td>@t.NewPointBalance.ToString("0.##")</td>
+                                <td class="small text-muted">@(string.IsNullOrWhiteSpace(t.ReferenceNumber) ? "—" : t.ReferenceNumber)</td>
+                                <td class="text-muted">@t.Notes</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="11" class="text-center text-muted">لا توجد بيانات</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3">
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i>
+                رجوع
+            </a>
+        </div>
+    </div>
+</div>
+

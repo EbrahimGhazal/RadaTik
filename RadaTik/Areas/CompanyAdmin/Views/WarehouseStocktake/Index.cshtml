@@ -1,0 +1,37 @@
+@using RadaTik.Models.Business
+@{
+    ViewData["Title"] = "سجل الجرد";
+    var stocktakes = ViewBag.Stocktakes as List<WarehouseStocktake> ?? new();
+    var companyName = ViewBag.CompanyName as string ?? "";
+}
+
+<div class="financial-page financial-hub-page">
+    <partial name="_WarehouseSubNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-clipboard-check";
+        ViewBag.FinancialHeroTheme = "warehouse";
+        ViewBag.FinancialHeroSubtitle = companyName;
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-warning micro-btn"" href=""" + Url.Action("Create") + @"""><i class=""fas fa-plus""></i> جرد جديد</a>";
+    }
+    <partial name="_FinancialSysHero" />
+    @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table mb-0 radtk-data-table radtk-data-table--cards">
+                <thead><tr><th>#</th><th>التاريخ</th><th>النطاق</th><th>بنود بفروقات</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var s in stocktakes)
+                {
+                    <tr>
+                        <td>@s.Id</td>
+                        <td>@s.StocktakeDate.ToString("yyyy-MM-dd")</td>
+                        <td>@(s.WarehouseItem?.Name ?? "كل الأصناف")</td>
+                        <td>@s.Lines.Count</td>
+                        <td><a asp-action="Details" asp-route-id="@s.Id">تفاصيل</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,30 +1,61 @@
-# --- Stage 1: React SPA (Vite → RadTik/wwwroot/app) ---
-FROM node:20-bookworm-slim AS webbuild
-WORKDIR /src/radtik-web
-COPY radtik-web/package.json radtik-web/package-lock.json ./
+# =========================================================
+# 1) Build React / Vite
+# =========================================================
+FROM node:22-bookworm-slim AS frontend
+
+WORKDIR /src
+
+COPY radatik-web/package.json radatik-web/package-lock.json ./radatik-web/
+
+WORKDIR /src/radatik-web
+
 RUN npm ci
-COPY radtik-web/ ./
-# Static wwwroot assets (css, js, lib, …) required beside /app; Vite writes build to ../RadTik/wwwroot/app
-COPY RadTik/wwwroot /src/RadTik/wwwroot
+
+COPY radatik-web/ ./
+
 RUN npm run build
 
-# --- Stage 2: Publish ASP.NET Core ---
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /src
-COPY RadTik/RadTik.csproj RadTik/
-RUN dotnet restore RadTik/RadTik.csproj
-COPY RadTik/ RadTik/
-COPY --from=webbuild /src/RadTik/wwwroot RadTik/wwwroot
-WORKDIR /src/RadTik
-RUN dotnet publish RadTik.csproj -c Release -o /app/publish /p:UseAppHost=false
 
-# --- Stage 3: Runtime ---
+# =========================================================
+# 2) Build ASP.NET Core
+# =========================================================
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+
+WORKDIR /src
+
+COPY RadaTik/RadaTik.csproj RadaTik/
+
+RUN dotnet restore RadaTik/RadaTik.csproj
+
+COPY RadaTik/ RadaTik/
+
+# Copy React production build into ASP.NET wwwroot/app
+COPY --from=frontend /src/RadaTik/wwwroot/app/ RadaTik/wwwroot/app/
+
+# Disable the Windows-specific frontend MSBuild target.
+RUN dotnet publish RadaTik/RadaTik.csproj \
+    -c Release \
+    -o /app/publish \
+    --no-restore \
+    -p:RunFrontendBuild=false
+
+
+# =========================================================
+# 3) Production runtime
+# =========================================================
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+
 WORKDIR /app
-EXPOSE 8080
+
+ENV ASPNETCORE_URLS=http://+:8080
+ENV DOTNET_RUNNING_IN_CONTAINER=true
 
 COPY --from=build /app/publish .
-COPY docker/wait-for-sql.sh /app/wait-for-sql.sh
-RUN chmod +x /app/wait-for-sql.sh
 
-ENTRYPOINT ["/app/wait-for-sql.sh"]
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+
+RUN chmod +x /docker-entrypoint.sh
+
+EXPOSE 8080
+
+ENTRYPOINT ["/docker-entrypoint.sh"]

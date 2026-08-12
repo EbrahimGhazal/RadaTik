@@ -1,0 +1,54 @@
+@using RadaTik.Services
+@{
+    CompanyBusinessSummary? bizNullable = ViewBag.CompanyBusinessSummary as CompanyBusinessSummary;
+    bool showBusiness = ViewBag.ShowCompanyBusiness == true;
+    bool showMaintenance = ViewBag.ShowMaintenanceInvoicesSummary == true;
+}
+@if (bizNullable is CompanyBusinessSummary biz && (showBusiness || showMaintenance))
+{
+    <section class="nm-business-strip" aria-label="إدارة الشركة">
+        <header class="nm-business-strip__head">
+            <h2 class="nm-section__title"><i class="fas fa-building" aria-hidden="true"></i> إدارة الشركة</h2>
+            @if (showBusiness)
+            {
+                <a class="nm-ops-btn nm-ops-btn--primary" asp-route="networkManager-company-business" asp-route-action="Index" asp-route-id="">نظرة عامة</a>
+            }
+        </header>
+
+        @if (showBusiness)
+        {
+            <div class="nm-business-grid">
+                <article class="nm-business-item @(biz.LowOrEmptyStockItems > 0 ? "nm-business-item--warn" : "")">
+                    <span class="nm-business-item__label">مستودع — نفد</span>
+                    <strong class="nm-business-item__value">@biz.LowOrEmptyStockItems</strong>
+                </article>
+                <article class="nm-business-item">
+                    <span class="nm-business-item__label">دفتر — صافي الشهر (ل.س)</span>
+                    <strong class="nm-business-item__value @(biz.MoneyDiaryNetThisMonth >= 0 ? "text-success" : "text-danger")">
+                        @(biz.MoneyDiaryNetThisMonth >= 0 ? "+" : "")@biz.MoneyDiaryNetThisMonth.ToString("N0")
+                    </strong>
+                    <span class="nm-business-item__sub">$ @(biz.MoneyDiaryNetUsdThisMonth >= 0 ? "+" : "")@biz.MoneyDiaryNetUsdThisMonth.ToString("N2")</span>
+                </article>
+                <article class="nm-business-item @(biz.PayrollPendingCount > 0 ? "nm-business-item--warn" : "")">
+                    <span class="nm-business-item__label">رواتب معلّقة</span>
+                    <strong class="nm-business-item__value">@biz.PayrollPendingCount</strong>
+                </article>
+                <article class="nm-business-item">
+                    <span class="nm-business-item__label">مبلغ رواتب معلّق</span>
+                    <strong class="nm-business-item__value">@biz.PayrollPendingAmount.ToString("N0")</strong>
+                </article>
+            </div>
+        }
+
+        @if (showMaintenance && biz.PendingMaintenanceInvoices > 0)
+        {
+            <div class="nm-business-maintenance">
+                <div>
+                    <span class="nm-business-item__label">فواتير صيانة معلّقة</span>
+                    <strong class="nm-business-item__value">@biz.PendingMaintenanceInvoices — @biz.PendingMaintenanceInvoicesAmount.ToString("N0") ل.س</strong>
+                </div>
+                <a class="nm-ops-btn" asp-route="networkManager-maintenance-invoices" asp-route-action="Index" asp-route-id="">عرض الفواتير</a>
+            </div>
+        }
+    </section>
+}

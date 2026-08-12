@@ -1,0 +1,859 @@
+@model IEnumerable<RadaTik.Models.Profile>
+@{
+    ViewData["Title"] = "إدارة البروفايلات";
+    ViewBag.PageHeroIcon = "fas fa-tags";
+    ViewBag.PageHeroExtraActions = new[]
+    {
+        new RadaTik.ViewModels.UI.PageHeroActionViewModel { Text = "إضافة بروفايل جديد", Url = Url.Action("Create")!, CssClass = "btn btn-success btn-sm", IconClass = "fas fa-plus-circle" }
+    };
+    var totalProfiles = Model.Count();
+    var activeProfiles = Model.Count(p => p.IsActive);
+    var syncedProfiles = Model.Count(p => p.IsSyncedWithMikroTik);
+    var inactiveProfiles = totalProfiles - activeProfiles;
+    var profileImportUnitPrice = (decimal?)(ViewBag.ProfileImportUnitPrice) ?? 0m;
+}
+<div class="radtk-page-profile-index">
+
+<link rel="stylesheet" href="~/css/radatik-theme.css" asp-append-version="true" />
+
+<partial name="_CrudPageHero" />
+
+<!-- Alert Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i>
+        <span>@TempData["SuccessMessage"]</span>
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>@TempData["ErrorMessage"]</span>
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+}
+@if (TempData["WarningMessage"] != null)
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>@TempData["WarningMessage"]</span>
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+}
+@if (TempData["InfoMessage"] != null)
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        <span>@TempData["InfoMessage"]</span>
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+}
+
+<!-- Server Filter -->
+<div class="filter-card profile-filter-card">
+    <div class="profile-filter-row">
+        <label class="profile-filter-label" for="serverFilter">
+            <i class="fas fa-filter"></i>
+            تصفية حسب الخادم:
+        </label>
+        <select class="form-select" id="serverFilter">
+            <option value="">جميع الخوادم</option>
+            @if (ViewBag.MikroTikServers != null)
+            {
+                @foreach (var server in ViewBag.MikroTikServers)
+                {
+                    var isSelected = ViewBag.SelectedServerId != null && ViewBag.SelectedServerId.ToString() == server.Id.ToString();
+                    <option value="@server.Id" selected="@isSelected">@server.Name</option>
+                }
+            }
+        </select>
+        @if (ViewBag.SelectedServerId != null)
+        {
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm profile-filter-clear">
+                <i class="fas fa-times"></i> إزالة التصفية
+            </a>
+        }
+    </div>
+</div>
+
+<!-- Statistics Bar -->
+<div class="stats-bar">
+    <div class="stat-item">
+        <div class="stat-icon total">
+            <i class="fas fa-layer-group"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@totalProfiles</h3>
+            <span>إجمالي البروفايلات</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon active">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@activeProfiles</h3>
+            <span>المفعلة</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon synced">
+            <i class="fas fa-sync-alt"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@syncedProfiles</h3>
+            <span>المتزامنة</span>
+        </div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-icon inactive">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-info">
+            <h3>@(totalProfiles - syncedProfiles)</h3>
+            <span>غير المتزامنة</span>
+        </div>
+    </div>
+</div>
+
+@{
+    var catalogs = ViewBag.CompanyCatalogs as IEnumerable<RadaTik.ViewModels.Profile.CompanyCatalogSummaryItem>;
+}
+@if (catalogs != null && catalogs.Any())
+{
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-layer-group text-primary"></i> كتالوج بروفايلات الشركة</span>
+            <a asp-action="Create" class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> بروفايل جديد</a>
+        </div>
+        <div class="card-body py-2">
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var cat in catalogs)
+                {
+                    <a asp-action="Deploy" asp-route-id="@cat.Id" class="btn btn-outline-primary btn-sm">
+                        @cat.Name <span class="badge bg-secondary ms-1">@cat.DeployedCount سيرفر</span>
+                    </a>
+                }
+            </div>
+            <p class="small text-muted mb-0 mt-2">اضغط على البروفايل لنشره على سيرفرات إضافية.</p>
+        </div>
+    </div>
+}
+
+<div class="card border-0 shadow-sm mb-3 border-start border-4 border-success">
+    <div class="card-body py-2">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="rounded-circle bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center" style="width:34px;height:34px;">
+                    <i class="fas fa-layer-group"></i>
+                </span>
+                <div>
+                    <div class="small text-muted mb-1">التسعير الفعّال قبل اختيار السيرفر</div>
+                    <div class="fw-semibold">سعر الوحدة المعتمد لاستيراد كل بروفايل</div>
+                </div>
+            </div>
+            <div class="fw-bold text-success">@SyrianCurrencyHelper.FormatNew(profileImportUnitPrice) ل.س.ج</div>
+        </div>
+    </div>
+</div>
+
+<!-- Sync Card -->
+<div class="sync-card">
+    <div class="sync-card-header">
+        <i class="fas fa-sync-alt"></i>
+        <h5>مزامنة مع MikroTik</h5>
+    </div>
+    <div class="sync-controls">
+        <div class="sync-server-list" role="group" aria-label="خوادم MikroTik">
+            <div class="sync-server-list__title">اختر خادم MikroTik أو أكثر للاستيراد</div>
+            @if (ViewBag.MikroTikServers == null || !((IEnumerable<RadaTik.Models.MikroTikServer>)ViewBag.MikroTikServers).Any())
+            {
+                <div class="small text-muted">لا توجد خوادم MikroTik متاحة.</div>
+            }
+            else
+            {
+                @foreach (RadaTik.Models.MikroTikServer server in ViewBag.MikroTikServers)
+                {
+                    <div class="form-check sync-server-item">
+                        <input class="form-check-input sync-server-check"
+                               type="checkbox"
+                               name="syncServerIds"
+                               value="@server.Id"
+                               id="sync_srv_@server.Id"
+                               data-server-name="@server.Name" />
+                        <label class="form-check-label" for="sync_srv_@server.Id">
+                            <span class="fw-semibold">@server.Name</span>
+                            @if (!string.IsNullOrWhiteSpace(server.Host))
+                            {
+                                <span class="text-muted small">(@server.Host:@server.Port)</span>
+                            }
+                        </label>
+                    </div>
+                }
+            }
+        </div>
+        <div class="small text-muted" title="سعر المستورد الجديد يتم تطبيقه تلقائياً من إعدادات النظام">
+            <i class="fas fa-circle-info"></i>
+            سعر المستورد الجديد (ل.س): ملاحظة فقط — يتم تطبيق القيمة الافتراضية تلقائياً من النظام ولا يمكن تعديلها من هذه الشاشة.
+            <span class="fw-semibold text-success">القيمة الحالية: @SyrianCurrencyHelper.FormatNew(profileImportUnitPrice) ل.س.ج</span>
+        </div>
+        <div class="sync-buttons">
+            <button type="button" class="sync-btn view" onclick="viewMikroTikProfiles()">
+                <i class="fas fa-eye"></i>
+                عرض من MikroTik
+            </button>
+            <button type="button" class="sync-btn import" onclick="syncFromMikroTik()">
+                <i class="fas fa-download"></i>
+                استيراد
+            </button>
+            <button type="button" class="sync-btn export" onclick="syncToMikroTik()">
+                <i class="fas fa-upload"></i>
+                تصدير
+            </button>
+            <button type="button" class="sync-btn bidirectional" onclick="twoWaySync()">
+                <i class="fas fa-exchange-alt"></i>
+                مزامنة ثنائية
+            </button>
+        </div>
+    </div>
+    <div id="importPreviewHint" class="small text-muted mt-3">
+        اختر خادمًا أو أكثر لتحميل معاينة الاستيراد والتكلفة.
+    </div>
+</div>
+
+<!-- Import progress overlay -->
+<div id="profileImportProgressOverlay" class="profile-import-overlay" hidden aria-live="polite">
+    <div class="profile-import-dialog" role="dialog" aria-modal="true" aria-labelledby="profileImportProgressTitle">
+        <div class="profile-import-dialog__icon">
+            <i class="fas fa-cloud-download-alt fa-spin"></i>
+        </div>
+        <h5 id="profileImportProgressTitle" class="profile-import-dialog__title">جاري الاستيراد من MikroTik</h5>
+        <p id="profileImportProgressStatus" class="profile-import-dialog__status">تحضير العملية...</p>
+        <div class="profile-import-progress">
+            <div id="profileImportProgressBar" class="profile-import-progress__bar" style="width: 0%"></div>
+        </div>
+        <div class="profile-import-meta">
+            <span id="profileImportProgressPercent">0%</span>
+            <span id="profileImportProgressCountdown">الوقت المتبقي: --</span>
+        </div>
+        <ul id="profileImportProgressLog" class="profile-import-log"></ul>
+    </div>
+</div>
+
+<!-- Profiles Table -->
+<div class="table-card">
+    @if (Model.Any())
+    {
+        <table class="table table-sm table-hover data-table radtk-data-table radtk-data-table--cards" id="profilesTable">
+            <thead>
+                <tr>
+                    <th>الاسم</th>
+                    <th>النوع</th>
+                    <th>السعر</th>
+                    <th>السرعة</th>
+                    <th>الأجهزة</th>
+                    <th>الخادم</th>
+                    <th>الحالة</th>
+                    <th>المزامنة</th>
+                    <th>العملاء</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td data-label="الاسم">
+                            <div class="profile-name">@item.Name</div>
+                            @if (item.CompanyProfileCatalogId.HasValue)
+                            {
+                                <span class="badge bg-primary mt-1" title="بروفايل كتالوج الشركة">كتالوج</span>
+                            }
+                            @if (!string.IsNullOrEmpty(item.Description))
+                            {
+                                <div class="profile-desc">@item.Description</div>
+                            }
+                        </td>
+                        <td data-label="النوع">
+                            <span class="type-badge">@item.Type</span>
+                            <div class="cycle-text">@item.BillingCycle</div>
+                        </td>
+                        <td data-label="السعر">
+                            <div class="price-main">
+                                @SyrianCurrencyHelper.FormatNew(item.Price) ل.س جديد
+                            </div>
+                            <div class="price-vat">
+                                شامل: @SyrianCurrencyHelper.FormatNew(item.PriceWithVAT) ل.س جديد
+                            </div>
+                            <div class="price-old-hint" style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px;">
+                                <i class="fas fa-coins"></i>
+                                قديم: @((item.Price * 100).ToString("N0")) ل.س
+                            </div>
+                        </td>
+                        <td data-label="السرعة">
+                            <div class="speed-value">@item.DownloadSpeedDisplay</div>
+                            @if (item.UploadSpeed.HasValue)
+                            {
+                                <div class="speed-upload">رفع: @item.UploadSpeedDisplay</div>
+                            }
+                        </td>
+                        <td data-label="الأجهزة">
+                            <span class="devices-badge" title="عدد الأجهزة الأدنى - الأقصى">
+                                <i class="fas fa-mobile-alt"></i>
+                                @item.MinDevices - @item.MaxDevices
+                            </span>
+                        </td>
+                        <td data-label="الخادم">
+                            @if (item.MikroTikServer != null)
+                            {
+                                <span class="server-badge">
+                                    <i class="fas fa-server"></i>
+                                    @item.MikroTikServer.Name
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">غير مرتبط</span>
+                            }
+                        </td>
+                        <td data-label="الحالة">
+                            @if (item.IsActive)
+                            {
+                                <span class="status-badge active">
+                                    <i class="fas fa-check"></i>
+                                    مفعل
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="status-badge inactive">
+                                    <i class="fas fa-times"></i>
+                                    معطل
+                                </span>
+                            }
+                        </td>
+                        <td data-label="المزامنة">
+                            <div class="sync-badge">
+                                @if (item.IsSyncedWithMikroTik)
+                                {
+                                    <span class="sync-status synced">
+                                        <i class="fas fa-check-circle"></i>
+                                        مزامن
+                                    </span>
+                                    <span class="sync-date">@item.LastSyncDate?.ToString("yyyy-MM-dd")</span>
+                                }
+                                else
+                                {
+                                    <span class="sync-status not-synced">
+                                        <i class="fas fa-times-circle"></i>
+                                        غير مزامن
+                                    </span>
+                                }
+                            </div>
+                        </td>
+                        <td data-label="العملاء">
+                            <span class="clients-badge">@item.Clients.Count</span>
+                        </td>
+                        <td data-label="الإجراءات" class="radtk-col-actions">
+                            <div class="action-buttons">
+                                <a asp-action="Details" asp-route-id="@item.Id" class="action-btn view" title="تفاصيل">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                @if (item.CompanyProfileCatalogId.HasValue)
+                                {
+                                    <a asp-action="Deploy" asp-route-id="@item.CompanyProfileCatalogId" class="action-btn view" title="نشر على سيرفرات">
+                                        <i class="fas fa-share-alt"></i>
+                                    </a>
+                                }
+                                <a asp-action="Edit" asp-route-id="@item.Id" asp-route-serverId="@ViewBag.SelectedServerId" class="action-btn edit" title="تعديل">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="action-btn delete" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                                @if (item.MikroTikServerId > 0)
+                                {
+                                    <button type="button" class="action-btn sync" onclick="testSync(@item.MikroTikServerId, @item.Id)" title="فحص المزامنة">
+                                        <i class="fas fa-sync"></i>
+                                    </button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fas fa-tags"></i>
+            <h3>لا توجد بروفايلات</h3>
+            <p>لم يتم إنشاء أي بروفايلات حتى الآن</p>
+            <a asp-action="Create" class="btn btn-primary mt-3">
+                <i class="fas fa-plus-circle"></i>
+                إضافة بروفايل جديد
+            </a>
+        </div>
+    }
+</div>
+
+@if (Model.Any())
+{
+    <div class="card-footer">
+        <small>تم التحديث في: @DateTime.Now.ToString("yyyy-MM-dd HH:mm")</small>
+    </div>
+}
+
+
+</div>
+@section Scripts {
+    <script>
+        function initProfilesTableIfDesktop() {
+            if (!$('#profilesTable').length || typeof $.fn.DataTable === 'undefined') {
+                return;
+            }
+
+            const isCompact = window.matchMedia('(max-width: 1199.98px)').matches;
+            const already = $.fn.DataTable.isDataTable('#profilesTable');
+
+            if (isCompact) {
+                if (already) {
+                    $('#profilesTable').DataTable().destroy();
+                    // إعادة الصفوف كما هي بعد destroy دون wrapper عريض
+                    $('#profilesTable').removeAttr('style');
+                }
+                return;
+            }
+
+            if (!already) {
+                $('#profilesTable').DataTable({
+                    language: {
+                        url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
+                    },
+                    order: [[0, 'asc']],
+                    pageLength: 25,
+                    responsive: true
+                });
+            }
+        }
+
+        $(document).ready(function () {
+            initProfilesTableIfDesktop();
+            let resizeTimer = null;
+            $(window).on('resize', function () {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(initProfilesTableIfDesktop, 180);
+            });
+        });
+
+        function getSelectedSyncServers() {
+            return Array.from(document.querySelectorAll('.sync-server-check:checked')).map(function (el) {
+                return {
+                    id: el.value,
+                    name: el.getAttribute('data-server-name') || 'غير معروف'
+                };
+            });
+        }
+
+        function getSelectedSyncServer() {
+            const selected = getSelectedSyncServers();
+            if (!selected.length) {
+                return null;
+            }
+            if (selected.length > 1) {
+                alert('هذه العملية تعمل على خادم واحد فقط. للاستيراد من عدة خوادم استخدم زر «استيراد».');
+                return null;
+            }
+            return selected[0];
+        }
+
+        function viewMikroTikProfiles() {
+            var selected = getSelectedSyncServer();
+            if (!selected) {
+                alert('الرجاء اختيار خادم MikroTik واحد أولاً');
+                return;
+            }
+            window.location.href = '@Url.Action("ViewMikroTikProfiles")' + '?serverId=' + selected.id;
+        }
+
+        const importPreviewCache = {};
+
+        async function loadImportPreview(serverId, forceRefresh = false) {
+            if (!serverId) return null;
+            if (!forceRefresh && importPreviewCache[serverId]) {
+                return importPreviewCache[serverId];
+            }
+
+            try {
+                const response = await fetch('@Url.Action("GetImportPreviewData")' + '?serverId=' + encodeURIComponent(serverId), {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const result = await response.json();
+                if (!result || !result.success) {
+                    return null;
+                }
+
+                importPreviewCache[serverId] = result;
+                return result;
+            } catch {
+                return null;
+            }
+        }
+
+        async function refreshImportPreviewForSelection() {
+            const selected = getSelectedSyncServers();
+            if (!selected.length) {
+                updateImportPreviewHint(null);
+                return null;
+            }
+
+            updateImportPreviewHint(null, 'جاري تحميل معاينة الاستيراد...');
+            const previews = [];
+            for (const server of selected) {
+                const preview = await loadImportPreview(server.id);
+                if (preview) {
+                    previews.push({ server: server, preview: preview });
+                }
+            }
+
+            if (!previews.length) {
+                updateImportPreviewHint(null, 'تعذر جلب معاينة الاستيراد حالياً.');
+                return null;
+            }
+
+            const aggregated = {
+                serverCount: previews.length,
+                serverNames: previews.map(p => p.server.name).join('، '),
+                totalProfiles: previews.reduce((sum, p) => sum + Number(p.preview.totalProfiles || 0), 0),
+                importableProfiles: previews.reduce((sum, p) => sum + Number(p.preview.importableProfiles || 0), 0),
+                unitPrice: Number(previews[0].preview.unitPrice || 0),
+                totalCharge: previews.reduce((sum, p) => sum + Number(p.preview.totalCharge || 0), 0),
+                walletBalance: Number(previews[0].preview.walletBalance || 0),
+                items: previews
+            };
+            updateImportPreviewHint(aggregated);
+            return aggregated;
+        }
+
+        function updateImportPreviewHint(data, fallbackMessage) {
+            const hint = document.getElementById('importPreviewHint');
+            if (!hint) return;
+
+            if (fallbackMessage) {
+                hint.textContent = fallbackMessage;
+                return;
+            }
+
+            if (!data) {
+                hint.textContent = 'اختر خادمًا أو أكثر لتحميل معاينة الاستيراد والتكلفة.';
+                return;
+            }
+
+            const serverPart = data.serverCount > 1
+                ? `الخوادم المحددة: ${data.serverCount} | `
+                : '';
+            hint.textContent =
+                serverPart +
+                `البروفايلات على السيرفرات: ${data.totalProfiles} | القابلة للاستيراد: ${data.importableProfiles} | ` +
+                `التكلفة الكلية: ${Number(data.totalCharge || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج`;
+        }
+
+        async function syncFromMikroTik() {
+            var selected = getSelectedSyncServers();
+            if (!selected.length) {
+                alert('الرجاء اختيار خادم MikroTik واحد على الأقل');
+                return;
+            }
+
+            const aggregated = await refreshImportPreviewForSelection();
+            if (!aggregated) {
+                alert('تعذر جلب معاينة الاستيراد حالياً. حاول مرة أخرى.');
+                return;
+            }
+
+            const importableProfiles = Number(aggregated.importableProfiles || 0);
+            const unitPrice = Number(aggregated.unitPrice || 0);
+            const totalCharge = Number(aggregated.totalCharge || 0);
+            const walletBalance = Number(aggregated.walletBalance || 0);
+            const totalProfiles = Number(aggregated.totalProfiles || 0);
+
+            if (importableProfiles <= 0) {
+                if (selected.length === 1 &&
+                    confirm('لا يوجد بروفايلات جديدة للاستيراد من هذا السيرفر حالياً.\n\nهل تريد تشغيل «المزامنة الثنائية» لتحديث البروفايلات الحالية؟')) {
+                    window.location.href = '@Url.Action("TwoWaySync")' + '?serverId=' + encodeURIComponent(selected[0].id);
+                } else {
+                    alert('لا يوجد بروفايلات جديدة للاستيراد من الخوادم المحددة حالياً.');
+                }
+                return;
+            }
+
+            const message =
+                `تنبيه واضح قبل الاستيراد:\n\n` +
+                `عدد الخوادم: ${selected.length}\n` +
+                `الخوادم: ${aggregated.serverNames}\n` +
+                `عدد البروفايلات على السيرفرات: ${totalProfiles}\n` +
+                `البروفايلات القابلة للاستيراد: ${importableProfiles}\n` +
+                `سعر استيراد كل بروفايل: ${unitPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n` +
+                `إجمالي مبلغ الاستيراد: ${totalCharge.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n` +
+                `رصيد المحفظة الحالي: ${walletBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ل.س.ج\n\n` +
+                `سيتم التحقق من الرصيد قبل التنفيذ الفعلي، وفي حال عدم الكفاية سيتم إلغاء العملية مع توضيح السبب.\n\n` +
+                `هل تريد المتابعة؟`;
+
+            if (!confirm(message)) {
+                return;
+            }
+
+            await runProfileImportWithProgress(selected, aggregated);
+        }
+
+        function estimateImportSeconds(aggregated, serverCount) {
+            const importable = Number(aggregated?.importableProfiles || 0);
+            // تقدير: أساس لكل خادم + وقت تقريبي لكل بروفايل قابل للاستيراد
+            const seconds = (serverCount * 10) + (importable * 0.7);
+            return Math.max(8, Math.round(seconds));
+        }
+
+        function formatCountdown(totalSeconds) {
+            const s = Math.max(0, Math.floor(totalSeconds));
+            const m = Math.floor(s / 60);
+            const r = s % 60;
+            if (m > 0) {
+                return `${m}:${String(r).padStart(2, '0')}`;
+            }
+            return `${r} ث`;
+        }
+
+        function setImportProgressUi(percent, statusText, remainingSeconds) {
+            const bar = document.getElementById('profileImportProgressBar');
+            const pct = document.getElementById('profileImportProgressPercent');
+            const status = document.getElementById('profileImportProgressStatus');
+            const countdown = document.getElementById('profileImportProgressCountdown');
+            const safePercent = Math.max(0, Math.min(100, Math.round(percent)));
+            if (bar) bar.style.width = safePercent + '%';
+            if (pct) pct.textContent = safePercent + '%';
+            if (status && statusText) status.textContent = statusText;
+            if (countdown && typeof remainingSeconds === 'number') {
+                countdown.textContent = 'الوقت المتبقي التقريبي: ' + formatCountdown(remainingSeconds);
+            }
+        }
+
+        function appendImportLog(text, kind) {
+            const log = document.getElementById('profileImportProgressLog');
+            if (!log) return;
+            const li = document.createElement('li');
+            li.className = 'profile-import-log__item' + (kind ? ' profile-import-log__item--' + kind : '');
+            li.textContent = text;
+            log.appendChild(li);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function showImportProgressOverlay(show) {
+            const overlay = document.getElementById('profileImportProgressOverlay');
+            if (!overlay) return;
+            overlay.hidden = !show;
+            document.body.classList.toggle('profile-import-busy', show);
+        }
+
+        async function runProfileImportWithProgress(selected, aggregated) {
+            const total = selected.length;
+            let remainingEstimate = estimateImportSeconds(aggregated, total);
+            const initialEstimate = remainingEstimate;
+            let countdownTimer = null;
+            const startedAt = Date.now();
+            const successLines = [];
+            const infoLines = [];
+            const errorLines = [];
+
+            showImportProgressOverlay(true);
+            const log = document.getElementById('profileImportProgressLog');
+            if (log) log.innerHTML = '';
+            setImportProgressUi(2, 'بدء جلب البيانات من MikroTik...', remainingEstimate);
+            appendImportLog(`التقدير الأولي للمدة: حوالي ${formatCountdown(initialEstimate)} لـ ${total} خادم(ات).`, 'info');
+
+            countdownTimer = setInterval(function () {
+                remainingEstimate = Math.max(0, remainingEstimate - 1);
+                const elapsedRatio = Math.min(0.92, (Date.now() - startedAt) / (initialEstimate * 1000));
+                // لا نتجاوز تقدم الخوادم المكتملة؛ العداد يعطي إحساس انتظار فقط بين الخطوات
+                const softPercent = Math.max(2, Math.floor(elapsedRatio * 90));
+                const bar = document.getElementById('profileImportProgressBar');
+                const current = bar ? parseInt(bar.style.width, 10) || 0 : 0;
+                if (softPercent > current && softPercent < 95) {
+                    setImportProgressUi(softPercent, null, remainingEstimate);
+                } else {
+                    const countdown = document.getElementById('profileImportProgressCountdown');
+                    if (countdown) countdown.textContent = 'الوقت المتبقي التقريبي: ' + formatCountdown(remainingEstimate);
+                }
+            }, 1000);
+
+            try {
+                for (let i = 0; i < selected.length; i++) {
+                    const server = selected[i];
+                    const stepBase = (i / total) * 100;
+                    setImportProgressUi(Math.max(stepBase, 5), `جاري الاستيراد من: ${server.name} (${i + 1}/${total})...`, remainingEstimate);
+                    appendImportLog(`بدء الاستيراد من «${server.name}»...`, 'info');
+
+                    const stepStarted = Date.now();
+                    try {
+                        const response = await fetch('@Url.Action("SyncFromMikroTikJson", "Profile", new { area = "CompanyAdmin" })' + '?serverId=' + encodeURIComponent(server.id), {
+                            method: 'GET',
+                            credentials: 'same-origin',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                        });
+                        if (!response.ok) {
+                            throw new Error('HTTP ' + response.status);
+                        }
+                        const result = await response.json();
+                        const elapsedSec = Math.max(1, (Date.now() - stepStarted) / 1000);
+                        const leftServers = total - (i + 1);
+                        // إعادة تقدير المتبقي من متوسط الزمن الفعلي للخطوات
+                        const avgSoFar = ((Date.now() - startedAt) / 1000) / (i + 1);
+                        remainingEstimate = Math.max(0, Math.round(avgSoFar * leftServers));
+
+                        const line = `${server.name}: ${result.message || (result.success ? 'تم' : 'فشل')}`;
+                        if (result.success) {
+                            if (result.status === 'Success') {
+                                successLines.push(line);
+                                appendImportLog(line, 'ok');
+                            } else {
+                                infoLines.push(line);
+                                appendImportLog(line, 'info');
+                            }
+                        } else {
+                            errorLines.push(line);
+                            appendImportLog(line, 'err');
+                        }
+                    } catch (err) {
+                        const line = `${server.name}: تعذر الاتصال أثناء الاستيراد`;
+                        errorLines.push(line);
+                        appendImportLog(line, 'err');
+                        const leftServers = total - (i + 1);
+                        remainingEstimate = Math.max(0, Math.round(remainingEstimate * (leftServers / Math.max(1, total - i))));
+                    }
+
+                    setImportProgressUi(((i + 1) / total) * 100, `اكتمل ${i + 1} من ${total}`, remainingEstimate);
+                }
+
+                setImportProgressUi(100, 'اكتمل الاستيراد', 0);
+                appendImportLog('انتهت عملية الاستيراد.', successLines.length ? 'ok' : 'info');
+
+                await new Promise(function (resolve) { setTimeout(resolve, 900); });
+
+                // عرض الملخص ثم إعادة تحميل الصفحة لعرض النتائج المحدثة
+                let summary = '';
+                if (successLines.length) summary += 'نجاح:\n' + successLines.join('\n') + '\n\n';
+                if (infoLines.length) summary += 'ملاحظات:\n' + infoLines.join('\n') + '\n\n';
+                if (errorLines.length) summary += 'أخطاء:\n' + errorLines.join('\n');
+                if (summary.trim()) {
+                    alert(summary.trim());
+                }
+                window.location.href = '@Url.Action("Index")';
+            } finally {
+                if (countdownTimer) clearInterval(countdownTimer);
+            }
+        }
+
+        function syncToMikroTik() {
+            var selected = getSelectedSyncServer();
+            if (!selected) {
+                alert('الرجاء اختيار خادم MikroTik واحد أولاً');
+                return;
+            }
+            if (confirm('هل تريد تصدير البروفايلات من قاعدة البيانات إلى MikroTik؟')) {
+                window.location.href = '@Url.Action("SyncToMikroTik")' + '?serverId=' + selected.id;
+            }
+        }
+
+        function twoWaySync() {
+            var selected = getSelectedSyncServer();
+            if (!selected) {
+                alert('الرجاء اختيار خادم MikroTik واحد أولاً');
+                return;
+            }
+            if (confirm('هل تريد مزامنة البروفايلات ثنائية الاتجاه؟')) {
+                window.location.href = '@Url.Action("TwoWaySync")' + '?serverId=' + encodeURIComponent(selected.id);
+            }
+        }
+
+        function testSync(serverId, profileId) {
+            $.ajax({
+                url: '@Url.Action("TestSync")',
+                type: 'GET',
+                data: { serverId: serverId, profileId: profileId },
+                success: function (result) {
+                    if (result.success) {
+                        if (result.exists) {
+                            alert('✅ ' + result.message);
+                        } else {
+                            alert('⚠️ ' + result.message);
+                        }
+                    } else {
+                        alert('❌ ' + result.message);
+                    }
+                },
+                error: function () {
+                    alert('❌ حدث خطأ أثناء فحص المزامنة');
+                }
+            });
+        }
+
+        // Server Filter + استئناف الاستيراد بعد إعادة التوجيه من SyncFromMikroTikMany
+        $(document).ready(function() {
+            $('#serverFilter').on('change', function() {
+                var serverId = $(this).val();
+                var url = '@Url.Action("Index", "Profile", new { area = "CompanyAdmin" })';
+                if (serverId) {
+                    url += '?serverId=' + serverId;
+                }
+                window.location.href = url;
+            });
+
+            $(document).on('change', '.sync-server-check', function() {
+                refreshImportPreviewForSelection();
+            });
+
+            // إذا وصلنا من SyncFromMikroTikMany?serverIds=... → Index?importServerIds=1,2,3
+            // نشغّل الاستيراد التدريجي فوراً (المستخدم أكّد مسبقاً في صفحة الحوار).
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const rawIds = params.get('importServerIds');
+                if (rawIds) {
+                    const ids = rawIds.split(',').map(function (x) { return String(x).trim(); }).filter(Boolean);
+                    if (ids.length) {
+                        document.querySelectorAll('.sync-server-check').forEach(function (el) {
+                            el.checked = ids.indexOf(String(el.value)) >= 0;
+                        });
+                        const selected = getSelectedSyncServers();
+                        if (selected.length) {
+                            history.replaceState({}, '', '@Url.Action("Index", "Profile", new { area = "CompanyAdmin" })');
+                            (async function () {
+                                const aggregated = await refreshImportPreviewForSelection();
+                                if (!aggregated || Number(aggregated.importableProfiles || 0) <= 0) {
+                                    alert(aggregated
+                                        ? 'لا يوجد بروفايلات جديدة للاستيراد من الخوادم المحددة حالياً.'
+                                        : 'تعذر جلب معاينة الاستيراد حالياً. حاول مرة أخرى.');
+                                    return;
+                                }
+                                await runProfileImportWithProgress(selected, aggregated);
+                            })();
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('auto import resume failed', e);
+            }
+        });
+    </script>
+}

@@ -1,0 +1,10 @@
+@model RadaTik.ViewModels.UI.SectionCardViewModel
+@{
+    var card = Model!;
+    var extra = string.IsNullOrWhiteSpace(card.ExtraCssClass) ? "" : " " + card.ExtraCssClass;
+}
+<div class="card radtk-section-card border-0 shadow-sm mb-3@extra">
+    <div class="card-header radtk-section-card__header py-2">
+        <h2 class="h6 mb-0"><i class="@card.IconClass me-1"></i> @card.Title</h2>
+    </div>
+    <div class="card-body radtk-section-card__body @card.BodyCssClass">

@@ -1,0 +1,471 @@
+<div class="radtk-page-emp-dashboard">
+<div class="radtk-page-emp-dashboard">
+@using RadaTik.Models
+@using RadaTik.Security
+@inject RadaTik.Services.IPermissionService PermissionService
+@inject RadaTik.Services.IFeatureAccessService FeatureAccess
+@{
+    ViewData["Title"] = ViewData["Title"] ?? "لوحة تحكم الموظف";
+    var todayDate = DateTime.Today;
+
+    var maintenanceUntilToday = ViewBag.MaintenancePendingUntilToday as IEnumerable<MaintenanceRequest> ?? Enumerable.Empty<MaintenanceRequest>();
+    var installationUntilToday = ViewBag.InstallationPendingUntilToday as IEnumerable<Client> ?? Enumerable.Empty<Client>();
+    var maintenanceTomorrow = ViewBag.MaintenanceScheduledTomorrow as IEnumerable<MaintenanceRequest> ?? Enumerable.Empty<MaintenanceRequest>();
+    var installationTomorrow = ViewBag.InstallationScheduledTomorrow as IEnumerable<Client> ?? Enumerable.Empty<Client>();
+    var maintenanceUntilTodaySorted = maintenanceUntilToday
+        .OrderByDescending(x => x.ScheduledVisitDate.HasValue && x.ScheduledVisitDate.Value.Date < todayDate)
+        .ThenBy(x => x.ScheduledVisitDate);
+    var installationUntilTodaySorted = installationUntilToday
+        .OrderByDescending(x => x.CreatedDate.Date < todayDate)
+        .ThenBy(x => x.CreatedDate);
+    var maintenanceOverdueCount = maintenanceUntilToday.Count(x => x.ScheduledVisitDate.HasValue && x.ScheduledVisitDate.Value.Date < todayDate);
+    var maintenanceTodayCount = maintenanceUntilToday.Count(x => x.ScheduledVisitDate.HasValue && x.ScheduledVisitDate.Value.Date == todayDate);
+    var installationOverdueCount = installationUntilToday.Count(x => x.CreatedDate.Date < todayDate);
+    var installationTodayCount = installationUntilToday.Count(x => x.CreatedDate.Date == todayDate);
+    var maintenanceTomorrowCount = maintenanceTomorrow.Count();
+    var installationTomorrowCount = installationTomorrow.Count();
+    var overdueTotalCount = maintenanceOverdueCount + installationOverdueCount;
+    var todayTotalCount = maintenanceTodayCount + installationTodayCount;
+    var tomorrowTotalCount = maintenanceTomorrowCount + installationTomorrowCount;
+
+    var canViewClients = await PermissionService.HasPermissionAsync(User, "Clients.View");
+    var canViewRequests = await PermissionService.HasPermissionAsync(User, "Requests.View");
+    var canViewSectors = await PermissionService.HasPermissionAsync(User, "Sectors.View");
+    var canViewReceivers = await PermissionService.HasPermissionAsync(User, "Receivers.View");
+    var canUsePayroll = await FeatureAccess.HasFeatureAsync(User, ViewContext.HttpContext, FeatureKeys.Payroll);
+
+    var dashboardFocus = ViewBag.DashboardFocus as EmployeeDashboardFocus? ?? EmployeeDashboardFocus.Balanced;
+    var employeeDepartmentName = ViewBag.EmployeeDepartmentName as string ?? "غير محدد";
+    var clientsExpiringIn3Days = (int?)(ViewBag.ClientsExpiringIn3Days) ?? 0;
+    var clientsExpired = (int?)(ViewBag.ClientsExpired) ?? 0;
+    var pendingMaintenanceRequests = (int?)(ViewBag.PendingMaintenanceRequests) ?? 0;
+    var pendingSpeedChangeRequests = (int?)(ViewBag.PendingSpeedChangeRequests) ?? 0;
+    var activeSectorsCount = (int?)(ViewBag.ActiveSectorsCount) ?? 0;
+    var activeReceiversCount = (int?)(ViewBag.ActiveReceiversCount) ?? 0;
+    var totalClientsCount = (int?)(ViewBag.TotalClientsCount) ?? 0;
+
+    var showFieldTasks = canViewRequests && (dashboardFocus == EmployeeDashboardFocus.FieldTasks || dashboardFocus == EmployeeDashboardFocus.Balanced);
+    var showCustomerCare = canViewClients && (dashboardFocus == EmployeeDashboardFocus.CustomerCare || dashboardFocus == EmployeeDashboardFocus.Balanced);
+    var showNetworkOps = (canViewSectors || canViewReceivers) && (dashboardFocus == EmployeeDashboardFocus.NetworkOps || dashboardFocus == EmployeeDashboardFocus.Balanced);
+
+    string dashboardSubtitle = dashboardFocus switch
+    {
+        EmployeeDashboardFocus.FieldTasks => "مهام الصيانة والتركيب — مواعيد اليوم والغد ضمن شبكتك.",
+        EmployeeDashboardFocus.CustomerCare => "متابعة العملاء والطلبات المعلقة — اشتراكات منتهية أو على وشك الانتهاء.",
+        EmployeeDashboardFocus.NetworkOps => "ملخص البنية التحتية — المرسلات والمستقبلات والعملاء في شبكتك.",
+        _ => "نظرة عامة على مهامك وخدمات شبكتك حسب صلاحياتك."
+    };
+}
+<div class="emp-dashboard">
+    @{
+        ViewBag.OperationalHeroIcon = "fas fa-user-tie";
+        ViewBag.OperationalHeroSubtitle = dashboardSubtitle;
+        if (!string.IsNullOrWhiteSpace(employeeDepartmentName) && employeeDepartmentName != "غير محدد")
+        {
+            ViewBag.OperationalHeroSubtitle += $" — {employeeDepartmentName}";
+        }
+    }
+    <partial name="~/Views/Shared/_PageHero.cshtml" model='new RadaTik.ViewModels.UI.PageHeroViewModel { Title = ViewData["Title"] as string ?? "لوحة تحكم الموظف", Subtitle = ViewBag.OperationalHeroSubtitle as string, IconClass = "fas fa-user-tie" }' />
+
+    <div class="page-actions mb-3 d-flex flex-wrap gap-2">
+                @if (canViewClients)
+                {
+                    <a class="btn btn-primary" asp-controller="Clients" asp-action="Index">
+                        <i class="fas fa-users"></i>
+                        إدارة العملاء
+                    </a>
+                }
+                <a class="btn btn-outline-secondary" asp-route="employee-requestsManagement">
+                    <i class="fas fa-tasks"></i>
+                    لوحة الطلبات
+                </a>
+                @if (canUsePayroll)
+                {
+                    <a class="btn btn-outline-primary" asp-route="employee-my-payroll">
+                        <i class="fas fa-wallet"></i>
+                        راتبي ومحفظتي
+                    </a>
+                }
+    </div>
+
+    @if (showCustomerCare)
+    {
+        <div class="kpi-grid mb-lg">
+            <div class="kpi-card kpi-warning">
+                <div class="kpi-label">اشتراكات تنتهي خلال 3 أيام</div>
+                <div class="kpi-value">@clientsExpiringIn3Days</div>
+                <div class="kpi-sub">
+                    <a asp-controller="Clients" asp-action="ExpiringIn3Days">عرض القائمة</a>
+                </div>
+            </div>
+            <div class="kpi-card kpi-danger">
+                <div class="kpi-label">اشتراكات منتهية</div>
+                <div class="kpi-value">@clientsExpired</div>
+                <div class="kpi-sub">
+                    <a asp-controller="Clients" asp-action="ExpiredAccounts">عرض القائمة</a>
+                </div>
+            </div>
+            <div class="kpi-card kpi-primary">
+                <div class="kpi-label">طلبات صيانة معلقة</div>
+                <div class="kpi-value">@pendingMaintenanceRequests</div>
+            </div>
+            <div class="kpi-card kpi-primary">
+                <div class="kpi-label">طلبات تغيير سرعة معلقة</div>
+                <div class="kpi-value">@pendingSpeedChangeRequests</div>
+            </div>
+        </div>
+    }
+
+    @if (showNetworkOps)
+    {
+        <div class="kpi-grid mb-lg">
+            @if (canViewSectors)
+            {
+                <div class="kpi-card kpi-primary">
+                    <div class="kpi-label">مرسلات نشطة</div>
+                    <div class="kpi-value">@activeSectorsCount</div>
+                    <div class="kpi-sub">
+                        <a asp-controller="Sector" asp-action="Index">إدارة المرسلات</a>
+                    </div>
+                </div>
+            }
+            @if (canViewReceivers)
+            {
+                <div class="kpi-card kpi-primary">
+                    <div class="kpi-label">مستقبلات نشطة</div>
+                    <div class="kpi-value">@activeReceiversCount</div>
+                    <div class="kpi-sub">
+                        <a asp-controller="Receiver" asp-action="Index">إدارة المستقبلات</a>
+                    </div>
+                </div>
+            }
+            <div class="kpi-card kpi-warning">
+                <div class="kpi-label">إجمالي العملاء</div>
+                <div class="kpi-value">@totalClientsCount</div>
+            </div>
+        </div>
+    }
+
+    @if (showFieldTasks)
+    {
+        <div class="kpi-grid mb-lg">
+            <div class="kpi-card kpi-danger">
+                <div class="kpi-label">إجمالي المهام المتأخرة</div>
+                <div class="kpi-value">@overdueTotalCount</div>
+                <div class="kpi-sub">
+                    صيانة: @maintenanceOverdueCount | تركيب: @installationOverdueCount
+                </div>
+            </div>
+            <div class="kpi-card kpi-primary">
+                <div class="kpi-label">مهام اليوم</div>
+                <div class="kpi-value">@todayTotalCount</div>
+                <div class="kpi-sub">
+                    صيانة: @maintenanceTodayCount | تركيب: @installationTodayCount
+                </div>
+            </div>
+            <div class="kpi-card kpi-warning">
+                <div class="kpi-label">مهام الغد</div>
+                <div class="kpi-value">@tomorrowTotalCount</div>
+                <div class="kpi-sub">
+                    صيانة: @maintenanceTomorrowCount | تركيب: @installationTomorrowCount
+                </div>
+            </div>
+        </div>
+
+        <div class="appointments-row content-grid mb-lg">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-wrench text-primary"></i>
+                        مهام الصيانة غير المنجزة حتى اليوم
+                    </h3>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="summary-badge overdue">المتأخرة: @maintenanceOverdueCount</span>
+                        <span class="summary-badge today">اليوم: @maintenanceTodayCount</span>
+                        <a class="btn btn-sm btn-outline-secondary" asp-route="employee-requestsManagement" asp-route-action="MaintenanceRequests">
+                            كل الطلبات
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (!maintenanceUntilToday.Any())
+                    {
+                        <div class="empty-state mb-0">
+                            <i class="fas fa-calendar-check text-muted"></i>
+                            <div>
+                                <div class="fw-bold">لا توجد مهام صيانة غير منجزة حتى اليوم</div>
+                                <div class="text-muted small">يُحدَّد الموعد من تفاصيل طلب الصيانة (موعد الزيارة).</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 radtk-data-table radtk-data-table--cards">
+                                <thead>
+                                    <tr>
+                                        <th>الموعد</th>
+                                        <th>العميل</th>
+                                        <th>النوع</th>
+                                        <th class="text-end">إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var r in maintenanceUntilTodaySorted)
+                                    {
+                                        var visit = r.ScheduledVisitDate!.Value;
+                                        var isOverdue = visit.Date < todayDate;
+                                        <tr class="@(isOverdue ? "row-overdue" : "")">
+                                            <td class="text-nowrap fw-semibold">
+                                                @visit.ToString("yyyy/MM/dd HH:mm")
+                                                @if (isOverdue)
+                                                {
+                                                    <span class="badge bg-danger ms-1">متأخر</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    <span class="fw-semibold">@(r.Client?.Name ?? "—")</span>
+                                                    <span class="text-muted small">@(r.Client?.UserName ?? "")</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-nowrap small">@MaintenanceTypeLabel(r.Type)</td>
+                                            <td class="text-end text-nowrap">
+                                                <a class="btn btn-sm btn-outline-primary" asp-route="employee-requestsManagement" asp-route-action="MaintenanceRequestDetails" asp-route-id="@r.Id">
+                                                    <i class="fas fa-eye"></i> التفاصيل
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-hard-hat text-warning"></i>
+                        مهام التركيبات حتى اليوم
+                    </h3>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="summary-badge overdue">المتأخرة: @installationOverdueCount</span>
+                        <span class="summary-badge today">اليوم: @installationTodayCount</span>
+                        @if (canViewClients)
+                        {
+                            <a class="btn btn-sm btn-outline-secondary" asp-controller="Clients" asp-action="Index">
+                                العملاء
+                            </a>
+                        }
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (!installationUntilToday.Any())
+                    {
+                        <div class="empty-state mb-0">
+                            <i class="fas fa-calendar-check text-muted"></i>
+                            <div>
+                                <div class="fw-bold">لا توجد مهام تركيب حتى اليوم</div>
+                                <div class="text-muted small">يعتمد الموعد تلقائياً على تاريخ إضافة العميل.</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 radtk-data-table radtk-data-table--cards">
+                                <thead>
+                                    <tr>
+                                        <th>الموعد</th>
+                                        <th>العميل</th>
+                                        <th>الهاتف</th>
+                                        <th class="text-end">إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var c in installationUntilTodaySorted)
+                                    {
+                                        var t = c.CreatedDate;
+                                        var isOverdue = t.Date < todayDate;
+                                        <tr class="@(isOverdue ? "row-overdue" : "")">
+                                            <td class="text-nowrap fw-semibold">
+                                                @t.ToString("yyyy/MM/dd HH:mm")
+                                                @if (isOverdue)
+                                                {
+                                                    <span class="badge bg-danger ms-1">متأخر</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    <span class="fw-semibold">@c.Name</span>
+                                                    <span class="text-muted small">@c.UserName</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-nowrap">
+                                                @if (!string.IsNullOrEmpty(c.PhoneNumber))
+                                                {
+                                                    <a href="tel:@c.PhoneNumber">@c.PhoneNumber</a>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">—</span>
+                                                }
+                                            </td>
+                                            <td class="text-end text-nowrap">
+                                                @if (canViewClients)
+                                                {
+                                                    <a class="btn btn-sm btn-outline-primary" asp-controller="Clients" asp-action="Details" asp-route-id="@c.Id">
+                                                        <i class="fas fa-eye"></i> التفاصيل
+                                                    </a>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="appointments-row content-grid mb-lg">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-calendar-day text-primary"></i>
+                        مهام الصيانة ليوم الغد
+                    </h3>
+                </div>
+                <div class="card-body">
+                    @if (!maintenanceTomorrow.Any())
+                    {
+                        <div class="empty-state mb-0">
+                            <i class="fas fa-calendar-check text-muted"></i>
+                            <div>
+                                <div class="fw-bold">لا توجد مهام صيانة ليوم الغد</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 radtk-data-table radtk-data-table--cards">
+                                <thead>
+                                    <tr>
+                                        <th>الموعد</th>
+                                        <th>العميل</th>
+                                        <th>النوع</th>
+                                        <th class="text-end">إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var r in maintenanceTomorrow)
+                                    {
+                                        var visit = r.ScheduledVisitDate!.Value;
+                                        <tr>
+                                            <td class="text-nowrap fw-semibold">@visit.ToString("yyyy/MM/dd HH:mm")</td>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    <span class="fw-semibold">@(r.Client?.Name ?? "—")</span>
+                                                    <span class="text-muted small">@(r.Client?.UserName ?? "")</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-nowrap small">@MaintenanceTypeLabel(r.Type)</td>
+                                            <td class="text-end text-nowrap">
+                                                <a class="btn btn-sm btn-outline-primary" asp-route="employee-requestsManagement" asp-route-action="MaintenanceRequestDetails" asp-route-id="@r.Id">
+                                                    <i class="fas fa-eye"></i> التفاصيل
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-calendar-day text-warning"></i>
+                        مهام التركيبات ليوم الغد
+                    </h3>
+                </div>
+                <div class="card-body">
+                    @if (!installationTomorrow.Any())
+                    {
+                        <div class="empty-state mb-0">
+                            <i class="fas fa-calendar-check text-muted"></i>
+                            <div>
+                                <div class="fw-bold">لا توجد مهام تركيب ليوم الغد</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 radtk-data-table radtk-data-table--cards">
+                                <thead>
+                                    <tr>
+                                        <th>الموعد</th>
+                                        <th>العميل</th>
+                                        <th>الهاتف</th>
+                                        <th class="text-end">إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var c in installationTomorrow)
+                                    {
+                                        var t = c.CreatedDate;
+                                        <tr>
+                                            <td class="text-nowrap fw-semibold">@t.ToString("yyyy/MM/dd HH:mm")</td>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    <span class="fw-semibold">@c.Name</span>
+                                                    <span class="text-muted small">@c.UserName</span>
+                                                </div>
+                                            </td>
+                                            <td class="text-nowrap">
+                                                @if (!string.IsNullOrEmpty(c.PhoneNumber))
+                                                {
+                                                    <a href="tel:@c.PhoneNumber">@c.PhoneNumber</a>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">—</span>
+                                                }
+                                            </td>
+                                            <td class="text-end text-nowrap">
+                                                @if (canViewClients)
+                                                {
+                                                    <a class="btn btn-sm btn-outline-primary" asp-controller="Clients" asp-action="Details" asp-route-id="@c.Id">
+                                                        <i class="fas fa-eye"></i> التفاصيل
+                                                    </a>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    else if (canViewRequests && dashboardFocus == EmployeeDashboardFocus.FieldTasks)
+    {
+        <div class="alert alert-warning mb-lg">
+            لا تملك صلاحية <strong>عرض الطلبات</strong>، لذلك لا تُعرض مواعيد الصيانة والتركيب. يمكن لمدير الشركة منحك صلاحية الطلبات.
+        </div>
+    }
+</div>
+@functions {
+    string MaintenanceTypeLabel(MaintenanceType type) => MaintenanceCatalog.GetDisplayName(type);
+}
+
+</div>

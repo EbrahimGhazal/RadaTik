@@ -23,6 +23,18 @@ csharp_style_var_elsewhere = false:suggestion
 csharp_prefer_braces = true:warning
 csharp_new_line_before_open_brace = all
 
+# Hide noisy IDE style tips from Error List (do not mass-refactor legacy code).
+csharp_style_prefer_primary_constructors = true:silent
+csharp_style_collection_initializer = true:silent
+csharp_style_prefer_collection_expression = true:silent
+csharp_style_implicit_object_creation_when_type_is_apparent = true:silent
+dotnet_diagnostic.IDE0028.severity = silent
+dotnet_diagnostic.IDE0300.severity = silent
+dotnet_diagnostic.IDE0301.severity = silent
+dotnet_diagnostic.IDE0305.severity = silent
+dotnet_diagnostic.IDE0290.severity = silent
+dotnet_diagnostic.IDE0090.severity = silent
+
 [*.{ts,tsx,js,jsx,json,md,yml,yaml}]
 charset = utf-8
 end_of_line = lf

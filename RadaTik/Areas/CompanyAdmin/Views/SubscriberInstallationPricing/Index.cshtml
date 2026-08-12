@@ -1,0 +1,403 @@
+@model RadaTik.Areas.CompanyAdmin.ViewModels.SubscriberInstallationPricingPageViewModel
+@{
+    ViewData["Title"] = "تسعير تجهيز المشترك";
+}
+
+<div class="financial-page financial-hub-page">
+    @{
+        ViewBag.FinancialNavCurrent = "installation";
+        ViewBag.FinancialNavShowWarehouse = false;
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-file-invoice-dollar";
+        ViewBag.FinancialHeroTheme = "default";
+        ViewBag.FinancialHeroSubtitle = Model.NetworkName;
+    }
+    <partial name="_FinancialSysHero" />
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <form asp-action="AutoLinkWarehouse" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-primary btn-sm micro-btn" title="مطابقة: مستقبل، كبل، سويتش، راوتر...">
+                <i class="fas fa-link"></i> ربط تلقائي بالمستودع
+            </button>
+        </form>
+        <a asp-area="CompanyAdmin" asp-controller="Warehouse" asp-action="Index" class="btn btn-outline-secondary btn-sm micro-btn">
+            <i class="fas fa-warehouse"></i> المستودع
+        </a>
+        <a asp-area="CompanyAdmin" asp-controller="SubscriberInstallationInvoices" asp-action="Index" class="btn btn-outline-secondary btn-sm micro-btn">
+            <i class="fas fa-file-invoice"></i> الفواتير
+        </a>
+    </div>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+@if (TempData["Info"] != null) { <div class="alert alert-info">@TempData["Info"]</div> }
+
+@if (TempData["Warning"] != null) { <div class="alert alert-warning">@TempData["Warning"]</div> }
+
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+
+
+
+<div class="card mb-3">
+
+    <div class="card-body">
+
+        <div class="row g-2 align-items-center">
+
+            <div class="col-md-6">
+
+                <div class="text-muted small">الشبكة:</div>
+
+                <div class="fw-semibold">@Model.NetworkName</div>
+
+            </div>
+
+            <div class="col-md-6">
+
+                @if (Model.IsReadyForWarehouseFinalize)
+
+                {
+
+                    <div class="alert alert-success mb-0 py-2">
+
+                        <i class="fas fa-check-circle"></i> جميع المواد المخزنية مربوطة بموديلات — جاهز لخصم المستودع عند إصدار الفواتير.
+
+                    </div>
+
+                }
+
+                else if (Model.UnlinkedStockLineCount > 0)
+
+                {
+
+                    <div class="alert alert-warning mb-0 py-2">
+
+                        <i class="fas fa-exclamation-triangle"></i>
+
+                        <strong>@Model.UnlinkedStockLineCount</strong> مادة بلا موديل. استخدم «ربط تلقائي» أو اختر عدة موديلات يدوياً.
+
+                    </div>
+
+                }
+
+                else if (!Model.WarehouseItems.Any())
+
+                {
+
+                    <div class="alert alert-danger mb-0 py-2">
+
+                        لا توجد أصناف في المستودع.
+
+                        <a asp-area="CompanyAdmin" asp-controller="Warehouse" asp-action="Index">أضف أصنافاً</a> (يمكن تكرار الصنف بموديلات مختلفة).
+
+                    </div>
+
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<div class="card">
+
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+        <h5 class="mb-0">مواد الفاتورة وربط المستودع</h5>
+
+        <button type="submit" form="subscriberInstallationPricingForm" class="btn btn-primary btn-sm">
+
+            <i class="fas fa-floppy-disk"></i> حفظ
+
+        </button>
+
+    </div>
+
+    <div class="card-body p-0">
+
+        <form asp-action="SaveAll" method="post" id="subscriberInstallationPricingForm">
+
+            @Html.AntiForgeryToken()
+
+            <div class="table-responsive">
+
+                <table class="table table-hover mb-0 align-middle radtk-data-table radtk-data-table--cards">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>المادة</th>
+
+                            <th>موديلات المستودع</th>
+
+                            <th>الافتراضي</th>
+
+                            <th>متاح (افتراضي)</th>
+
+                            <th>السعر (ل.س)</th>
+
+                            <th>نشطة</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    @for (var i = 0; i < Model.Rows.Count; i++)
+
+                    {
+
+                        var row = Model.Rows[i];
+
+                        var needsLink = row.RequiresWarehouse && row.IsActive && row.LinkedWarehouseItemIds.Count == 0;
+
+                        <tr class="pricing-row @(needsLink ? "table-warning" : "")" data-row-index="@i">
+
+                            <td>
+
+                                @row.MaterialName
+
+                                <input type="hidden" name="Rows[@i].MaterialKey" value="@row.MaterialKey" />
+
+                                @if (row.RequiresWarehouse) { <span class="badge bg-secondary ms-1">مخزن</span> }
+
+                            </td>
+
+                            <td>
+
+                                @if (!row.RequiresWarehouse)
+
+                                {
+
+                                    <span class="text-muted small">خدمة</span>
+
+                                }
+
+                                else
+
+                                {
+
+                                    <select name="Rows[@i].WarehouseItemIds" class="form-select form-select-sm warehouse-multi" multiple size="4" style="max-width:320px">
+
+                                        @foreach (var wh in Model.WarehouseItems)
+
+                                        {
+
+                                            <option value="@wh.Id" selected="@(row.LinkedWarehouseItemIds.Contains(wh.Id))">@wh.DisplayLabel</option>
+
+                                        }
+
+                                    </select>
+
+                                    <div class="form-text">Ctrl+نقر لاختيار أكثر من موديل لنفس المادة</div>
+
+                                }
+
+                            </td>
+
+                            <td class="default-radios">
+
+                                @if (row.RequiresWarehouse)
+
+                                {
+
+                                    @foreach (var wh in Model.WarehouseItems.Where(w => row.LinkedWarehouseItemIds.Contains(w.Id)))
+
+                                    {
+
+                                        <label class="d-block small mb-1">
+
+                                            <input type="radio" name="Rows[@i].DefaultWarehouseItemId" value="@wh.Id"
+
+                                                   @(row.DefaultWarehouseItemId == wh.Id ? "checked" : "") />
+
+                                            @(string.IsNullOrWhiteSpace(wh.ModelNumber) ? wh.Name : wh.ModelNumber)
+
+                                        </label>
+
+                                    }
+
+                                }
+
+                                else
+
+                                {
+
+                                    <span class="text-muted">—</span>
+
+                                }
+
+                            </td>
+
+                            <td class="on-hand-cell">
+
+                                @if (row.DefaultWarehouseItemId.HasValue)
+
+                                {
+
+                                    var defWh = Model.WarehouseItems.FirstOrDefault(w => w.Id == row.DefaultWarehouseItemId);
+
+                                    var onHand = defWh?.OnHand ?? row.WarehouseOnHand.GetValueOrDefault();
+
+                                    <span class="fw-semibold @(onHand <= 0 ? "text-danger" : "text-success")">@onHand.ToString("0.##")</span>
+
+                                }
+
+                                else { <span class="text-muted">—</span> }
+
+                            </td>
+
+                            <td>
+
+                                <input type="number" name="Rows[@i].UnitPrice" min="0" step="0.01" class="form-control form-control-sm" style="max-width:120px"
+
+                                       value="@row.UnitPrice.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" />
+
+                            </td>
+
+                            <td>
+
+                                <input class="form-check-input" type="checkbox" name="Rows[@i].IsActive" value="true" @(row.IsActive ? "checked" : "") />
+
+                                <input type="hidden" name="Rows[@i].IsActive" value="false" />
+
+                            </td>
+
+                        </tr>
+
+                    }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+<p class="text-muted small mt-2">
+
+    لكل مادة مخزنية يمكن ربط عدة موديلات من المستودع (مثلاً راوترات بأحجام مختلفة). الموديل الافتراضي يُستخدم عند إنشاء فاتورة التركيب؛ يمكن تغييره لكل مشترك في المعالج.
+
+</p>
+
+
+
+@section Scripts {
+
+<script>
+
+function refreshDefaultRadios(selectEl) {
+
+    const row = selectEl.closest('tr');
+
+    const container = row.querySelector('.default-radios');
+
+    const rowIndex = row.dataset.rowIndex;
+
+    const selected = Array.from(selectEl.selectedOptions);
+
+    const prevChecked = container.querySelector('input[type=radio]:checked')?.value;
+
+    container.innerHTML = '';
+
+    if (selected.length === 0) {
+
+        row.classList.add('table-warning');
+
+        row.querySelector('.on-hand-cell').innerHTML = '<span class="text-muted">—</span>';
+
+        return;
+
+    }
+
+    row.classList.remove('table-warning');
+
+    selected.forEach((opt, idx) => {
+
+        const label = document.createElement('label');
+
+        label.className = 'd-block small mb-1';
+
+        const radio = document.createElement('input');
+
+        radio.type = 'radio';
+
+        radio.name = `Rows[${rowIndex}].DefaultWarehouseItemId`;
+
+        radio.value = opt.value;
+
+        if (prevChecked === opt.value || (!prevChecked && idx === 0)) radio.checked = true;
+
+        label.appendChild(radio);
+
+        label.appendChild(document.createTextNode(' ' + opt.text.split('—')[0].trim().slice(0, 40)));
+
+        container.appendChild(label);
+
+    });
+
+    const checked = container.querySelector('input[type=radio]:checked');
+
+    if (checked) updateOnHand(row, selectEl, checked.value);
+
+}
+
+
+
+function updateOnHand(row, selectEl, warehouseId) {
+
+    const opt = Array.from(selectEl.options).find(o => o.value === warehouseId);
+
+    const cell = row.querySelector('.on-hand-cell');
+
+    if (!opt || !cell) return;
+
+    const onHand = parseFloat(opt.text.match(/متاح:\s*([\d.]+)/)?.[1] || '0');
+
+    const cls = onHand <= 0 ? 'text-danger' : 'text-success';
+
+    cell.innerHTML = `<span class="fw-semibold ${cls}">${onHand.toLocaleString('ar-SY', { maximumFractionDigits: 2 })}</span>`;
+
+}
+
+
+
+document.querySelectorAll('.warehouse-multi').forEach(sel => {
+
+    sel.addEventListener('change', () => refreshDefaultRadios(sel));
+
+    sel.closest('tr').addEventListener('change', e => {
+
+        if (e.target.type === 'radio' && e.target.name.includes('DefaultWarehouseItemId')) {
+
+            updateOnHand(e.target.closest('tr'), sel, e.target.value);
+
+        }
+
+    });
+
+});
+
+</script>
+
+</div>
+
+}
+

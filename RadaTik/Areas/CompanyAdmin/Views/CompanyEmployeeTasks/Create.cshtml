@@ -1,0 +1,40 @@
+@model RadaTik.Models.Business.CompanyEmployeeTask
+@{
+    ViewData["Title"] = "إضافة مهمة";
+    var employees = ViewBag.Employees as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+}
+
+<div class="financial-page financial-hub-page col-lg-8">
+    <h1 class="h4 mb-3">إضافة مهمة لموظف</h1>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label">عنوان المهمة</label>
+            <input asp-for="Title" class="form-control" required />
+        </div>
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label">الوصف</label>
+            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="mb-3">
+            <label asp-for="AssignedToUserId" class="form-label">الموظف</label>
+            <select asp-for="AssignedToUserId" class="form-select" asp-items="employees" required>
+                <option value="">— اختر —</option>
+            </select>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Priority" class="form-label">الأولوية</label>
+                <select asp-for="Priority" class="form-select" asp-items="Html.GetEnumSelectList<RadaTik.Models.Business.CompanyEmployeeTaskPriority>()"></select>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="DueDate" class="form-label">تاريخ الاستحقاق</label>
+                <input asp-for="DueDate" type="date" class="form-control" />
+            </div>
+        </div>
+        <div class="mt-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>

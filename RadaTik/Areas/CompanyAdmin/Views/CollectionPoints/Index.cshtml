@@ -1,0 +1,76 @@
+@model List<RadaTik.Models.CollectionPointAccount>
+
+@{
+    ViewData["Title"] = "نقاط المبيع (تحصيل مالي)";
+}
+
+<div class="financial-page financial-hub-page">
+    @{
+        ViewBag.FinancialNavShowWarehouse = false;
+        ViewBag.FinancialNavCurrent = "collection";
+    }
+    <partial name="_FinancialQuickNav" />
+    @{
+        ViewBag.FinancialHeroIcon = "fas fa-store";
+        ViewBag.FinancialHeroTheme = "default";
+        ViewBag.FinancialHeroSubtitle = "عرض أرصدة نقاط التحصيل وتصفير الرصيد — طلبات الإنشاء من التسجيل العام";
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-primary micro-btn"" href=""" + Url.Action("Create") + @"""><i class=""fas fa-plus""></i> طلب نقطة جديدة</a>";
+    }
+    <partial name="_FinancialSysHero" />
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle radtk-data-table radtk-data-table--cards">
+                <thead>
+                    <tr>
+                        <th>المستخدم</th>
+                        <th>الرصيد</th>
+                        <th>آخر تحديث</th>
+                        <th style="width: 220px;">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var a in Model)
+                        {
+                            <tr>
+                                <td>@(a.User?.UserName ?? a.UserId)</td>
+                                <td style="font-weight: 700;">@a.Balance.ToString("0.##")</td>
+                                <td class="text-muted">@a.UpdatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <form asp-action="ResetBalance" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@a.Id" />
+                                            <button type="submit" class="btn btn-outline-danger"
+                                                    onclick="return confirm('هل أنت متأكد من تصفير الرصيد؟')"
+                                                    title="تصفير الرصيد">
+                                                <i class="fas fa-eraser"></i>
+                                            </button>
+                                        </form>
+                                        <a asp-action="Edit" asp-route-id="@a.Id" class="btn btn-outline-primary" title="تعديل الرصيد">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a asp-action="Details" asp-route-id="@a.Id" class="btn btn-outline-info" title="تفاصيل التحصيل">
+                                            <i class="fas fa-list-alt"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">لا توجد نقاط تحصيل ضمن الشبكة المحددة</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div>
+

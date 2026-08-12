@@ -5,14 +5,14 @@
 Create the first admin explicitly with a secure command:
 
 ```powershell
-dotnet run --project RadTik/RadTik.csproj -- --bootstrap-admin --username admin --email admin@radtik.com --full-name "System Admin" --password "<STRONG_PASSWORD>"
+dotnet run --project RadaTik/RadaTik.csproj -- --bootstrap-admin --username admin --email admin@radatik.com --full-name "System Admin" --password "<STRONG_PASSWORD>"
 ```
 
 You can also pass the password via environment variable:
 
 ```powershell
-$env:RADTIK_BOOTSTRAP_ADMIN_PASSWORD="<STRONG_PASSWORD>"
-dotnet run --project RadTik/RadTik.csproj -- --bootstrap-admin --username admin --email admin@radtik.com
+$env:RADATIK_BOOTSTRAP_ADMIN_PASSWORD="<STRONG_PASSWORD>"
+dotnet run --project RadaTik/RadaTik.csproj -- --bootstrap-admin --username admin --email admin@radatik.com
 ```
 
 Notes:
@@ -24,7 +24,7 @@ Notes:
 After deploying migration `SecureSensitiveCredentialsAtRest`, run:
 
 ```powershell
-dotnet run --project RadTik/RadTik.csproj -- --reencrypt-sensitive-fields
+dotnet run --project RadaTik/RadaTik.csproj -- --reencrypt-sensitive-fields
 ```
 
 This rewrites `Clients.Password` and `MikroTikServers.Pass` through the encryption converter.

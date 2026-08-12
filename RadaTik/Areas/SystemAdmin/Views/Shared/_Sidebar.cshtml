@@ -1,0 +1,519 @@
+@using Microsoft.EntityFrameworkCore
+
+@using RadaTik.Data
+
+@using RadaTik.Models
+
+@inject ApplicationDbContext Db
+
+
+
+@{
+
+    var isAuthenticated = (bool?)(ViewData["Layout_IsAuthenticated"]) == true;
+
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+
+    var tab = ViewContext.HttpContext.Request.Query["tab"].ToString();
+
+
+
+    var pendingJoinRequestsCount = 0;
+
+    if (isAuthenticated)
+
+    {
+
+        pendingJoinRequestsCount = await Db.JoinRequests
+
+            .AsNoTracking()
+
+            .CountAsync(j =>
+
+                (j.RequestType == JoinRequestType.NetworkAdministrator ||
+
+                 j.RequestType == JoinRequestType.CollectionPoint) &&
+
+                j.Status == JoinRequestStatus.Pending);
+
+    }
+
+
+
+    var opsOpen = controller == "SystemAdmin" && tab == "maintenance"
+
+                  || controller == "ServiceRequests"
+
+                  || controller == "PasswordResetRequests"
+
+                  || ViewContext.HttpContext.Request.Path.Value?.StartsWith("/systemAdmin/JoinRequests", StringComparison.OrdinalIgnoreCase) == true;
+
+    var entitiesOpen = (controller == "SystemAdmin" && (tab == "collectionpoints" || action == "NetworksAndAdmins"))
+
+                       || controller == "Network";
+
+    var financeOpen = controller == "FundingRequests" || controller == "Receipts" || controller == "CashBox" || controller == "PaymentMethods";
+
+}
+
+
+
+<aside class="sidebar sidebar-pro" id="sidebar">
+
+    <div class="sidebar-header">
+
+        <div class="rt-sysadmin-brand">
+
+            @{
+
+                ViewData["RtBrandVariant"] = "sidebar";
+
+            }
+
+            <partial name="_RadaTikBrandLogo" />
+
+            <small class="sidebar-brand-sub" dir="rtl">إدارة النظام</small>
+
+        </div>
+
+    </div>
+
+
+
+    <nav class="sidebar-nav" data-single-open="true">
+
+        @if (!isAuthenticated)
+
+        {
+
+            <div class="nav-section">
+
+                <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="true">
+
+                    <i class="fas fa-bars"></i>
+
+                    <span>القائمة</span>
+
+                    <i class="fas fa-chevron-down nav-section-chevron"></i>
+
+                </div>
+
+                <ul class="nav-list">
+
+                    <li class="nav-item">
+
+                        <a class="nav-link" asp-route="reglog-login">
+
+                            <span class="nav-icon"><i class="fas fa-sign-in-alt"></i></span>
+
+                            <span>تسجيل الدخول</span>
+
+                        </a>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+        }
+
+        else
+
+        {
+
+            @* ——— 1. وصول سريع ——— *@
+
+            <div class="nav-section nav-section-quick" data-section-key="quick-access">
+
+                <div class="nav-section-title nav-section-static">
+
+                    <i class="fas fa-bolt"></i>
+
+                    <span>وصول سريع</span>
+
+                </div>
+
+                <ul class="nav-list">
+
+                    <li class="nav-item">
+
+                        <a class="nav-link @(controller == "SystemAdmin" && (string.IsNullOrEmpty(tab) || tab == "dashboard") ? "active" : "")"
+
+                           asp-route="systemAdmin-actions" asp-route-action="Index" asp-route-tab="dashboard">
+
+                            <span class="nav-icon"><i class="fas fa-gauge-high"></i></span>
+
+                            <span>لوحة التحكم</span>
+
+                        </a>
+
+                    </li>
+
+                    <li class="nav-item">
+
+                        <a class="nav-link @(ViewContext.HttpContext.Request.Path.Value?.StartsWith("/systemAdmin/JoinRequests", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")"
+
+                           asp-route="systemAdmin-joinRequests">
+
+                            <span class="nav-icon"><i class="fas fa-user-plus"></i></span>
+
+                            <span>طلبات الانضمام</span>
+
+                            <span class="nav-badge" id="sysJoinRequestsBadge" style="@(pendingJoinRequestsCount > 0 ? "" : "display:none;")">@pendingJoinRequestsCount</span>
+
+                        </a>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+
+
+            @* ——— 2. الطلبات والعمليات ——— *@
+
+            <div class="nav-section" data-section-key="operations">
+
+                <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="true">
+
+                    <i class="fas fa-inbox"></i>
+
+                    <span>الطلبات والعمليات</span>
+
+                    <span class="nav-badge" id="sysOpsSectionBadge" style="display:none;">0</span>
+
+                    <i class="fas fa-chevron-down nav-section-chevron"></i>
+
+                </div>
+
+                <ul class="nav-list">
+
+                    <li class="nav-item has-dropdown @(opsOpen ? "open" : "")">
+
+                        <div class="nav-link-toggle" role="button" tabindex="0">
+
+                            <span class="nav-icon"><i class="fas fa-clipboard-list"></i></span>
+
+                            <span>طلبات قيد المعالجة</span>
+
+                            <i class="fas fa-chevron-down nav-chevron"></i>
+
+                        </div>
+
+                        <ul class="nav-sublist">
+
+                            <li class="nav-group-label">انضمام · خدمات · صيانة</li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link nav-link-sub @(controller == "ServiceRequests" ? "active" : "")"
+
+                                   asp-route="systemAdmin-serviceRequests">
+
+                                    <i class="fas fa-file-contract"></i>
+
+                                    <span>طلبات خدمات الشركات</span>
+
+                                    <span class="nav-badge" id="sysServiceRequestsBadge" style="display:none;">0</span>
+
+                                </a>
+
+                            </li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link nav-link-sub @(controller == "PasswordResetRequests" ? "active" : "")"
+
+                                   asp-route="systemAdmin-passwordResetRequests">
+
+                                    <i class="fas fa-key"></i>
+
+                                    <span>إعادة كلمة المرور</span>
+
+                                    <span class="nav-badge" id="sysPasswordResetRequestsBadge" style="display:none;">0</span>
+
+                                </a>
+
+                            </li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link nav-link-sub @(controller == "SystemAdmin" && tab == "maintenance" ? "active" : "")"
+
+                                   asp-route="systemAdmin-actions" asp-route-action="Index" asp-route-tab="maintenance">
+
+                                    <i class="fas fa-wrench"></i>
+
+                                    <span>طلبات الصيانة</span>
+
+                                </a>
+
+                            </li>
+
+                        </ul>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+
+
+            @* ——— 3. الكيانات ——— *@
+
+            <div class="nav-section" data-section-key="entities">
+
+                <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="true">
+
+                    <i class="fas fa-building"></i>
+
+                    <span>الكيانات</span>
+
+                    <span class="nav-badge" id="sysCompaniesSectionBadge" style="display:none;">0</span>
+
+                    <i class="fas fa-chevron-down nav-section-chevron"></i>
+
+                </div>
+
+                <ul class="nav-list">
+
+                    <li class="nav-item has-dropdown @(entitiesOpen ? "open" : "")">
+
+                        <div class="nav-link-toggle" role="button" tabindex="0">
+
+                            <span class="nav-icon"><i class="fas fa-network-wired"></i></span>
+
+                            <span>الشركات والشبكات</span>
+
+                            <i class="fas fa-chevron-down nav-chevron"></i>
+
+                        </div>
+
+                        <ul class="nav-sublist">
+
+                            <li class="nav-group-label">شبكات · نقاط تحصيل</li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link nav-link-sub @(controller == "SystemAdmin" && action == "NetworksAndAdmins" ? "active" : "")"
+
+                                   asp-route="systemAdmin-actions" asp-route-action="NetworksAndAdmins">
+
+                                    <i class="fas fa-sitemap"></i>
+
+                                    <span>إدارة شبكات الشركات</span>
+
+                                </a>
+
+                            </li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link nav-link-sub @(controller == "SystemAdmin" && tab == "collectionpoints" ? "active" : "")"
+
+                                   asp-route="systemAdmin-actions" asp-route-action="Index" asp-route-tab="collectionpoints">
+
+                                    <i class="fas fa-map-marker-alt"></i>
+
+                                    <span>نقاط التحصيل</span>
+
+                                </a>
+
+                            </li>
+
+                        </ul>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+
+
+            @* ——— 4. المالية ——— *@
+
+            <div class="nav-section" data-section-key="finance">
+
+                <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="true">
+
+                    <i class="fas fa-coins"></i>
+
+                    <span>المالية</span>
+
+                    <span class="nav-badge" id="sysFinanceSectionBadge" style="display:none;">0</span>
+
+                    <i class="fas fa-chevron-down nav-section-chevron"></i>
+
+                </div>
+
+                <ul class="nav-list">
+
+                    <li class="nav-item has-dropdown @(financeOpen ? "open" : "")">
+
+                        <div class="nav-link-toggle" role="button" tabindex="0">
+
+                            <span class="nav-icon"><i class="fas fa-wallet"></i></span>
+
+                            <span>المدفوعات والقبض</span>
+
+                            <i class="fas fa-chevron-down nav-chevron"></i>
+
+                        </div>
+
+                        <ul class="nav-sublist">
+
+                            <li class="nav-group-label">تغذية · قبض · صندوق</li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link nav-link-sub @(controller == "FundingRequests" ? "active" : "")"
+
+                                   asp-route="systemAdmin-fundingRequests">
+
+                                    <i class="fas fa-plus-circle"></i>
+
+                                    <span>طلبات تغذية الرصيد</span>
+
+                                    <span class="nav-badge" id="sysFundingRequestsBadge" style="display:none;">0</span>
+
+                                </a>
+
+                            </li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link nav-link-sub @(controller == "Receipts" ? "active" : "")"
+
+                                   asp-route="systemAdmin-receipts">
+
+                                    <i class="fas fa-receipt"></i>
+
+                                    <span>سجل القبض المركزي</span>
+
+                                </a>
+
+                            </li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link nav-link-sub @(controller == "CashBox" ? "active" : "")"
+
+                                   asp-route="systemAdmin-cashbox">
+
+                                    <i class="fas fa-money-bill-wave"></i>
+
+                                    <span>الصندوق النقدي</span>
+
+                                </a>
+
+                            </li>
+
+                            <li class="nav-item">
+
+                                <a class="nav-link nav-link-sub @(controller == "PaymentMethods" ? "active" : "")"
+
+                                   asp-route="systemAdmin-paymentMethods">
+
+                                    <i class="fas fa-money-check-alt"></i>
+
+                                    <span>طرق الدفع</span>
+
+                                </a>
+
+                            </li>
+
+                        </ul>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+
+
+            @* ——— 5. الخدمات ——— *@
+
+            <div class="nav-section" data-section-key="services">
+
+                <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="true">
+
+                    <i class="fas fa-tags"></i>
+
+                    <span>الخدمات</span>
+
+                    <span class="nav-badge" id="sysServicesSectionBadge" style="display:none;">0</span>
+
+                    <i class="fas fa-chevron-down nav-section-chevron"></i>
+
+                </div>
+
+                <ul class="nav-list">
+
+                    <li class="nav-item">
+
+                        <a class="nav-link @(controller == "ServiceCatalog" ? "active" : "")"
+
+                           asp-route="systemAdmin-serviceCatalog">
+
+                            <span class="nav-icon"><i class="fas fa-layer-group"></i></span>
+
+                            <span>كتالوج الخدمات والتسعير</span>
+
+                        </a>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+
+
+            @* ——— 6. حسابي ——— *@
+
+            <div class="nav-section nav-section-account" data-section-key="account">
+
+                <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="true">
+
+                    <i class="fas fa-user-cog"></i>
+
+                    <span>حسابي</span>
+
+                    <i class="fas fa-chevron-down nav-section-chevron"></i>
+
+                </div>
+
+                <ul class="nav-list">
+
+                    <li class="nav-item">
+
+                        <a class="nav-link @(controller == "Account" && action == "Profile" ? "active" : "")"
+
+                           asp-route="systemAdmin-account-profile">
+
+                            <span class="nav-icon"><i class="fas fa-user-circle"></i></span>
+
+                            <span>إعدادات الحساب</span>
+
+                        </a>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+        }
+
+    </nav>
+
+</aside>
+
+

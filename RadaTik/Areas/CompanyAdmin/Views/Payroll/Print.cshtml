@@ -1,0 +1,45 @@
+@model RadaTik.Areas.CompanyAdmin.ViewModels.PayrollIndexViewModel
+@{
+    Layout = null;
+    var monthNames = new[] { "", "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
+    var companyName = ViewBag.CompanyName as string ?? "";
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>كشف رواتب</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; margin: 24px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 6px; text-align: right; }
+        th { background: #f0f4f8; }
+        .no-print { margin-bottom: 12px; }
+        @@media print { .no-print { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="no-print"><button type="button" onclick="window.print()">طباعة</button></div>
+    <h1>كشف رواتب الموظفين</h1>
+    <p>@companyName — @monthNames[Model.Month] @Model.Year</p>
+    <p>صافي: @SyrianCurrencyHelper.FormatNew(Model.TotalNet) | مُصروف: @SyrianCurrencyHelper.FormatNew(Model.TotalPaid) | معلّق: @SyrianCurrencyHelper.FormatNew(Model.TotalPending) ل.س</p>
+    <table>
+        <thead>
+            <tr><th>الموظف</th><th>أساسي</th><th>مكافأة</th><th>حسم</th><th>الصافي</th><th>الحالة</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            <tr>
+                <td>@r.EmployeeName</td>
+                <td>@SyrianCurrencyHelper.FormatNew(r.BaseAmount)</td>
+                <td>@SyrianCurrencyHelper.FormatNew(r.Bonus)</td>
+                <td>@SyrianCurrencyHelper.FormatNew(r.Deduction)</td>
+                <td>@SyrianCurrencyHelper.FormatNew(r.NetAmount)</td>
+                <td>@(r.IsPaid ? "مُصروف" : "معلق")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</body>
+</html>
