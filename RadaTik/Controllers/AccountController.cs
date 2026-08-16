@@ -634,16 +634,25 @@ namespace RadaTik.Controllers
                 return View("ForgotPasswordConfirmation");
             }
 
-            // التحقق من نوع المستخدم (يجب أن يكون مدير أو موظف)
+            // الأدوار المسموح لها بطلب استعادة كلمة المرور (بما فيها نقطة التحصيل → مدير النظام)
             IList<string> roles = await _userManager.GetRolesAsync(user);
-            if (!roles.Contains(RoleNames.NetworkAdministrator) &&
-                !roles.Contains(RoleNames.CompanyEmployee) &&
-                !roles.Contains(RoleNames.EmployeeLegacy) &&
-                !roles.Contains(RoleNames.SystemEmployee))
+            bool canRequestPasswordReset =
+                roles.Contains(RoleNames.NetworkAdministrator) ||
+                roles.Contains(RoleNames.CompanyEmployee) ||
+                roles.Contains(RoleNames.EmployeeLegacy) ||
+                roles.Contains(RoleNames.SystemEmployee) ||
+                roles.Contains(RoleNames.CollectionPoint);
+
+            if (!canRequestPasswordReset)
             {
-                // العملاء يستخدمون كلمة مرور افتراضية ويجب تغييرها من لوحة التحكم
-                ModelState.AddModelError("", "العملاء يمكنهم إعادة تعيين كلمة المرور من خلال التواصل مع الدعم الفني");
+                ModelState.AddModelError("", "لا يمكن استعادة كلمة المرور لهذا الحساب من هنا. تواصل مع الدعم الفني.");
                 return View(model);
+            }
+
+            // نقطة التحصيل: الطلب يُوجَّه دائماً إلى مدير النظام (لا يعتمد على البريد)
+            if (roles.Contains(RoleNames.CollectionPoint))
+            {
+                model.ResetMethod = PasswordResetMethod.AdminRequest;
             }
 
             if (model.ResetMethod == PasswordResetMethod.Email)

@@ -353,6 +353,275 @@ namespace RadaTik.Controllers
             return View(mikrotikServer);
         }
 
+        // GET: MikroTikServers/CreateBulk
+        [RequirePermission("MikroTikServers.Create")]
+        public async Task<IActionResult> CreateBulk()
+        {
+            ApplicationUser? user = await _userManager.GetUserAsync(User);
+            int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+
+            if (!networkId.HasValue)
+            {
+                TempData["Error"] = AppMessages.SelectNetworkFirst;
+                return RedirectToAction("Index", "Network");
+            }
+
+            BulkMikroTikServersCreateViewModel model = new()
+            {
+                NetworkId = networkId.Value,
+                Port = 8728,
+                Servers = BulkMikroTikServersCreateViewModel.CreateDefaultRows(5)
+            };
+
+            await RebuildBulkCreateViewStateAsync(user!, networkId.Value, model.NetworkId);
+            return View(model);
+        }
+
+        // POST: MikroTikServers/CreateBulk
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission("MikroTikServers.Create")]
+        public async Task<IActionResult> CreateBulk(BulkMikroTikServersCreateViewModel model)
+        {
+            ApplicationUser? user = await _userManager.GetUserAsync(User);
+            int? currentNetworkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+
+            if (user == null || !currentNetworkId.HasValue)
+            {
+                TempData["Error"] = AppMessages.SelectNetworkFirst;
+                return RedirectToAction("Index", "Network");
+            }
+
+            model.Servers ??= [];
+            if (model.Servers.Count == 0)
+            {
+                model.Servers = BulkMikroTikServersCreateViewModel.CreateDefaultRows(5);
+            }
+
+            if (!model.NetworkId.HasValue)
+            {
+                ModelState.AddModelError(nameof(model.NetworkId), "يرجى تحديد الشبكة التي سيتم إضافة السيرفرات لها.");
+            }
+
+            int selectedNetworkId = model.NetworkId ?? 0;
+            if (model.NetworkId.HasValue)
+            {
+                bool hasAccess = await NetworkHelper.IsNetworkAccessibleAsync(HttpContext, _context, user, selectedNetworkId);
+                if (!hasAccess)
+                {
+                    ModelState.AddModelError(nameof(model.NetworkId), "الشبكة المحددة غير متاحة لك.");
+                }
+            }
+
+            List<BulkMikroTikServerRowViewModel> filledRows = model.Servers
+                .Where(s => s != null && s.HasAnyValue)
+                .ToList();
+
+            if (filledRows.Count == 0)
+            {
+                ModelState.AddModelError(string.Empty, "أضف صفاً واحداً على الأقل يحتوي اسم الخادم والمضيف.");
+            }
+
+            List<(string Name, string Host, int Port, string? Notes)> prepared = [];
+            HashSet<string> batchKeys = new(StringComparer.OrdinalIgnoreCase);
+
+            for (int i = 0; i < filledRows.Count; i++)
+            {
+                BulkMikroTikServerRowViewModel row = filledRows[i];
+                string host = (row.Host ?? string.Empty).Trim();
+                string name = string.IsNullOrWhiteSpace(row.Name) ? host : row.Name.Trim();
+                int port = row.Port is > 0 and <= 65535 ? row.Port.Value : model.Port;
+
+                if (string.IsNullOrWhiteSpace(host))
+                {
+                    ModelState.AddModelError(string.Empty, $"الصف {i + 1}: اسم المضيف مطلوب.");
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(name) || name.Length < 2)
+                {
+                    ModelState.AddModelError(string.Empty, $"الصف {i + 1}: اسم الخادم مطلوب (حرفان على الأقل).");
+                    continue;
+                }
+
+                string key = $"{selectedNetworkId}|{host.ToLowerInvariant()}|{port}";
+                if (!batchKeys.Add(key))
+                {
+                    ModelState.AddModelError(string.Empty, $"الصف {i + 1}: تكرار للمضيف والمنفذ داخل القائمة ({host}:{port}).");
+                    continue;
+                }
+
+                prepared.Add((name, host, port, string.IsNullOrWhiteSpace(row.Notes) ? model.Notes : row.Notes));
+            }
+
+            (FeaturePricing? initialServerPricing, FeaturePricing? renewalServerPricing) = await GetServerPricingSettingsAsync();
+            RecurringPricingPolicy recurringPolicy = RecurringPricingPolicyCodec.ReadFromPricings(initialServerPricing, renewalServerPricing);
+            Network? selectedNetwork = await _context.Networks
+                .AsNoTracking()
+                .FirstOrDefaultAsync(n => n.Id == selectedNetworkId);
+            int companyNetworkId = selectedNetwork?.ParentNetworkId ?? selectedNetworkId;
+            List<int> scopeNetworkIds = await _context.Networks
+                .AsNoTracking()
+                .Where(n => n.Id == companyNetworkId || n.ParentNetworkId == companyNetworkId)
+                .Select(n => n.Id)
+                .ToListAsync();
+
+            int currentServersCount = await _context.MikroTikServers
+                .AsNoTracking()
+                .CountAsync(s => s.IsActive && s.NetworkId.HasValue && scopeNetworkIds.Contains(s.NetworkId.Value));
+
+            decimal oneTimeUnit = initialServerPricing != null
+                ? WalletMath.CeilSyp(initialServerPricing.AmountSYP)
+                : 0m;
+
+            int chargeableCount = 0;
+            for (int i = 0; i < prepared.Count; i++)
+            {
+                if (currentServersCount + i >= recurringPolicy.FreeInitialUnits)
+                {
+                    chargeableCount++;
+                }
+            }
+
+            decimal totalCharge = oneTimeUnit * chargeableCount;
+            if (chargeableCount > 0)
+            {
+                if (initialServerPricing == null || initialServerPricing.BillingPeriod != PricingBillingPeriod.OneTime)
+                {
+                    ModelState.AddModelError(string.Empty, AppMessages.PricingNotConfigured);
+                }
+
+                if (renewalServerPricing == null || renewalServerPricing.BillingPeriod == PricingBillingPeriod.OneTime)
+                {
+                    ModelState.AddModelError(string.Empty, AppMessages.PricingNotConfigured);
+                }
+            }
+
+            if (!ModelState.IsValid || prepared.Count == 0)
+            {
+                await RebuildBulkCreateViewStateAsync(user, currentNetworkId.Value, model.NetworkId);
+                return View(model);
+            }
+
+            try
+            {
+                await using IDbContextTransaction tx = await _context.Database.BeginTransactionAsync();
+
+                foreach ((string Name, string Host, int Port, string? Notes) item in prepared)
+                {
+                    bool exists = await _context.MikroTikServers
+                        .AsNoTracking()
+                        .AnyAsync(s =>
+                            s.NetworkId == selectedNetworkId
+                            && s.Port == item.Port
+                            && s.Host.ToLower() == item.Host.ToLower());
+                    if (exists)
+                    {
+                        ModelState.AddModelError(string.Empty,
+                            $"يوجد بالفعل خادم بنفس المضيف والمنفذ في هذه الشبكة: {item.Host}:{item.Port}");
+                        await tx.RollbackAsync();
+                        await RebuildBulkCreateViewStateAsync(user, currentNetworkId.Value, model.NetworkId);
+                        return View(model);
+                    }
+                }
+
+                Network? companyNetwork = await _context.Networks
+                    .FirstOrDefaultAsync(n => n.Id == companyNetworkId && n.ParentNetworkId == null);
+                if (companyNetwork == null)
+                {
+                    ModelState.AddModelError(string.Empty, "تعذر تحديد حساب الشركة الرئيسي.");
+                    await tx.RollbackAsync();
+                    await RebuildBulkCreateViewStateAsync(user, currentNetworkId.Value, model.NetworkId);
+                    return View(model);
+                }
+
+                if (totalCharge > 0 && companyNetwork.Balance < totalCharge)
+                {
+                    ModelState.AddModelError(string.Empty, AppMessages.InsufficientBalance);
+                    await tx.RollbackAsync();
+                    await RebuildBulkCreateViewStateAsync(user, currentNetworkId.Value, model.NetworkId);
+                    return View(model);
+                }
+
+                DateTime now = DateTime.Now;
+                List<string> createdNames = [];
+                foreach ((string Name, string Host, int Port, string? Notes) item in prepared)
+                {
+                    MikroTikServer server = new()
+                    {
+                        Name = item.Name,
+                        Host = item.Host,
+                        Port = item.Port,
+                        User = model.User.Trim(),
+                        Pass = model.Pass,
+                        Notes = item.Notes,
+                        UserID = string.IsNullOrWhiteSpace(model.UserID) ? null : model.UserID.Trim(),
+                        IsActive = true,
+                        NetworkId = selectedNetworkId,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    };
+                    _context.Add(server);
+                    createdNames.Add($"{server.Name} ({server.Host}:{server.Port})");
+                }
+
+                await _context.SaveChangesAsync();
+
+                if (renewalServerPricing != null && renewalServerPricing.BillingPeriod != PricingBillingPeriod.OneTime)
+                {
+                    await EnsureServerSubscriptionAsync(
+                        companyNetworkId,
+                        renewalServerPricing.BillingPeriod,
+                        now,
+                        HttpContext.RequestAborted);
+                }
+
+                if (totalCharge > 0)
+                {
+                    decimal previousBalance = companyNetwork.Balance;
+                    companyNetwork.Balance -= totalCharge;
+                    _context.NetworkWalletTransactions.Add(new NetworkWalletTransaction
+                    {
+                        NetworkId = companyNetworkId,
+                        Type = NetworkWalletTransactionType.ServiceCharge,
+                        SignedAmount = -totalCharge,
+                        PreviousBalance = previousBalance,
+                        NewBalance = companyNetwork.Balance,
+                        CreatedByUserId = user.Id,
+                        CreatedAt = now,
+                        Notes =
+                            $"إنشاء مجموعة سيرفرات ({prepared.Count}) — خصم {chargeableCount} وحدة: " +
+                            string.Join("، ", createdNames.Take(8)) +
+                            (createdNames.Count > 8 ? "…" : string.Empty)
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                TempData["Success"] =
+                    $"تم إضافة {prepared.Count} سيرفر بنجاح" +
+                    (chargeableCount > 0
+                        ? $" (تم خصم {SyrianCurrencyHelper.FormatNew(totalCharge)} ل.س.ج لـ {chargeableCount} سيرفر مدفوع)."
+                        : " (ضمن الوحدات المعفاة).");
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "خطأ في حفظ مجموعة الخوادم");
+                ModelState.AddModelError(string.Empty,
+                    "تعذر الحفظ. تحقق من عدم تكرار نفس المضيف ونفس المنفذ في نفس الشبكة.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "خطأ غير متوقع أثناء إضافة مجموعة سيرفرات");
+                ModelState.AddModelError(string.Empty, AppMessages.UnexpectedError);
+            }
+
+            await RebuildBulkCreateViewStateAsync(user, currentNetworkId.Value, model.NetworkId);
+            return View(model);
+        }
+
         // GET: MikroTikServers/Edit/5
         [RequirePermission("MikroTikServers.Edit")]
         public async Task<IActionResult> Edit(int? id)
@@ -1096,6 +1365,17 @@ namespace RadaTik.Controllers
             ViewBag.CurrentNetworkId = networkId;
             ViewBag.RequiresExplicitNetworkSelection = requiresExplicitNetworkSelection;
             await PopulateServerPricingPreviewAsync(user, networkId);
+        }
+
+        private async Task RebuildBulkCreateViewStateAsync(ApplicationUser user, int currentNetworkId, int? selectedNetworkId)
+        {
+            int networkForPreview = selectedNetworkId ?? currentNetworkId;
+            List<Network> networks = await NetworkHelper.GetAvailableNetworksAsync(_context, user, _userManager);
+            bool requiresExplicitNetworkSelection = networks.Count > 1;
+            ViewBag.Networks = new SelectList(networks, "Id", "Name", selectedNetworkId);
+            ViewBag.CurrentNetworkId = currentNetworkId;
+            ViewBag.RequiresExplicitNetworkSelection = requiresExplicitNetworkSelection;
+            await PopulateServerPricingPreviewAsync(user, networkForPreview);
         }
 
         private async Task PopulateServerRenewalSummaryAsync(int selectedNetworkId)

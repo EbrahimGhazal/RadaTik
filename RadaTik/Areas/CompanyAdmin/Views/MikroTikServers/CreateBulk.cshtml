@@ -1,0 +1,214 @@
+@model RadaTik.ViewModels.MikroTikServers.BulkMikroTikServersCreateViewModel
+@{
+    ViewData["Title"] = "إضافة مجموعة سيرفرات";
+    var isFirstServerFree = (ViewBag.ServerPricingIsFirstFree as bool?) ?? true;
+    var shouldChargeNow = (ViewBag.ServerPricingShouldChargeNow as bool?) ?? false;
+    var companyName = ViewBag.ServerPricingCompanyName as string ?? "غير محدد";
+    var totalServers = (ViewBag.ServerPricingTotalServers as int?) ?? 0;
+    var hasInitialPricing = (ViewBag.ServerPricingHasInitial as bool?) ?? false;
+    var hasRenewalPricing = (ViewBag.ServerPricingHasRenewal as bool?) ?? false;
+    var freeInitialUnits = (ViewBag.ServerPricingFreeInitialUnits as int?) ?? 0;
+    var freeRenewalUnits = (ViewBag.ServerPricingFreeRenewalUnits as int?) ?? 0;
+    var initialPriceSyp = (ViewBag.ServerPricingInitialSyp as decimal?) ?? 0m;
+    var renewalPriceSyp = (ViewBag.ServerPricingRenewalSyp as decimal?) ?? 0m;
+    var renewalPeriodLabel = ViewBag.ServerPricingRenewalPeriodLabel as string ?? "غير محدد";
+    var requiresExplicitNetworkSelection = (ViewBag.RequiresExplicitNetworkSelection as bool?) ?? false;
+}
+
+<h1>@ViewData["Title"]</h1>
+<p class="text-muted">أدخل بيانات الاتصال المشتركة ثم أضف عدة خوادم (اسم + مضيف) دفعة واحدة.</p>
+<hr />
+
+<form asp-action="CreateBulk" method="post" class="radtk-form" id="bulkServersForm">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+    @if (!shouldChargeNow)
+    {
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i>
+            @if (isFirstServerFree)
+            {
+                <div>أول سيرفر للشركة <strong>@companyName</strong> مجاني ضمن الوحدات المعفاة.</div>
+            }
+            <ul class="mb-0 mt-2 ms-3">
+                <li>سعر إنشاء السيرفر بعد الإعفاء: <strong>@SyrianCurrencyHelper.FormatNew(initialPriceSyp) ل.س.ج</strong>.</li>
+                <li>التجديد: <strong>@SyrianCurrencyHelper.FormatNew(renewalPriceSyp) ل.س.ج</strong> كل <strong>@renewalPeriodLabel</strong>.</li>
+                <li>وحدات إنشاء مجانية: <strong>@freeInitialUnits</strong> | وحدات تجديد مجانية: <strong>@freeRenewalUnits</strong>.</li>
+                <li>السيرفرات الحالية: <strong>@totalServers</strong> — عند إضافة مجموعة يُحسب الخصم تدريجياً لكل سيرفر يتجاوز الإعفاء.</li>
+            </ul>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-coins"></i>
+            <div>الشركة <strong>@companyName</strong> تجاوزت الوحدات المعفاة (الحالية: @totalServers).</div>
+            <ul class="small mb-0 mt-2 ms-3">
+                <li>كل سيرفر إضافي يُخصم عنه <strong>@SyrianCurrencyHelper.FormatNew(initialPriceSyp) ل.س.ج</strong>.</li>
+                <li>التجديد: <strong>@SyrianCurrencyHelper.FormatNew(renewalPriceSyp) ل.س.ج</strong> كل <strong>@renewalPeriodLabel</strong>.</li>
+            </ul>
+        </div>
+    }
+
+    @if (!hasInitialPricing || !hasRenewalPricing)
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-triangle-exclamation"></i>
+            إعدادات تسعير/تجديد السيرفرات غير مكتملة من مدير النظام.
+        </div>
+    }
+
+    @if (requiresExplicitNetworkSelection)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-diagram-project"></i>
+            لديك أكثر من شبكة. الرجاء تحديد الشبكة الهدف قبل الحفظ.
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-light">
+            <strong>بيانات الاتصال المشتركة</strong>
+        </div>
+        <div class="card-body row g-3">
+            <div class="col-md-6">
+                <label asp-for="NetworkId" class="form-label"></label>
+                <select asp-for="NetworkId" class="form-select" asp-items="ViewBag.Networks" required>
+                    <option value="">-- اختر الشبكة --</option>
+                </select>
+                <span asp-validation-for="NetworkId" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="Port" class="form-label"></label>
+                <input asp-for="Port" type="number" min="1" max="65535" class="form-control" data-syp-skip-format="true" />
+                <span asp-validation-for="Port" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="UserID" class="form-label"></label>
+                <input asp-for="UserID" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="User" class="form-label"></label>
+                <input asp-for="User" class="form-control" autocomplete="username" />
+                <span asp-validation-for="User" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Pass" class="form-label"></label>
+                <input asp-for="Pass" type="password" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Pass" class="text-danger"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <strong>قائمة السيرفرات</strong>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddServerRow">
+                <i class="fas fa-plus"></i> إضافة صف
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" id="bulkServersTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:28%">اسم الخادم</th>
+                            <th style="width:28%">المضيف (IP)</th>
+                            <th style="width:14%">منفذ خاص</th>
+                            <th style="width:24%">ملاحظات</th>
+                            <th style="width:6%"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Servers.Count; i++)
+                        {
+                            <tr class="bulk-server-row">
+                                <td>
+                                    <input asp-for="Servers[i].Name" class="form-control form-control-sm" placeholder="مثال: سيرفر 1" />
+                                </td>
+                                <td>
+                                    <input asp-for="Servers[i].Host" class="form-control form-control-sm" placeholder="192.168.1.1" />
+                                </td>
+                                <td>
+                                    <input asp-for="Servers[i].Port" type="number" min="1" max="65535" class="form-control form-control-sm" placeholder="@Model.Port" data-syp-skip-format="true" />
+                                </td>
+                                <td>
+                                    <input asp-for="Servers[i].Notes" class="form-control form-control-sm" placeholder="اختياري" />
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" title="حذف الصف">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <button type="submit" class="btn btn-success">
+            <i class="fas fa-save"></i> حفظ المجموعة
+        </button>
+        <a asp-action="Create" class="btn btn-outline-secondary">إضافة سيرفر واحد</a>
+        <a asp-action="Index" class="btn btn-secondary">العودة للقائمة</a>
+    </div>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        (function () {
+            const tbody = document.querySelector('#bulkServersTable tbody');
+            const addBtn = document.getElementById('btnAddServerRow');
+            if (!tbody || !addBtn) return;
+
+            function reindexRows() {
+                Array.from(tbody.querySelectorAll('tr.bulk-server-row')).forEach(function (row, index) {
+                    row.querySelectorAll('input').forEach(function (input) {
+                        const name = input.getAttribute('name') || '';
+                        input.setAttribute('name', name.replace(/Servers\[\d+\]/, 'Servers[' + index + ']'));
+                        const id = input.getAttribute('id') || '';
+                        if (id) {
+                            input.setAttribute('id', id.replace(/Servers_\d+__/, 'Servers_' + index + '__'));
+                        }
+                    });
+                });
+            }
+
+            addBtn.addEventListener('click', function () {
+                const index = tbody.querySelectorAll('tr.bulk-server-row').length;
+                const tr = document.createElement('tr');
+                tr.className = 'bulk-server-row';
+                tr.innerHTML =
+                    '<td><input class="form-control form-control-sm" name="Servers[' + index + '].Name" placeholder="مثال: سيرفر ' + (index + 1) + '" /></td>' +
+                    '<td><input class="form-control form-control-sm" name="Servers[' + index + '].Host" placeholder="192.168.1.1" /></td>' +
+                    '<td><input class="form-control form-control-sm" type="number" min="1" max="65535" name="Servers[' + index + '].Port" data-syp-skip-format="true" /></td>' +
+                    '<td><input class="form-control form-control-sm" name="Servers[' + index + '].Notes" placeholder="اختياري" /></td>' +
+                    '<td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" title="حذف الصف"><i class="fas fa-times"></i></button></td>';
+                tbody.appendChild(tr);
+            });
+
+            tbody.addEventListener('click', function (e) {
+                const btn = e.target.closest('.btn-remove-row');
+                if (!btn) return;
+                const rows = tbody.querySelectorAll('tr.bulk-server-row');
+                if (rows.length <= 1) {
+                    rows[0].querySelectorAll('input').forEach(function (input) { input.value = ''; });
+                    return;
+                }
+                btn.closest('tr').remove();
+                reindexRows();
+            });
+        })();
+    </script>
+}

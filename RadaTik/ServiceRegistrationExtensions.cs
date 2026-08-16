@@ -82,6 +82,7 @@ internal static class ServiceRegistrationExtensions
         services.AddScoped<Services.Profiles.IProfileListQueryService, Services.Profiles.ProfileListQueryService>();
         services.AddScoped<Services.Profiles.IProfileImportPreviewService, Services.Profiles.ProfileImportPreviewService>();
         services.AddScoped<Services.Profiles.IProfileCompanyWalletService, Services.Profiles.ProfileCompanyWalletService>();
+        services.AddScoped<Services.Profiles.IProfileBulkPricingService, Services.Profiles.ProfileBulkPricingService>();
         services.AddScoped<Services.Profiles.IProfileFormViewDataService, Services.Profiles.ProfileFormViewDataService>();
         services.AddScoped<Services.Profiles.IProfileMikroTikSyncOrchestrator, Services.Profiles.ProfileMikroTikSyncOrchestrator>();
         services.AddScoped<Services.Clients.IClientApplicationServices, Services.Clients.ClientApplicationServices>();

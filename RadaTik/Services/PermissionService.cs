@@ -79,29 +79,44 @@ namespace RadaTik.Services
 
             try
             {
-                bool has = await _context.UserPermissions
-                    .Include(up => up.Permission)
-                    .AnyAsync(up => up.UserId == userId && up.Permission != null && up.Permission.Key == permissionKey);
+                bool has = await (
+                    from up in _context.UserPermissions.AsNoTracking()
+                    join p in _context.Permissions.AsNoTracking() on up.PermissionId equals p.Id
+                    where up.UserId == userId && p.Key == permissionKey
+                    select up.Id).AnyAsync();
 
                 if (!has &&
                     permissionKey.StartsWith("MikroTikServers.", StringComparison.OrdinalIgnoreCase) &&
                     !string.Equals(permissionKey, "MikroTikServers.Manage", StringComparison.OrdinalIgnoreCase))
                 {
                     // توافق: صلاحية Manage القديمة تشمل عرض/إضافة/تعديل/حذف الخادم
-                    has = await _context.UserPermissions
-                        .Include(up => up.Permission)
-                        .AnyAsync(up => up.UserId == userId && up.Permission != null &&
-                                         up.Permission.Key == "MikroTikServers.Manage");
+                    has = await (
+                        from up in _context.UserPermissions.AsNoTracking()
+                        join p in _context.Permissions.AsNoTracking() on up.PermissionId equals p.Id
+                        where up.UserId == userId && p.Key == "MikroTikServers.Manage"
+                        select up.Id).AnyAsync();
                 }
 
                 if (!has && string.Equals(permissionKey, "Requests.View", StringComparison.OrdinalIgnoreCase))
                 {
                     // توافق: من لديه تعديل طلبات سابقاً دون صلاحية عرض صريحة
-                    string[] requestKeys = new[] { "MaintenanceRequests.Manage" };
-                    has = await _context.UserPermissions
-                        .Include(up => up.Permission)
-                        .AnyAsync(up => up.UserId == userId && up.Permission != null &&
-                                         requestKeys.Contains(up.Permission.Key));
+                    string[] requestKeys = ["MaintenanceRequests.Manage"];
+                    has = await (
+                        from up in _context.UserPermissions.AsNoTracking()
+                        join p in _context.Permissions.AsNoTracking() on up.PermissionId equals p.Id
+                        where up.UserId == userId && requestKeys.Contains(p.Key)
+                        select up.Id).AnyAsync();
+                }
+
+                // إدارة الوحدة غالباً تشمل العرض في القائمة
+                if (!has && permissionKey.EndsWith(".View", StringComparison.OrdinalIgnoreCase))
+                {
+                    string manageKey = permissionKey[..^5] + "Manage";
+                    has = await (
+                        from up in _context.UserPermissions.AsNoTracking()
+                        join p in _context.Permissions.AsNoTracking() on up.PermissionId equals p.Id
+                        where up.UserId == userId && p.Key == manageKey
+                        select up.Id).AnyAsync();
                 }
 
                 _cache[cacheKey] = has;

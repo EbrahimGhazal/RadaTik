@@ -47,7 +47,26 @@ public class PasswordResetRequestsController : Controller
             .Take(300)
             .ToListAsync();
 
+        Dictionary<string, string> roleLabels = new(StringComparer.OrdinalIgnoreCase);
+        foreach (PasswordResetRequest item in items.Where(i => i.User != null))
+        {
+            string userId = item.UserId;
+            if (roleLabels.ContainsKey(userId))
+            {
+                continue;
+            }
+
+            IList<string> roles = await _userManager.GetRolesAsync(item.User!);
+            roleLabels[userId] =
+                roles.Contains(RoleNames.CollectionPoint) ? "نقطة تحصيل" :
+                roles.Contains(RoleNames.NetworkAdministrator) ? "مدير شركة" :
+                roles.Contains(RoleNames.CompanyEmployee) || roles.Contains(RoleNames.EmployeeLegacy) ? "موظف" :
+                roles.Contains(RoleNames.SystemEmployee) ? "موظف نظام" :
+                "مستخدم";
+        }
+
         ViewBag.SelectedStatus = status;
+        ViewBag.PasswordResetRoleLabels = roleLabels;
         return View(items);
     }
 

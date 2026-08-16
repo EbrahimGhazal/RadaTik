@@ -561,6 +561,14 @@
                                             </button>
                                         </form>
 
+                                        <form asp-action="Delete" method="post" class="clients-action-form"
+                                              onsubmit="return confirm('تأكيد الحذف: سيتم حذف العميل نهائياً من قاعدة البيانات ومن خادم MikroTik. هل تريد المتابعة؟');">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button type="submit" class="btn btn-sm btn-icon btn-danger" title="حذف العميل من قاعدة البيانات وMikroTik">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+
                                         <form asp-action="RenewOneMonth" method="post" class="clients-action-form">
                                             <input type="hidden" name="id" value="@item.Id" />
                                             <button type="submit" class="btn btn-sm btn-icon btn-success" title="تجديد اشتراك شهر"
@@ -663,7 +671,7 @@
                     <p class="small text-muted mb-2">
                         يتم البحث عن مطابقة <strong>الحساب</strong> في الشبكة الحالية.
                         عند التطابق تُنقل الحقول المتوفرة:
-                        <strong>الاسم الكامل، الجوال، آخر تجديد، البناء</strong>.
+                        <strong>الاسم الكامل، الجوال، آخر تجديد، البناء، تاريخ الإضافة</strong>.
                         إذا كان الحساب أو الاسم الكامل مكرراً في قاعدة البيانات تُدخل نفس المعلومات في كل التكرارات.
                         إذا كان <strong>آخر تجديد</strong> خلال 30 يوماً من تاريخ الاستعادة يُجدَّد الاشتراك حتى يوم <strong>10</strong> من الشهر التالي.
                     </p>

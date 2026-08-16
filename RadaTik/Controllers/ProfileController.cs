@@ -37,6 +37,7 @@ namespace RadaTik.Controllers
         private readonly IProfileFormViewDataService _profileFormViewData;
         private readonly IProfileCompanyWalletService _profileCompanyWallet;
         private readonly IProfileMikroTikSyncOrchestrator _profileMikroTikSync;
+        private readonly IProfileBulkPricingService _profileBulkPricing;
 
         public ProfileController(
             ApplicationDbContext context,
@@ -50,7 +51,8 @@ namespace RadaTik.Controllers
             IProfileImportPreviewService profileImportPreview,
             IProfileFormViewDataService profileFormViewData,
             IProfileCompanyWalletService profileCompanyWallet,
-            IProfileMikroTikSyncOrchestrator profileMikroTikSync)
+            IProfileMikroTikSyncOrchestrator profileMikroTikSync,
+            IProfileBulkPricingService profileBulkPricing)
         {
             _context = context;
             _mikroTikService = mikroTikService;
@@ -64,6 +66,7 @@ namespace RadaTik.Controllers
             _profileFormViewData = profileFormViewData;
             _profileCompanyWallet = profileCompanyWallet;
             _profileMikroTikSync = profileMikroTikSync;
+            _profileBulkPricing = profileBulkPricing;
         }
 
         // GET: Profile/Index
@@ -1299,6 +1302,51 @@ namespace RadaTik.Controllers
                 "l2tp" => ProfileType.VoIP,
                 _ => ProfileType.Internet
             };
+        }
+
+        /// <summary>تعيين سعر موحّد لمجموعة بروفايلات ضمن الشبكة الحالية.</summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkSetPriceJson(
+            [FromForm] List<int>? profileIds,
+            [FromForm] decimal newPrice,
+            [FromForm] string? reason)
+        {
+            ApplicationUser? user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized(new { success = false, message = "يجب تسجيل الدخول." });
+            }
+
+            int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+            if (!networkId.HasValue)
+            {
+                return BadRequest(new { success = false, message = AppMessages.SelectNetworkFirst });
+            }
+
+            try
+            {
+                ProfileBulkPriceUpdateResult result = await _profileBulkPricing.BulkSetPriceAsync(
+                    networkId.Value,
+                    profileIds ?? [],
+                    newPrice,
+                    user.FullName ?? user.UserName ?? user.Id,
+                    reason);
+
+                return Json(new
+                {
+                    success = result.Success,
+                    message = result.Message,
+                    updatedCount = result.UpdatedCount,
+                    requestedCount = result.RequestedCount,
+                    skippedCount = result.SkippedCount
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "فشل التحديث الجماعي لأسعار البروفايلات في الشبكة {NetworkId}", networkId);
+                return StatusCode(500, new { success = false, message = "حدث خطأ أثناء تحديث الأسعار." });
+            }
         }
 
     }

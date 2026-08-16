@@ -105,9 +105,11 @@ public sealed class ClientImportOrchestrator(
                 $"لا يمكن استيراد المشتركين قبل استيراد البروفايلات. يوجد {preview.MissingProfileCount} مشترك مرتبط ببروفايلات غير مستوردة.");
         }
 
-        if (preview.ImportableUsersCount <= 0 && preview.RelinkableUsersCount <= 0)
+        if (preview.ImportableUsersCount <= 0 &&
+            preview.RelinkableUsersCount <= 0 &&
+            preview.UpdatableUsersCount <= 0)
         {
-            return ClientImportOutcome.Failed("لا يوجد عملاء جدد قابلين للاستيراد من هذا السيرفر حالياً.");
+            return ClientImportOutcome.Failed("لا توجد إضافات أو تعديلات من السيرفر لمزامنتها حالياً.");
         }
 
         int billableCount = preview.ImportableUsersCount;

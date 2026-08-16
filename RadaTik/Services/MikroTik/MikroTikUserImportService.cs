@@ -69,7 +69,27 @@ public sealed class MikroTikUserImportService(
                             existingClient.LastUpdated = DateTime.Now;
                         }
 
-                        result.ExistingCount++;
+                        Profile? existingProfile = await ResolveOrCreateProfileAsync(
+                            mtUser.ProfileName,
+                            serverId,
+                            networkId,
+                            profilesByName,
+                            result);
+                        if (existingProfile == null)
+                        {
+                            result.FailedCount++;
+                            result.Errors.Add($"المستخدم {userName}: تعذر مزامنة البروفايل ({mtUser.ProfileName})");
+                            continue;
+                        }
+
+                        if (ApplyMikroTikChanges(existingClient, mtUser, existingProfile))
+                        {
+                            result.UpdatedCount++;
+                        }
+                        else
+                        {
+                            result.ExistingCount++;
+                        }
                         continue;
                     }
 
@@ -204,6 +224,7 @@ public sealed class MikroTikUserImportService(
 
             result.Message =
                 $"تم استيراد {result.AddedCount} مستخدم جديد" +
+                (result.UpdatedCount > 0 ? $"، تم تحديث {result.UpdatedCount} مشترك من بيانات السيرفر" : "") +
                 (result.DuplicateCount > 0 ? $" (منها {result.DuplicateCount} مكرر عبر السيرفرات)" : "") +
                 (result.RelinkedCount > 0 ? $"، تم ربط {result.RelinkedCount} مشترك كان بلا سيرفر" : "") +
                 (result.ProfilesCreatedCount > 0 ? $"، أُنشئ {result.ProfilesCreatedCount} بروفايل تلقائياً" : "") +
@@ -252,11 +273,11 @@ public sealed class MikroTikUserImportService(
 
         preview.TotalUsersOnServer = allUsers.Count;
 
-        HashSet<string> existingUserNames = (await _context.Clients.AsNoTracking()
+        Dictionary<string, Client> existingUsersByName = (await _context.Clients.AsNoTracking()
                 .Where(c => c.MikroTikServerId == serverId && !string.IsNullOrEmpty(c.UserName))
-                .Select(c => c.UserName!)
                 .ToListAsync())
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            .GroupBy(c => c.UserName!.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
         // مشترك في الشبكة بلا سيرفر سيُربَط عند الاستيراد (لا يُحسب قابلاً للاستيراد الجديد)
         HashSet<string> orphanUserNames = (await _context.Clients.AsNoTracking()
@@ -293,9 +314,13 @@ public sealed class MikroTikUserImportService(
                 continue;
             }
 
-            if (existingUserNames.Contains(userName))
+            if (existingUsersByName.TryGetValue(userName, out Client? existingClient))
             {
                 preview.ExistingUsersCount++;
+                if (HasMikroTikChanges(existingClient, user))
+                {
+                    preview.UpdatableUsersCount++;
+                }
                 continue;
             }
 
@@ -363,6 +388,94 @@ public sealed class MikroTikUserImportService(
         }
 
         return map;
+    }
+
+    /// <summary>
+    /// يحدّث فقط الحقول التي يمثلها MikroTik؛ لا يلمس بيانات العميل اليدوية
+    /// مثل الاسم والعنوان السكني ورقم الهاتف.
+    /// </summary>
+    private static bool ApplyMikroTikChanges(Client client, Client mikroTikUser, Profile profile)
+    {
+        bool changed = false;
+
+        changed |= SetIfDifferent(client.ProfileId, profile.Id, value => client.ProfileId = value);
+        changed |= SetIfDifferent(client.ProfileName, profile.Name, value => client.ProfileName = value);
+
+        if (!string.IsNullOrWhiteSpace(mikroTikUser.Password))
+        {
+            changed |= SetIfDifferent(client.Password, mikroTikUser.Password, value => client.Password = value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(mikroTikUser.Service))
+        {
+            changed |= SetIfDifferent(client.Service, mikroTikUser.Service, value => client.Service = value);
+        }
+
+        if (mikroTikUser.Address != null)
+        {
+            changed |= SetIfDifferent(client.Address, mikroTikUser.Address, value => client.Address = value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(mikroTikUser.ConnectionStatus))
+        {
+            changed |= SetIfDifferent(
+                client.ConnectionStatus,
+                mikroTikUser.ConnectionStatus,
+                value => client.ConnectionStatus = value);
+            changed |= SetIfDifferent(
+                client.IsActive,
+                !string.Equals(mikroTikUser.ConnectionStatus, "معطل", StringComparison.Ordinal),
+                value => client.IsActive = value);
+        }
+
+        if (mikroTikUser.ReceiverId.HasValue)
+        {
+            changed |= SetIfDifferent(client.ReceiverId, mikroTikUser.ReceiverId, value => client.ReceiverId = value);
+        }
+
+        if (mikroTikUser.AccountExpirationDate.HasValue)
+        {
+            changed |= SetIfDifferent(
+                client.AccountExpirationDate,
+                mikroTikUser.AccountExpirationDate,
+                value => client.AccountExpirationDate = value);
+        }
+
+        if (changed)
+        {
+            client.LastUpdated = DateTime.Now;
+        }
+
+        return changed;
+    }
+
+    private static bool HasMikroTikChanges(Client client, Client mikroTikUser)
+    {
+        return (!string.IsNullOrWhiteSpace(mikroTikUser.ProfileName) &&
+                !string.Equals(client.ProfileName, mikroTikUser.ProfileName, StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(mikroTikUser.Password) &&
+                !string.Equals(client.Password, mikroTikUser.Password, StringComparison.Ordinal))
+            || (!string.IsNullOrWhiteSpace(mikroTikUser.Service) &&
+                !string.Equals(client.Service, mikroTikUser.Service, StringComparison.Ordinal))
+            || (mikroTikUser.Address != null &&
+                !string.Equals(client.Address, mikroTikUser.Address, StringComparison.Ordinal))
+            || (!string.IsNullOrWhiteSpace(mikroTikUser.ConnectionStatus) &&
+                (!string.Equals(client.ConnectionStatus, mikroTikUser.ConnectionStatus, StringComparison.Ordinal) ||
+                 client.IsActive == string.Equals(mikroTikUser.ConnectionStatus, "معطل", StringComparison.Ordinal)))
+            || (mikroTikUser.ReceiverId.HasValue && client.ReceiverId != mikroTikUser.ReceiverId)
+            || (mikroTikUser.AccountExpirationDate.HasValue &&
+                client.AccountExpirationDate != mikroTikUser.AccountExpirationDate);
+    }
+
+    private static bool SetIfDifferent<T>(T currentValue, T newValue, Action<T> setValue)
+    {
+        if (EqualityComparer<T>.Default.Equals(currentValue, newValue))
+        {
+            return false;
+        }
+
+        setValue(newValue);
+        return true;
     }
 
     private async Task<Dictionary<string, Client>> LoadOrphanClientsByUserNameAsync(int networkId)

@@ -60,6 +60,15 @@
                             <td class="status-cell">
                                 <div><strong>@(r.User?.FullName ?? r.User?.UserName ?? "غير معروف")</strong></div>
                                 <div class="text-muted small">@r.Email</div>
+                                @{
+                                    var roleLabels = ViewBag.PasswordResetRoleLabels as System.Collections.Generic.Dictionary<string, string>;
+                                    string? roleLabel = null;
+                                    roleLabels?.TryGetValue(r.UserId, out roleLabel);
+                                }
+                                @if (!string.IsNullOrWhiteSpace(roleLabel))
+                                {
+                                    <div class="mt-1"><span class="badge bg-info text-dark">@roleLabel</span></div>
+                                }
                             </td>
                             <td>
                                 @if (r.Status == RadaTik.Models.PasswordResetStatus.Pending)

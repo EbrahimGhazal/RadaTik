@@ -994,9 +994,30 @@ namespace RadaTik.Controllers
             model.RequestDate = DateTime.Now;
             model.Status = SpeedChangeRequestStatus.Pending;
 
-            // حساب فرق السعر
+            // حساب فرق السعر + التحقق أن الباقة تابعة لنفس سيرفر المشترك
             Profile? requestedProfile = await _context.Profiles.FindAsync(model.RequestedProfileId);
-            if (requestedProfile != null && client.Profile != null)
+            if (requestedProfile == null || !requestedProfile.IsActive)
+            {
+                TempData["Error"] = "الباقة المطلوبة غير موجودة أو غير مفعّلة.";
+                return RedirectToAction(nameof(AvailablePlans));
+            }
+
+            if (!client.MikroTikServerId.HasValue ||
+                requestedProfile.MikroTikServerId != client.MikroTikServerId.Value)
+            {
+                TempData["Error"] = "لا يمكن طلب باقة خارج السيرفر المرتبط باشتراكك.";
+                return RedirectToAction(nameof(AvailablePlans));
+            }
+
+            if (client.NetworkId.HasValue &&
+                requestedProfile.NetworkId.HasValue &&
+                requestedProfile.NetworkId.Value != client.NetworkId.Value)
+            {
+                TempData["Error"] = "لا يمكن طلب باقة خارج شبكة اشتراكك.";
+                return RedirectToAction(nameof(AvailablePlans));
+            }
+
+            if (client.Profile != null)
             {
                 model.PriceDifference = requestedProfile.PriceWithVAT - client.Profile.PriceWithVAT;
             }
@@ -1101,23 +1122,45 @@ namespace RadaTik.Controllers
         #region الباقات المتاحة
 
         /// <summary>
-        /// عرض جميع الباقات المتاحة مع تفاصيلها
+        /// عرض الباقات المتاحة للمشترك (فقط سرعات السيرفر التابع له).
         /// </summary>
         [AllowAnonymous]
         public async Task<IActionResult> AvailablePlans()
         {
-            List<Profile> profiles = await _context.Profiles
-                .Where(p => p.IsActive && p.IsForNewClients)
-                .OrderBy(p => p.DisplayOrder)
-                .ThenBy(p => p.Price)
-                .ToListAsync();
-
-            // إذا كان المستخدم مسجل دخول وعميل، نحصل على باقته الحالية
             Client? currentClient = null;
             if (User.Identity?.IsAuthenticated == true)
             {
                 currentClient = await GetCurrentClientAsync();
             }
+
+            IQueryable<Profile> profilesQuery = _context.Profiles
+                .Where(p => p.IsActive && p.IsForNewClients);
+
+            if (currentClient != null)
+            {
+                if (!currentClient.MikroTikServerId.HasValue)
+                {
+                    ViewBag.CurrentClient = currentClient;
+                    ViewBag.CurrentProfileId = currentClient.ProfileId;
+                    TempData["Warning"] = "حسابك غير مرتبط بسيرفر حالياً، لذلك لا يمكن عرض الباقات المتاحة.";
+                    return View(new List<Profile>());
+                }
+
+                int serverId = currentClient.MikroTikServerId.Value;
+                profilesQuery = profilesQuery.Where(p => p.MikroTikServerId == serverId);
+
+                if (currentClient.NetworkId.HasValue)
+                {
+                    int networkId = currentClient.NetworkId.Value;
+                    profilesQuery = profilesQuery.Where(p =>
+                        p.NetworkId == null || p.NetworkId == networkId);
+                }
+            }
+
+            List<Profile> profiles = await profilesQuery
+                .OrderBy(p => p.DisplayOrder)
+                .ThenBy(p => p.Price)
+                .ToListAsync();
 
             ViewBag.CurrentClient = currentClient;
             ViewBag.CurrentProfileId = currentClient?.ProfileId;
@@ -1140,11 +1183,18 @@ namespace RadaTik.Controllers
                 return RedirectToAction(nameof(AvailablePlans));
             }
 
-            // إذا كان المستخدم مسجل دخول وعميل، نحصل على باقته الحالية
             Client? currentClient = null;
             if (User.Identity?.IsAuthenticated == true)
             {
                 currentClient = await GetCurrentClientAsync();
+            }
+
+            if (currentClient != null &&
+                currentClient.MikroTikServerId.HasValue &&
+                profile.MikroTikServerId != currentClient.MikroTikServerId.Value)
+            {
+                TempData["Error"] = "هذه الباقة غير متاحة على السيرفر الخاص باشتراكك.";
+                return RedirectToAction(nameof(AvailablePlans));
             }
 
             ViewBag.CurrentClient = currentClient;
@@ -1159,8 +1209,36 @@ namespace RadaTik.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> ComparePlans(int[]? ids)
         {
-            List<Profile> profiles = await _context.Profiles
-                .Where(p => p.IsActive && p.IsForNewClients)
+            Client? currentClient = null;
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                currentClient = await GetCurrentClientAsync();
+            }
+
+            IQueryable<Profile> profilesQuery = _context.Profiles
+                .Where(p => p.IsActive && p.IsForNewClients);
+
+            if (currentClient != null)
+            {
+                if (!currentClient.MikroTikServerId.HasValue)
+                {
+                    ViewBag.CurrentClient = currentClient;
+                    ViewBag.CurrentProfileId = currentClient.ProfileId;
+                    return View(new List<Profile>());
+                }
+
+                int serverId = currentClient.MikroTikServerId.Value;
+                profilesQuery = profilesQuery.Where(p => p.MikroTikServerId == serverId);
+
+                if (currentClient.NetworkId.HasValue)
+                {
+                    int networkId = currentClient.NetworkId.Value;
+                    profilesQuery = profilesQuery.Where(p =>
+                        p.NetworkId == null || p.NetworkId == networkId);
+                }
+            }
+
+            List<Profile> profiles = await profilesQuery
                 .OrderBy(p => p.DisplayOrder)
                 .ThenBy(p => p.Price)
                 .ToListAsync();
@@ -1169,13 +1247,6 @@ namespace RadaTik.Controllers
             if (ids != null && ids.Length > 0)
             {
                 profiles = profiles.Where(p => ids.Contains(p.Id)).ToList();
-            }
-
-            // إذا كان المستخدم مسجل دخول وعميل، نحصل على باقته الحالية
-            Client? currentClient = null;
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                currentClient = await GetCurrentClientAsync();
             }
 
             ViewBag.CurrentClient = currentClient;

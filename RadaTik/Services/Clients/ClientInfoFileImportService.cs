@@ -12,7 +12,7 @@ namespace RadaTik.Services.Clients;
 
 /// <summary>
 /// استيراد معلومات المشتركين من Excel/CSV:
-/// المطابقة بالحساب (UserName)، ثم تحديث الاسم الكامل والجوال وآخر تجديد والبناء عند توفرها فقط.
+/// المطابقة بالحساب (UserName)، ثم تحديث الاسم الكامل والجوال وآخر تجديد والبناء وتاريخ الإضافة عند توفرها فقط.
 /// إن تكرر الحساب أو الاسم الكامل في قاعدة البيانات تُطبَّق نفس المعلومات على كل التكرارات.
 /// إذا كان تاريخ آخر تجديد لم يتجاوز 30 يوماً من تاريخ الاستعادة يُجدَّد الاشتراك حتى يوم 10 من الشهر التالي.
 /// </summary>
@@ -51,6 +51,12 @@ public sealed class ClientInfoFileImportService(
         "البناء", "المبنى", "building"
     ];
 
+    private static readonly string[] CreatedDateHeaders =
+    [
+        "تاريخ الإضافة", "تاريخ الاضافة", "تاريخ الإضافه", "تاريخ الإضافة في قاعدة البيانات",
+        "تاريخ الإضافة في القاعدة", "created", "created_date", "createddate", "date_added", "added_date"
+    ];
+
     public byte[] BuildTemplateWorkbook()
     {
         using XLWorkbook wb = new XLWorkbook();
@@ -60,6 +66,7 @@ public sealed class ClientInfoFileImportService(
         ws.Cell(1, 3).Value = "الجوال";
         ws.Cell(1, 4).Value = "آخر تجديد";
         ws.Cell(1, 5).Value = "البناء";
+        ws.Cell(1, 6).Value = "تاريخ الإضافة";
         ws.Row(1).Style.Font.Bold = true;
 
         ws.Cell(2, 1).Value = "user@example.com";
@@ -68,6 +75,8 @@ public sealed class ClientInfoFileImportService(
         ws.Cell(2, 4).Value = DateTime.Today;
         ws.Cell(2, 4).Style.DateFormat.Format = "yyyy-mm-dd";
         ws.Cell(2, 5).Value = "بناء أ";
+        ws.Cell(2, 6).Value = DateTime.Today.AddMonths(-2);
+        ws.Cell(2, 6).Style.DateFormat.Format = "yyyy-mm-dd";
         ws.SheetView.FreezeRows(1);
         ws.Columns().AdjustToContents();
 
@@ -149,6 +158,7 @@ public sealed class ClientInfoFileImportService(
             string? phone = GetField(row, PhoneHeaders);
             string? building = GetField(row, BuildingHeaders);
             string? renewalRaw = GetField(row, RenewalHeaders);
+            string? createdRaw = GetField(row, CreatedDateHeaders);
 
             if (string.IsNullOrWhiteSpace(userName))
             {
@@ -161,7 +171,8 @@ public sealed class ClientInfoFileImportService(
                 !string.IsNullOrWhiteSpace(name) ||
                 !string.IsNullOrWhiteSpace(phone) ||
                 !string.IsNullOrWhiteSpace(building) ||
-                !string.IsNullOrWhiteSpace(renewalRaw);
+                !string.IsNullOrWhiteSpace(renewalRaw) ||
+                !string.IsNullOrWhiteSpace(createdRaw);
 
             if (!hasAnyUpdatable)
             {
@@ -208,6 +219,19 @@ public sealed class ClientInfoFileImportService(
                     renewalDate = parsedRenewal;
                 }
 
+                DateTime? createdDate = null;
+                if (!string.IsNullOrWhiteSpace(createdRaw))
+                {
+                    if (!TryParseDate(createdRaw, out DateTime parsedCreated))
+                    {
+                        failed++;
+                        details.Add($"صف {rowNumber}: تاريخ «تاريخ الإضافة» غير صالح ({createdRaw}).");
+                        continue;
+                    }
+
+                    createdDate = parsedCreated;
+                }
+
                 int rowUpdated = 0;
                 int rowRenewed = 0;
                 foreach (Client client in targets.Values)
@@ -218,6 +242,7 @@ public sealed class ClientInfoFileImportService(
                             phone,
                             building,
                             renewalDate,
+                            createdDate,
                             restoreDate,
                             out bool grantedNextMonth10))
                     {
@@ -287,6 +312,7 @@ public sealed class ClientInfoFileImportService(
         string? phone,
         string? building,
         DateTime? renewalDate,
+        DateTime? createdDate,
         DateTime restoreDate,
         out bool grantedNextMonth10)
     {
@@ -315,6 +341,15 @@ public sealed class ClientInfoFileImportService(
             !string.Equals(client.Building ?? string.Empty, building.Trim(), StringComparison.Ordinal))
         {
             client.Building = building.Trim();
+            changed = true;
+        }
+
+        if (createdDate.HasValue && client.CreatedDate.Date != createdDate.Value.Date)
+        {
+            // الحفاظ على وقت اليوم إن وُجد، وإلا منتصف الليل كما في ملف الإكسل
+            client.CreatedDate = createdDate.Value.TimeOfDay == TimeSpan.Zero
+                ? createdDate.Value.Date
+                : createdDate.Value;
             changed = true;
         }
 

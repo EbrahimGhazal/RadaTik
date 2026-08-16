@@ -24,6 +24,8 @@ public class ImportUsersResult
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
     public int AddedCount { get; set; }
+    /// <summary>عملاء موجودون تم تحديث بياناتهم من MikroTik أثناء إعادة المزامنة.</summary>
+    public int UpdatedCount { get; set; }
     public int ExistingCount { get; set; }
     public int DuplicateCount { get; set; }
     /// <summary>مشتركون كانوا في الشبكة بدون MikroTikServerId وتم ربطهم بالسيرفر.</summary>
@@ -40,6 +42,8 @@ public class ImportUsersPreviewResult
 {
     public int TotalUsersOnServer { get; set; }
     public int ImportableUsersCount { get; set; }
+    /// <summary>عملاء موجودون اختلفت بياناتهم القابلة للمزامنة عن بيانات MikroTik.</summary>
+    public int UpdatableUsersCount { get; set; }
     public int ExistingUsersCount { get; set; }
     /// <summary>من القابلين للاستيراد: موجودون بنفس الاسم على سيرفر آخر في الشبكة.</summary>
     public int DuplicateUsersCount { get; set; }

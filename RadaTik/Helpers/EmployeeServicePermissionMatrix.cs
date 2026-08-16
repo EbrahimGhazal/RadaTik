@@ -155,6 +155,24 @@ public static class EmployeeServicePermissionMatrix
     }
 
     /// <summary>
+    /// جميع مفاتيح الصلاحيات المرتبطة بخدمة معيّنة في مصفوفة الموظف.
+    /// </summary>
+    public static IReadOnlyList<string> GetPermissionKeysForFeature(string featureKey)
+    {
+        if (string.IsNullOrWhiteSpace(featureKey))
+        {
+            return Array.Empty<string>();
+        }
+
+        return Definitions
+            .Where(d => string.Equals(d.FeatureKey, featureKey, StringComparison.OrdinalIgnoreCase))
+            .SelectMany(d => d.Slots)
+            .SelectMany(s => s.Keys)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>
     /// جميع معرّفات الصلاحيات المسموح اختيارها للموظف ضمن شبكة معيّنة (خدمات مفعّلة + موجودة في الجدول).
     /// </summary>
     public static HashSet<int> GetAllowedPermissionIds(

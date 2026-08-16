@@ -255,9 +255,20 @@
 <div class="table-card">
     @if (Model.Any())
     {
+        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+            <div class="small text-muted">
+                <span id="profileSelectedCountHint">(0 محدد)</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="btnOpenBulkProfilePrice" title="تعيين سعر موحّد للمحددين">
+                <i class="fas fa-tags"></i> تعيين سعر موحّد
+            </button>
+        </div>
         <table class="table table-sm table-hover data-table radtk-data-table radtk-data-table--cards" id="profilesTable">
             <thead>
                 <tr>
+                    <th class="no-sort" style="width:2.4rem;">
+                        <input type="checkbox" id="profilesSelectAll" class="form-check-input" title="تحديد الكل" />
+                    </th>
                     <th>الاسم</th>
                     <th>النوع</th>
                     <th>السعر</th>
@@ -273,7 +284,10 @@
             <tbody>
                 @foreach (var item in Model)
                 {
-                    <tr>
+                    <tr class="profile-row" data-profile-id="@item.Id" data-profile-name="@item.Name">
+                        <td data-label="تحديد">
+                            <input type="checkbox" class="form-check-input profile-select-check" value="@item.Id" />
+                        </td>
                         <td data-label="الاسم">
                             <div class="profile-name">@item.Name</div>
                             @if (item.CompanyProfileCatalogId.HasValue)
@@ -416,10 +430,69 @@
     </div>
 }
 
+<div class="modal fade" id="bulkProfilePriceModal" tabindex="-1" aria-labelledby="bulkProfilePriceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkProfilePriceModalLabel">
+                    <i class="fas fa-tags"></i> تعيين سعر موحّد
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-2">
+                    سيتم تطبيق السعر على البروفايلات المحددة فقط ضمن الشبكة الحالية.
+                    <span id="bulkProfilePriceSelectedHint" class="fw-semibold"></span>
+                </p>
+                <div class="mb-3">
+                    <label class="form-label" for="bulkProfilePriceValue">السعر الجديد (ل.س)</label>
+                    <input type="number" class="form-control" id="bulkProfilePriceValue" min="0" step="0.01" placeholder="مثال: 25000" />
+                </div>
+                <div class="mb-0">
+                    <label class="form-label" for="bulkProfilePriceReason">سبب التغيير (اختياري)</label>
+                    <input type="text" class="form-control" id="bulkProfilePriceReason" maxlength="200" placeholder="تعيين سعر موحّد لمجموعة سرعات" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmBulkProfilePrice">
+                    <i class="fas fa-check"></i> تطبيق السعر
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="profileBulkPriceAntiForgery" class="d-none">
+    @Html.AntiForgeryToken()
+</form>
 
 </div>
 @section Scripts {
     <script>
+        function getAntiForgeryToken() {
+            const el = document.querySelector('#profileBulkPriceAntiForgery input[name="__RequestVerificationToken"]');
+            return el ? el.value : '';
+        }
+
+        function getSelectedProfileIds() {
+            return Array.from(document.querySelectorAll('.profile-select-check:checked')).map(function (chk) {
+                return chk.value;
+            });
+        }
+
+        function updateProfileSelectedHint() {
+            const count = getSelectedProfileIds().length;
+            const hint = document.getElementById('profileSelectedCountHint');
+            if (hint) {
+                hint.textContent = '(' + count + ' محدد)';
+            }
+            const modalHint = document.getElementById('bulkProfilePriceSelectedHint');
+            if (modalHint) {
+                modalHint.textContent = count > 0 ? ('المحدد: ' + count) : '';
+            }
+        }
+
         function initProfilesTableIfDesktop() {
             if (!$('#profilesTable').length || typeof $.fn.DataTable === 'undefined') {
                 return;
@@ -431,7 +504,6 @@
             if (isCompact) {
                 if (already) {
                     $('#profilesTable').DataTable().destroy();
-                    // إعادة الصفوف كما هي بعد destroy دون wrapper عريض
                     $('#profilesTable').removeAttr('style');
                 }
                 return;
@@ -442,9 +514,12 @@
                     language: {
                         url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/ar.json'
                     },
-                    order: [[0, 'asc']],
+                    order: [[1, 'asc']],
                     pageLength: 25,
-                    responsive: true
+                    responsive: true,
+                    columnDefs: [
+                        { orderable: false, targets: [0, 10] }
+                    ]
                 });
             }
         }
@@ -456,6 +531,105 @@
                 clearTimeout(resizeTimer);
                 resizeTimer = setTimeout(initProfilesTableIfDesktop, 180);
             });
+
+            const selectAll = document.getElementById('profilesSelectAll');
+            if (selectAll) {
+                selectAll.addEventListener('change', function () {
+                    document.querySelectorAll('.profile-select-check').forEach(function (chk) {
+                        const row = chk.closest('tr');
+                        if (row && row.style.display === 'none') return;
+                        chk.checked = selectAll.checked;
+                    });
+                    updateProfileSelectedHint();
+                });
+            }
+
+            document.addEventListener('change', function (e) {
+                if (e.target && e.target.classList && e.target.classList.contains('profile-select-check')) {
+                    updateProfileSelectedHint();
+                }
+            });
+
+            const openBtn = document.getElementById('btnOpenBulkProfilePrice');
+            if (openBtn) {
+                openBtn.addEventListener('click', function () {
+                    const ids = getSelectedProfileIds();
+                    if (!ids.length) {
+                        alert('يرجى تحديد بروفايل واحد على الأقل.');
+                        return;
+                    }
+                    updateProfileSelectedHint();
+                    const modalEl = document.getElementById('bulkProfilePriceModal');
+                    if (modalEl && typeof bootstrap !== 'undefined') {
+                        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                    }
+                });
+            }
+
+            const confirmBtn = document.getElementById('btnConfirmBulkProfilePrice');
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', async function () {
+                    const ids = getSelectedProfileIds();
+                    if (!ids.length) {
+                        alert('يرجى تحديد بروفايل واحد على الأقل.');
+                        return;
+                    }
+
+                    const priceInput = document.getElementById('bulkProfilePriceValue');
+                    const reasonInput = document.getElementById('bulkProfilePriceReason');
+                    const price = priceInput ? Number(priceInput.value) : NaN;
+                    if (!Number.isFinite(price) || price < 0) {
+                        alert('أدخل سعراً صالحاً (صفر أو أكبر).');
+                        return;
+                    }
+
+                    if (!confirm('سيتم تعيين السعر ' + price + ' ل.س لـ ' + ids.length + ' بروفايل. متابعة؟')) {
+                        return;
+                    }
+
+                    confirmBtn.disabled = true;
+                    try {
+                        const token = getAntiForgeryToken();
+                        const body = new URLSearchParams();
+                        body.set('newPrice', String(price));
+                        body.set('__RequestVerificationToken', token);
+                        if (reasonInput && reasonInput.value) {
+                            body.set('reason', reasonInput.value);
+                        }
+                        ids.forEach(function (id) {
+                            body.append('profileIds', id);
+                        });
+
+                        const response = await fetch('@Url.Action("BulkSetPriceJson", "Profile")', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                                'X-CSRF-TOKEN': token,
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            },
+                            body: body.toString()
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('HTTP ' + response.status);
+                        }
+
+                        const result = await response.json();
+                        alert(result.message || (result.success ? 'تم التحديث' : 'فشل التحديث'));
+                        if (result.success) {
+                            window.location.reload();
+                        }
+                    } catch (err) {
+                        alert('تعذر تحديث الأسعار. حاول مرة أخرى.');
+                    } finally {
+                        confirmBtn.disabled = false;
+                    }
+                });
+            }
+
+            updateProfileSelectedHint();
         });
 
         function getSelectedSyncServers() {

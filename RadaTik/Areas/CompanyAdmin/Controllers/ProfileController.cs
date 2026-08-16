@@ -31,7 +31,8 @@ namespace RadaTik.Areas.CompanyAdmin.Controllers
             IProfileImportPreviewService profileImportPreview,
             IProfileFormViewDataService profileFormViewData,
             IProfileCompanyWalletService profileCompanyWallet,
-            IProfileMikroTikSyncOrchestrator profileMikroTikSync)
+            IProfileMikroTikSyncOrchestrator profileMikroTikSync,
+            IProfileBulkPricingService profileBulkPricing)
             : base(
                 context,
                 mikroTikService,
@@ -44,9 +45,9 @@ namespace RadaTik.Areas.CompanyAdmin.Controllers
                 profileImportPreview,
                 profileFormViewData,
                 profileCompanyWallet,
-                profileMikroTikSync)
+                profileMikroTikSync,
+                profileBulkPricing)
         {
         }
     }
 }
-

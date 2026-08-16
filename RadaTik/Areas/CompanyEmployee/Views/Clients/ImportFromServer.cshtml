@@ -40,7 +40,7 @@
             @ViewData["Title"]
         </h2>
         <p class="text-muted mb-0">
-            اختر السيرفر المطلوب لاستيراد جميع المشتركين الموجودين عليه إلى قاعدة البيانات (الشبكة الحالية).
+            استورد العملاء الجدد أو أعد مزامنة التعديلات الطارئة التي تمت مباشرةً على السيرفر إلى قاعدة البيانات.
         </p>
     </div>
     <a asp-action="Index" class="btn btn-secondary">
@@ -86,11 +86,14 @@ else
 {
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <span><i class="fas fa-server"></i> اختر السيرفر ثم اضغط «استيراد» أو استخدم «مزامنة الكل»</span>
+            <span><i class="fas fa-server"></i> اختر السيرفر لمزامنة العملاء الجدد والتعديلات، أو استخدم «مزامنة الكل»</span>
             <button type="button"
                     id="btnImportAllClients"
                     class="btn btn-dark btn-sm"
-                    @(totalImportable <= 0 ? "disabled" : null)
+                    @(totalImportable <= 0 && !Model.Any(s =>
+                        importPreviewByServer != null &&
+                        importPreviewByServer.TryGetValue(s.Id, out var p) &&
+                        p.UpdatableUsersCount > 0) ? "disabled" : null)
                     data-total-users="@totalUsers"
                     data-importable-users="@totalImportable"
                     data-unit-price="@clientImportUnitPrice.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
@@ -104,6 +107,7 @@ else
                 الخوادم: <strong>@Model.Count</strong> |
                 العملاء على السيرفرات: <strong>@totalUsers</strong> |
                 القابلون للاستيراد: <strong>@totalImportable</strong> |
+                التعديلات القابلة للمزامنة: <strong>@Model.Sum(s => importPreviewByServer != null && importPreviewByServer.TryGetValue(s.Id, out var p) ? p.UpdatableUsersCount : 0)</strong> |
                 التكلفة الكلية المتوقعة: <strong>@SyrianCurrencyHelper.FormatNew(totalCharge)</strong> ل.س.ج
             </div>
             <div class="list-group list-group-flush">
@@ -129,7 +133,9 @@ else
                         charge = new RadaTik.Services.UsageImportChargeEstimate();
                     }
                     var canImport = !preview.HasConnectionError
-                        && (preview.ImportableUsersCount > 0 || preview.RelinkableUsersCount > 0);
+                        && (preview.ImportableUsersCount > 0 ||
+                            preview.RelinkableUsersCount > 0 ||
+                            preview.UpdatableUsersCount > 0);
                     <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2 py-3"
                          data-server-row
                          data-server-id="@server.Id"
@@ -147,6 +153,10 @@ else
                                 على السيرفر: <strong>@preview.TotalUsersOnServer</strong> |
                                 قابل للاستيراد: <strong>@preview.ImportableUsersCount</strong> |
                                 موجود مسبقاً: <strong>@preview.ExistingUsersCount</strong>
+                                @if (preview.UpdatableUsersCount > 0)
+                                {
+                                    <span class="text-primary">| تعديلات ستُزامن: <strong>@preview.UpdatableUsersCount</strong></span>
+                                }
                                 @if (preview.RelinkableUsersCount > 0)
                                 {
                                     <span class="text-info">| سيُربط بالسيرفر: <strong>@preview.RelinkableUsersCount</strong></span>
@@ -180,7 +190,7 @@ else
                         <button type="button"
                                 class="btn btn-warning btn-import-one-server"
                                 @(canImport ? null : "disabled")>
-                            <i class="fas fa-download"></i> استيراد من هذا السيرفر
+                            <i class="fas fa-sync-alt"></i> مزامنة هذا السيرفر
                         </button>
                     </div>
                 }
@@ -445,7 +455,7 @@ else
             importAllBtn.addEventListener('click', function () {
                 const servers = getImportableServers();
                 if (!servers.length) {
-                    alert('لا يوجد عملاء جدد قابلون للاستيراد من أي سيرفر حالياً.');
+                    alert('لا توجد إضافات أو تعديلات من السيرفرات لمزامنتها حالياً.');
                     return;
                 }
                 if (!window.confirm(confirmImportMessage(servers))) return;
