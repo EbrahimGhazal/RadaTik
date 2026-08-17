@@ -5596,6 +5596,37 @@ body.profile-import-busy {
         padding: var(--spacing-md);
         background: var(--bg-hover);
         border-radius: var(--radius);
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+.radtk-surface .radtk-page--clientportal-views-clientportal-availableplans .speed-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: var(--spacing-xs);
+        flex-wrap: wrap;
+    }
+.radtk-surface .radtk-page--clientportal-views-clientportal-availableplans .speed-row--primary .speed-value {
+        font-size: var(--font-2xl);
+        font-weight: 700;
+        color: var(--primary);
+    }
+.radtk-surface .radtk-page--clientportal-views-clientportal-availableplans .speed-row--primary {
+        color: var(--primary);
+    }
+.radtk-surface .radtk-page--clientportal-views-clientportal-availableplans .speed-row--secondary .speed-value {
+        font-size: var(--font-sm);
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+.radtk-surface .radtk-page--clientportal-views-clientportal-availableplans .speed-row--secondary {
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+.radtk-surface .radtk-page--clientportal-views-clientportal-availableplans .speed-label {
+        font-size: var(--font-sm);
+        opacity: 0.9;
     }
 .radtk-surface .radtk-page--clientportal-views-clientportal-availableplans .speed-main {
         display: flex;

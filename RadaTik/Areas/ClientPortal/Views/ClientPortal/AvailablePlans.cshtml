@@ -86,14 +86,24 @@
                     </div>
                     
                     <div class="plan-speed">
-                        <div class="speed-main">
+                        @{
+                            decimal downloadMbps = profile.DownloadSpeedMbps;
+                            decimal uploadMbps = profile.UploadSpeedMbps ?? 0m;
+                            bool hasUpload = profile.UploadSpeed.HasValue;
+                            bool downloadIsHigherOrEqual = !hasUpload || downloadMbps >= uploadMbps;
+                            bool uploadIsHigher = hasUpload && uploadMbps > downloadMbps;
+                        }
+                        <div class="speed-row @(downloadIsHigherOrEqual ? "speed-row--primary" : "speed-row--secondary")">
                             <i class="fas fa-download"></i>
                             <span class="speed-value">@profile.DownloadSpeedDisplay</span>
+                            <span class="speed-label">تنزيل</span>
                         </div>
-                        @if (profile.UploadSpeed.HasValue)
+                        @if (hasUpload)
                         {
-                            <div class="speed-upload">
-                                <i class="fas fa-upload"></i> @profile.UploadSpeedDisplay رفع
+                            <div class="speed-row @(uploadIsHigher ? "speed-row--primary" : "speed-row--secondary")">
+                                <i class="fas fa-upload"></i>
+                                <span class="speed-value">@profile.UploadSpeedDisplay</span>
+                                <span class="speed-label">تحميل</span>
                             </div>
                         }
                     </div>
