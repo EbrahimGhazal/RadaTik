@@ -22,6 +22,7 @@ public sealed class ClientIndexPageModel
     public bool ConnectionsReady { get; init; }
     public List<Network> AvailableNetworks { get; init; } = [];
     public int? CurrentNetworkId { get; init; }
+    public IReadOnlyList<ClientCopyTargetServerItem> CopyTargetServers { get; init; } = [];
 }
 
 public sealed class ClientDetailsPageModel

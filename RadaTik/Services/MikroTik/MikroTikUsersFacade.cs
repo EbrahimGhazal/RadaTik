@@ -35,6 +35,12 @@ public sealed class MikroTikUsersFacade(MikroTikUserService users, MikroTikUserI
 
     public Task<bool> AddPPPoEUser(Client client) => _users.AddPPPoEUser(client);
 
+    public Task<BulkAddPppoeUsersResult> AddPPPoEUsersToServerAsync(
+        int serverId,
+        IReadOnlyList<Client> clients,
+        CancellationToken ct = default) =>
+        _users.AddPPPoEUsersToServerAsync(serverId, clients, ct);
+
     public Task<bool> UpdatePPPoEUser(Client client) => _users.UpdatePPPoEUser(client);
 
     public Task<bool> UpdatePPPoEUserWithOriginalUsername(Client client, string originalUsername) =>
@@ -42,6 +48,12 @@ public sealed class MikroTikUsersFacade(MikroTikUserService users, MikroTikUserI
 
     public Task<bool> DeletePPPoEUser(string username, int serverId) =>
         _users.DeletePPPoEUser(username, serverId);
+
+    public Task<BulkDeletePppoeUsersResult> DeletePPPoEUsersFromServerAsync(
+        int serverId,
+        IReadOnlyList<string> usernames,
+        CancellationToken ct = default) =>
+        _users.DeletePPPoEUsersFromServerAsync(serverId, usernames, ct);
 
     public Task<Client?> GetPPPoEUserInfo(string username, int serverId) =>
         _users.GetPPPoEUserInfo(username, serverId);

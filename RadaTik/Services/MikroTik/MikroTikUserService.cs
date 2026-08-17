@@ -439,6 +439,165 @@ public sealed class MikroTikUserService(
         }
     }
 
+    public async Task<BulkAddPppoeUsersResult> AddPPPoEUsersToServerAsync(
+        int serverId,
+        IReadOnlyList<Client> clients,
+        CancellationToken ct = default)
+    {
+        if (clients == null || clients.Count == 0)
+        {
+            return BulkAddPppoeUsersResult.Fail("لا توجد حسابات لنسخها.");
+        }
+
+        MikroTikServer? server = await _context.MikroTikServers.FirstOrDefaultAsync(s => s.Id == serverId, ct);
+        if (server is null)
+        {
+            return BulkAddPppoeUsersResult.Fail("الخادم غير موجود");
+        }
+
+        ITikConnection? connection = null;
+        try
+        {
+            connection = _connection.CreateConnectionWithRetry(server);
+
+            ITikCommand secretsCmd = connection.CreateCommand("/ppp/secret/print");
+            HashSet<string> existingNames = secretsCmd.ExecuteList()
+                .Select(u => MikroTikApiSupport.GetSafeValue(u, "name"))
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            ITikCommand profileCmd = connection.CreateCommand("/ppp/profile/print");
+            HashSet<string> existingProfiles = profileCmd.ExecuteList()
+                .Select(p => MikroTikApiSupport.GetSafeValue(p, "name"))
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            int added = 0;
+            int skippedExisting = 0;
+            int skippedInvalid = 0;
+            int failed = 0;
+            List<int> placedIds = [];
+            List<string> errors = [];
+
+            foreach (Client client in clients)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                string? userName = client.UserName?.Trim();
+                string? password = client.Password;
+                string? profileName = ResolveProfileName(client);
+                string label = !string.IsNullOrWhiteSpace(client.Name) ? client.Name! : (userName ?? $"#{client.Id}");
+
+                if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrEmpty(password))
+                {
+                    skippedInvalid++;
+                    errors.Add($"{label}: اسم المستخدم أو كلمة المرور غير مكتمل في قاعدة البيانات.");
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(profileName))
+                {
+                    skippedInvalid++;
+                    errors.Add($"{label}: لا يوجد بروفايل للحساب.");
+                    continue;
+                }
+
+                if (!existingProfiles.Contains(profileName))
+                {
+                    failed++;
+                    errors.Add($"{label}: البروفايل «{profileName}» غير موجود في السيرفر.");
+                    continue;
+                }
+
+                if (existingNames.Contains(userName))
+                {
+                    skippedExisting++;
+                    placedIds.Add(client.Id);
+                    continue;
+                }
+
+                try
+                {
+                    ITikCommand addCmd = connection.CreateCommand("/ppp/secret/add");
+                    addCmd.AddParameter("name", userName);
+                    addCmd.AddParameter("password", password);
+                    addCmd.AddParameter("service", "pppoe");
+                    addCmd.AddParameter("profile", profileName);
+
+                    if (!string.IsNullOrWhiteSpace(client.Address))
+                    {
+                        addCmd.AddParameter("remote-address", client.Address);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(client.Name))
+                    {
+                        string comment = client.Name.Trim();
+                        if (comment.Length > 60)
+                        {
+                            comment = comment[..60];
+                        }
+
+                        addCmd.AddParameter("comment", comment);
+                    }
+
+                    if (!client.IsActive)
+                    {
+                        addCmd.AddParameter("disabled", "yes");
+                    }
+
+                    addCmd.ExecuteNonQuery();
+                    existingNames.Add(userName);
+                    added++;
+                    placedIds.Add(client.Id);
+                }
+                catch (Exception cmdEx) when (cmdEx.Message.Contains("!empty", StringComparison.Ordinal))
+                {
+                    existingNames.Add(userName);
+                    added++;
+                    placedIds.Add(client.Id);
+                }
+                catch (Exception cmdEx)
+                {
+                    failed++;
+                    errors.Add($"{label}: {cmdEx.Message}");
+                    _logger.LogWarning(cmdEx, "فشل نسخ الحساب {UserName} إلى السيرفر {ServerId}", userName, serverId);
+                }
+            }
+
+            return new BulkAddPppoeUsersResult
+            {
+                Success = true,
+                AddedCount = added,
+                SkippedExistingCount = skippedExisting,
+                SkippedInvalidCount = skippedInvalid,
+                FailedCount = failed,
+                PlacedClientIds = placedIds,
+                Errors = errors,
+                Message = $"تمت إضافة {added} حساباً إلى السيرفر."
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "فشل نسخ الحسابات إلى سيرفر MikroTik {ServerId}", serverId);
+            return BulkAddPppoeUsersResult.Fail(
+                MikroTikErrorFormatter.Format("تعذر الاتصال بالسيرفر أو تنفيذ النسخ", ex.Message));
+        }
+        finally
+        {
+            connection?.Dispose();
+        }
+    }
+
+    private static string? ResolveProfileName(Client client)
+    {
+        if (!string.IsNullOrWhiteSpace(client.ProfileName))
+        {
+            return client.ProfileName.Trim();
+        }
+
+        return string.IsNullOrWhiteSpace(client.Profile?.Name) ? null : client.Profile.Name.Trim();
+    }
+
     /// <summary>
     /// تحديث مستخدم في المايكروتك
     /// </summary>
@@ -649,6 +808,95 @@ public sealed class MikroTikUserService(
         {
             _logger.LogError(ex, "❌ خطأ في حذف المستخدم من المايكروتك: {Message}", ex.Message);
             throw new InvalidOperationException("خطأ في حذف المستخدم من المايكروتك", ex);
+        }
+    }
+
+    public async Task<BulkDeletePppoeUsersResult> DeletePPPoEUsersFromServerAsync(
+        int serverId,
+        IReadOnlyList<string> usernames,
+        CancellationToken ct = default)
+    {
+        string[] names = (usernames ?? Array.Empty<string>())
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (names.Length == 0)
+        {
+            return new BulkDeletePppoeUsersResult { Success = true, Message = "لا توجد حسابات للحذف." };
+        }
+
+        MikroTikServer? server = await _context.MikroTikServers.FirstOrDefaultAsync(s => s.Id == serverId, ct);
+        if (server is null)
+        {
+            return BulkDeletePppoeUsersResult.Fail("الخادم غير موجود");
+        }
+
+        ITikConnection? connection = null;
+        try
+        {
+            connection = _connection.CreateConnectionWithRetry(server);
+            ITikCommand findCmd = connection.CreateCommand("/ppp/secret/print");
+            Dictionary<string, string> idsByName = findCmd.ExecuteList()
+                .Select(row => (
+                    Name: MikroTikApiSupport.GetSafeValue(row, "name"),
+                    Id: MikroTikApiSupport.GetSafeValue(row, ".id")))
+                .Where(row => !string.IsNullOrWhiteSpace(row.Name) && !string.IsNullOrWhiteSpace(row.Id))
+                .GroupBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+
+            int deleted = 0;
+            int notFound = 0;
+            int failed = 0;
+            List<string> errors = [];
+
+            foreach (string userName in names)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (!idsByName.TryGetValue(userName, out string? secretId))
+                {
+                    notFound++;
+                    continue;
+                }
+
+                try
+                {
+                    ITikCommand deleteCmd = connection.CreateCommand("/ppp/secret/remove");
+                    deleteCmd.AddParameter(".id", secretId);
+                    deleteCmd.ExecuteNonQuery();
+                    deleted++;
+                }
+                catch (Exception cmdEx) when (cmdEx.Message.Contains("!empty", StringComparison.Ordinal))
+                {
+                    deleted++;
+                }
+                catch (Exception cmdEx)
+                {
+                    failed++;
+                    errors.Add($"{userName}: {cmdEx.Message}");
+                    _logger.LogWarning(cmdEx, "فشل حذف الحساب {UserName} من السيرفر {ServerId}", userName, serverId);
+                }
+            }
+
+            return new BulkDeletePppoeUsersResult
+            {
+                Success = true,
+                DeletedCount = deleted,
+                NotFoundCount = notFound,
+                FailedCount = failed,
+                Errors = errors,
+                Message = $"تم حذف {deleted} حساباً من السيرفر."
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "فشل حذف الحسابات من سيرفر MikroTik {ServerId}", serverId);
+            return BulkDeletePppoeUsersResult.Fail(
+                MikroTikErrorFormatter.Format("تعذر حذف الحسابات من البرج القديم", ex.Message));
+        }
+        finally
+        {
+            connection?.Dispose();
         }
     }
 

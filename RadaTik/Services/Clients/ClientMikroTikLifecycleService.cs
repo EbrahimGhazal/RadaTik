@@ -377,6 +377,155 @@ public sealed class ClientMikroTikLifecycleService(
             $"تم تحديث تاريخ الانتهاء إلى {dateOnly:yyyy/MM/dd} لـ {updated} مشتركاً خلال ثوانٍ.");
     }
 
+    public async Task<BulkCopyAccountsToServerResult> BulkCopyAccountsToServerAsync(
+        int networkId,
+        int targetServerId,
+        IReadOnlyList<int>? clientIds,
+        bool applyToAllInNetwork,
+        CancellationToken ct = default)
+    {
+        bool serverExists = await Db.MikroTikServers.AnyAsync(
+            s => s.Id == targetServerId && s.NetworkId == networkId && s.IsActive,
+            ct);
+        if (!serverExists)
+        {
+            return BulkCopyAccountsToServerResult.Fail("السيرفر المطلوب غير موجود أو لا يتبع الشبكة الحالية.");
+        }
+
+        IQueryable<Client> query = Db.Clients
+            .AsNoTracking()
+            .Where(c => c.NetworkId == networkId);
+
+        if (!applyToAllInNetwork)
+        {
+            int[] ids = (clientIds ?? Array.Empty<int>()).Where(id => id > 0).Distinct().ToArray();
+            if (ids.Length == 0)
+            {
+                return BulkCopyAccountsToServerResult.Fail("لم يتم تحديد أي مشترك.");
+            }
+
+            query = query.Where(c => ids.Contains(c.Id));
+        }
+
+        List<Client> clients = await query.ToListAsync(ct);
+        if (clients.Count == 0)
+        {
+            return BulkCopyAccountsToServerResult.Fail("لا يوجد مشتركين لنقل حساباتهم.");
+        }
+
+        await FillMissingProfileNamesAsync(clients, ct);
+
+        BulkAddPppoeUsersResult copyResult = await _mikroTik.AddPPPoEUsersToServerAsync(
+            targetServerId,
+            clients,
+            ct);
+
+        if (!copyResult.Success)
+        {
+            return BulkCopyAccountsToServerResult.Fail(
+                copyResult.Message ?? "فشل نقل الحسابات إلى السيرفر.");
+        }
+
+        HashSet<int> placedIds = copyResult.PlacedClientIds.Where(id => id > 0).ToHashSet();
+        List<string> errors = copyResult.Errors.ToList();
+        int removedFromOld = 0;
+
+        List<IGrouping<int, Client>> oldServerGroups = clients
+            .Where(c =>
+                placedIds.Contains(c.Id)
+                && c.MikroTikServerId.HasValue
+                && c.MikroTikServerId.Value != targetServerId
+                && !string.IsNullOrWhiteSpace(c.UserName))
+            .GroupBy(c => c.MikroTikServerId!.Value)
+            .ToList();
+
+        foreach (IGrouping<int, Client> group in oldServerGroups)
+        {
+            ct.ThrowIfCancellationRequested();
+            string[] oldUserNames = group
+                .Select(c => c.UserName!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            BulkDeletePppoeUsersResult deleteResult = await _mikroTik.DeletePPPoEUsersFromServerAsync(
+                group.Key,
+                oldUserNames,
+                ct);
+
+            if (!deleteResult.Success)
+            {
+                errors.Add(deleteResult.Message);
+                continue;
+            }
+
+            removedFromOld += deleteResult.DeletedCount;
+            errors.AddRange(deleteResult.Errors);
+        }
+
+        int reassigned = 0;
+        if (placedIds.Count > 0)
+        {
+            DateTime now = DateTime.Now;
+            List<Client> toReassign = await Db.Clients
+                .Where(c => c.NetworkId == networkId && placedIds.Contains(c.Id))
+                .ToListAsync(ct);
+
+            foreach (Client client in toReassign)
+            {
+                client.MikroTikServerId = targetServerId;
+                client.LastUpdated = now;
+            }
+
+            await Db.SaveChangesAsync(ct);
+            reassigned = toReassign.Count;
+        }
+
+        string message =
+            $"تم نقل الحسابات إلى البرج الجديد: أُضيف {copyResult.AddedCount}، موجود مسبقاً {copyResult.SkippedExistingCount}، حُذف من القديم {removedFromOld}، حُدّث في قاعدة البيانات {reassigned}، غير مكتمل {copyResult.SkippedInvalidCount}، فشل {copyResult.FailedCount}.";
+
+        return BulkCopyAccountsToServerResult.Ok(
+            clients.Count,
+            copyResult.AddedCount,
+            copyResult.SkippedExistingCount,
+            copyResult.SkippedInvalidCount,
+            copyResult.FailedCount,
+            reassigned,
+            removedFromOld,
+            message,
+            errors.Take(20).ToList());
+    }
+
+    private async Task FillMissingProfileNamesAsync(List<Client> clients, CancellationToken ct)
+    {
+        int[] profileIds = clients
+            .Where(c => string.IsNullOrWhiteSpace(c.ProfileName) && c.ProfileId > 0)
+            .Select(c => c.ProfileId)
+            .Distinct()
+            .ToArray();
+        if (profileIds.Length == 0)
+        {
+            return;
+        }
+
+        Dictionary<int, string> names = await Db.Profiles
+            .AsNoTracking()
+            .Where(p => profileIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, p => p.Name, ct);
+
+        foreach (Client client in clients)
+        {
+            if (!string.IsNullOrWhiteSpace(client.ProfileName))
+            {
+                continue;
+            }
+
+            if (names.TryGetValue(client.ProfileId, out string? profileName))
+            {
+                client.ProfileName = profileName;
+            }
+        }
+    }
+
     private async Task<Client?> LoadClientAsync(int clientId, int networkId, CancellationToken ct) =>
         await Db.Clients
             .Where(c => c.NetworkId == networkId)

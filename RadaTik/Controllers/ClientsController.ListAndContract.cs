@@ -98,6 +98,7 @@ namespace RadaTik.Controllers
             ViewBag.ConnectionsReady = page.ConnectionsReady;
             ViewBag.Networks = page.AvailableNetworks;
             ViewBag.CurrentNetworkId = page.CurrentNetworkId;
+            ViewBag.CopyTargetServers = page.CopyTargetServers;
             return View(page.Clients);
         }
 

@@ -57,4 +57,14 @@ public interface IClientMikroTikLifecycleService
         CancellationToken ct = default);
 
     Task<ClientOperationOutcome> SyncWithMikroTikAsync(int clientId, int networkId, CancellationToken ct = default);
+
+    /// <summary>
+    /// نقل حسابات المشتركين إلى برج جديد: إضافتها على السيرفر المطلوب، تحديث قاعدة البيانات، ثم حذفها من البرج القديم.
+    /// </summary>
+    Task<BulkCopyAccountsToServerResult> BulkCopyAccountsToServerAsync(
+        int networkId,
+        int targetServerId,
+        IReadOnlyList<int>? clientIds,
+        bool applyToAllInNetwork,
+        CancellationToken ct = default);
 }

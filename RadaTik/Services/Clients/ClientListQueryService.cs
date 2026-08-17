@@ -109,7 +109,19 @@ public sealed class ClientListQueryService(
             ConnectedClientIds = connectedIds,
             ConnectionsReady = connectionsReady,
             AvailableNetworks = await NetworkHelper.GetAvailableNetworksAsync(Db, user, _userManager),
-            CurrentNetworkId = selectedNetworkId
+            CurrentNetworkId = selectedNetworkId,
+            CopyTargetServers = selectedNetworkId.HasValue
+                ? await Db.MikroTikServers.AsNoTracking()
+                    .Where(s => s.NetworkId == selectedNetworkId.Value && s.IsActive)
+                    .OrderBy(s => s.Name)
+                    .Select(s => new ClientCopyTargetServerItem
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        Host = s.Host
+                    })
+                    .ToListAsync(ct)
+                : []
         };
     }
 

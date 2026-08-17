@@ -18,11 +18,26 @@ public interface IMikroTikPppoeUserService
 
     Task<bool> AddPPPoEUser(Client client);
 
+    /// <summary>
+    /// إضافة حسابات PPPoE دفعة واحدة إلى سيرفر محدد (اتصال واحد).
+    /// الحساب الموجود مسبقاً يُتخطى، والفشل في سجل واحد لا يوقف الباقي.
+    /// </summary>
+    Task<BulkAddPppoeUsersResult> AddPPPoEUsersToServerAsync(
+        int serverId,
+        IReadOnlyList<Client> clients,
+        CancellationToken ct = default);
+
     Task<bool> UpdatePPPoEUser(Client client);
 
     Task<bool> UpdatePPPoEUserWithOriginalUsername(Client client, string originalUsername);
 
     Task<bool> DeletePPPoEUser(string username, int serverId);
+
+    /// <summary>حذف حسابات PPPoE دفعة واحدة من سيرفر محدد (اتصال واحد).</summary>
+    Task<BulkDeletePppoeUsersResult> DeletePPPoEUsersFromServerAsync(
+        int serverId,
+        IReadOnlyList<string> usernames,
+        CancellationToken ct = default);
 
     Task<Client?> GetPPPoEUserInfo(string username, int serverId);
 
