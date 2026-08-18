@@ -99,6 +99,50 @@ public class NewSubscriberWizardOrchestratorIntegrationTests
         usage.Verify(u => u.ChargeUsageIncreaseAsync(1, actor.Id, PricingChargeUnit.PerSubscriber, It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task CreateSubscriberAsync_WhenMikroTikUnreachable_StillPersistsClient()
+    {
+        await using ApplicationDbContext db = CreateDbContext();
+        SeedCompanyScope(db);
+        await db.SaveChangesAsync();
+
+        Mock<UserManager<ApplicationUser>> userManager = BuildUserManagerMock();
+        userManager.Setup(m => m.GetRolesAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync([RoleNames.NetworkAdministrator]);
+        userManager.Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+            .ReturnsAsync((ApplicationUser?)null);
+        userManager.Setup(m => m.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
+            .ReturnsAsync(IdentityResult.Success);
+        userManager.Setup(m => m.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Client"))
+            .ReturnsAsync(IdentityResult.Success);
+
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        mikroTik
+            .Setup(m => m.AddPPPoEUser(It.Is<Client>(c => c.UserName == "tower-user")))
+            .ThrowsAsync(new InvalidOperationException("فشل الاتصال بالخادم 10.0.0.1 بعد 3 محاولات"));
+
+        NewSubscriberWizardOrchestrator orchestrator = BuildOrchestrator(
+            db,
+            userManager,
+            mikroTik,
+            BuildInvoiceMock(),
+            BuildUsageChargeMock());
+
+        NewSubscriberWizardOrchestrator.CreateSubscriberResult result = await orchestrator.CreateSubscriberAsync(
+            BuildClient("tower-user", serverId: 50),
+            new ApplicationUser { Id = "actor-1", UserName = "admin" },
+            networkId: 2,
+            path: NewSubscriberWizardPath.TowerDirect,
+            dbUserName: null,
+            dbPassword: null);
+
+        Assert.True(result.Success, result.ErrorMessage);
+        Assert.False(result.MikroTikSynced);
+        Assert.Contains("MikroTik", result.MikroTikWarning);
+        Assert.Equal(1, await db.Clients.CountAsync(c => c.UserName == "tower-user"));
+        mikroTik.VerifyAll();
+    }
+
     private static ApplicationDbContext CreateDbContext()
     {
         DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()

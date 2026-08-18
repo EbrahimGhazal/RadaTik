@@ -400,9 +400,16 @@ public class NewSubscriberWizardController : Controller
 
         HttpContext.Session.SetWizardState(state);
 
-        TempData[result.RequiresManagerApproval ? "Info" : "Success"] = result.RequiresManagerApproval
-            ? "تم تسجيل المشترك كطلب موافقة. أكمل فاتورة المواد ثم انتظر اعتماد المدير."
-            : "تم إنشاء المشترك. حدّد كميات المواد لإصدار الفاتورة.";
+        if (!string.IsNullOrWhiteSpace(result.MikroTikWarning))
+        {
+            TempData["Info"] = result.MikroTikWarning;
+        }
+        else
+        {
+            TempData[result.RequiresManagerApproval ? "Info" : "Success"] = result.RequiresManagerApproval
+                ? "تم تسجيل المشترك كطلب موافقة. أكمل فاتورة المواد ثم انتظر اعتماد المدير."
+                : "تم إنشاء المشترك. حدّد كميات المواد لإصدار الفاتورة.";
+        }
 
         return RedirectToAction(nameof(Invoice));
     }

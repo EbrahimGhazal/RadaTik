@@ -42,6 +42,8 @@ public sealed class NewSubscriberWizardOrchestrator
         public int? ClientId { get; init; }
         public int? InvoiceId { get; init; }
         public bool RequiresManagerApproval { get; init; }
+        public bool MikroTikSynced { get; init; } = true;
+        public string? MikroTikWarning { get; init; }
     }
 
     public async Task<CreateSubscriberResult> CreateSubscriberAsync(
@@ -197,8 +199,6 @@ public sealed class NewSubscriberWizardOrchestrator
             client.ReceiverId = null;
         }
 
-        bool mikroTikSuccess = false;
-
         try
         {
             Network? selectedNetwork = await _context.Networks
@@ -220,12 +220,7 @@ public sealed class NewSubscriberWizardOrchestrator
                 };
             }
 
-            if (client.MikroTikServerId.HasValue)
-            {
-                await _mikroTikService.AddPPPoEUser(client);
-                mikroTikSuccess = true;
-            }
-
+            int invoiceId;
             await using (IDbContextTransaction transaction = await _context.Database.BeginTransactionAsync(cancellationToken))
             {
                 client.ConnectionStatus = client.IsActive ? "مفعل" : "معطل";
@@ -236,7 +231,7 @@ public sealed class NewSubscriberWizardOrchestrator
                 _context.Clients.Add(client);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                int invoiceId = await _invoiceService.CreateDraftInitialSetupInvoiceAsync(client, path, actor.Id, cancellationToken);
+                invoiceId = await _invoiceService.CreateDraftInitialSetupInvoiceAsync(client, path, actor.Id, cancellationToken);
 
                 string? normalizedDbUserName = string.IsNullOrWhiteSpace(dbUserName) ? client.UserName : dbUserName.Trim();
                 string? normalizedDbPassword = string.IsNullOrWhiteSpace(dbPassword) ? client.Password : dbPassword.Trim();
@@ -265,33 +260,44 @@ public sealed class NewSubscriberWizardOrchestrator
 
                 await _userManager.AddToRoleAsync(newUser, "Client");
                 await transaction.CommitAsync(cancellationToken);
-
-                await _usageChargeService.ChargeUsageIncreaseAsync(companyNetworkId, actor.Id, PricingChargeUnit.PerSubscriber);
-
-                return new CreateSubscriberResult
-                {
-                    Success = true,
-                    ClientId = client.Id,
-                    InvoiceId = invoiceId
-                };
             }
+
+            await _usageChargeService.ChargeUsageIncreaseAsync(companyNetworkId, actor.Id, PricingChargeUnit.PerSubscriber);
+
+            bool mikroTikSynced = !client.MikroTikServerId.HasValue;
+            string? mikroTikWarning = null;
+            if (client.MikroTikServerId.HasValue)
+            {
+                try
+                {
+                    await _mikroTikService.AddPPPoEUser(client);
+                    mikroTikSynced = true;
+                }
+                catch (Exception mikroTikEx)
+                {
+                    mikroTikSynced = false;
+                    mikroTikWarning =
+                        "تم حفظ المشترك في النظام، لكن تعذر إضافته على سيرفر MikroTik الآن. سيحاول النظام المزامنة لاحقاً. "
+                        + MikroTikErrorFormatter.Format("سبب الاتصال", mikroTikEx.Message);
+                    _logger.LogWarning(
+                        mikroTikEx,
+                        "Wizard saved client {UserName} but MikroTik add failed; background sync will retry",
+                        client.UserName);
+                }
+            }
+
+            return new CreateSubscriberResult
+            {
+                Success = true,
+                ClientId = client.Id,
+                InvoiceId = invoiceId,
+                MikroTikSynced = mikroTikSynced,
+                MikroTikWarning = mikroTikWarning
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Wizard subscriber create failed for {UserName}", client.UserName);
-
-            if (mikroTikSuccess && !string.IsNullOrWhiteSpace(client.UserName) && client.MikroTikServerId.HasValue)
-            {
-                try
-                {
-                    await _mikroTikService.DeletePPPoEUser(client.UserName, client.MikroTikServerId.Value);
-                }
-                catch (Exception cleanupEx)
-                {
-                    _logger.LogWarning(cleanupEx, "Wizard MikroTik cleanup failed");
-                }
-            }
-
             return new CreateSubscriberResult { Success = false, ErrorMessage = ex.Message };
         }
     }
