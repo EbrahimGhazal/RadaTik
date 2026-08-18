@@ -32,4 +32,21 @@ public sealed class MikroTikApiSupportTests
     {
         Assert.Null(MikroTikApiSupport.FindByName(null!, "/ppp/secret/print", "user"));
     }
+
+    [Theory]
+    [InlineData("4Mbps", "4Mbps")]
+    [InlineData("4Mbps", "4mbps")]
+    [InlineData("4Mbps", "4 Mbps")]
+    [InlineData("4 Mbps", "4Mbps")]
+    [InlineData(" 4Mbps ", "4Mbps")]
+    public void NamesMatch_IgnoresCaseAndWhitespace(string left, string right)
+    {
+        Assert.True(MikroTikApiSupport.NamesMatch(left, right));
+    }
+
+    [Fact]
+    public void NamesMatch_DifferentSpeeds_ReturnsFalse()
+    {
+        Assert.False(MikroTikApiSupport.NamesMatch("4Mbps", "8Mbps"));
+    }
 }

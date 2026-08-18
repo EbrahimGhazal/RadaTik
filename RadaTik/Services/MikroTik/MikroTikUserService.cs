@@ -376,15 +376,15 @@ public sealed class MikroTikUserService(
 
             client.ProfileName = profileName;
 
-            ITikReSentence? profileRow = MikroTikApiSupport.FindByName(
-                connection,
-                "/ppp/profile/print",
-                profileName);
+            ITikReSentence? profileRow = MikroTikApiSupport.FindProfileByName(connection, profileName);
             if (profileRow is null)
             {
                 _logger.LogWarning("⚠️ البروفايل {ProfileName} غير موجود في المايكروتك", client.ProfileName);
                 throw new InvalidOperationException($"البروفايل {client.ProfileName} غير موجود في الخادم");
             }
+
+            string mikrotikProfileName = MikroTikApiSupport.ActualName(profileRow) ?? profileName;
+            client.ProfileName = mikrotikProfileName;
 
             try
             {
@@ -392,7 +392,7 @@ public sealed class MikroTikUserService(
                 addCmd.AddParameter("name", client.UserName);
                 addCmd.AddParameter("password", client.Password);
                 addCmd.AddParameter("service", "pppoe");
-                addCmd.AddParameter("profile", client.ProfileName);
+                addCmd.AddParameter("profile", mikrotikProfileName);
 
                 if (!string.IsNullOrEmpty(client.Address))
                 {
@@ -606,12 +606,12 @@ public sealed class MikroTikUserService(
 
     private static string? ResolveProfileName(Client client)
     {
-        if (!string.IsNullOrWhiteSpace(client.ProfileName))
+        if (!string.IsNullOrWhiteSpace(client.Profile?.Name))
         {
-            return client.ProfileName.Trim();
+            return client.Profile.Name.Trim();
         }
 
-        return string.IsNullOrWhiteSpace(client.Profile?.Name) ? null : client.Profile.Name.Trim();
+        return string.IsNullOrWhiteSpace(client.ProfileName) ? null : client.ProfileName.Trim();
     }
 
     /// <summary>
@@ -653,11 +653,14 @@ public sealed class MikroTikUserService(
                 throw new InvalidOperationException($"المستخدم {client.UserName} غير موجود في الخادم");
             }
 
-            if (MikroTikApiSupport.FindByName(connection, "/ppp/profile/print", profileName) is null)
+            ITikReSentence? profileRow = MikroTikApiSupport.FindProfileByName(connection, profileName);
+            if (profileRow is null)
             {
                 _logger.LogWarning("⚠️ البروفايل {ProfileName} غير موجود في المايكروتك", profileName);
                 throw new InvalidOperationException($"البروفايل {profileName} غير موجود في الخادم");
             }
+
+            string mikrotikProfileName = MikroTikApiSupport.ActualName(profileRow) ?? profileName;
 
             string userId = MikroTikApiSupport.GetSafeValue(targetUser, ".id");
             ITikCommand updateCmd = connection.CreateCommand("/ppp/secret/set");
@@ -667,7 +670,7 @@ public sealed class MikroTikUserService(
                 updateCmd.AddParameter("password", client.Password);
             }
 
-            updateCmd.AddParameter("profile", profileName);
+            updateCmd.AddParameter("profile", mikrotikProfileName);
             updateCmd.AddParameter("disabled", client.IsActive ? "no" : "yes");
             if (!string.IsNullOrEmpty(client.Address))
             {
@@ -741,23 +744,24 @@ public sealed class MikroTikUserService(
 
                 string userId = MikroTikApiSupport.GetSafeValue(targetUser, ".id");
 
-                if (string.IsNullOrEmpty(client.ProfileName))
+                string? profileName = ResolveProfileName(client);
+                if (string.IsNullOrEmpty(profileName))
                 {
                     throw new InvalidOperationException("لم يتم تحديد بروفايل للعميل");
                 }
 
-                ITikCommand profileCmd = connection.CreateCommand("/ppp/profile/print");
-                IEnumerable<ITikReSentence> allProfiles = profileCmd.ExecuteList();
-                bool profileExists = allProfiles.Any(p => MikroTikApiSupport.GetSafeValue(p, "name") == client.ProfileName);
-                if (!profileExists)
+                ITikReSentence? profileRow = MikroTikApiSupport.FindProfileByName(connection, profileName);
+                if (profileRow is null)
                 {
-                    throw new InvalidOperationException($"البروفايل {client.ProfileName} غير موجود في الخادم");
+                    throw new InvalidOperationException($"البروفايل {profileName} غير موجود في الخادم");
                 }
+
+                string mikrotikProfileName = MikroTikApiSupport.ActualName(profileRow) ?? profileName;
 
                 ITikCommand updateCmd = connection.CreateCommand("/ppp/secret/set");
                 updateCmd.AddParameter(".id", userId);
                 updateCmd.AddParameter("name", newUserName);
-                updateCmd.AddParameter("profile", client.ProfileName);
+                updateCmd.AddParameter("profile", mikrotikProfileName);
                 updateCmd.AddParameter("disabled", client.IsActive ? "no" : "yes");
 
                 if (!string.IsNullOrEmpty(client.Password))

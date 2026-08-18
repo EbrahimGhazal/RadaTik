@@ -41,6 +41,44 @@ public static class MikroTikApiSupport
                || message.Contains("no such item", StringComparison.OrdinalIgnoreCase);
     }
 
+    public static bool NamesMatch(string? left, string? right)
+    {
+        if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right))
+        {
+            return false;
+        }
+
+        string a = left.Trim();
+        string b = right.Trim();
+        if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return string.Equals(CompactName(a), CompactName(b), StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static IReadOnlyList<ITikReSentence> PrintList(ITikConnection connection, string printPath)
+    {
+        if (connection is null || string.IsNullOrWhiteSpace(printPath))
+        {
+            return [];
+        }
+
+        ITikCommand cmd = connection.CreateCommand(printPath);
+        try
+        {
+            return cmd.ExecuteList().ToList();
+        }
+        catch (Exception ex) when (IsEmptyResponse(ex))
+        {
+            return [];
+        }
+    }
+
+    public static ITikReSentence? FindInPrint(IEnumerable<ITikReSentence> rows, string name) =>
+        rows.FirstOrDefault(row => NamesMatch(GetSafeValue(row, "name"), name));
+
     /// <summary>
     /// جلب سجل واحد بالاسم دون تنزيل القائمة كاملة من الجهاز.
     /// عدم وجود السجل يُرجع null ولا يُعتبر خطأ.
@@ -53,17 +91,42 @@ public static class MikroTikApiSupport
         }
 
         ITikCommand cmd = connection.CreateCommand(printPath);
-        cmd.AddParameter("?name", name);
+        cmd.AddParameter("?name", name.Trim());
         try
         {
-            return cmd.ExecuteList().FirstOrDefault(row =>
-                string.Equals(GetSafeValue(row, "name"), name, StringComparison.OrdinalIgnoreCase));
+            ITikReSentence? filtered = FindInPrint(cmd.ExecuteList(), name);
+            if (filtered is not null)
+            {
+                return filtered;
+            }
         }
         catch (Exception ex) when (IsEmptyResponse(ex))
         {
+            // RouterOS returns !empty when the filtered print matches nothing.
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// بروفايلات PPP قليلة؛ نقرأ القائمة كاملة لأن استعلام ?name= يفشل أحياناً رغم وجود البروفايل.
+    /// </summary>
+    public static ITikReSentence? FindProfileByName(ITikConnection connection, string name) =>
+        FindInPrint(PrintList(connection, "/ppp/profile/print"), name);
+
+    public static string? ActualName(ITikReSentence? row)
+    {
+        if (row is null)
+        {
             return null;
         }
+
+        string value = GetSafeValue(row, "name").Trim();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
+
+    private static string CompactName(string value) =>
+        string.Concat(value.Where(c => !char.IsWhiteSpace(c)));
 
     public static bool IsAlreadyExistsMessage(Exception ex)
     {
