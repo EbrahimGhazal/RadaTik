@@ -159,11 +159,8 @@ public static class MikroTikApiSupport
         };
     }
 
-    public static IReadOnlyList<ITikReSentence> PrintPppProfiles(ITikConnection connection)
-    {
-        IReadOnlyList<ITikReSentence> rows = PrintList(connection, "/ppp/profile/print");
-        return rows.Count > 0 ? rows : PrintList(connection, "/ppp/profile");
-    }
+    public static IReadOnlyList<ITikReSentence> PrintPppProfiles(ITikConnection connection) =>
+        PrintList(connection, "/ppp/profile/print");
 
     /// <summary>
     /// بروفايلات PPP قليلة؛ نقرأ القائمة كاملة ونطابق بالاسم أو السرعة.
