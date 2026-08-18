@@ -10,6 +10,7 @@ using global::RadaTik.Helpers;
 using global::RadaTik.Models;
 using global::RadaTik.Security;
 using global::RadaTik.Services;
+using global::RadaTik.Services.Clients;
 using global::RadaTik.Services.NewSubscriberWizard;
 
 namespace RadaTik.Areas.CompanyAdmin.Controllers;
@@ -32,19 +33,22 @@ public class NewSubscriberWizardController : Controller
     private readonly NewSubscriberWizardOrchestrator _orchestrator;
     private readonly ISubscriberInstallationInvoiceService _invoiceService;
     private readonly SubscriberInstallationWarehouseLinkService _warehouseLinkService;
+    private readonly IClientFormLookupService _formLookup;
 
     public NewSubscriberWizardController(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
         NewSubscriberWizardOrchestrator orchestrator,
         ISubscriberInstallationInvoiceService invoiceService,
-        SubscriberInstallationWarehouseLinkService warehouseLinkService)
+        SubscriberInstallationWarehouseLinkService warehouseLinkService,
+        IClientFormLookupService formLookup)
     {
         _context = context;
         _userManager = userManager;
         _orchestrator = orchestrator;
         _invoiceService = invoiceService;
         _warehouseLinkService = warehouseLinkService;
+        _formLookup = formLookup;
     }
 
     /// <summary>Canonical entry URL: /networkManager/Clients/wizard and /wizard/Index.</summary>
@@ -282,7 +286,6 @@ public class NewSubscriberWizardController : Controller
             return RedirectToAction(nameof(Start));
         }
 
-        await LoadSubscriberViewDataAsync(networkId.Value, state);
         NewSubscriberWizardSubscriberFormModel model = new()
         {
             Path = state.Path,
@@ -292,9 +295,8 @@ public class NewSubscriberWizardController : Controller
             AccountExpirationDate = DateTime.Today.AddMonths(1),
             IsActive = true
         };
+        await LoadSubscriberViewDataAsync(networkId.Value, state, model.MikroTikServerId);
         ViewData["Title"] = "بيانات المشترك الجديد";
-        ViewBag.WizardPathLabel = GetPathLabel(state.Path);
-        ViewBag.RequireMikroTikServer = state.Path == NewSubscriberWizardPath.TowerDirect;
         return View(model);
     }
 
@@ -333,26 +335,30 @@ public class NewSubscriberWizardController : Controller
             ModelState.AddModelError(nameof(model.MikroTikServerId), "خادم MikroTik مطلوب عند الاتصال من البرج مباشرة.");
         }
 
-        if (model.MikroTikServerId.HasValue)
+        if (!model.MikroTikServerId.HasValue)
         {
-            bool profileBelongsToSelectedServer = await _context.Profiles
-                .AsNoTracking()
-                .AnyAsync(p =>
-                    p.Id == model.ProfileId &&
-                    p.IsActive &&
-                    p.MikroTikServerId == model.MikroTikServerId.Value);
+            ModelState.AddModelError(nameof(model.ProfileId), "اختر خادم MikroTik أولاً لعرض بروفايلاته.");
+        }
+        else if (model.ProfileId is not > 0)
+        {
+            ModelState.AddModelError(nameof(model.ProfileId), "البروفايل مطلوب.");
+        }
+        else
+        {
+            bool profileBelongsToSelectedServer = await _formLookup.ProfileBelongsToServerAsync(
+                model.ProfileId.Value,
+                model.MikroTikServerId.Value,
+                networkId.Value);
             if (!profileBelongsToSelectedServer)
             {
-                ModelState.AddModelError(nameof(model.ProfileId), "البروفايل المحدد لا يتبع السيرفر المختار.");
+                ModelState.AddModelError(nameof(model.ProfileId), "البروفايل المحدد لا يتبع خادم MikroTik المختار.");
             }
         }
 
         if (!ModelState.IsValid)
         {
-            await LoadSubscriberViewDataAsync(networkId.Value, state);
+            await LoadSubscriberViewDataAsync(networkId.Value, state, model.MikroTikServerId);
             ViewData["Title"] = "بيانات المشترك الجديد";
-            ViewBag.WizardPathLabel = GetPathLabel(state.Path);
-            ViewBag.RequireMikroTikServer = state.Path == NewSubscriberWizardPath.TowerDirect;
             return View(model);
         }
 
@@ -362,7 +368,7 @@ public class NewSubscriberWizardController : Controller
             SID = model.SID,
             UserName = model.UserName,
             Password = model.Password,
-            ProfileId = model.ProfileId,
+            ProfileId = model.ProfileId!.Value,
             PhoneNumber = model.PhoneNumber,
             ResidenceAddress = model.ResidenceAddress,
             ReceiverId = state.Path == NewSubscriberWizardPath.TowerDirect ? null : model.ReceiverId,
@@ -383,10 +389,8 @@ public class NewSubscriberWizardController : Controller
         if (!result.Success)
         {
             TempData["Error"] = result.ErrorMessage;
-            await LoadSubscriberViewDataAsync(networkId.Value, state);
+            await LoadSubscriberViewDataAsync(networkId.Value, state, model.MikroTikServerId);
             ViewData["Title"] = "بيانات المشترك الجديد";
-            ViewBag.WizardPathLabel = GetPathLabel(state.Path);
-            ViewBag.RequireMikroTikServer = state.Path == NewSubscriberWizardPath.TowerDirect;
             return View(model);
         }
 
@@ -748,23 +752,10 @@ public class NewSubscriberWizardController : Controller
             return Json(Array.Empty<object>());
         }
 
-        bool serverExists = await _context.MikroTikServers
-            .AsNoTracking()
-            .AnyAsync(s => s.Id == serverId && s.NetworkId == networkId.Value && s.IsActive);
-        if (!serverExists)
-        {
-            return Json(Array.Empty<object>());
-        }
+        IReadOnlyList<ClientFormProfileOption> profiles =
+            await _formLookup.GetProfilesByServerAsync(serverId, networkId.Value);
 
-        List<WizardProfileOptionJson> profiles = await _context.Profiles
-            .AsNoTracking()
-            .Where(p => p.IsActive && p.MikroTikServerId == serverId)
-            .OrderBy(p => p.DisplayOrder)
-            .ThenBy(p => p.Name)
-            .Select(p => new WizardProfileOptionJson(p.Id, p.Name))
-            .ToListAsync();
-
-        return Json(profiles);
+        return Json(profiles.Select(p => new WizardProfileOptionJson(p.Id, p.Name)));
     }
 
     private string GetReceiverArea()
@@ -888,29 +879,23 @@ public class NewSubscriberWizardController : Controller
         };
     }
 
-    private async Task LoadSubscriberViewDataAsync(int networkId, NewSubscriberWizardState state)
+    private async Task LoadSubscriberViewDataAsync(
+        int networkId,
+        NewSubscriberWizardState state,
+        int? selectedServerId)
     {
-        IQueryable<Profile> profilesQuery = _context.Profiles
-            .AsNoTracking()
-            .Where(p => p.IsActive);
-        if (state.MikroTikServerId.HasValue)
-        {
-            profilesQuery = profilesQuery.Where(p => p.MikroTikServerId == state.MikroTikServerId.Value);
-        }
-        else
-        {
-            profilesQuery = profilesQuery.Where(_ => false);
-        }
+        int? serverId = selectedServerId ?? state.MikroTikServerId;
+        IReadOnlyList<ClientFormProfileOption> profiles = serverId.HasValue
+            ? await _formLookup.GetProfilesByServerAsync(serverId.Value, networkId)
+            : Array.Empty<ClientFormProfileOption>();
 
-        ViewBag.Profiles = new SelectList(
-            await profilesQuery
-                .OrderBy(p => p.Name)
-                .Select(p => new { p.Id, p.Name })
-                .ToListAsync(),
-            "Id",
-            "Name");
+        ViewBag.Profiles = new SelectList(profiles, nameof(ClientFormProfileOption.Id), nameof(ClientFormProfileOption.Name));
+        ViewBag.ProfileSelectEnabled = serverId.HasValue;
+        ViewBag.WizardPathLabel = GetPathLabel(state.Path);
+        ViewBag.RequireMikroTikServer = state.Path == NewSubscriberWizardPath.TowerDirect;
+        ViewBag.LockMikroTikServer = state.Path != NewSubscriberWizardPath.TowerDirect && state.MikroTikServerId.HasValue;
 
-        if (state.MikroTikServerId.HasValue)
+        if (state.Path != NewSubscriberWizardPath.TowerDirect && state.MikroTikServerId.HasValue)
         {
             ViewBag.MikroTikServers = new SelectList(
                 await _context.MikroTikServers.AsNoTracking()
@@ -920,17 +905,17 @@ public class NewSubscriberWizardController : Controller
                 "Id",
                 "Name",
                 state.MikroTikServerId);
+            return;
         }
-        else
-        {
-            ViewBag.MikroTikServers = new SelectList(
-                await _context.MikroTikServers.AsNoTracking()
-                    .Where(s => s.NetworkId == networkId && s.IsActive)
-                    .OrderBy(s => s.Name)
-                    .Select(s => new { s.Id, s.Name })
-                    .ToListAsync(),
-                "Id",
-                "Name");
-        }
+
+        ViewBag.MikroTikServers = new SelectList(
+            await _context.MikroTikServers.AsNoTracking()
+                .Where(s => s.NetworkId == networkId && s.IsActive)
+                .OrderBy(s => s.Name)
+                .Select(s => new { s.Id, s.Name })
+                .ToListAsync(),
+            "Id",
+            "Name",
+            serverId);
     }
 }

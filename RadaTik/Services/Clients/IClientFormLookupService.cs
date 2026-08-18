@@ -20,6 +20,12 @@ public interface IClientFormLookupService
         int networkId,
         CancellationToken ct = default);
 
+    Task<bool> ProfileBelongsToServerAsync(
+        int profileId,
+        int serverId,
+        int networkId,
+        CancellationToken ct = default);
+
     Task<IReadOnlyList<ClientFormReceiverOption>> GetReceiversByServerAsync(
         int serverId,
         int networkId,

@@ -46,22 +46,42 @@
                     <span asp-validation-for="Password" class="text-danger small"></span>
                 </div>
                 <div class="col-md-6">
+                    @{
+                        bool requireMikroTikServer = ViewBag.RequireMikroTikServer == true;
+                        bool lockMikroTikServer = ViewBag.LockMikroTikServer == true;
+                        bool profileSelectEnabled = ViewBag.ProfileSelectEnabled == true;
+                    }
                     <label asp-for="MikroTikServerId" class="form-label">
                         خادم MikroTik
-                        @if (ViewBag.RequireMikroTikServer == true) { <span class="text-danger">*</span> }
+                        <span class="text-danger">*</span>
                     </label>
-                    <select asp-for="MikroTikServerId" class="form-select" asp-items="ViewBag.MikroTikServers" required="@(ViewBag.RequireMikroTikServer == true)">
-                        <option value="">— اختر —</option>
+                    <select asp-for="MikroTikServerId" class="form-select" asp-items="ViewBag.MikroTikServers"
+                            id="MikroTikServerId"
+                            required="@requireMikroTikServer"
+                            disabled="@lockMikroTikServer">
+                        @if (!lockMikroTikServer)
+                        {
+                            <option value="">— اختر —</option>
+                        }
                     </select>
+                    @if (lockMikroTikServer)
+                    {
+                        <input type="hidden" name="MikroTikServerId" value="@Model.MikroTikServerId" />
+                    }
                     <span asp-validation-for="MikroTikServerId" class="text-danger small"></span>
                 </div>
                 <div class="col-md-6">
-                    <label asp-for="ProfileId" class="form-label">البروفايل</label>
+                    <label asp-for="ProfileId" class="form-label">
+                        البروفايل
+                        <span class="text-danger">*</span>
+                    </label>
                     <div class="input-group">
-                        <select asp-for="ProfileId" class="form-select" asp-items="ViewBag.Profiles" id="ProfileId">
-                            <option value="">— اختر —</option>
+                        <select asp-for="ProfileId" class="form-select" asp-items="ViewBag.Profiles" id="ProfileId"
+                                required="@profileSelectEnabled"
+                                disabled="@(!profileSelectEnabled)">
+                            <option value="">@(profileSelectEnabled ? "— اختر —" : "اختر خادم MikroTik أولاً")</option>
                         </select>
-                        <button type="button" class="btn btn-outline-secondary" id="btnRefreshProfiles" title="تحديث القائمة من قاعدة البيانات" disabled>
+                        <button type="button" class="btn btn-outline-secondary" id="btnRefreshProfiles" title="تحديث القائمة من قاعدة البيانات" disabled="@(!profileSelectEnabled)">
                             <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
@@ -116,120 +136,114 @@
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
     <script>
-        (function () {
-            const serverSelect = document.getElementById('MikroTikServerId');
-            const profileSelect = document.getElementById('ProfileId');
-            const btnRefresh = document.getElementById('btnRefreshProfiles');
-            const linkCreate = document.getElementById('linkCreateProfile');
-            const loadHint = document.getElementById('profileLoadHint');
+        $(function () {
+            const $server = $('#MikroTikServerId');
+            const $profile = $('#ProfileId');
+            const $refresh = $('#btnRefreshProfiles');
+            const $create = $('#linkCreateProfile');
+            const $hint = $('#profileLoadHint');
             const profilesUrl = '@Url.Action("GetProfilesByServer", "NewSubscriberWizard", new { area = ViewContext.RouteData.Values["area"] })';
             const profileCreateBase = '@Url.Action("Create", "Profile")';
 
-            if (!serverSelect || !profileSelect) {
+            if (!$server.length || !$profile.length) {
                 return;
             }
 
-            function profileOptionId(profile) {
-                return profile.id ?? profile.Id;
-            }
-
-            function profileOptionName(profile) {
-                return profile.name ?? profile.Name ?? '';
-            }
-
-            function countRealProfileOptions() {
-                return Array.from(profileSelect.options).filter(function (o) { return o.value; }).length;
-            }
-
-            function updateProfileCreateLink(serverId) {
-                if (!linkCreate) return;
-                if (!serverId) {
-                    linkCreate.style.display = 'none';
-                    return;
+            function rebuildSelect2($el) {
+                if ($el.hasClass('select2-hidden-accessible')) {
+                    $el.select2('destroy');
                 }
-                linkCreate.style.display = '';
-                linkCreate.href = profileCreateBase + '?serverId=' + encodeURIComponent(serverId);
+                if (window.CommonUtils && typeof CommonUtils.initSelect2 === 'function') {
+                    CommonUtils.initSelect2();
+                }
             }
 
             function setHint(text, isError) {
-                if (!loadHint) return;
-                loadHint.textContent = text || '';
-                loadHint.className = isError ? 'text-danger' : 'text-muted';
+                $hint.text(text || '')
+                    .toggleClass('text-danger', !!isError)
+                    .toggleClass('text-muted', !isError);
             }
 
-            async function loadProfilesByServer(serverId, forceReload) {
+            function setCreateLink(serverId) {
+                if (!$create.length) return;
                 if (!serverId) {
-                    profileSelect.innerHTML = '<option value="">— اختر —</option>';
-                    if (btnRefresh) btnRefresh.disabled = true;
-                    updateProfileCreateLink(null);
-                    setHint('اختر البرج أولاً لعرض بروفايلاته المزامنة في قاعدة البيانات.');
+                    $create.hide();
                     return;
                 }
+                $create.show().attr('href', profileCreateBase + '?serverId=' + encodeURIComponent(serverId));
+            }
 
-                if (btnRefresh) btnRefresh.disabled = false;
-                updateProfileCreateLink(serverId);
+            function setProfileEnabled(enabled) {
+                $profile.prop('disabled', !enabled);
+                $profile.prop('required', enabled);
+                $refresh.prop('disabled', !enabled);
+            }
 
-                const selectedProfileId = profileSelect.value;
-                const existingCount = countRealProfileOptions();
-                if (!forceReload && existingCount > 0) {
-                    setHint(existingCount + ' بروفايل من قاعدة البيانات لهذا البرج.');
-                    return;
-                }
-
-                profileSelect.innerHTML = '<option value="">جاري تحميل البروفايلات...</option>';
-                setHint('جاري التحميل من قاعدة البيانات...', false);
-                try {
-                    const response = await fetch(profilesUrl + '?serverId=' + encodeURIComponent(serverId), {
-                        headers: { 'Accept': 'application/json' }
+            function fillProfileOptions(placeholder, profiles, selectedId) {
+                $profile.empty().append($('<option>', { value: '', text: placeholder }));
+                if (profiles && profiles.length) {
+                    $.each(profiles, function (_, profile) {
+                        const id = profile.id ?? profile.Id;
+                        $profile.append($('<option>', {
+                            value: id,
+                            text: profile.name ?? profile.Name ?? '',
+                            selected: selectedId && String(id) === String(selectedId)
+                        }));
                     });
-                    if (!response.ok) {
-                        throw new Error('Request failed');
-                    }
-
-                    const profiles = await response.json();
-                    profileSelect.innerHTML = '<option value="">— اختر —</option>';
-                    if (!profiles || profiles.length === 0) {
-                        profileSelect.innerHTML = '<option value="">لا توجد بروفايلات لهذا السيرفر</option>';
-                        setHint('لا بروفايلات مزامنة لهذا البرج في قاعدة البيانات. أضف بروفايلاً ثم حدّث القائمة.', true);
-                        return;
-                    }
-
-                    for (const profile of profiles) {
-                        const option = document.createElement('option');
-                        const id = profileOptionId(profile);
-                        option.value = id;
-                        option.textContent = profileOptionName(profile);
-                        if (String(id) === String(selectedProfileId)) {
-                            option.selected = true;
-                        }
-                        profileSelect.appendChild(option);
-                    }
-                    setHint(profiles.length + ' بروفايل من قاعدة البيانات لهذا البرج.');
-                } catch {
-                    if (existingCount > 0) {
-                        setHint('تعذر التحديث — القائمة الحالية من الصفحة ما زالت معروضة.', true);
-                    } else {
-                        profileSelect.innerHTML = '<option value="">تعذر تحميل البروفايلات</option>';
-                        setHint('تعذر التحميل — جرّب تحديث الصفحة.', true);
-                    }
                 }
+                rebuildSelect2($profile);
             }
 
-            serverSelect.addEventListener('change', function () {
-                loadProfilesByServer(serverSelect.value, true);
-            });
+            function loadProfilesFromDatabase() {
+                const serverId = $server.val();
+                setCreateLink(serverId);
 
-            btnRefresh?.addEventListener('click', function () {
-                loadProfilesByServer(serverSelect.value, true);
-            });
+                if (!serverId) {
+                    fillProfileOptions('اختر خادم MikroTik أولاً', [], null);
+                    setProfileEnabled(false);
+                    rebuildSelect2($profile);
+                    setHint('حدد خادم MikroTik لعرض بروفايلاته من قاعدة البيانات.');
+                    return;
+                }
 
-            if (serverSelect.value) {
-                loadProfilesByServer(serverSelect.value, false);
+                const selectedId = $profile.val();
+                setProfileEnabled(true);
+                fillProfileOptions('جاري تحميل البروفايلات...', [], null);
+                setHint('جاري الاستعلام من قاعدة البيانات...');
+
+                $.ajax({
+                    url: profilesUrl,
+                    type: 'GET',
+                    cache: false,
+                    dataType: 'json',
+                    data: { serverId: serverId },
+                    success: function (profiles) {
+                        if (!profiles || !profiles.length) {
+                            fillProfileOptions('لا توجد بروفايلات لهذا السيرفر', [], null);
+                            setHint('لا بروفايلات لهذا الخادم في قاعدة البيانات. أضف بروفايلاً ثم حدّث القائمة.', true);
+                            return;
+                        }
+
+                        fillProfileOptions('— اختر —', profiles, selectedId);
+                        setHint(profiles.length + ' بروفايل من قاعدة البيانات لهذا الخادم.');
+                    },
+                    error: function () {
+                        fillProfileOptions('تعذر تحميل البروفايلات', [], null);
+                        setHint('تعذر التحميل من قاعدة البيانات. جرّب تحديث الصفحة.', true);
+                    }
+                });
+            }
+
+            $server.on('change', loadProfilesFromDatabase);
+            $refresh.on('click', loadProfilesFromDatabase);
+
+            if ($server.val()) {
+                loadProfilesFromDatabase();
             } else {
-                updateProfileCreateLink(null);
-                setHint('اختر البرج أولاً لعرض بروفايلاته المزامنة في قاعدة البيانات.');
+                setProfileEnabled(false);
+                setHint('حدد خادم MikroTik لعرض بروفايلاته من قاعدة البيانات.');
             }
-        })();
+        });
     </script>
 }
 

@@ -99,7 +99,8 @@ public sealed class NewSubscriberWizardSubscriberFormModel
     public string? Password { get; set; }
 
     [Required(ErrorMessage = "البروفايل مطلوب")]
-    public int ProfileId { get; set; }
+    [Range(1, int.MaxValue, ErrorMessage = "البروفايل مطلوب")]
+    public int? ProfileId { get; set; }
 
     [Required(ErrorMessage = "رقم الهاتف مطلوب")]
     public string? PhoneNumber { get; set; }

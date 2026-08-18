@@ -22,14 +22,39 @@ public class NewSubscriberWizardOrchestratorIntegrationTests
         SeedCompanyScope(db);
 
         db.MikroTikServers.Add(new MikroTikServer { Id = 100, Name = "Server-A", Host = "1.1.1.1", User = "u", Pass = "p", NetworkId = 2 });
+        db.MikroTikServers.Add(new MikroTikServer { Id = 200, Name = "Server-B", Host = "4.4.4.4", User = "u", Pass = "p", NetworkId = 2 });
+        db.Profiles.Add(new Profile
+        {
+            Id = 11,
+            Name = "P-A",
+            NetworkId = 2,
+            MikroTikServerId = 100,
+            IsActive = true,
+            Type = ProfileType.Internet,
+            BillingCycle = BillingCycle.Monthly,
+            Price = 0,
+            DownloadSpeed = 10
+        });
+        db.Profiles.Add(new Profile
+        {
+            Id = 12,
+            Name = "P-B",
+            NetworkId = 2,
+            MikroTikServerId = 200,
+            IsActive = true,
+            Type = ProfileType.Internet,
+            BillingCycle = BillingCycle.Monthly,
+            Price = 0,
+            DownloadSpeed = 10
+        });
         db.Clients.Add(new Client
         {
             Name = "Existing",
             SID = "111",
             UserName = "dup-user",
             Password = "secret",
-            ProfileId = 10,
-            ProfileName = "P1",
+            ProfileId = 11,
+            ProfileName = "P-A",
             PhoneNumber = "099",
             NetworkId = 2,
             MikroTikServerId = 100
@@ -44,6 +69,7 @@ public class NewSubscriberWizardOrchestratorIntegrationTests
             BuildUsageChargeMock());
 
         Client newClient = BuildClient("dup-user", serverId: 200);
+        newClient.ProfileId = 12;
         ApplicationUser actor = new() { Id = "actor-1", UserName = "admin" };
 
         NewSubscriberWizardOrchestrator.CreateSubscriberResult result = await orchestrator.CreateSubscriberAsync(
@@ -184,6 +210,34 @@ public class NewSubscriberWizardOrchestratorIntegrationTests
         Assert.True(result.MikroTikSynced);
         Assert.Null(result.MikroTikWarning);
         mikroTik.VerifyAll();
+    }
+
+    [Fact]
+    public async Task CreateSubscriberAsync_WhenProfileBelongsToAnotherServer_ReturnsError()
+    {
+        await using ApplicationDbContext db = CreateDbContext();
+        SeedCompanyScope(db);
+        db.MikroTikServers.Add(new MikroTikServer { Id = 60, Name = "OtherSrv", Host = "3.3.3.3", User = "u", Pass = "p", NetworkId = 2 });
+        await db.SaveChangesAsync();
+
+        NewSubscriberWizardOrchestrator orchestrator = BuildOrchestrator(
+            db,
+            BuildUserManagerMock(),
+            new Mock<IMikroTikPppoeUserService>(MockBehavior.Strict),
+            BuildInvoiceMock(),
+            BuildUsageChargeMock());
+
+        NewSubscriberWizardOrchestrator.CreateSubscriberResult result = await orchestrator.CreateSubscriberAsync(
+            BuildClient("wrong-profile", serverId: 60),
+            new ApplicationUser { Id = "actor-1", UserName = "admin" },
+            networkId: 2,
+            path: NewSubscriberWizardPath.TowerDirect,
+            dbUserName: null,
+            dbPassword: null);
+
+        Assert.False(result.Success);
+        Assert.Contains("MikroTik", result.ErrorMessage);
+        Assert.Equal(0, await db.Clients.CountAsync(c => c.UserName == "wrong-profile"));
     }
 
     private static ApplicationDbContext CreateDbContext()

@@ -56,15 +56,23 @@ public sealed class NewSubscriberWizardOrchestrator
         CancellationToken cancellationToken = default)
     {
         Profile? profile = await _context.Profiles
+            .AsNoTracking()
             .FirstOrDefaultAsync(p =>
                 p.Id == client.ProfileId &&
                 p.IsActive &&
-                (p.NetworkId == networkId
-                 || (client.MikroTikServerId.HasValue && p.MikroTikServerId == client.MikroTikServerId)),
+                (client.MikroTikServerId.HasValue
+                    ? p.MikroTikServerId == client.MikroTikServerId
+                    : p.NetworkId == networkId),
                 cancellationToken);
         if (profile == null)
         {
-            return new CreateSubscriberResult { Success = false, ErrorMessage = "البروفايل المحدد غير موجود في هذه الشبكة." };
+            return new CreateSubscriberResult
+            {
+                Success = false,
+                ErrorMessage = client.MikroTikServerId.HasValue
+                    ? "البروفايل المحدد لا يتبع خادم MikroTik المختار."
+                    : "البروفايل المحدد غير موجود في هذه الشبكة."
+            };
         }
 
         if (path != NewSubscriberWizardPath.TowerDirect && !client.ReceiverId.HasValue)

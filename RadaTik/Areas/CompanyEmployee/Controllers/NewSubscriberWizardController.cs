@@ -17,8 +17,9 @@ public class NewSubscriberWizardController : CompanyAdmin.Controllers.NewSubscri
         UserManager<Models.ApplicationUser> userManager,
         Services.NewSubscriberWizard.NewSubscriberWizardOrchestrator orchestrator,
         ISubscriberInstallationInvoiceService invoiceService,
-        SubscriberInstallationWarehouseLinkService warehouseLinkService)
-        : base(context, userManager, orchestrator, invoiceService, warehouseLinkService)
+        SubscriberInstallationWarehouseLinkService warehouseLinkService,
+        Services.Clients.IClientFormLookupService formLookup)
+        : base(context, userManager, orchestrator, invoiceService, warehouseLinkService, formLookup)
     {
     }
 }
