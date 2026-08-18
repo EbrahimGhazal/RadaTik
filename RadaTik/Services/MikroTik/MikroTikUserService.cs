@@ -5,6 +5,7 @@ using RadaTik.Helpers;
 using RadaTik.Models;
 using RadaTik.Services;
 using RadaTik.ViewModels.MikroTikServers;
+using System.Globalization;
 using tik4net;
 
 namespace RadaTik.Services.MikroTik;
@@ -360,13 +361,6 @@ public sealed class MikroTikUserService(
                 connection,
                 "/ppp/secret/print",
                 client.UserName);
-            if (existingUser is not null)
-            {
-                _logger.LogInformation(
-                    "المستخدم {UserName} موجود مسبقاً في المايكروتك — تُعتبر الإضافة ناجحة",
-                    client.UserName);
-                return true;
-            }
 
             string? profileName = ResolveProfileName(client);
             if (string.IsNullOrEmpty(profileName))
@@ -374,17 +368,17 @@ public sealed class MikroTikUserService(
                 throw new InvalidOperationException("لم يتم تحديد بروفايل للعميل");
             }
 
-            client.ProfileName = profileName;
-
-            ITikReSentence? profileRow = MikroTikApiSupport.FindProfileByName(connection, profileName);
-            if (profileRow is null)
-            {
-                _logger.LogWarning("⚠️ البروفايل {ProfileName} غير موجود في المايكروتك", client.ProfileName);
-                throw new InvalidOperationException($"البروفايل {client.ProfileName} غير موجود في الخادم");
-            }
-
-            string mikrotikProfileName = MikroTikApiSupport.ActualName(profileRow) ?? profileName;
+            string mikrotikProfileName = EnsurePppProfileName(connection, client, profileName);
             client.ProfileName = mikrotikProfileName;
+
+            if (existingUser is not null)
+            {
+                ApplySecretSet(connection, existingUser, client, mikrotikProfileName);
+                _logger.LogInformation(
+                    "المستخدم {UserName} موجود مسبقاً — تم تحديث كلمة المرور والبروفايل من قاعدة البيانات",
+                    client.UserName);
+                return true;
+            }
 
             try
             {
@@ -614,6 +608,141 @@ public sealed class MikroTikUserService(
         return string.IsNullOrWhiteSpace(client.ProfileName) ? null : client.ProfileName.Trim();
     }
 
+    private string EnsurePppProfileName(ITikConnection connection, Client client, string profileName)
+    {
+        IReadOnlyList<ITikReSentence> rows = MikroTikApiSupport.PrintPppProfiles(connection);
+        ITikReSentence? match = MikroTikApiSupport.FindInPrint(rows, profileName);
+        if (match is not null)
+        {
+            return MikroTikApiSupport.ActualName(match) ?? profileName;
+        }
+
+        string available = string.Join("، ", rows
+            .Select(MikroTikApiSupport.ActualName)
+            .Where(name => !string.IsNullOrWhiteSpace(name)));
+        _logger.LogWarning(
+            "البروفايل {ProfileName} غير ظاهر في قائمة PPP ({Count}): {Available}. سيتم إنشاؤه من قاعدة البيانات.",
+            profileName,
+            rows.Count,
+            string.IsNullOrWhiteSpace(available) ? "(فارغة)" : available);
+
+        CreatePppProfile(connection, client, profileName);
+
+        rows = MikroTikApiSupport.PrintPppProfiles(connection);
+        match = MikroTikApiSupport.FindInPrint(rows, profileName);
+        if (match is not null)
+        {
+            return MikroTikApiSupport.ActualName(match) ?? profileName;
+        }
+
+        _logger.LogWarning(
+            "تعذر التحقق من البروفايل {ProfileName} بعد إنشائه — سيُستخدم الاسم كما في قاعدة البيانات",
+            profileName);
+        return profileName;
+    }
+
+    private void CreatePppProfile(ITikConnection connection, Client client, string profileName)
+    {
+        ITikCommand addCmd = connection.CreateCommand("/ppp/profile/add");
+        addCmd.AddParameter("name", profileName);
+
+        Profile? profile = client.Profile;
+        string? rateLimit = BuildRateLimit(profile, profileName);
+        if (!string.IsNullOrWhiteSpace(rateLimit))
+        {
+            addCmd.AddParameter("rate-limit", rateLimit);
+        }
+
+        if (!string.IsNullOrWhiteSpace(profile?.MikroTikLocalAddress))
+        {
+            addCmd.AddParameter("local-address", profile.MikroTikLocalAddress);
+        }
+
+        if (!string.IsNullOrWhiteSpace(profile?.MikroTikRemoteAddress))
+        {
+            addCmd.AddParameter("remote-address", profile.MikroTikRemoteAddress);
+        }
+
+        addCmd.AddParameter("only-one", profile is null || profile.MikroTikOnlyOne ? "yes" : "no");
+
+        try
+        {
+            addCmd.ExecuteNonQuery();
+            _logger.LogInformation("تم إنشاء بروفايل PPP {ProfileName} على المايكروتك", profileName);
+        }
+        catch (Exception ex) when (
+            MikroTikApiSupport.IsEmptyResponse(ex) || MikroTikApiSupport.IsAlreadyExistsMessage(ex))
+        {
+            _logger.LogInformation(
+                ex,
+                "البروفايل {ProfileName} موجود مسبقاً أو أرجع الجهاز !empty — يُتابع الاستخدام",
+                profileName);
+        }
+    }
+
+    private static string? BuildRateLimit(Profile? profile, string profileName)
+    {
+        if (!string.IsNullOrWhiteSpace(profile?.MikroTikRateLimit))
+        {
+            return profile.MikroTikRateLimit.Trim();
+        }
+
+        if (profile is { DownloadSpeed: > 0 })
+        {
+            string download = FormatMikroTikSpeed(profile.DownloadSpeed, profile.DownloadSpeedUnit);
+            string upload = profile.UploadSpeed is > 0
+                ? FormatMikroTikSpeed(profile.UploadSpeed.Value, profile.UploadSpeedUnit ?? profile.DownloadSpeedUnit)
+                : download;
+            return $"{download}/{upload}";
+        }
+
+        decimal? mbps = MikroTikApiSupport.ParseSpeedMbps(profileName);
+        if (mbps is null or <= 0)
+        {
+            return null;
+        }
+
+        string formatted = mbps.Value.ToString("0.##", CultureInfo.InvariantCulture) + "M";
+        return $"{formatted}/{formatted}";
+    }
+
+    private static string FormatMikroTikSpeed(int value, SpeedUnit unit) => unit switch
+    {
+        SpeedUnit.Kbps => $"{value}k",
+        SpeedUnit.Gbps => $"{value}G",
+        _ => $"{value}M"
+    };
+
+    private static void ApplySecretSet(
+        ITikConnection connection,
+        ITikReSentence existingUser,
+        Client client,
+        string mikrotikProfileName)
+    {
+        string userId = MikroTikApiSupport.GetSafeValue(existingUser, ".id");
+        ITikCommand updateCmd = connection.CreateCommand("/ppp/secret/set");
+        updateCmd.AddParameter(".id", userId);
+        if (!string.IsNullOrEmpty(client.Password))
+        {
+            updateCmd.AddParameter("password", client.Password);
+        }
+
+        updateCmd.AddParameter("profile", mikrotikProfileName);
+        updateCmd.AddParameter("disabled", client.IsActive ? "no" : "yes");
+        if (!string.IsNullOrEmpty(client.Address))
+        {
+            updateCmd.AddParameter("remote-address", client.Address);
+        }
+
+        try
+        {
+            updateCmd.ExecuteNonQuery();
+        }
+        catch (Exception cmdEx) when (MikroTikApiSupport.IsEmptyResponse(cmdEx))
+        {
+        }
+    }
+
     /// <summary>
     /// تحديث مستخدم في المايكروتك
     /// </summary>
@@ -649,42 +778,13 @@ public sealed class MikroTikUserService(
                 client.UserName ?? string.Empty);
             if (targetUser is null)
             {
-                _logger.LogWarning("⚠️ المستخدم {UserName} غير موجود في المايكروتك", client.UserName);
-                throw new InvalidOperationException($"المستخدم {client.UserName} غير موجود في الخادم");
+                _logger.LogWarning("⚠️ المستخدم {UserName} غير موجود في المايكروتك — ستتم إضافته", client.UserName);
+                await AddPPPoEUser(client);
+                return true;
             }
 
-            ITikReSentence? profileRow = MikroTikApiSupport.FindProfileByName(connection, profileName);
-            if (profileRow is null)
-            {
-                _logger.LogWarning("⚠️ البروفايل {ProfileName} غير موجود في المايكروتك", profileName);
-                throw new InvalidOperationException($"البروفايل {profileName} غير موجود في الخادم");
-            }
-
-            string mikrotikProfileName = MikroTikApiSupport.ActualName(profileRow) ?? profileName;
-
-            string userId = MikroTikApiSupport.GetSafeValue(targetUser, ".id");
-            ITikCommand updateCmd = connection.CreateCommand("/ppp/secret/set");
-            updateCmd.AddParameter(".id", userId);
-            if (!string.IsNullOrEmpty(client.Password))
-            {
-                updateCmd.AddParameter("password", client.Password);
-            }
-
-            updateCmd.AddParameter("profile", mikrotikProfileName);
-            updateCmd.AddParameter("disabled", client.IsActive ? "no" : "yes");
-            if (!string.IsNullOrEmpty(client.Address))
-            {
-                updateCmd.AddParameter("remote-address", client.Address);
-            }
-
-            try
-            {
-                updateCmd.ExecuteNonQuery();
-            }
-            catch (Exception cmdEx) when (MikroTikApiSupport.IsEmptyResponse(cmdEx))
-            {
-                _logger.LogWarning("تم تجاهل !empty أثناء تحديث {UserName}", client.UserName);
-            }
+            string mikrotikProfileName = EnsurePppProfileName(connection, client, profileName);
+            ApplySecretSet(connection, targetUser, client, mikrotikProfileName);
 
             _logger.LogInformation("✅ تم تحديث المستخدم {UserName} في المايكروتك بنجاح", client.UserName);
             return true;
@@ -750,13 +850,7 @@ public sealed class MikroTikUserService(
                     throw new InvalidOperationException("لم يتم تحديد بروفايل للعميل");
                 }
 
-                ITikReSentence? profileRow = MikroTikApiSupport.FindProfileByName(connection, profileName);
-                if (profileRow is null)
-                {
-                    throw new InvalidOperationException($"البروفايل {profileName} غير موجود في الخادم");
-                }
-
-                string mikrotikProfileName = MikroTikApiSupport.ActualName(profileRow) ?? profileName;
+                string mikrotikProfileName = EnsurePppProfileName(connection, client, profileName);
 
                 ITikCommand updateCmd = connection.CreateCommand("/ppp/secret/set");
                 updateCmd.AddParameter(".id", userId);

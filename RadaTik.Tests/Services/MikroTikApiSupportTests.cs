@@ -44,9 +44,24 @@ public sealed class MikroTikApiSupportTests
         Assert.True(MikroTikApiSupport.NamesMatch(left, right));
     }
 
-    [Fact]
-    public void NamesMatch_DifferentSpeeds_ReturnsFalse()
+    [Theory]
+    [InlineData("2Mbps", 2)]
+    [InlineData("2 Mbps", 2)]
+    [InlineData("2M", 2)]
+    [InlineData("2M/2M", 2)]
+    [InlineData("2048k", 2.048)]
+    public void ParseSpeedMbps_ReadsCommonProfileNames(string text, double expected)
     {
-        Assert.False(MikroTikApiSupport.NamesMatch("4Mbps", "8Mbps"));
+        decimal? actual = MikroTikApiSupport.ParseSpeedMbps(text);
+        Assert.NotNull(actual);
+        Assert.Equal((decimal)expected, actual.Value, 3);
+    }
+
+    [Fact]
+    public void ProfileIdentityMatch_MatchesBySpeedAlias()
+    {
+        Assert.True(MikroTikApiSupport.ProfileIdentityMatch("2Mbps", "2M"));
+        Assert.True(MikroTikApiSupport.ProfileIdentityMatch("2Mbps", "default", "2M/2M"));
+        Assert.False(MikroTikApiSupport.ProfileIdentityMatch("2Mbps", "8M"));
     }
 }
