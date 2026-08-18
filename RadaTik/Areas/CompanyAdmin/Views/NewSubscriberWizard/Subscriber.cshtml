@@ -61,7 +61,7 @@
                         <select asp-for="ProfileId" class="form-select" asp-items="ViewBag.Profiles" id="ProfileId">
                             <option value="">— اختر —</option>
                         </select>
-                        <button type="button" class="btn btn-outline-secondary" id="btnRefreshProfiles" title="تحديث القائمة" disabled>
+                        <button type="button" class="btn btn-outline-secondary" id="btnRefreshProfiles" title="تحديث القائمة من قاعدة البيانات" disabled>
                             <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
@@ -162,7 +162,7 @@
                     profileSelect.innerHTML = '<option value="">— اختر —</option>';
                     if (btnRefresh) btnRefresh.disabled = true;
                     updateProfileCreateLink(null);
-                    setHint('اختر السيرفر أولاً لعرض البروفايلات.');
+                    setHint('اختر البرج أولاً لعرض بروفايلاته المزامنة في قاعدة البيانات.');
                     return;
                 }
 
@@ -172,12 +172,12 @@
                 const selectedProfileId = profileSelect.value;
                 const existingCount = countRealProfileOptions();
                 if (!forceReload && existingCount > 0) {
-                    setHint(existingCount + ' بروفايل — اضغط تحديث بعد إضافة بروفايل جديد.');
+                    setHint(existingCount + ' بروفايل من قاعدة البيانات لهذا البرج.');
                     return;
                 }
 
                 profileSelect.innerHTML = '<option value="">جاري تحميل البروفايلات...</option>';
-                setHint('جاري التحميل...', false);
+                setHint('جاري التحميل من قاعدة البيانات...', false);
                 try {
                     const response = await fetch(profilesUrl + '?serverId=' + encodeURIComponent(serverId), {
                         headers: { 'Accept': 'application/json' }
@@ -190,7 +190,7 @@
                     profileSelect.innerHTML = '<option value="">— اختر —</option>';
                     if (!profiles || profiles.length === 0) {
                         profileSelect.innerHTML = '<option value="">لا توجد بروفايلات لهذا السيرفر</option>';
-                        setHint('لا بروفايلات — أنشئ بروفايلاً ثم حدّث القائمة.', true);
+                        setHint('لا بروفايلات مزامنة لهذا البرج في قاعدة البيانات. أضف بروفايلاً ثم حدّث القائمة.', true);
                         return;
                     }
 
@@ -204,7 +204,7 @@
                         }
                         profileSelect.appendChild(option);
                     }
-                    setHint(profiles.length + ' بروفايل متاح.');
+                    setHint(profiles.length + ' بروفايل من قاعدة البيانات لهذا البرج.');
                 } catch {
                     if (existingCount > 0) {
                         setHint('تعذر التحديث — القائمة الحالية من الصفحة ما زالت معروضة.', true);
@@ -223,17 +223,11 @@
                 loadProfilesByServer(serverSelect.value, true);
             });
 
-            window.addEventListener('focus', function () {
-                if (serverSelect.value) {
-                    loadProfilesByServer(serverSelect.value, true);
-                }
-            });
-
             if (serverSelect.value) {
                 loadProfilesByServer(serverSelect.value, false);
             } else {
                 updateProfileCreateLink(null);
-                setHint('اختر السيرفر أولاً لعرض البروفايلات.');
+                setHint('اختر البرج أولاً لعرض بروفايلاته المزامنة في قاعدة البيانات.');
             }
         })();
     </script>

@@ -56,7 +56,12 @@ public sealed class NewSubscriberWizardOrchestrator
         CancellationToken cancellationToken = default)
     {
         Profile? profile = await _context.Profiles
-            .FirstOrDefaultAsync(p => p.Id == client.ProfileId && p.NetworkId == networkId, cancellationToken);
+            .FirstOrDefaultAsync(p =>
+                p.Id == client.ProfileId &&
+                p.IsActive &&
+                (p.NetworkId == networkId
+                 || (client.MikroTikServerId.HasValue && p.MikroTikServerId == client.MikroTikServerId)),
+                cancellationToken);
         if (profile == null)
         {
             return new CreateSubscriberResult { Success = false, ErrorMessage = "البروفايل المحدد غير موجود في هذه الشبكة." };
@@ -273,15 +278,20 @@ public sealed class NewSubscriberWizardOrchestrator
                     await _mikroTikService.AddPPPoEUser(client);
                     mikroTikSynced = true;
                 }
+                catch (Exception mikroTikEx) when (MikroTikApiSupport.IsAlreadyExistsMessage(mikroTikEx))
+                {
+                    mikroTikSynced = true;
+                }
                 catch (Exception mikroTikEx)
                 {
                     mikroTikSynced = false;
                     mikroTikWarning =
-                        "تم حفظ المشترك في النظام، لكن تعذر إضافته على سيرفر MikroTik الآن. سيحاول النظام المزامنة لاحقاً. "
+                        "تم حفظ المشترك في النظام، لكن تعذر إضافته على سيرفر MikroTik الآن. سيحاول النظام المزامنة تلقائياً خلال ثوانٍ. "
                         + MikroTikErrorFormatter.Format("سبب الاتصال", mikroTikEx.Message);
                     _logger.LogWarning(
                         mikroTikEx,
-                        "Wizard saved client {UserName} but MikroTik add failed; background sync will retry",
+                        "Wizard saved client {ClientId}/{UserName} but MikroTik add failed; background sync will retry",
+                        client.Id,
                         client.UserName);
                 }
             }

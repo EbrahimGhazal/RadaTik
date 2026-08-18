@@ -339,7 +339,6 @@ public class NewSubscriberWizardController : Controller
                 .AsNoTracking()
                 .AnyAsync(p =>
                     p.Id == model.ProfileId &&
-                    p.NetworkId == networkId.Value &&
                     p.IsActive &&
                     p.MikroTikServerId == model.MikroTikServerId.Value);
             if (!profileBelongsToSelectedServer)
@@ -759,10 +758,7 @@ public class NewSubscriberWizardController : Controller
 
         List<WizardProfileOptionJson> profiles = await _context.Profiles
             .AsNoTracking()
-            .Where(p =>
-                p.NetworkId == networkId.Value &&
-                p.IsActive &&
-                p.MikroTikServerId == serverId)
+            .Where(p => p.IsActive && p.MikroTikServerId == serverId)
             .OrderBy(p => p.DisplayOrder)
             .ThenBy(p => p.Name)
             .Select(p => new WizardProfileOptionJson(p.Id, p.Name))
@@ -896,7 +892,7 @@ public class NewSubscriberWizardController : Controller
     {
         IQueryable<Profile> profilesQuery = _context.Profiles
             .AsNoTracking()
-            .Where(p => p.NetworkId == networkId && p.IsActive);
+            .Where(p => p.IsActive);
         if (state.MikroTikServerId.HasValue)
         {
             profilesQuery = profilesQuery.Where(p => p.MikroTikServerId == state.MikroTikServerId.Value);

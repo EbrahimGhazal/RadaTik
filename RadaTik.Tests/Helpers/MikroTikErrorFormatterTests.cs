@@ -18,6 +18,13 @@ public class MikroTikErrorFormatterTests
     }
 
     [Fact]
+    public void IsUnreachable_DetectsArabicConnectionFailure()
+    {
+        var ex = new InvalidOperationException("فشل الاتصال بالخادم 10.0.0.1 بعد 3 محاولات");
+        Assert.True(MikroTikErrorFormatter.IsUnreachable(ex));
+    }
+
+    [Fact]
     public void IsAuthFailure_DetectsTikTrapMessage()
     {
         Assert.True(MikroTikErrorFormatter.IsAuthFailure("invalid user name or password (6)"));

@@ -143,6 +143,49 @@ public class NewSubscriberWizardOrchestratorIntegrationTests
         mikroTik.VerifyAll();
     }
 
+    [Fact]
+    public async Task CreateSubscriberAsync_WhenMikroTikUserAlreadyExists_TreatsAsSynced()
+    {
+        await using ApplicationDbContext db = CreateDbContext();
+        SeedCompanyScope(db);
+        await db.SaveChangesAsync();
+
+        Mock<UserManager<ApplicationUser>> userManager = BuildUserManagerMock();
+        userManager.Setup(m => m.GetRolesAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync([RoleNames.NetworkAdministrator]);
+        userManager.Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+            .ReturnsAsync((ApplicationUser?)null);
+        userManager.Setup(m => m.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
+            .ReturnsAsync(IdentityResult.Success);
+        userManager.Setup(m => m.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Client"))
+            .ReturnsAsync(IdentityResult.Success);
+
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        mikroTik
+            .Setup(m => m.AddPPPoEUser(It.Is<Client>(c => c.UserName == "existing-mt")))
+            .ThrowsAsync(new InvalidOperationException("المستخدم existing-mt موجود مسبقاً في الخادم"));
+
+        NewSubscriberWizardOrchestrator orchestrator = BuildOrchestrator(
+            db,
+            userManager,
+            mikroTik,
+            BuildInvoiceMock(),
+            BuildUsageChargeMock());
+
+        NewSubscriberWizardOrchestrator.CreateSubscriberResult result = await orchestrator.CreateSubscriberAsync(
+            BuildClient("existing-mt", serverId: 50),
+            new ApplicationUser { Id = "actor-1", UserName = "admin" },
+            networkId: 2,
+            path: NewSubscriberWizardPath.TowerDirect,
+            dbUserName: null,
+            dbPassword: null);
+
+        Assert.True(result.Success, result.ErrorMessage);
+        Assert.True(result.MikroTikSynced);
+        Assert.Null(result.MikroTikWarning);
+        mikroTik.VerifyAll();
+    }
+
     private static ApplicationDbContext CreateDbContext()
     {
         DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()

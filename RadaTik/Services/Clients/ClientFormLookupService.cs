@@ -21,7 +21,7 @@ public sealed class ClientFormLookupService(ApplicationDbContext context)
 
         return await Db.Profiles
             .AsNoTracking()
-            .Where(p => p.MikroTikServerId == serverId && p.IsActive && p.NetworkId == networkId)
+            .Where(p => p.MikroTikServerId == serverId && p.IsActive)
             .OrderBy(p => p.DisplayOrder)
             .ThenBy(p => p.Name)
             .Select(p => new ClientFormProfileOption { Id = p.Id, Name = p.Name })

@@ -179,21 +179,13 @@ namespace RadaTik.Controllers
 
 
             if (!string.IsNullOrEmpty(outcome.ErrorMessage))
-
             {
-
-                TempData["Error"] = $"? {outcome.ErrorMessage}";
-
+                TempData["Error"] = outcome.ErrorMessage;
             }
 
-
-
             if (outcome.IsSuccess && !string.IsNullOrEmpty(outcome.SuccessMessage))
-
             {
-
-                TempData["Success"] = $"? {outcome.SuccessMessage}";
-
+                TempData["Success"] = outcome.SuccessMessage;
             }
 
 

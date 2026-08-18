@@ -313,12 +313,7 @@ public sealed class MikroTikUserService(
         try
         {
             using ITikConnection connection = _connection.CreateConnectionWithRetry(server);
-            {
-                ITikCommand checkCmd = connection.CreateCommand("/ppp/secret/print");
-                IEnumerable<ITikReSentence> allUsers = checkCmd.ExecuteList();
-
-                return allUsers.Any(u => MikroTikApiSupport.GetSafeValue(u, "name") == username);
-            }
+            return MikroTikApiSupport.FindByName(connection, "/ppp/secret/print", username) is not null;
         }
         catch (Exception ex)
         {
@@ -352,14 +347,21 @@ public sealed class MikroTikUserService(
             connection = _connection.CreateConnectionWithRetry(server);
             _logger.LogInformation("✅ تم إنشاء الاتصال بالخادم");
 
-            ITikCommand checkCmd = connection.CreateCommand("/ppp/secret/print");
-            IEnumerable<ITikReSentence> allUsers = checkCmd.ExecuteList();
-            ITikReSentence? existingUser = allUsers.FirstOrDefault(u => MikroTikApiSupport.GetSafeValue(u, "name") == client.UserName);
+            if (string.IsNullOrWhiteSpace(client.UserName))
+            {
+                throw new InvalidOperationException("اسم المستخدم مطلوب لإضافته على المايكروتك");
+            }
 
+            ITikReSentence? existingUser = MikroTikApiSupport.FindByName(
+                connection,
+                "/ppp/secret/print",
+                client.UserName);
             if (existingUser is not null)
             {
-                _logger.LogWarning("⚠️ المستخدم {UserName} موجود مسبقاً في المايكروتك", client.UserName);
-                throw new InvalidOperationException($"المستخدم {client.UserName} موجود مسبقاً في الخادم");
+                _logger.LogInformation(
+                    "المستخدم {UserName} موجود مسبقاً في المايكروتك — تُعتبر الإضافة ناجحة",
+                    client.UserName);
+                return true;
             }
 
             if (string.IsNullOrEmpty(client.ProfileName))
@@ -367,11 +369,11 @@ public sealed class MikroTikUserService(
                 throw new InvalidOperationException("لم يتم تحديد بروفايل للعميل");
             }
 
-            ITikCommand profileCmd = connection.CreateCommand("/ppp/profile/print");
-            IEnumerable<ITikReSentence> allProfiles = profileCmd.ExecuteList();
-            bool profileExists = allProfiles.Any(p => MikroTikApiSupport.GetSafeValue(p, "name") == client.ProfileName);
-
-            if (!profileExists)
+            ITikReSentence? profileRow = MikroTikApiSupport.FindByName(
+                connection,
+                "/ppp/profile/print",
+                client.ProfileName);
+            if (profileRow is null)
             {
                 _logger.LogWarning("⚠️ البروفايل {ProfileName} غير موجود في المايكروتك", client.ProfileName);
                 throw new InvalidOperationException($"البروفايل {client.ProfileName} غير موجود في الخادم");
@@ -400,10 +402,12 @@ public sealed class MikroTikUserService(
             }
             catch (Exception cmdEx)
             {
-                if (cmdEx.Message.Contains("!empty"))
+                if (cmdEx.Message.Contains("!empty", StringComparison.OrdinalIgnoreCase)
+                    || MikroTikApiSupport.IsAlreadyExistsMessage(cmdEx))
                 {
-                    _logger.LogWarning("⚠️ تم تجاهل خطأ !empty، قد تكون الإضافة ناجحة للمستخدم {UserName}", client.UserName);
-                    await Task.Delay(1000);
+                    _logger.LogWarning(
+                        "تعذر تأكيد أمر الإضافة للمستخدم {UserName}، سيتم التحقق بالاسم فقط",
+                        client.UserName);
                 }
                 else
                 {
@@ -411,12 +415,10 @@ public sealed class MikroTikUserService(
                 }
             }
 
-            await Task.Delay(1000);
-
-            checkCmd = connection.CreateCommand("/ppp/secret/print");
-            allUsers = checkCmd.ExecuteList();
-            ITikReSentence? verifyUser = allUsers.FirstOrDefault(u => MikroTikApiSupport.GetSafeValue(u, "name") == client.UserName);
-
+            ITikReSentence? verifyUser = MikroTikApiSupport.FindByName(
+                connection,
+                "/ppp/secret/print",
+                client.UserName);
             if (verifyUser is null)
             {
                 _logger.LogWarning("⚠️ فشل التحقق من إضافة المستخدم في المايكروتك، لكن قد تكون العملية ناجحة");
@@ -781,33 +783,36 @@ public sealed class MikroTikUserService(
         try
         {
             using ITikConnection connection = _connection.CreateConnectionWithRetry(server);
+            ITikReSentence? targetUser = MikroTikApiSupport.FindByName(
+                connection,
+                "/ppp/secret/print",
+                username);
+
+            if (targetUser is null)
             {
-                _logger.LogInformation("✅ تم إنشاء الاتصال بالخادم");
-
-                ITikCommand findCmd = connection.CreateCommand("/ppp/secret/print");
-                IEnumerable<ITikReSentence> allUsers = findCmd.ExecuteList();
-                ITikReSentence? targetUser = allUsers.FirstOrDefault(u => MikroTikApiSupport.GetSafeValue(u, "name") == username);
-
-                if (targetUser is null)
-                {
-                    _logger.LogWarning("⚠️ المستخدم {Username} غير موجود في المايكروتك", username);
-                    return true;
-                }
-
-                string userId = MikroTikApiSupport.GetSafeValue(targetUser, ".id");
-
-                ITikCommand deleteCmd = connection.CreateCommand("/ppp/secret/remove");
-                deleteCmd.AddParameter(".id", userId);
-                deleteCmd.ExecuteNonQuery();
-
-                _logger.LogInformation("✅ تم حذف المستخدم {Username} من المايكروتك بنجاح", username);
+                _logger.LogWarning("⚠️ المستخدم {Username} غير موجود في المايكروتك", username);
                 return true;
             }
+
+            string userId = MikroTikApiSupport.GetSafeValue(targetUser, ".id");
+            ITikCommand deleteCmd = connection.CreateCommand("/ppp/secret/remove");
+            deleteCmd.AddParameter(".id", userId);
+            try
+            {
+                deleteCmd.ExecuteNonQuery();
+            }
+            catch (Exception cmdEx) when (cmdEx.Message.Contains("!empty", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("تم تجاهل !empty أثناء حذف {Username} — يُعتبر الحذف ناجحاً", username);
+            }
+
+            _logger.LogInformation("✅ تم حذف المستخدم {Username} من المايكروتك بنجاح", username);
+            return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ خطأ في حذف المستخدم من المايكروتك: {Message}", ex.Message);
-            throw new InvalidOperationException("خطأ في حذف المستخدم من المايكروتك", ex);
+            throw;
         }
     }
 

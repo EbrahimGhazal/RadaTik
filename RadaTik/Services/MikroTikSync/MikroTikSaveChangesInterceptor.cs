@@ -6,11 +6,13 @@ namespace RadaTik.Services.MikroTikSync;
 
 /// <summary>
 /// يعترض SaveChanges لاكتشاف تغييرات Client و Profile ويضيفها لطابور مزامنة MikroTik
+/// بعد أن تُسند قاعدة البيانات المعرّفات الحقيقية للكيانات الجديدة.
 /// </summary>
 public sealed class MikroTikSaveChangesInterceptor : SaveChangesInterceptor
 {
     private readonly IMikroTikSyncQueue _queue;
-    private readonly List<MikroTikSyncJob> _pendingJobs = new();
+    private readonly List<CapturedClientChange> _pendingClients = [];
+    private readonly List<CapturedProfileChange> _pendingProfiles = [];
 
     public MikroTikSaveChangesInterceptor(IMikroTikSyncQueue queue)
     {
@@ -23,7 +25,10 @@ public sealed class MikroTikSaveChangesInterceptor : SaveChangesInterceptor
         return result;
     }
 
-    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+        DbContextEventData eventData,
+        InterceptionResult<int> result,
+        CancellationToken cancellationToken = default)
     {
         CapturePendingJobs(eventData.Context);
         return ValueTask.FromResult(result);
@@ -31,61 +36,114 @@ public sealed class MikroTikSaveChangesInterceptor : SaveChangesInterceptor
 
     public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
     {
-        if (result > 0 && _pendingJobs.Count > 0)
+        if (result > 0)
         {
-            foreach (var job in _pendingJobs)
-                _ = _queue.EnqueueAsync(job); // fire-and-forget للتجنب انتظار async في sync
-            _pendingJobs.Clear();
+            EnqueueCapturedJobs();
         }
+        else
+        {
+            _pendingClients.Clear();
+            _pendingProfiles.Clear();
+        }
+
         return result;
     }
 
-    public override ValueTask<int> SavedChangesAsync(SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
+    public override ValueTask<int> SavedChangesAsync(
+        SaveChangesCompletedEventData eventData,
+        int result,
+        CancellationToken cancellationToken = default)
     {
-        if (result > 0 && _pendingJobs.Count > 0)
+        if (result > 0)
         {
-            foreach (var job in _pendingJobs)
-                _ = _queue.EnqueueAsync(job, cancellationToken);
-            _pendingJobs.Clear();
+            EnqueueCapturedJobs(cancellationToken);
         }
+        else
+        {
+            _pendingClients.Clear();
+            _pendingProfiles.Clear();
+        }
+
         return ValueTask.FromResult(result);
     }
 
     private void CapturePendingJobs(DbContext? context)
     {
-        _pendingJobs.Clear();
-        if (context == null) return;
-
-        foreach (var entry in context.ChangeTracker.Entries<Client>())
+        _pendingClients.Clear();
+        _pendingProfiles.Clear();
+        if (context == null)
         {
-            if (entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
-            {
-                var c = entry.Entity;
-                _pendingJobs.Add(new MikroTikSyncJob
-                {
-                    EntityType = nameof(Client),
-                    EntityId = c.Id,
-                    Action = entry.State switch { EntityState.Added => MikroTikSyncAction.Add, EntityState.Deleted => MikroTikSyncAction.Delete, _ => MikroTikSyncAction.Update },
-                    ServerId = c.MikroTikServerId,
-                    UserName = c.UserName
-                });
-            }
+            return;
         }
 
-        foreach (var entry in context.ChangeTracker.Entries<Profile>())
+        foreach (Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<Client> entry in context.ChangeTracker.Entries<Client>())
         {
-            if (entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
             {
-                var p = entry.Entity;
-                _pendingJobs.Add(new MikroTikSyncJob
-                {
-                    EntityType = nameof(Profile),
-                    EntityId = p.Id,
-                    Action = entry.State switch { EntityState.Added => MikroTikSyncAction.Add, EntityState.Deleted => MikroTikSyncAction.Delete, _ => MikroTikSyncAction.Update },
-                    ServerId = p.MikroTikServerId,
-                    ProfileName = p.Name
-                });
+                continue;
             }
+
+            _pendingClients.Add(new CapturedClientChange(entry.Entity, ToAction(entry.State)));
+        }
+
+        foreach (Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<Profile> entry in context.ChangeTracker.Entries<Profile>())
+        {
+            if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
+            {
+                continue;
+            }
+
+            _pendingProfiles.Add(new CapturedProfileChange(entry.Entity, ToAction(entry.State)));
         }
     }
+
+    private void EnqueueCapturedJobs(CancellationToken cancellationToken = default)
+    {
+        foreach (CapturedClientChange change in _pendingClients)
+        {
+            if (change.Action != MikroTikSyncAction.Delete && change.Client.Id <= 0)
+            {
+                continue;
+            }
+
+            _ = _queue.EnqueueAsync(new MikroTikSyncJob
+            {
+                EntityType = nameof(Client),
+                EntityId = change.Client.Id,
+                Action = change.Action,
+                ServerId = change.Client.MikroTikServerId,
+                UserName = change.Client.UserName
+            }, cancellationToken);
+        }
+
+        foreach (CapturedProfileChange change in _pendingProfiles)
+        {
+            if (change.Action != MikroTikSyncAction.Delete && change.Profile.Id <= 0)
+            {
+                continue;
+            }
+
+            _ = _queue.EnqueueAsync(new MikroTikSyncJob
+            {
+                EntityType = nameof(Profile),
+                EntityId = change.Profile.Id,
+                Action = change.Action,
+                ServerId = change.Profile.MikroTikServerId,
+                ProfileName = change.Profile.Name
+            }, cancellationToken);
+        }
+
+        _pendingClients.Clear();
+        _pendingProfiles.Clear();
+    }
+
+    private static MikroTikSyncAction ToAction(EntityState state) => state switch
+    {
+        EntityState.Added => MikroTikSyncAction.Add,
+        EntityState.Deleted => MikroTikSyncAction.Delete,
+        _ => MikroTikSyncAction.Update
+    };
+
+    private sealed record CapturedClientChange(Client Client, MikroTikSyncAction Action);
+    private sealed record CapturedProfileChange(Profile Profile, MikroTikSyncAction Action);
 }

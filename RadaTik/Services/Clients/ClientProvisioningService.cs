@@ -48,21 +48,36 @@ public sealed partial class ClientProvisioningService(
 
         try
         {
+            string? mikroTikWarning = null;
             if (client.MikroTikServerId.HasValue && !string.IsNullOrEmpty(client.UserName))
             {
-                await _mikroTik.DeletePPPoEUser(client.UserName, client.MikroTikServerId.Value);
+                try
+                {
+                    await _mikroTik.DeletePPPoEUser(client.UserName, client.MikroTikServerId.Value);
+                }
+                catch (Exception mikroTikEx) when (MikroTikErrorFormatter.IsUnreachable(mikroTikEx))
+                {
+                    mikroTikWarning = MikroTikErrorFormatter.Format(
+                        "تم حذف المشترك من النظام، لكن تعذر حذفه من MikroTik",
+                        mikroTikEx);
+                    _logger.LogWarning(
+                        mikroTikEx,
+                        "Deleted client {ClientId}/{UserName} from database after MikroTik delete failed",
+                        client.Id,
+                        client.UserName);
+                }
             }
 
             Db.Clients.Remove(client);
             await Db.SaveChangesAsync(ct);
-            return ClientOperationOutcome.Success("تم حذف العميل بنجاح من قاعدة البيانات والمايكروتك");
+            return ClientOperationOutcome.Success(
+                mikroTikWarning
+                ?? "تم حذف العميل بنجاح من قاعدة البيانات والمايكروتك");
         }
         catch (Exception ex)
         {
             return ClientOperationOutcome.Fail(
-                MikroTikErrorFormatter.Format(
-                    "حدث خطأ أثناء حذف العميل من المايكروتك",
-                    ex.Message));
+                MikroTikErrorFormatter.Format("حدث خطأ أثناء حذف العميل من المايكروتك", ex));
         }
     }
 }

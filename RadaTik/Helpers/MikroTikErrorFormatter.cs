@@ -65,15 +65,23 @@ public static class MikroTikErrorFormatter
             || text.Contains("connection refused", StringComparison.OrdinalIgnoreCase)
             || text.Contains("cannot connect", StringComparison.OrdinalIgnoreCase)
             || text.Contains("No connection", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("socket", StringComparison.OrdinalIgnoreCase);
+            || text.Contains("socket", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("فشل الاتصال", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("تعذر الاتصال", StringComparison.OrdinalIgnoreCase);
     }
 
     public static bool IsTimeout(string? message)
     {
         string text = message ?? string.Empty;
         return text.Contains("timeout", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("timed out", StringComparison.OrdinalIgnoreCase);
+            || text.Contains("timed out", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("انتهت مهلة", StringComparison.OrdinalIgnoreCase);
     }
+
+    public static bool IsUnreachable(Exception? ex) => IsUnreachable(Flatten(ex));
+
+    public static bool IsUnreachable(string? message) =>
+        IsConnectionFailure(message) || IsTimeout(message);
 
     private static string Flatten(Exception? ex)
     {

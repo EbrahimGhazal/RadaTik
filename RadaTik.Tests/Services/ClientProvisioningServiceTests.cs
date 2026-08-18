@@ -34,6 +34,26 @@ public sealed class ClientProvisioningServiceTests
     }
 
     [Fact]
+    public async Task DeleteClientAsync_WhenMikroTikUnreachable_StillDeletesFromDatabase()
+    {
+        await using ApplicationDbContext db = CreateDb();
+        db.Clients.Add(MinimalClient(8, "gone", 2, 9));
+        await db.SaveChangesAsync();
+
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        mikroTik
+            .Setup(m => m.DeletePPPoEUser("gone", 9))
+            .ThrowsAsync(new InvalidOperationException("فشل الاتصال بالخادم 10.0.0.1 بعد 3 محاولات"));
+
+        ClientProvisioningService sut = CreateSut(db, mikroTik.Object);
+        ClientOperationOutcome outcome = await sut.DeleteClientAsync(8, 2);
+
+        Assert.True(outcome.IsSuccess);
+        Assert.Contains("MikroTik", outcome.SuccessMessage);
+        Assert.Empty(await db.Clients.ToListAsync());
+    }
+
+    [Fact]
     public async Task DeleteClientAsync_UnknownClient_ReturnsNotFound()
     {
         await using ApplicationDbContext db = CreateDb();

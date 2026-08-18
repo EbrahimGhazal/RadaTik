@@ -1,30 +1,19 @@
-# --- Stage 1: React SPA (Vite → RadaTik/wwwroot/app) ---
-FROM node:20-bookworm-slim AS webbuild
-WORKDIR /src/radatik-web
-COPY radatik-web/package.json radatik-web/package-lock.json ./
-RUN npm ci
-COPY radatik-web/ ./
-# Static wwwroot assets (css, js, lib, …) required beside /app; Vite writes build to ../RadaTik/wwwroot/app
-COPY RadaTik/wwwroot /src/RadaTik/wwwroot
-RUN npm run build
+#!/bin/bash
+# Wait until SQL Server accepts TCP connections, then start the app.
+set -euo pipefail
 
-# --- Stage 2: Publish ASP.NET Core ---
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /src
-COPY RadaTik/RadaTik.csproj RadaTik/
-RUN dotnet restore RadaTik/RadaTik.csproj
-COPY RadaTik/ RadaTik/
-COPY --from=webbuild /src/RadaTik/wwwroot RadaTik/wwwroot
-WORKDIR /src/RadaTik
-RUN dotnet publish RadaTik.csproj -c Release -o /app/publish /p:UseAppHost=false
+host="${SQL_SERVER_HOST:-radatik-sqlserver}"
+port="${SQL_SERVER_PORT:-1433}"
 
-# --- Stage 3: Runtime ---
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
-WORKDIR /app
-EXPOSE 8080
+echo "Waiting for SQL Server at ${host}:${port}..."
+for i in $(seq 1 90); do
+  if bash -c "echo >/dev/tcp/${host}/${port}" 2>/dev/null; then
+    echo "SQL Server is reachable."
+    exec dotnet RadaTik.dll "$@"
+  fi
+  echo "Attempt ${i}/90: SQL not ready yet, sleeping 2s..."
+  sleep 2
+done
 
-COPY --from=build /app/publish .
-COPY docker/wait-for-sql.sh /app/wait-for-sql.sh
-RUN chmod +x /app/wait-for-sql.sh
-
-ENTRYPOINT ["/app/wait-for-sql.sh"]
+echo "Timed out waiting for SQL Server at ${host}:${port}" >&2
+exit 1

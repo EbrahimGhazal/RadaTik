@@ -18,6 +18,9 @@ services:
       - SQL_SERVER_HOST=radatik-sqlserver
       - SQL_SERVER_PORT=1433
       - ConnectionStrings__MyDBConnection=Server=radatik-sqlserver,1433;Database=RadaTikDB;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=True;Connection Timeout=120;
+    volumes:
+      # Overlay the baked-in entrypoint so a host-side script fix takes effect without a full image rebuild.
+      - ./docker-entrypoint.sh:/docker-entrypoint.sh:ro
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -37,7 +40,10 @@ services:
     ports:
       - "1433:1433"
     volumes:
-      - sqlserver-data:/var/opt/mssql
+      - /opt/mssql/data:/var/opt/mssql/data
+      - /opt/mssql/log:/var/opt/mssql/log
+      - /opt/mssql/secrets:/var/opt/mssql/secrets
+      - /opt/backups:/var/opt/mssql/backup
     healthcheck:
       # Port open = SQL Server accepting TCP (avoids sqlcmd path differences across image tags)
       test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/1433' || exit 1"]
@@ -52,6 +58,3 @@ services:
 networks:
   radatik-net:
     driver: bridge
-
-volumes:
-  sqlserver-data:

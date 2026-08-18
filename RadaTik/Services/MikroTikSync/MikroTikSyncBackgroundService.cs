@@ -135,7 +135,7 @@ public sealed class MikroTikSyncBackgroundService : BackgroundService
                 _logger.LogInformation("✅ تم تحديث مستخدم MikroTik: {UserName}", client.UserName);
             }
         }
-        catch (Exception ex) when (ex.Message.Contains("موجود مسبقاً", StringComparison.OrdinalIgnoreCase))
+        catch (Exception ex) when (MikroTikApiSupport.IsAlreadyExistsMessage(ex))
         {
             // العميل مُزامن مسبقاً (مثلاً من الواجهة مباشرة) - تُعتبر ناجحة
             _logger.LogDebug("⏭️ العميل {UserName} مُزامن مسبقاً في MikroTik", client.UserName);
