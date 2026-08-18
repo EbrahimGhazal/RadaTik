@@ -315,10 +315,14 @@ public sealed class MikroTikUserService(
             using ITikConnection connection = _connection.CreateConnectionWithRetry(server);
             return MikroTikApiSupport.FindByName(connection, "/ppp/secret/print", username) is not null;
         }
+        catch (Exception ex) when (MikroTikApiSupport.IsEmptyResponse(ex))
+        {
+            return false;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ خطأ في فحص وجود المستخدم: {Message}", ex.Message);
-            return false;
+            throw;
         }
     }
 
@@ -403,19 +407,13 @@ public sealed class MikroTikUserService(
                 addCmd.ExecuteNonQuery();
                 _logger.LogInformation("✅ تم إضافة المستخدم {UserName} في المايكروتك بنجاح", client.UserName);
             }
-            catch (Exception cmdEx)
+            catch (Exception cmdEx) when (
+                MikroTikApiSupport.IsEmptyResponse(cmdEx)
+                || MikroTikApiSupport.IsAlreadyExistsMessage(cmdEx))
             {
-                if (cmdEx.Message.Contains("!empty", StringComparison.OrdinalIgnoreCase)
-                    || MikroTikApiSupport.IsAlreadyExistsMessage(cmdEx))
-                {
-                    _logger.LogWarning(
-                        "تعذر تأكيد أمر الإضافة للمستخدم {UserName}، سيتم التحقق بالاسم فقط",
-                        client.UserName);
-                }
-                else
-                {
-                    throw;
-                }
+                _logger.LogWarning(
+                    "تعذر تأكيد أمر الإضافة للمستخدم {UserName}، سيتم التحقق بالاسم فقط",
+                    client.UserName);
             }
 
             ITikReSentence? verifyUser = MikroTikApiSupport.FindByName(
@@ -432,6 +430,19 @@ public sealed class MikroTikUserService(
             }
 
             return true;
+        }
+        catch (Exception ex) when (MikroTikApiSupport.IsEmptyResponse(ex))
+        {
+            _logger.LogWarning(ex, "رد !empty أثناء إضافة {UserName} — يُعاد التحقق بالاسم", client.UserName);
+            ITikReSentence? verifyUser = connection is null
+                ? null
+                : MikroTikApiSupport.FindByName(connection, "/ppp/secret/print", client.UserName ?? string.Empty);
+            if (verifyUser is not null)
+            {
+                return true;
+            }
+
+            throw new InvalidOperationException("خطأ في إضافة المستخدم في المايكروتك", ex);
         }
         catch (Exception ex)
         {
@@ -667,7 +678,7 @@ public sealed class MikroTikUserService(
             {
                 updateCmd.ExecuteNonQuery();
             }
-            catch (Exception cmdEx) when (cmdEx.Message.Contains("!empty", StringComparison.OrdinalIgnoreCase))
+            catch (Exception cmdEx) when (MikroTikApiSupport.IsEmptyResponse(cmdEx))
             {
                 _logger.LogWarning("تم تجاهل !empty أثناء تحديث {UserName}", client.UserName);
             }

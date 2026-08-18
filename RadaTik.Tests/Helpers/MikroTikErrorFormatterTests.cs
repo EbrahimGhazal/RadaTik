@@ -25,6 +25,24 @@ public class MikroTikErrorFormatterTests
     }
 
     [Fact]
+    public void Format_EmptyTikResponse_IsNotTreatedAsLoginFailure()
+    {
+        var inner = new InvalidOperationException("Response type '!empty' not supported");
+        var outer = new InvalidOperationException("خطأ في إضافة المستخدم في المايكروتك", inner);
+
+        string message = MikroTikErrorFormatter.Format("خطأ في المزامنة مع المايكروتك", outer);
+
+        Assert.DoesNotContain("فشل تسجيل الدخول", message);
+        Assert.Contains("فارغاً", message);
+    }
+
+    [Fact]
+    public void IsAuthFailure_DoesNotMatchEmptyResponse()
+    {
+        Assert.False(MikroTikErrorFormatter.IsAuthFailure("Response type '!empty' not supported"));
+    }
+
+    [Fact]
     public void IsAuthFailure_DetectsTikTrapMessage()
     {
         Assert.True(MikroTikErrorFormatter.IsAuthFailure("invalid user name or password (6)"));

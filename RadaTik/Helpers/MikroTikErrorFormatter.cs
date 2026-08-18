@@ -17,6 +17,11 @@ public static class MikroTikErrorFormatter
             return prefix;
         }
 
+        if (IsEmptyResponse(message))
+        {
+            return $"{prefix}: المستخدم غير موجود على المايكروتك أو الجهاز أرجع رداً فارغاً.";
+        }
+
         if (IsAuthFailure(message))
         {
             return
@@ -42,11 +47,22 @@ public static class MikroTikErrorFormatter
 
     public static bool IsAuthFailure(Exception? ex) => IsAuthFailure(Flatten(ex));
 
+    public static bool IsEmptyResponse(string? message)
+    {
+        string text = message ?? string.Empty;
+        return text.Contains("!empty", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("no such item", StringComparison.OrdinalIgnoreCase);
+    }
+
     public static bool IsAuthFailure(string? message)
     {
         string text = message ?? string.Empty;
+        if (IsEmptyResponse(text))
+        {
+            return false;
+        }
+
         return text.Contains("invalid user name or password", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("invalid user", StringComparison.OrdinalIgnoreCase)
             || text.Contains("cannot log in", StringComparison.OrdinalIgnoreCase)
             || (text.Contains("password", StringComparison.OrdinalIgnoreCase)
                 && text.Contains("invalid", StringComparison.OrdinalIgnoreCase))

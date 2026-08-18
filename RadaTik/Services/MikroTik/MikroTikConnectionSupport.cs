@@ -32,8 +32,21 @@ public sealed class MikroTikConnectionSupport(ILogger<MikroTikConnectionSupport>
                     server.User,
                     server.Pass);
 
-                ITikCommand testCmd = connection.CreateCommand("/system/resource/print");
-                testCmd.ExecuteList();
+                try
+                {
+                    ITikCommand testCmd = connection.CreateCommand("/system/resource/print");
+                    testCmd.ExecuteList();
+                }
+                catch (Exception testEx) when (
+                    MikroTikApiSupport.IsEmptyResponse(testEx)
+                    || testEx.Message.Contains("permission", StringComparison.OrdinalIgnoreCase)
+                    || testEx.Message.Contains("not enough", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogDebug(
+                        testEx,
+                        "تم تسجيل الدخول إلى {Host} لكن أمر الفحص غير متاح — يُتابع الاتصال",
+                        server.Host);
+                }
 
                 return connection;
             }
