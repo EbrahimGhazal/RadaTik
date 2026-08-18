@@ -444,10 +444,13 @@
             </div>
             <div class="card-body">
                 <div class="btn-group" role="group">
-                    <form asp-action="SyncWithMikroTik" method="get" class="d-inline">
+                    <form asp-action="SyncWithMikroTik" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@Model.Id" />
-                        <button type="submit" class="btn btn-outline-info">
-                            <i class="fas fa-sync-alt"></i> مزامنة مع المايكروتك
+                        <input type="hidden" name="returnTo" value="details" />
+                        <button type="submit" class="btn btn-outline-info"
+                                onclick="return confirm('سيتم إضافة المشترك إلى MikroTik إن لم يكن موجوداً، أو تحديث كلمة المرور والبروفايل (السرعة) من بيانات النظام. متابعة؟');">
+                            <i class="fas fa-cloud-upload-alt"></i> مزامنة مع مايكروتك (إضافة إلى مايكروتك)
                         </button>
                     </form>
 

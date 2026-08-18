@@ -518,6 +518,19 @@
                                             <i class="fas fa-edit"></i>
                                         </a>
                                     }
+                                    @if (canEdit && item.MikroTikServerId.HasValue && !string.IsNullOrEmpty(item.UserName))
+                                    {
+                                        <form asp-action="SyncWithMikroTik" method="post" style="display:inline;">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-icon btn-outline-info"
+                                                    title="مزامنة مع مايكروتك (إضافة إلى مايكروتك): إضافة المشترك إن لم يكن موجوداً، أو تحديث كلمة المرور والسرعة من قاعدة البيانات"
+                                                    onclick="return confirm('سيتم إضافة المشترك إلى MikroTik إن لم يكن موجوداً، أو تحديث كلمة المرور والبروفايل (السرعة) من بيانات النظام. متابعة؟');">
+                                                <i class="fas fa-cloud-upload-alt"></i>
+                                            </button>
+                                        </form>
+                                    }
                                     @if (canFreeze)
                                     {
                                         <form asp-action="Freeze" method="post" style="display:inline;">

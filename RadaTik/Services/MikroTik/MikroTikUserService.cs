@@ -364,15 +364,18 @@ public sealed class MikroTikUserService(
                 return true;
             }
 
-            if (string.IsNullOrEmpty(client.ProfileName))
+            string? profileName = ResolveProfileName(client);
+            if (string.IsNullOrEmpty(profileName))
             {
                 throw new InvalidOperationException("لم يتم تحديد بروفايل للعميل");
             }
 
+            client.ProfileName = profileName;
+
             ITikReSentence? profileRow = MikroTikApiSupport.FindByName(
                 connection,
                 "/ppp/profile/print",
-                client.ProfileName);
+                profileName);
             if (profileRow is null)
             {
                 _logger.LogWarning("⚠️ البروفايل {ProfileName} غير موجود في المايكروتك", client.ProfileName);
@@ -621,60 +624,61 @@ public sealed class MikroTikUserService(
         try
         {
             using ITikConnection connection = _connection.CreateConnectionWithRetry(server);
+            _logger.LogInformation("✅ تم إنشاء الاتصال بالخادم");
+
+            string? profileName = ResolveProfileName(client);
+            if (string.IsNullOrEmpty(profileName))
             {
-                _logger.LogInformation("✅ تم إنشاء الاتصال بالخادم");
-
-                ITikCommand findCmd = connection.CreateCommand("/ppp/secret/print");
-                IEnumerable<ITikReSentence> allUsers = findCmd.ExecuteList();
-                ITikReSentence? targetUser = allUsers.FirstOrDefault(u => MikroTikApiSupport.GetSafeValue(u, "name") == client.UserName);
-
-                if (targetUser is null)
-                {
-                    _logger.LogWarning("⚠️ المستخدم {UserName} غير موجود في المايكروتك", client.UserName);
-                    throw new InvalidOperationException($"المستخدم {client.UserName} غير موجود في الخادم");
-                }
-
-                string userId = MikroTikApiSupport.GetSafeValue(targetUser, ".id");
-
-                if (string.IsNullOrEmpty(client.ProfileName))
-                {
-                    throw new InvalidOperationException("لم يتم تحديد بروفايل للعميل");
-                }
-
-                ITikCommand profileCmd = connection.CreateCommand("/ppp/profile/print");
-                IEnumerable<ITikReSentence> allProfiles = profileCmd.ExecuteList();
-                bool profileExists = allProfiles.Any(p => MikroTikApiSupport.GetSafeValue(p, "name") == client.ProfileName);
-
-                if (!profileExists)
-                {
-                    _logger.LogWarning("⚠️ البروفايل {ProfileName} غير موجود في المايكروتك", client.ProfileName);
-                    throw new InvalidOperationException($"البروفايل {client.ProfileName} غير موجود في الخادم");
-                }
-
-                ITikCommand updateCmd = connection.CreateCommand("/ppp/secret/set");
-                updateCmd.AddParameter(".id", userId);
-                if (!string.IsNullOrEmpty(client.Password))
-                {
-                    updateCmd.AddParameter("password", client.Password);
-                }
-                updateCmd.AddParameter("profile", client.ProfileName);
-                updateCmd.AddParameter("disabled", client.IsActive ? "no" : "yes");
-
-                if (!string.IsNullOrEmpty(client.Address))
-                {
-                    updateCmd.AddParameter("remote-address", client.Address);
-                }
-
-                updateCmd.ExecuteNonQuery();
-
-                _logger.LogInformation("✅ تم تحديث المستخدم {UserName} في المايكروتك بنجاح", client.UserName);
-                return true;
+                throw new InvalidOperationException("لم يتم تحديد بروفايل للعميل");
             }
+
+            ITikReSentence? targetUser = MikroTikApiSupport.FindByName(
+                connection,
+                "/ppp/secret/print",
+                client.UserName ?? string.Empty);
+            if (targetUser is null)
+            {
+                _logger.LogWarning("⚠️ المستخدم {UserName} غير موجود في المايكروتك", client.UserName);
+                throw new InvalidOperationException($"المستخدم {client.UserName} غير موجود في الخادم");
+            }
+
+            if (MikroTikApiSupport.FindByName(connection, "/ppp/profile/print", profileName) is null)
+            {
+                _logger.LogWarning("⚠️ البروفايل {ProfileName} غير موجود في المايكروتك", profileName);
+                throw new InvalidOperationException($"البروفايل {profileName} غير موجود في الخادم");
+            }
+
+            string userId = MikroTikApiSupport.GetSafeValue(targetUser, ".id");
+            ITikCommand updateCmd = connection.CreateCommand("/ppp/secret/set");
+            updateCmd.AddParameter(".id", userId);
+            if (!string.IsNullOrEmpty(client.Password))
+            {
+                updateCmd.AddParameter("password", client.Password);
+            }
+
+            updateCmd.AddParameter("profile", profileName);
+            updateCmd.AddParameter("disabled", client.IsActive ? "no" : "yes");
+            if (!string.IsNullOrEmpty(client.Address))
+            {
+                updateCmd.AddParameter("remote-address", client.Address);
+            }
+
+            try
+            {
+                updateCmd.ExecuteNonQuery();
+            }
+            catch (Exception cmdEx) when (cmdEx.Message.Contains("!empty", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("تم تجاهل !empty أثناء تحديث {UserName}", client.UserName);
+            }
+
+            _logger.LogInformation("✅ تم تحديث المستخدم {UserName} في المايكروتك بنجاح", client.UserName);
+            return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ خطأ في تحديث المستخدم في المايكروتك: {Message}", ex.Message);
-            throw new InvalidOperationException("خطأ في تحديث المستخدم في المايكروتك", ex);
+            throw;
         }
     }
 

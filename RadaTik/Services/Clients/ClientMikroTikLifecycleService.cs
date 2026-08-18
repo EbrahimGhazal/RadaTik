@@ -296,14 +296,37 @@ public sealed class ClientMikroTikLifecycleService(
             return ClientOperationOutcome.Fail("لا يمكن المزامنة: لم يتم تحديد خادم المايكروتك أو اسم المستخدم");
         }
 
+        if (!string.IsNullOrWhiteSpace(client.Profile?.Name))
+        {
+            client.ProfileName = client.Profile.Name;
+        }
+
+        if (string.IsNullOrWhiteSpace(client.ProfileName))
+        {
+            return ClientOperationOutcome.Fail("لا يمكن المزامنة: لم يتم تحديد بروفايل للمشترك في قاعدة البيانات");
+        }
+
+        if (string.IsNullOrEmpty(client.Password))
+        {
+            return ClientOperationOutcome.Fail("لا يمكن المزامنة: كلمة المرور غير موجودة في قاعدة البيانات");
+        }
+
         try
         {
-            await _mikroTik.UpdatePPPoEUser(client);
-            return ClientOperationOutcome.Success("تم مزامنة البيانات مع المايكروتك بنجاح");
+            bool exists = await _mikroTik.CheckUserExists(client.UserName, client.MikroTikServerId.Value);
+            if (exists)
+            {
+                await _mikroTik.UpdatePPPoEUser(client);
+                return ClientOperationOutcome.Success(
+                    "تم تحديث كلمة المرور والبروفايل على MikroTik من بيانات النظام.");
+            }
+
+            await _mikroTik.AddPPPoEUser(client);
+            return ClientOperationOutcome.Success("تمت إضافة المشترك إلى MikroTik من بيانات النظام.");
         }
         catch (Exception ex)
         {
-            return ClientOperationOutcome.Fail(MikroTikErrorFormatter.Format("خطأ في المزامنة مع المايكروتك", ex.Message));
+            return ClientOperationOutcome.Fail(MikroTikErrorFormatter.Format("خطأ في المزامنة مع المايكروتك", ex));
         }
     }
 
@@ -526,9 +549,20 @@ public sealed class ClientMikroTikLifecycleService(
         }
     }
 
-    private async Task<Client?> LoadClientAsync(int clientId, int networkId, CancellationToken ct) =>
-        await Db.Clients
+    private async Task<Client?> LoadClientAsync(int clientId, int networkId, CancellationToken ct)
+    {
+        Client? client = await Db.Clients
             .Where(c => c.NetworkId == networkId)
             .Include(c => c.MikroTikServer)
             .FirstOrDefaultAsync(c => c.Id == clientId, ct);
+        if (client is null)
+        {
+            return null;
+        }
+
+        client.Profile = await Db.Profiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == client.ProfileId, ct);
+        return client;
+    }
 }

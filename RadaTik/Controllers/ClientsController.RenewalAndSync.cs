@@ -243,15 +243,12 @@ namespace RadaTik.Controllers
             }
         }
 
-        // GET: Clients/SyncWithMikroTik/5
-        [Authorize(Roles = "NetworkAdministrator")]
-        public async Task<IActionResult> SyncWithMikroTik(int? id)
+        // POST: Clients/SyncWithMikroTik/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "NetworkAdministrator,CompanyEmployee,Employee")]
+        public async Task<IActionResult> SyncWithMikroTik(int id, string? returnTo)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var user = await _userManager.GetUserAsync(User);
             var networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
 
@@ -261,8 +258,21 @@ namespace RadaTik.Controllers
                 return RedirectToAction("Index", "Network");
             }
 
-            ClientOperationOutcome outcome = await _app.Lifecycle.SyncWithMikroTikAsync(id.Value, networkId.Value);
-            return ApplyClientOperationOutcome(outcome, nameof(Details), new { id });
+            if (User.IsInRole(RoleNames.CompanyEmployee) || User.IsInRole(RoleNames.EmployeeLegacy))
+            {
+                bool canEdit = await _app.Permission.HasPermissionAsync(User, "Clients.Edit");
+                if (!canEdit)
+                {
+                    return Forbid();
+                }
+            }
+
+            ClientOperationOutcome outcome = await _app.Lifecycle.SyncWithMikroTikAsync(id, networkId.Value);
+            bool toDetails = string.Equals(returnTo, "details", StringComparison.OrdinalIgnoreCase);
+            return ApplyClientOperationOutcome(
+                outcome,
+                toDetails ? nameof(Details) : nameof(Index),
+                toDetails ? new { id } : null);
         }
 
     }
