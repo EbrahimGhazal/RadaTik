@@ -19,3 +19,6 @@ RadaTik/publish-smarterasp/
 
 # Local .NET hosting bundle installers (exceed GitHub 100MB limit)
 tools/dotnet-hosting-*.exe
+
+# TLS private keys must stay local
+Keys/Private Key.txt
