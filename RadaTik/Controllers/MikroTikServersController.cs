@@ -1506,6 +1506,12 @@ namespace RadaTik.Controllers
                 return;
             }
 
+            if (outcome.Skipped)
+            {
+                TempData["Info"] = outcome.ErrorMessage ?? "تم تخطي السيرفر والمتابعة.";
+                return;
+            }
+
             string message = outcome.ErrorMessage ?? "فشل الاستيراد";
             TempData["Error"] = message.StartsWith('❌') ? message : $"❌ {message}";
         }

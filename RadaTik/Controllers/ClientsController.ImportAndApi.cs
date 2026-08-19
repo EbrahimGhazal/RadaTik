@@ -83,13 +83,32 @@ namespace RadaTik.Controllers
                 return RedirectToAction("Index", "Network");
             }
 
-            ClientImportFromServerViewModel view = await _app.Import.BuildImportFromServerViewAsync(networkId.Value);
-            ViewBag.ImportPreviewByServer = view.ImportPage.PreviewByServer;
-            ViewBag.ImportChargeByServer = view.ImportPage.ChargeByServer;
-            ViewBag.ClientImportUnitPrice = view.ImportPage.SubscriberUnitPrice;
+            List<MikroTikServer> servers = await _context.MikroTikServers
+                .AsNoTracking()
+                .Where(s => s.NetworkId == networkId.Value)
+                .OrderBy(s => s.Name)
+                .ToListAsync();
+
+            try
+            {
+                ClientImportFromServerViewModel view = await _app.Import.BuildImportFromServerViewAsync(networkId.Value);
+                servers = view.Servers.ToList();
+                ViewBag.ImportPreviewByServer = view.ImportPage.PreviewByServer;
+                ViewBag.ImportChargeByServer = view.ImportPage.ChargeByServer;
+                ViewBag.ClientImportUnitPrice = view.ImportPage.SubscriberUnitPrice;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "تعذر بناء معاينة الاستيراد لكل السيرفرات. ستُعرض القائمة مع تخطي المعاينة.");
+                ViewBag.ImportPreviewByServer = new Dictionary<int, ImportUsersPreviewResult>();
+                ViewBag.ImportChargeByServer = new Dictionary<int, UsageImportChargeEstimate>();
+                ViewBag.ClientImportUnitPrice = 0m;
+                TempData["Info"] = "تعذر الاتصال ببعض السيرفرات أثناء المعاينة. يمكنك المتابعة ومزامنة السيرفرات المتاحة.";
+            }
+
             ViewBag.Networks = await NetworkHelper.GetAvailableNetworksAsync(_context, user, _userManager);
             ViewBag.CurrentNetworkId = networkId;
-            return View(view.Servers);
+            return View(servers);
         }
 
         // POST: Clients/ImportFromServer - تنفيذ الاستيراد من السيرفر المحدد
@@ -175,10 +194,15 @@ namespace RadaTik.Controllers
                     user!.Id,
                     rejectWhenProfilesMissing: false);
 
+                string status = outcome.Success
+                    ? "Success"
+                    : outcome.Skipped ? "Skipped" : "Failed";
+
                 return Json(new
                 {
                     success = outcome.Success,
-                    status = outcome.Success ? "Success" : "Failed",
+                    skipped = outcome.Skipped,
+                    status,
                     serverId,
                     serverName = serverLabel,
                     message = outcome.Success
@@ -194,10 +218,13 @@ namespace RadaTik.Controllers
                 return Json(new
                 {
                     success = false,
-                    status = "Error",
+                    skipped = true,
+                    status = "Skipped",
                     serverId,
                     serverName = serverLabel,
-                    message = BuildFriendlyMikroTikErrorMessage("خطأ في الاستيراد", ex)
+                    message = BuildFriendlyMikroTikErrorMessage(
+                        $"تعذر الاتصال بالسيرفر {serverLabel}. تم تخطيه والمتابعة",
+                        ex)
                 });
             }
         }

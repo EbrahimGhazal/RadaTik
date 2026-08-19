@@ -118,7 +118,7 @@ namespace RadaTik.Controllers
         {
             if (outcome.Success)
             {
-                TempData["Success"] = $"? {outcome.SuccessMessage}";
+                TempData["Success"] = $"✅ {outcome.SuccessMessage}";
                 if (!string.IsNullOrEmpty(outcome.Warnings))
                 {
                     TempData["ImportWarnings"] = outcome.Warnings;
@@ -132,8 +132,14 @@ namespace RadaTik.Controllers
                 return;
             }
 
-            string message = outcome.ErrorMessage ?? "??? ?????????";
-            TempData["Error"] = message.StartsWith('?') ? message : $"? {message}";
+            if (outcome.Skipped)
+            {
+                TempData["Info"] = outcome.ErrorMessage ?? "تم تخطي السيرفر والمتابعة.";
+                return;
+            }
+
+            string message = outcome.ErrorMessage ?? "فشل الاستيراد";
+            TempData["Error"] = message.StartsWith('❌') || message.StartsWith('?') ? message : $"❌ {message}";
         }
 
         private IActionResult ApplyWalletTopUpOutcome(ClientWalletTopUpOutcome outcome, int clientId)

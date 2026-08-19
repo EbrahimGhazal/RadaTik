@@ -57,6 +57,13 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
+@if (TempData["Info"] != null)
+{
+    <div class="alert alert-info alert-dismissible fade show">
+        <i class="fas fa-info-circle"></i> @TempData["Info"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
 
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body">
@@ -90,10 +97,7 @@ else
             <button type="button"
                     id="btnImportAllClients"
                     class="btn btn-dark btn-sm"
-                    @(totalImportable <= 0 && !Model.Any(s =>
-                        importPreviewByServer != null &&
-                        importPreviewByServer.TryGetValue(s.Id, out var p) &&
-                        p.UpdatableUsersCount > 0) ? "disabled" : null)
+                    @(Model.Any() ? null : "disabled")
                     data-total-users="@totalUsers"
                     data-importable-users="@totalImportable"
                     data-unit-price="@clientImportUnitPrice.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
@@ -240,7 +244,7 @@ else
         }
 
         function getImportableServers() {
-            return Array.from(document.querySelectorAll('[data-server-row][data-can-import="1"]')).map(function (el) {
+            return Array.from(document.querySelectorAll('[data-server-row]')).map(function (el) {
                 return {
                     id: el.getAttribute('data-server-id'),
                     name: el.getAttribute('data-server-name') || 'غير معروف',
@@ -248,7 +252,8 @@ else
                     importableUsers: Number(el.getAttribute('data-importable-users') || 0),
                     unitPrice: Number(el.getAttribute('data-unit-price') || 0),
                     totalCharge: Number(el.getAttribute('data-total-charge') || 0),
-                    walletBalance: Number(el.getAttribute('data-wallet-balance') || 0)
+                    walletBalance: Number(el.getAttribute('data-wallet-balance') || 0),
+                    canImport: el.getAttribute('data-can-import') === '1'
                 };
             });
         }
@@ -331,6 +336,7 @@ else
             const response = await fetch(clientsImportJsonUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
+                signal: AbortSignal.timeout(25000),
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
                     'X-CSRF-TOKEN': token,
@@ -354,6 +360,7 @@ else
             let countdownTimer = null;
             const startedAt = Date.now();
             const successLines = [];
+            const infoLines = [];
             const errorLines = [];
 
             showImportProgressOverlay(true);
@@ -384,27 +391,36 @@ else
                     appendImportLog(`بدء الاستيراد من «${server.name}»...`, 'info');
 
                     try {
-                        const result = await importOneServer(server);
-                        const leftServers = total - (i + 1);
-                        const avgSoFar = ((Date.now() - startedAt) / 1000) / (i + 1);
-                        remainingEstimate = Math.max(0, Math.round(avgSoFar * leftServers));
-
-                        const line = `${server.name}: ${result.message || (result.success ? 'تم' : 'فشل')}`;
-                        if (result.success) {
-                            successLines.push(line);
-                            appendImportLog(line, 'ok');
-                            if (Number(result.duplicateCount || 0) > 0) {
-                                appendImportLog(`${server.name}: تم تعليم ${result.duplicateCount} حساب كمكرر عبر السيرفرات.`, 'info');
-                            }
-                            if (result.warnings) {
-                                appendImportLog(`${server.name}: ${result.warnings}`, 'info');
-                            }
+                        if (!server.canImport) {
+                            const skipLine = `${server.name}: خارج الخدمة أو لا توجد بيانات للمزامنة — تم تخطيه والمتابعة`;
+                            infoLines.push(skipLine);
+                            appendImportLog(skipLine, 'info');
                         } else {
-                            errorLines.push(line);
-                            appendImportLog(line, 'err');
+                            const result = await importOneServer(server);
+                            const leftServers = total - (i + 1);
+                            const avgSoFar = ((Date.now() - startedAt) / 1000) / (i + 1);
+                            remainingEstimate = Math.max(0, Math.round(avgSoFar * leftServers));
+
+                            const line = `${server.name}: ${result.message || (result.success ? 'تم' : 'فشل')}`;
+                            if (result.success) {
+                                successLines.push(line);
+                                appendImportLog(line, 'ok');
+                                if (Number(result.duplicateCount || 0) > 0) {
+                                    appendImportLog(`${server.name}: تم تعليم ${result.duplicateCount} حساب كمكرر عبر السيرفرات.`, 'info');
+                                }
+                                if (result.warnings) {
+                                    appendImportLog(`${server.name}: ${result.warnings}`, 'info');
+                                }
+                            } else if (result.skipped || result.status === 'Skipped') {
+                                infoLines.push(line);
+                                appendImportLog(line + ' — تم تخطيه والمتابعة للسيرفر التالي.', 'info');
+                            } else {
+                                errorLines.push(line);
+                                appendImportLog(line + ' — تم تخطيه والمتابعة للسيرفر التالي.', 'err');
+                            }
                         }
                     } catch (err) {
-                        const line = `${server.name}: تعذر الاتصال أثناء الاستيراد`;
+                        const line = `${server.name}: تعذر الاتصال أثناء الاستيراد — تم تخطيه والمتابعة`;
                         errorLines.push(line);
                         appendImportLog(line, 'err');
                         const leftServers = total - (i + 1);
@@ -420,6 +436,7 @@ else
 
                 let summary = '';
                 if (successLines.length) summary += 'نجاح:\n' + successLines.join('\n') + '\n\n';
+                if (infoLines.length) summary += 'ملاحظات:\n' + infoLines.join('\n') + '\n\n';
                 if (errorLines.length) summary += 'أخطاء:\n' + errorLines.join('\n');
                 if (summary.trim()) {
                     alert(summary.trim());
@@ -443,7 +460,8 @@ else
                     importableUsers: Number(row.getAttribute('data-importable-users') || 0),
                     unitPrice: Number(row.getAttribute('data-unit-price') || 0),
                     totalCharge: Number(row.getAttribute('data-total-charge') || 0),
-                    walletBalance: Number(row.getAttribute('data-wallet-balance') || 0)
+                    walletBalance: Number(row.getAttribute('data-wallet-balance') || 0),
+                    canImport: true
                 }];
                 if (!window.confirm(confirmImportMessage(servers))) return;
                 runClientsImportWithProgress(servers);
@@ -455,7 +473,11 @@ else
             importAllBtn.addEventListener('click', function () {
                 const servers = getImportableServers();
                 if (!servers.length) {
-                    alert('لا توجد إضافات أو تعديلات من السيرفرات لمزامنتها حالياً.');
+                    alert('لا توجد سيرفرات للمزامنة.');
+                    return;
+                }
+                const runnable = servers.filter(function (s) { return s.canImport; });
+                if (!runnable.length && !window.confirm('كل السيرفرات خارج الخدمة أو بلا بيانات للمزامنة. هل تريد المحاولة مع تخطي غير المتاح؟')) {
                     return;
                 }
                 if (!window.confirm(confirmImportMessage(servers))) return;

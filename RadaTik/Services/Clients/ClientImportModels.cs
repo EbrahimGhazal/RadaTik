@@ -25,6 +25,7 @@ public sealed class MikroTikServerUsersImportContext
 public sealed class ClientImportOutcome
 {
     public bool Success { get; init; }
+    public bool Skipped { get; init; }
     public string? SuccessMessage { get; init; }
     public string? ErrorMessage { get; init; }
     public string? Warnings { get; init; }
@@ -47,4 +48,7 @@ public sealed class ClientImportOutcome
 
     public static ClientImportOutcome Failed(string message) =>
         new() { Success = false, ErrorMessage = message };
+
+    public static ClientImportOutcome SkippedOffline(string message) =>
+        new() { Success = false, Skipped = true, ErrorMessage = message };
 }
