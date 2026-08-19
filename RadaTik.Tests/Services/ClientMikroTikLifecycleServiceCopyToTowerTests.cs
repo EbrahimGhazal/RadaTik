@@ -139,6 +139,50 @@ public sealed class ClientMikroTikLifecycleServiceCopyToTowerTests
         mikroTik.VerifyAll();
     }
 
+    [Fact]
+    public async Task BulkCopyAccountsToServerAsync_KeepOriginal_CopiesWithoutDeleting()
+    {
+        await using ApplicationDbContext db = CreateDb();
+        db.MikroTikServers.Add(Server(5, 10));
+        db.MikroTikServers.Add(Server(2, 10));
+        db.Clients.Add(MinimalClient(1, "user-a", 10, 2));
+        db.Clients.Add(MinimalClient(2, "user-b", 10, 2));
+        await db.SaveChangesAsync();
+
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        mikroTik
+            .Setup(m => m.AddPPPoEUsersToServerAsync(
+                5,
+                It.Is<IReadOnlyList<Client>>(list => list.Count == 2),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new BulkAddPppoeUsersResult
+            {
+                Success = true,
+                AddedCount = 2,
+                PlacedClientIds = [1, 2],
+                Message = "ok"
+            });
+
+        ClientMikroTikLifecycleService sut = new(db, mikroTik.Object);
+        BulkCopyAccountsToServerResult result = await sut.BulkCopyAccountsToServerAsync(
+            10, 5, [1, 2], applyToAllInNetwork: false, removeFromSource: false);
+
+        Assert.True(result.Success);
+        Assert.Equal(2, result.AddedCount);
+        Assert.Equal(0, result.RemovedFromOldCount);
+        Assert.Equal(0, result.ReassignedCount);
+        Assert.Equal(2, result.ClonedCount);
+        Assert.Equal(2, (await db.Clients.SingleAsync(c => c.Id == 1)).MikroTikServerId);
+        Assert.Equal(2, (await db.Clients.SingleAsync(c => c.Id == 2)).MikroTikServerId);
+        Assert.True((await db.Clients.SingleAsync(c => c.Id == 1)).IsCrossServerDuplicate);
+        Assert.Equal(2, await db.Clients.CountAsync(c => c.MikroTikServerId == 5 && (c.UserName == "user-a" || c.UserName == "user-b")));
+        mikroTik.Verify(m => m.DeletePPPoEUsersFromServerAsync(
+            It.IsAny<int>(),
+            It.IsAny<IReadOnlyList<string>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        mikroTik.VerifyAll();
+    }
+
     private static Client MinimalClient(int id, string userName, int networkId, int? serverId = null) =>
         new()
         {

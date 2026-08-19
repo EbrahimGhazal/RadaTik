@@ -285,8 +285,11 @@
                 <button type="button" class="btn btn-sm btn-outline-success" id="btnOpenBulkTopUp" title="شحن رصيد للمشتركين">
                     <i class="fas fa-wallet"></i> شحن رصيد
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-info" id="btnOpenCopyToTower" title="نقل الحسابات المحددة إلى برج جديد">
-                    <i class="fas fa-broadcast-tower"></i> نقل المحدد إلى برج
+                <button type="button" class="btn btn-sm btn-outline-info" id="btnOpenCopyToTower" title="نقل الحسابات المحددة إلى برج جديد وحذفها من القديم">
+                    <i class="fas fa-exchange-alt"></i> نقل المحدد إلى برج
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnOpenDuplicateToTower" title="نسخ الحسابات المحددة إلى برج جديد مع الإبقاء على المشتركين في البرج القديم">
+                    <i class="fas fa-copy"></i> نسخ المحدد إلى برج
                 </button>
             }
             <div class="dropdown">
@@ -786,19 +789,19 @@
     </div>
 </div>
 
-<!-- Copy selected accounts to tower modal -->
-<div class="modal fade" id="copyToTowerModal" tabindex="-1" aria-labelledby="copyToTowerModalLabel" aria-hidden="true">
+<!-- Copy/move selected accounts to tower modal -->
+<div class="modal fade" id="copyToTowerModal" tabindex="-1" aria-labelledby="copyToTowerModalLabel" aria-hidden="true" data-mode="move">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="copyToTowerModalLabel">
                     <i class="fas fa-broadcast-tower text-info"></i>
-                    نقل الحسابات إلى برج جديد
+                    <span id="copyToTowerModalTitleText">نقل الحسابات إلى برج جديد</span>
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
             </div>
             <div class="modal-body">
-                <p class="small text-muted mb-3">
+                <p class="small text-muted mb-3" id="copyToTowerModalHelp">
                     تُقرأ بيانات الحسابات من قاعدة البيانات وتُضاف إلى البرج الجديد،
                     ثم يُحدَّث سيرفر المشترك في قاعدة البيانات، ويُحذف الحساب من البرج القديم إن وُجد.
                     يجب أن يكون البروفايل منشوراً على البرج الجديد مسبقاً.
@@ -832,7 +835,7 @@
                         <span class="text-muted">(@totalClients)</span>
                     </label>
                 </div>
-                <div class="alert alert-warning small mb-0">
+                <div class="alert alert-warning small mb-0" id="copyToTowerModeWarning">
                     <i class="fas fa-exclamation-triangle"></i>
                     هذا نقل وليس نسخاً: الحساب ينتقل إلى البرج الجديد ويُحذف من القديم.
                 </div>
@@ -840,7 +843,8 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
                 <button type="button" class="btn btn-info text-white" id="btnConfirmCopyToTower" @(copyTargetServers.Any() ? null : "disabled")>
-                    <i class="fas fa-exchange-alt"></i> نقل إلى البرج
+                    <i class="fas fa-exchange-alt" id="btnConfirmCopyToTowerIcon"></i>
+                    <span id="btnConfirmCopyToTowerText">نقل إلى البرج</span>
                 </button>
             </div>
         </div>
@@ -1465,24 +1469,28 @@
             }
         }
 
-        async function runCopyAccountsToTower(clients, serverId, serverLabel, applyToAll) {
+        async function runCopyAccountsToTower(clients, serverId, serverLabel, applyToAll, removeFromSource) {
+            const isMove = removeFromSource !== false;
             showImportProgressOverlay(true);
             const title = document.getElementById('profileImportProgressTitle');
-            if (title) title.textContent = 'جاري نقل الحسابات إلى البرج الجديد';
+            if (title) title.textContent = isMove ? 'جاري نقل الحسابات إلى البرج الجديد' : 'جاري نسخ الحسابات إلى البرج الجديد';
             const log = document.getElementById('profileImportProgressLog');
             if (log) log.innerHTML = '';
-            setImportProgressUi(18, 'إضافة الحسابات على البرج الجديد...', 20);
+            setImportProgressUi(18, isMove ? 'إضافة الحسابات على البرج الجديد...' : 'نسخ الحسابات إلى البرج الجديد...', 20);
             appendImportLog('الهدف: ' + (serverLabel || ('سيرفر #' + serverId)), 'info');
             appendImportLog(applyToAll
                 ? 'النطاق: جميع المشتركين في الشبكة'
                 : ('النطاق: المحددون (' + clients.length + ')'), 'info');
-            appendImportLog('سيتم تحديث السيرفر في قاعدة البيانات وحذف الحساب من البرج القديم.', 'info');
+            appendImportLog(isMove
+                ? 'سيتم تحديث السيرفر في قاعدة البيانات وحذف الحساب من البرج القديم.'
+                : 'سيتم الإبقاء على المشتركين في البرج القديم دون حذف.', 'info');
 
             try {
                 const token = getAntiForgeryToken();
                 const body = new URLSearchParams();
                 body.set('targetServerId', String(serverId));
                 body.set('applyToAll', applyToAll ? 'true' : 'false');
+                body.set('removeFromSource', isMove ? 'true' : 'false');
                 body.set('__RequestVerificationToken', token);
                 if (!applyToAll) {
                     clients.forEach(function (c) {
@@ -1490,7 +1498,7 @@
                     });
                 }
 
-                setImportProgressUi(55, 'نقل الحسابات وتحديث قاعدة البيانات...', 12);
+                setImportProgressUi(55, isMove ? 'نقل الحسابات وتحديث قاعدة البيانات...' : 'نسخ الحسابات دون حذف الأصل...', 12);
                 const response = await fetch('@Url.Action("BulkCopyAccountsToServerJson", "Clients")', {
                     method: 'POST',
                     credentials: 'same-origin',
@@ -1508,7 +1516,7 @@
                 }
 
                 const result = await response.json();
-                setImportProgressUi(100, result.success ? 'اكتمل النقل' : 'فشل النقل', 0);
+                setImportProgressUi(100, result.success ? (isMove ? 'اكتمل النقل' : 'اكتمل النسخ') : (isMove ? 'فشل النقل' : 'فشل النسخ'), 0);
                 appendImportLog(result.message || (result.success ? 'تم' : 'فشل'), result.success ? 'ok' : 'err');
                 if (result.addedCount != null) {
                     appendImportLog(
@@ -1516,6 +1524,7 @@
                         + ' | موجود مسبقاً: ' + (result.skippedExistingCount || 0)
                         + ' | حُذف من القديم: ' + (result.removedFromOldCount || 0)
                         + ' | حُدّث في القاعدة: ' + (result.reassignedCount || 0)
+                        + ' | نُسخ في القاعدة: ' + (result.clonedCount || 0)
                         + ' | فشل: ' + (result.failedCount || 0),
                         'info');
                 }
@@ -1526,7 +1535,7 @@
                 }
 
                 await new Promise(function (resolve) { setTimeout(resolve, 600); });
-                alert(result.message || (result.success ? 'تم النقل بنجاح' : 'فشل النقل'));
+                alert(result.message || (result.success ? (isMove ? 'تم النقل بنجاح' : 'تم النسخ بنجاح') : (isMove ? 'فشل النقل' : 'فشل النسخ')));
                 if (result.success) {
                     window.location.reload();
                 } else {
@@ -1534,8 +1543,8 @@
                 }
             } catch (err) {
                 setImportProgressUi(100, 'فشل الاتصال', 0);
-                appendImportLog('تعذر تنفيذ نقل الحسابات إلى البرج', 'err');
-                alert('تعذر تنفيذ نقل الحسابات إلى البرج. حاول مرة أخرى.');
+                appendImportLog(isMove ? 'تعذر تنفيذ نقل الحسابات إلى البرج' : 'تعذر تنفيذ نسخ الحسابات إلى البرج', 'err');
+                alert(isMove ? 'تعذر تنفيذ نقل الحسابات إلى البرج. حاول مرة أخرى.' : 'تعذر تنفيذ نسخ الحسابات إلى البرج. حاول مرة أخرى.');
                 showImportProgressOverlay(false);
             }
         }
@@ -1696,16 +1705,54 @@
             }
 
             const openCopyBtn = document.getElementById('btnOpenCopyToTower');
+            const openDuplicateBtn = document.getElementById('btnOpenDuplicateToTower');
             const confirmCopyBtn = document.getElementById('btnConfirmCopyToTower');
             const copyModalEl = document.getElementById('copyToTowerModal');
-            if (openCopyBtn && copyModalEl && typeof bootstrap !== 'undefined') {
-                openCopyBtn.addEventListener('click', function () {
-                    updateBulkSelectedHint();
+
+            function applyCopyToTowerMode(mode) {
+                const isCopy = mode === 'copy';
+                if (copyModalEl) copyModalEl.setAttribute('data-mode', isCopy ? 'copy' : 'move');
+                const titleText = document.getElementById('copyToTowerModalTitleText');
+                const help = document.getElementById('copyToTowerModalHelp');
+                const warning = document.getElementById('copyToTowerModeWarning');
+                const confirmText = document.getElementById('btnConfirmCopyToTowerText');
+                const confirmIcon = document.getElementById('btnConfirmCopyToTowerIcon');
+                if (titleText) titleText.textContent = isCopy ? 'نسخ الحسابات إلى برج جديد' : 'نقل الحسابات إلى برج جديد';
+                if (help) {
+                    help.textContent = isCopy
+                        ? 'تُقرأ بيانات الحسابات من قاعدة البيانات وتُضاف إلى البرج الجديد، مع الإبقاء على المشتركين في البرج القديم دون حذف. يجب أن يكون البروفايل منشوراً على البرج الجديد مسبقاً.'
+                        : 'تُقرأ بيانات الحسابات من قاعدة البيانات وتُضاف إلى البرج الجديد، ثم يُحدَّث سيرفر المشترك في قاعدة البيانات، ويُحذف الحساب من البرج القديم إن وُجد. يجب أن يكون البروفايل منشوراً على البرج الجديد مسبقاً.';
+                }
+                if (warning) {
+                    warning.className = isCopy ? 'alert alert-info small mb-0' : 'alert alert-warning small mb-0';
+                    warning.innerHTML = isCopy
+                        ? '<i class="fas fa-copy"></i> هذا نسخ وليس نقلاً: الحساب يُضاف إلى البرج الجديد ويبقى المشترك في البرج القديم.'
+                        : '<i class="fas fa-exclamation-triangle"></i> هذا نقل وليس نسخاً: الحساب ينتقل إلى البرج الجديد ويُحذف من القديم.';
+                }
+                if (confirmText) confirmText.textContent = isCopy ? 'نسخ إلى البرج' : 'نقل إلى البرج';
+                if (confirmIcon) confirmIcon.className = isCopy ? 'fas fa-copy' : 'fas fa-exchange-alt';
+                if (confirmCopyBtn) {
+                    confirmCopyBtn.className = isCopy ? 'btn btn-primary' : 'btn btn-info text-white';
+                }
+            }
+
+            function openCopyToTowerModal(mode) {
+                applyCopyToTowerMode(mode);
+                updateBulkSelectedHint();
+                if (copyModalEl && typeof bootstrap !== 'undefined') {
                     bootstrap.Modal.getOrCreateInstance(copyModalEl).show();
-                });
+                }
+            }
+
+            if (openCopyBtn) {
+                openCopyBtn.addEventListener('click', function () { openCopyToTowerModal('move'); });
+            }
+            if (openDuplicateBtn) {
+                openDuplicateBtn.addEventListener('click', function () { openCopyToTowerModal('copy'); });
             }
             if (confirmCopyBtn) {
                 confirmCopyBtn.addEventListener('click', function () {
+                    const isCopy = copyModalEl && copyModalEl.getAttribute('data-mode') === 'copy';
                     const serverSelect = document.getElementById('copyToTowerServerId');
                     const serverId = serverSelect ? Number(serverSelect.value) : 0;
                     const serverLabel = serverSelect && serverSelect.selectedIndex >= 0
@@ -1720,20 +1767,23 @@
                     const clients = scope === 'all' ? getAllClientRows() : getSelectedClientRows();
                     if (!clients.length) {
                         alert(scope === 'all'
-                            ? 'لا يوجد مشتركين لنقل حساباتهم.'
+                            ? (isCopy ? 'لا يوجد مشتركين لنسخ حساباتهم.' : 'لا يوجد مشتركين لنقل حساباتهم.')
                             : 'الرجاء تحديد مشترك واحد على الأقل، أو اختر «جميع المشتركين».');
                         return;
                     }
 
                     const scopeLabel = scope === 'all' ? 'جميع المشتركين' : ('المحددين (' + clients.length + ')');
-                    if (!confirm('سيتم نقل حسابات ' + scopeLabel + ' إلى «' + serverLabel + '».\nيُحدَّث السيرفر في قاعدة البيانات ويُحذف الحساب من البرج القديم.\nهل تريد المتابعة؟')) {
+                    const confirmText = isCopy
+                        ? 'سيتم نسخ حسابات ' + scopeLabel + ' إلى «' + serverLabel + '».\nيبقى المشترك في البرج القديم ولا يُحذف.\nهل تريد المتابعة؟'
+                        : 'سيتم نقل حسابات ' + scopeLabel + ' إلى «' + serverLabel + '».\nيُحدَّث السيرفر في قاعدة البيانات ويُحذف الحساب من البرج القديم.\nهل تريد المتابعة؟';
+                    if (!confirm(confirmText)) {
                         return;
                     }
 
                     if (copyModalEl && typeof bootstrap !== 'undefined') {
                         bootstrap.Modal.getOrCreateInstance(copyModalEl).hide();
                     }
-                    runCopyAccountsToTower(clients, serverId, serverLabel, scope === 'all');
+                    runCopyAccountsToTower(clients, serverId, serverLabel, scope === 'all', !isCopy);
                 });
             }
 

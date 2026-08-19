@@ -10,8 +10,9 @@ namespace RadaTik.Controllers
     public partial class ClientsController : Controller
     {
         /// <summary>
-        /// نقل الحسابات المحددة (أو كل المشتركين) إلى برج جديد:
-        /// إضافتها على السيرفر المطلوب، تحديث قاعدة البيانات، ثم حذفها من البرج القديم.
+        /// نقل أو نسخ الحسابات المحددة إلى برج جديد.
+        /// removeFromSource=true ينقل ويحذف من البرج القديم.
+        /// removeFromSource=false ينسخ ويبقي المشتركين على البرج القديم.
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -20,6 +21,7 @@ namespace RadaTik.Controllers
         public async Task<IActionResult> BulkCopyAccountsToServerJson(
             int targetServerId,
             bool applyToAll = false,
+            bool removeFromSource = true,
             int[]? clientIds = null)
         {
             ApplicationUser? user = await _userManager.GetUserAsync(User);
@@ -35,13 +37,15 @@ namespace RadaTik.Controllers
                 return Json(new { success = false, status = "InvalidServer", message = "يرجى اختيار السيرفر (البرج) المطلوب." });
             }
 
+            string actionLabel = removeFromSource ? "نقل" : "نسخ";
             try
             {
                 BulkCopyAccountsToServerResult result = await _app.Lifecycle.BulkCopyAccountsToServerAsync(
                     networkId.Value,
                     targetServerId,
                     clientIds,
-                    applyToAll);
+                    applyToAll,
+                    removeFromSource);
 
                 return Json(new
                 {
@@ -57,17 +61,18 @@ namespace RadaTik.Controllers
                     failedCount = result.FailedCount,
                     reassignedCount = result.ReassignedCount,
                     removedFromOldCount = result.RemovedFromOldCount,
+                    clonedCount = result.ClonedCount,
                     errors = result.Errors
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "خطأ في نقل الحسابات إلى السيرفر {ServerId}", targetServerId);
+                _logger.LogError(ex, "خطأ في {Action} الحسابات إلى السيرفر {ServerId}", actionLabel, targetServerId);
                 return Json(new
                 {
                     success = false,
                     status = "Error",
-                    message = BuildFriendlyMikroTikErrorMessage("خطأ في نقل الحسابات إلى البرج", ex)
+                    message = BuildFriendlyMikroTikErrorMessage($"خطأ في {actionLabel} الحسابات إلى البرج", ex)
                 });
             }
         }

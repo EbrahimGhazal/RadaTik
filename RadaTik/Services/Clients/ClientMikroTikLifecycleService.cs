@@ -405,6 +405,7 @@ public sealed class ClientMikroTikLifecycleService(
         int targetServerId,
         IReadOnlyList<int>? clientIds,
         bool applyToAllInNetwork,
+        bool removeFromSource = true,
         CancellationToken ct = default)
     {
         bool serverExists = await Db.MikroTikServers.AnyAsync(
@@ -431,9 +432,17 @@ public sealed class ClientMikroTikLifecycleService(
         }
 
         List<Client> clients = await query.ToListAsync(ct);
+        if (!removeFromSource)
+        {
+            clients = clients.Where(c => c.MikroTikServerId != targetServerId).ToList();
+        }
+
         if (clients.Count == 0)
         {
-            return BulkCopyAccountsToServerResult.Fail("لا يوجد مشتركين لنقل حساباتهم.");
+            return BulkCopyAccountsToServerResult.Fail(
+                removeFromSource
+                    ? "لا يوجد مشتركين لنقل حساباتهم."
+                    : "لا يوجد مشتركين لنسخ حساباتهم إلى البرج المحدد.");
         }
 
         await FillMissingProfileNamesAsync(clients, ct);
@@ -446,65 +455,80 @@ public sealed class ClientMikroTikLifecycleService(
         if (!copyResult.Success)
         {
             return BulkCopyAccountsToServerResult.Fail(
-                copyResult.Message ?? "فشل نقل الحسابات إلى السيرفر.");
+                copyResult.Message ?? (removeFromSource
+                    ? "فشل نقل الحسابات إلى السيرفر."
+                    : "فشل نسخ الحسابات إلى السيرفر."));
         }
 
         HashSet<int> placedIds = copyResult.PlacedClientIds.Where(id => id > 0).ToHashSet();
         List<string> errors = copyResult.Errors.ToList();
         int removedFromOld = 0;
-
-        List<IGrouping<int, Client>> oldServerGroups = clients
-            .Where(c =>
-                placedIds.Contains(c.Id)
-                && c.MikroTikServerId.HasValue
-                && c.MikroTikServerId.Value != targetServerId
-                && !string.IsNullOrWhiteSpace(c.UserName))
-            .GroupBy(c => c.MikroTikServerId!.Value)
-            .ToList();
-
-        foreach (IGrouping<int, Client> group in oldServerGroups)
-        {
-            ct.ThrowIfCancellationRequested();
-            string[] oldUserNames = group
-                .Select(c => c.UserName!.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            BulkDeletePppoeUsersResult deleteResult = await _mikroTik.DeletePPPoEUsersFromServerAsync(
-                group.Key,
-                oldUserNames,
-                ct);
-
-            if (!deleteResult.Success)
-            {
-                errors.Add(deleteResult.Message);
-                continue;
-            }
-
-            removedFromOld += deleteResult.DeletedCount;
-            errors.AddRange(deleteResult.Errors);
-        }
-
         int reassigned = 0;
-        if (placedIds.Count > 0)
-        {
-            DateTime now = DateTime.Now;
-            List<Client> toReassign = await Db.Clients
-                .Where(c => c.NetworkId == networkId && placedIds.Contains(c.Id))
-                .ToListAsync(ct);
+        int cloned = 0;
 
-            foreach (Client client in toReassign)
+        if (removeFromSource)
+        {
+            List<IGrouping<int, Client>> oldServerGroups = clients
+                .Where(c =>
+                    placedIds.Contains(c.Id)
+                    && c.MikroTikServerId.HasValue
+                    && c.MikroTikServerId.Value != targetServerId
+                    && !string.IsNullOrWhiteSpace(c.UserName))
+                .GroupBy(c => c.MikroTikServerId!.Value)
+                .ToList();
+
+            foreach (IGrouping<int, Client> group in oldServerGroups)
             {
-                client.MikroTikServerId = targetServerId;
-                client.LastUpdated = now;
+                ct.ThrowIfCancellationRequested();
+                string[] oldUserNames = group
+                    .Select(c => c.UserName!.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+
+                BulkDeletePppoeUsersResult deleteResult = await _mikroTik.DeletePPPoEUsersFromServerAsync(
+                    group.Key,
+                    oldUserNames,
+                    ct);
+
+                if (!deleteResult.Success)
+                {
+                    errors.Add(deleteResult.Message);
+                    continue;
+                }
+
+                removedFromOld += deleteResult.DeletedCount;
+                errors.AddRange(deleteResult.Errors);
             }
 
-            await Db.SaveChangesAsync(ct);
-            reassigned = toReassign.Count;
+            if (placedIds.Count > 0)
+            {
+                DateTime now = DateTime.Now;
+                List<Client> toReassign = await Db.Clients
+                    .Where(c => c.NetworkId == networkId && placedIds.Contains(c.Id))
+                    .ToListAsync(ct);
+
+                foreach (Client client in toReassign)
+                {
+                    client.MikroTikServerId = targetServerId;
+                    client.LastUpdated = now;
+                }
+
+                await Db.SaveChangesAsync(ct);
+                reassigned = toReassign.Count;
+            }
+        }
+        else if (placedIds.Count > 0)
+        {
+            cloned = await ClonePlacedClientsToTargetAsync(
+                networkId,
+                targetServerId,
+                clients.Where(c => placedIds.Contains(c.Id)).ToList(),
+                ct);
         }
 
-        string message =
-            $"تم نقل الحسابات إلى البرج الجديد: أُضيف {copyResult.AddedCount}، موجود مسبقاً {copyResult.SkippedExistingCount}، حُذف من القديم {removedFromOld}، حُدّث في قاعدة البيانات {reassigned}، غير مكتمل {copyResult.SkippedInvalidCount}، فشل {copyResult.FailedCount}.";
+        string message = removeFromSource
+            ? $"تم نقل الحسابات إلى البرج الجديد: أُضيف {copyResult.AddedCount}، موجود مسبقاً {copyResult.SkippedExistingCount}، حُذف من القديم {removedFromOld}، حُدّث في قاعدة البيانات {reassigned}، غير مكتمل {copyResult.SkippedInvalidCount}، فشل {copyResult.FailedCount}."
+            : $"تم نسخ الحسابات إلى البرج الجديد دون حذف المشتركين: أُضيف {copyResult.AddedCount}، موجود مسبقاً {copyResult.SkippedExistingCount}، أُنشئ في قاعدة البيانات {cloned}، بقي الأصل على البرج القديم، غير مكتمل {copyResult.SkippedInvalidCount}، فشل {copyResult.FailedCount}.";
 
         return BulkCopyAccountsToServerResult.Ok(
             clients.Count,
@@ -515,8 +539,98 @@ public sealed class ClientMikroTikLifecycleService(
             reassigned,
             removedFromOld,
             message,
-            errors.Take(20).ToList());
+            errors.Take(20).ToList(),
+            cloned);
     }
+
+    private async Task<int> ClonePlacedClientsToTargetAsync(
+        int networkId,
+        int targetServerId,
+        List<Client> placedSources,
+        CancellationToken ct)
+    {
+        HashSet<string> existingOnTarget = (await Db.Clients
+                .AsNoTracking()
+                .Where(c =>
+                    c.NetworkId == networkId
+                    && c.MikroTikServerId == targetServerId
+                    && c.UserName != null)
+                .Select(c => c.UserName!)
+                .ToListAsync(ct))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        DateTime now = DateTime.Now;
+        List<Client> clones = [];
+        HashSet<int> sourceIdsToMark = [];
+
+        foreach (Client source in placedSources)
+        {
+            string? userName = source.UserName?.Trim();
+            if (string.IsNullOrWhiteSpace(userName) || existingOnTarget.Contains(userName))
+            {
+                continue;
+            }
+
+            clones.Add(CloneClientForTargetServer(source, targetServerId, now));
+            existingOnTarget.Add(userName);
+            sourceIdsToMark.Add(source.Id);
+        }
+
+        if (clones.Count == 0 && sourceIdsToMark.Count == 0)
+        {
+            return 0;
+        }
+
+        if (clones.Count > 0)
+        {
+            Db.Clients.AddRange(clones);
+        }
+
+        List<Client> originals = await Db.Clients
+            .Where(c => c.NetworkId == networkId && sourceIdsToMark.Contains(c.Id))
+            .ToListAsync(ct);
+        foreach (Client original in originals)
+        {
+            original.IsCrossServerDuplicate = true;
+            original.LastUpdated = now;
+        }
+
+        await Db.SaveChangesAsync(ct);
+        return clones.Count;
+    }
+
+    private static Client CloneClientForTargetServer(Client source, int targetServerId, DateTime now) =>
+        new()
+        {
+            Name = source.Name,
+            SID = source.SID,
+            UserName = source.UserName,
+            Password = source.Password,
+            ProfileId = source.ProfileId,
+            ProfileName = source.ProfileName,
+            PhoneNumber = source.PhoneNumber,
+            TelegramChatId = source.TelegramChatId,
+            ResidenceAddress = source.ResidenceAddress,
+            Latitude = source.Latitude,
+            Longitude = source.Longitude,
+            IsActive = source.IsActive,
+            ReceiverId = source.ReceiverId,
+            Service = source.Service,
+            Address = source.Address,
+            PowerSource = source.PowerSource,
+            Building = source.Building,
+            Floor = source.Floor,
+            MikroTikServerId = targetServerId,
+            IsCrossServerDuplicate = true,
+            NetworkId = source.NetworkId,
+            ServiceStartDate = source.ServiceStartDate,
+            AccountExpirationDate = source.AccountExpirationDate,
+            LastRenewalDate = source.LastRenewalDate,
+            AccountCurrency = source.AccountCurrency,
+            Balance = 0,
+            CreatedDate = now,
+            LastUpdated = now
+        };
 
     private async Task FillMissingProfileNamesAsync(List<Client> clients, CancellationToken ct)
     {

@@ -18,6 +18,7 @@ public sealed class BulkCopyAccountsToServerResult
     public int FailedCount { get; init; }
     public int ReassignedCount { get; init; }
     public int RemovedFromOldCount { get; init; }
+    public int ClonedCount { get; init; }
     public IReadOnlyList<string> Errors { get; init; } = [];
 
     public static BulkCopyAccountsToServerResult Fail(string message) =>
@@ -32,7 +33,8 @@ public sealed class BulkCopyAccountsToServerResult
         int reassigned,
         int removedFromOld,
         string message,
-        IReadOnlyList<string>? errors = null) =>
+        IReadOnlyList<string>? errors = null,
+        int clonedCount = 0) =>
         new()
         {
             Success = true,
@@ -43,6 +45,7 @@ public sealed class BulkCopyAccountsToServerResult
             FailedCount = failed,
             ReassignedCount = reassigned,
             RemovedFromOldCount = removedFromOld,
+            ClonedCount = clonedCount,
             Message = message,
             Errors = errors ?? []
         };
