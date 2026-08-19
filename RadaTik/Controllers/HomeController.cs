@@ -30,13 +30,18 @@ namespace RadaTik.Controllers
             _userManager = userManager;
         }
 
-        [Authorize]
+        [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                return Redirect("/radatik");
+            }
+
             ApplicationUser? user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return RedirectToRoute("reglog-login");
+                return Redirect("/radatik");
             }
 
             IList<string> userRoles = await _userManager.GetRolesAsync(user);
