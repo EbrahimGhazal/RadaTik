@@ -32,7 +32,7 @@ public static partial class RouteMappingExtensions
             pattern: "Public/{action=Index}/{id?}",
             defaults: new { area = "SkyBeam", controller = "Public" });
 
-        // الصفحة الجذرية → SkyBeam (الموقع الحالي للعملاء)
-        app.MapGet("/", () => Results.Redirect("/skyBeam", permanent: false));
+        // الصفحة الجذرية → موقع RadaTik العام
+        app.MapGet("/", () => Results.Redirect("/radatik", permanent: false));
     }
 }
