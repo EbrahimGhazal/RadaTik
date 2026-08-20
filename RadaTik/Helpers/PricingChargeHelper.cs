@@ -16,6 +16,36 @@ public static class PricingChargeHelper
             .ToListAsync();
     }
 
+    /// <summary>
+    /// نطاق الشركة للشبكة المحددة: الشبكة الرئيسية وجميع الشبكات الفرعية التابعة لها.
+    /// </summary>
+    public static async Task<List<int>> GetCompanyScopeNetworkIdsForSelectedAsync(
+        ApplicationDbContext db,
+        int selectedNetworkId,
+        CancellationToken ct = default)
+    {
+        var selected = await db.Networks
+            .AsNoTracking()
+            .Where(n => n.Id == selectedNetworkId)
+            .Select(n => new { n.Id, n.ParentNetworkId })
+            .FirstOrDefaultAsync(ct);
+        if (selected == null)
+        {
+            return [selectedNetworkId];
+        }
+
+        int companyNetworkId = selected.ParentNetworkId ?? selected.Id;
+        List<int> ids = await GetCompanyScopeNetworkIdsAsync(db, companyNetworkId);
+        if (ids.Count == 0)
+        {
+            return [companyNetworkId];
+        }
+
+        ids.Remove(companyNetworkId);
+        ids.Insert(0, companyNetworkId);
+        return ids;
+    }
+
     public static async Task<int> GetMultiplierAsync(
         ApplicationDbContext db,
         IReadOnlyList<int> networkIds,

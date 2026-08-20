@@ -58,9 +58,10 @@
     }
 
     var disconnectedActiveClients = Model.Count(c => c.IsActive && !connectedClients.Contains(c.Id));
+    var connectedActiveClients = Model.Count(c => c.IsActive && connectedClients.Contains(c.Id));
     var averageTotalSpeed = totalClients > 0 ? Math.Round((double)totalSpeed / totalClients, 1) : 0;
     var activePercent = totalClients > 0 ? Math.Round((double)activeClients / totalClients * 100, 0) : 0;
-    var connectedPercent = activeClients > 0 ? Math.Round((double)connectedClients.Count / activeClients * 100, 0) : 0;
+    var connectedPercent = activeClients > 0 ? Math.Round((double)connectedActiveClients / activeClients * 100, 0) : 0;
     var dbAccountMap = ViewBag.DbAccountMap as IDictionary<int, string> ?? new Dictionary<int, string>();
     var pendingClientIds = ViewBag.PendingClientIds as ISet<int> ?? new HashSet<int>();
     var copyTargetServers = ViewBag.CopyTargetServers as IReadOnlyList<RadaTik.Services.Clients.ClientCopyTargetServerItem>
@@ -177,45 +178,45 @@
 
 <!-- Compact Statistics Bar -->
 <div class="stats-bar">
-    <div class="stat-item stat-primary">
+    <button type="button" class="stat-item stat-primary is-filter active" data-filter="all" onclick="filterByStatus('all')" title="جميع الحسابات على جميع سيرفرات الشركة">
         <div class="stat-icon-mini"><i class="fas fa-users"></i></div>
         <div class="stat-data">
             <span class="stat-number">@totalClients</span>
-            <span class="stat-label">إجمالي</span>
+            <span class="stat-label">الكل</span>
         </div>
-    </div>
+    </button>
     
-    <div class="stat-item stat-success">
+    <button type="button" class="stat-item stat-success is-filter" data-filter="active" onclick="filterByStatus('active')" title="المشتركون الذين حسابهم ليس معطّلاً">
         <div class="stat-icon-mini"><i class="fas fa-user-check"></i></div>
         <div class="stat-data">
             <span class="stat-number">@activeClients</span>
             <span class="stat-label">نشط (@activePercent%)</span>
         </div>
-    </div>
+    </button>
     
-    <div class="stat-item stat-info">
+    <button type="button" class="stat-item stat-info is-filter" data-filter="connected" onclick="filterByStatus('connected')" title="المشتركون غير المعطّلين والمتصلون حالياً بالإنترنت">
         <div class="stat-icon-mini"><i class="fas fa-wifi"></i></div>
         <div class="stat-data">
-            <span class="stat-number" id="statConnectedCount">@(connectionsReady ? connectedClients.Count.ToString() : "…")</span>
+            <span class="stat-number" id="statConnectedCount">@(connectionsReady ? connectedActiveClients.ToString() : "…")</span>
             <span class="stat-label">متصل <span id="statConnectedPercent">@(connectionsReady ? $"({connectedPercent}%)" : "")</span></span>
         </div>
-    </div>
+    </button>
     
-    <div class="stat-item stat-warning">
+    <button type="button" class="stat-item stat-warning is-filter" data-filter="disconnected" onclick="filterByStatus('disconnected')" title="المشتركون غير المعطّلين وغير المتصلين حالياً بالإنترنت">
         <div class="stat-icon-mini"><i class="fas fa-user-clock"></i></div>
         <div class="stat-data">
             <span class="stat-number" id="statDisconnectedCount">@(connectionsReady ? disconnectedActiveClients.ToString() : "…")</span>
             <span class="stat-label">غير متصل</span>
         </div>
-    </div>
+    </button>
     
-    <div class="stat-item stat-danger">
+    <button type="button" class="stat-item stat-danger is-filter" data-filter="inactive" onclick="filterByStatus('inactive')" title="المشتركون الذين حسابهم معطّل لأي سبب">
         <div class="stat-icon-mini"><i class="fas fa-user-times"></i></div>
         <div class="stat-data">
             <span class="stat-number">@inactiveClients</span>
             <span class="stat-label">معطل</span>
         </div>
-    </div>
+    </button>
     
     <div class="stat-divider"></div>
     
@@ -253,23 +254,23 @@
         </h3>
         <div class="card-actions">
             <div class="filter-buttons">
-                <button class="filter-btn filter-btn--all active" onclick="filterByStatus('all')" data-filter="all">
+                <button class="filter-btn filter-btn--all active" onclick="filterByStatus('all')" data-filter="all" title="جميع الحسابات على جميع سيرفرات الشركة">
                     <span class="filter-btn__label">الكل</span>
                     <span class="filter-count">@totalClients</span>
                 </button>
-                <button class="filter-btn filter-btn--active" onclick="filterByStatus('active')" data-filter="active">
+                <button class="filter-btn filter-btn--active" onclick="filterByStatus('active')" data-filter="active" title="المشتركون الذين حسابهم ليس معطّلاً">
                     <span class="filter-btn__label">نشط</span>
                     <span class="filter-count">@activeClients</span>
                 </button>
-                <button class="filter-btn filter-btn--connected" onclick="filterByStatus('connected')" data-filter="connected">
+                <button class="filter-btn filter-btn--connected" onclick="filterByStatus('connected')" data-filter="connected" title="المشتركون غير المعطّلين والمتصلون حالياً بالإنترنت">
                     <span class="filter-btn__label">متصل</span>
-                    <span class="filter-count" id="filterConnectedCount">@(connectionsReady ? connectedClients.Count.ToString() : "…")</span>
+                    <span class="filter-count" id="filterConnectedCount">@(connectionsReady ? connectedActiveClients.ToString() : "…")</span>
                 </button>
-                <button class="filter-btn filter-btn--disconnected" onclick="filterByStatus('disconnected')" data-filter="disconnected">
+                <button class="filter-btn filter-btn--disconnected" onclick="filterByStatus('disconnected')" data-filter="disconnected" title="المشتركون غير المعطّلين وغير المتصلين حالياً بالإنترنت">
                     <span class="filter-btn__label">غير متصل</span>
                     <span class="filter-count" id="filterDisconnectedCount">@(connectionsReady ? disconnectedActiveClients.ToString() : "…")</span>
                 </button>
-                <button class="filter-btn filter-btn--inactive" onclick="filterByStatus('inactive')" data-filter="inactive">
+                <button class="filter-btn filter-btn--inactive" onclick="filterByStatus('inactive')" data-filter="inactive" title="المشتركون الذين حسابهم معطّل لأي سبب">
                     <span class="filter-btn__label">معطل</span>
                     <span class="filter-count">@inactiveClients</span>
                 </button>
@@ -938,10 +939,10 @@
             let visibleConnectedCount = 0;
 
             document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.getAttribute('data-filter') === filterType) {
-                    btn.classList.add('active');
-                }
+                btn.classList.toggle('active', btn.getAttribute('data-filter') === filterType);
+            });
+            document.querySelectorAll('.stat-item.is-filter').forEach(card => {
+                card.classList.toggle('active', card.getAttribute('data-filter') === filterType);
             });
 
             const usingDataTable = typeof $.fn.DataTable !== 'undefined' &&
@@ -1055,7 +1056,7 @@
                 percentEl.textContent = '(' + connectedPercent + '%)';
             }
 
-            if (currentFilter === 'connected' || currentFilter === 'disconnected') {
+            if (currentFilter === 'connected' || currentFilter === 'disconnected' || currentFilter === 'active') {
                 filterByStatus(currentFilter);
             }
         }

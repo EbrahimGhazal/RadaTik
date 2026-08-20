@@ -1508,6 +1508,22 @@ body.profile-import-busy {
         flex: 1 1 7.25rem;
         max-width: 100%;
     }
+.radtk-surface .radtk-page-clients-index .stat-item.is-filter {
+        cursor: pointer;
+        border: 1px solid transparent;
+        font: inherit;
+        color: inherit;
+        text-align: start;
+        appearance: none;
+        -webkit-appearance: none;
+    }
+.radtk-surface .radtk-page-clients-index .stat-item.is-filter:hover {
+        filter: brightness(0.97);
+    }
+.radtk-surface .radtk-page-clients-index .stat-item.is-filter.active {
+        border-color: rgba(13, 110, 253, 0.55);
+        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.18);
+    }
 .radtk-surface .radtk-page-clients-index .stat-icon-mini {
         width: 28px;
         height: 28px;
@@ -4460,6 +4476,22 @@ body.profile-import-busy {
         border-radius: var(--radius-sm);
         background: var(--bg-hover);
         min-width: 90px;
+    }
+.radtk-surface .radtk-page-emp-clients-index .stat-item.is-filter {
+        cursor: pointer;
+        border: 1px solid transparent;
+        font: inherit;
+        color: inherit;
+        text-align: start;
+        appearance: none;
+        -webkit-appearance: none;
+    }
+.radtk-surface .radtk-page-emp-clients-index .stat-item.is-filter:hover {
+        filter: brightness(0.97);
+    }
+.radtk-surface .radtk-page-emp-clients-index .stat-item.is-filter.active {
+        border-color: rgba(13, 110, 253, 0.55);
+        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.18);
     }
 .radtk-surface .radtk-page-emp-clients-index .stat-icon-mini {
         width: 28px;

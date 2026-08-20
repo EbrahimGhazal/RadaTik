@@ -52,6 +52,7 @@ public sealed class ClientListQueryService(
             .Include(c => c.MikroTikServer)
             .Include(c => c.Profile);
 
+        List<int> companyNetworkIds = [];
         if (isClientOnly)
         {
             if (user.ClientId == null)
@@ -75,7 +76,11 @@ public sealed class ClientListQueryService(
                 return new ClientIndexPageModel { Access = ClientListAccessOutcome.RequiresNetworkSelection };
             }
 
-            query = query.Where(c => c.NetworkId == selectedNetworkId.Value);
+            companyNetworkIds = await PricingChargeHelper.GetCompanyScopeNetworkIdsForSelectedAsync(
+                Db,
+                selectedNetworkId.Value,
+                ct);
+            query = query.Where(c => c.NetworkId.HasValue && companyNetworkIds.Contains(c.NetworkId.Value));
         }
 
         List<Client> clients = await query.ToListAsync(ct);
@@ -89,11 +94,16 @@ public sealed class ClientListQueryService(
             ? await _pendingApproval.GetPendingClientIdsAsync(selectedNetworkId.Value, ct)
             : [];
 
-        // لا ننتظر MikroTik هنا — حالة الاتصال تُحمَّل لاحقاً عبر API (لتفادي بطء الصفحة)
+        int? connectionScopeId = selectedNetworkId;
+        if (companyNetworkIds.Count > 0)
+        {
+            connectionScopeId = companyNetworkIds[0];
+        }
+
         HashSet<int> connectedIds = [];
         bool connectionsReady = false;
-        if (selectedNetworkId.HasValue &&
-            _cache.TryGetValue(ConnectedCacheKey(selectedNetworkId.Value), out HashSet<int>? cached) &&
+        if (connectionScopeId.HasValue &&
+            _cache.TryGetValue(ConnectedCacheKey(connectionScopeId.Value), out HashSet<int>? cached) &&
             cached != null)
         {
             connectedIds = cached;
@@ -112,7 +122,10 @@ public sealed class ClientListQueryService(
             CurrentNetworkId = selectedNetworkId,
             CopyTargetServers = selectedNetworkId.HasValue
                 ? await Db.MikroTikServers.AsNoTracking()
-                    .Where(s => s.NetworkId == selectedNetworkId.Value && s.IsActive)
+                    .Where(s =>
+                        s.IsActive
+                        && s.NetworkId.HasValue
+                        && companyNetworkIds.Contains(s.NetworkId.Value))
                     .OrderBy(s => s.Name)
                     .Select(s => new ClientCopyTargetServerItem
                     {
@@ -130,7 +143,12 @@ public sealed class ClientListQueryService(
         bool forceRefresh = false,
         CancellationToken ct = default)
     {
-        string cacheKey = ConnectedCacheKey(networkId);
+        List<int> companyNetworkIds = await PricingChargeHelper.GetCompanyScopeNetworkIdsForSelectedAsync(
+            Db,
+            networkId,
+            ct);
+        int cacheScopeId = companyNetworkIds.Count > 0 ? companyNetworkIds[0] : networkId;
+        string cacheKey = ConnectedCacheKey(cacheScopeId);
         if (!forceRefresh &&
             _cache.TryGetValue(cacheKey, out HashSet<int>? cached) &&
             cached != null)
@@ -140,7 +158,12 @@ public sealed class ClientListQueryService(
 
         List<Client> clients = await Db.Clients
             .AsNoTracking()
-            .Where(c => c.NetworkId == networkId && c.IsActive && c.MikroTikServerId.HasValue && c.UserName != null)
+            .Where(c =>
+                c.NetworkId.HasValue
+                && companyNetworkIds.Contains(c.NetworkId.Value)
+                && c.IsActive
+                && c.MikroTikServerId.HasValue
+                && c.UserName != null)
             .Select(c => new Client
             {
                 Id = c.Id,
@@ -155,7 +178,7 @@ public sealed class ClientListQueryService(
         return connectedIds;
     }
 
-    private static string ConnectedCacheKey(int networkId) => $"clients.connected.{networkId}";
+    private static string ConnectedCacheKey(int companyScopeId) => $"clients.connected.company.{companyScopeId}";
 
     /// <summary>
     /// يحدد المتصلين فعلياً عبر جلسات /ppp/active على كل سيرفر MikroTik مرتبط بالمشتركين.
