@@ -161,8 +161,6 @@ public sealed class ClientListQueryService(
             .Where(c =>
                 c.NetworkId.HasValue
                 && companyNetworkIds.Contains(c.NetworkId.Value)
-                && c.IsActive
-                && c.MikroTikServerId.HasValue
                 && c.UserName != null)
             .Select(c => new Client
             {
@@ -173,7 +171,19 @@ public sealed class ClientListQueryService(
             })
             .ToListAsync(ct);
 
-        HashSet<int> connectedIds = await ResolveConnectedClientIdsAsync(clients, ct);
+        HashSet<int> serverIds = await Db.MikroTikServers
+            .AsNoTracking()
+            .Where(s => s.NetworkId.HasValue && companyNetworkIds.Contains(s.NetworkId.Value))
+            .Select(s => s.Id)
+            .ToHashSetAsync(ct);
+        foreach (int assignedServerId in clients
+            .Where(c => c.MikroTikServerId.HasValue)
+            .Select(c => c.MikroTikServerId!.Value))
+        {
+            serverIds.Add(assignedServerId);
+        }
+
+        HashSet<int> connectedIds = await ResolveConnectedClientIdsAsync(clients, serverIds, ct);
         _cache.Set(cacheKey, connectedIds, ConnectedCacheDuration);
         return connectedIds;
     }
@@ -181,47 +191,37 @@ public sealed class ClientListQueryService(
     private static string ConnectedCacheKey(int companyScopeId) => $"clients.connected.company.{companyScopeId}";
 
     /// <summary>
-    /// يحدد المتصلين فعلياً عبر جلسات /ppp/active على كل سيرفر MikroTik مرتبط بالمشتركين.
+    /// يحدد المتصلين فعلياً عبر جلسات /ppp/active على كل سيرفرات MikroTik للشركة.
     /// </summary>
     private async Task<HashSet<int>> ResolveConnectedClientIdsAsync(
         IReadOnlyList<Client> clients,
+        IReadOnlyCollection<int> serverIds,
         CancellationToken ct)
     {
-        HashSet<int> connectedIds = [];
-        List<IGrouping<int, Client>> serverGroups = clients
-            .Where(c => c.IsActive && c.MikroTikServerId.HasValue && !string.IsNullOrWhiteSpace(c.UserName))
-            .GroupBy(c => c.MikroTikServerId!.Value)
-            .ToList();
+        Dictionary<int, IReadOnlyCollection<string>> activeNamesByServer = [];
 
-        foreach (IGrouping<int, Client> group in serverGroups)
+        foreach (int serverId in serverIds)
         {
             ct.ThrowIfCancellationRequested();
             try
             {
-                List<Client> activeSessions = await _mikroTik.GetActivePPPoEUsers(group.Key);
+                List<Client> activeSessions = await _mikroTik.GetActivePPPoEUsers(serverId);
                 HashSet<string> activeUserNames = activeSessions
-                    .Where(a => !string.IsNullOrWhiteSpace(a.UserName))
-                    .Select(a => a.UserName!.Trim())
+                    .Select(a => ClientLiveConnectionMatcher.NormalizeUserName(a.UserName))
+                    .Where(name => name.Length > 0)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                foreach (Client client in group)
-                {
-                    if (activeUserNames.Contains(client.UserName!.Trim()))
-                    {
-                        connectedIds.Add(client.Id);
-                    }
-                }
+                activeNamesByServer[serverId] = activeUserNames;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(
                     ex,
                     "تعذر جلب الجلسات النشطة من سيرفر MikroTik {ServerId} — سيُعرض المشتركون كغير متصلين لهذا السيرفر",
-                    group.Key);
+                    serverId);
             }
         }
 
-        return connectedIds;
+        return ClientLiveConnectionMatcher.Match(clients, activeNamesByServer);
     }
 
     public async Task<ClientDetailsPageModel> BuildDetailsPageAsync(

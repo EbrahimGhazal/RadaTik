@@ -53,15 +53,19 @@
             else
             {
                 inactiveSpeed += speed;
+                if (connectedClients.Contains(item.Id))
+                {
+                    connectedSpeed += speed;
+                }
             }
         }
     }
 
     var disconnectedActiveClients = Model.Count(c => c.IsActive && !connectedClients.Contains(c.Id));
-    var connectedActiveClients = Model.Count(c => c.IsActive && connectedClients.Contains(c.Id));
+    var connectedActiveClients = Model.Count(c => connectedClients.Contains(c.Id));
     var averageTotalSpeed = totalClients > 0 ? Math.Round((double)totalSpeed / totalClients, 1) : 0;
     var activePercent = totalClients > 0 ? Math.Round((double)activeClients / totalClients * 100, 0) : 0;
-    var connectedPercent = activeClients > 0 ? Math.Round((double)connectedActiveClients / activeClients * 100, 0) : 0;
+    var connectedPercent = totalClients > 0 ? Math.Round((double)connectedActiveClients / totalClients * 100, 0) : 0;
     var dbAccountMap = ViewBag.DbAccountMap as IDictionary<int, string> ?? new Dictionary<int, string>();
     var pendingClientIds = ViewBag.PendingClientIds as ISet<int> ?? new HashSet<int>();
     var copyTargetServers = ViewBag.CopyTargetServers as IReadOnlyList<RadaTik.Services.Clients.ClientCopyTargetServerItem>
@@ -194,7 +198,7 @@
         </div>
     </button>
     
-    <button type="button" class="stat-item stat-info is-filter" data-filter="connected" onclick="filterByStatus('connected')" title="المشتركون غير المعطّلين والمتصلون حالياً بالإنترنت">
+    <button type="button" class="stat-item stat-info is-filter" data-filter="connected" onclick="filterByStatus('connected')" title="المشتركون الموجودون حالياً في PPP Active Connections على سيرفرات MikroTik">
         <div class="stat-icon-mini"><i class="fas fa-wifi"></i></div>
         <div class="stat-data">
             <span class="stat-number" id="statConnectedCount">@(connectionsReady ? connectedActiveClients.ToString() : "…")</span>
@@ -394,7 +398,7 @@
                             </td>
                             <td data-col="fullName" data-label="الاسم الكامل">
                                 <div class="client-info">
-                                    <div class="client-avatar js-client-avatar @(item.IsActive ? (connectionsReady ? (isConnected ? "online" : "away") : "away") : "offline")">
+                                    <div class="client-avatar js-client-avatar @(isConnected ? "online" : (item.IsActive ? "away" : "offline"))">
                                         @(item.Name?.Substring(0, 1).ToUpper() ?? "?")
                                     </div>
                                     <div>
@@ -518,18 +522,18 @@
                                         <i class="fas fa-user-clock"></i> قيد الاعتماد
                                     </span>
                                 }
+                                else if (isConnected)
+                                {
+                                    <span class="js-client-connection status-badge status-online">
+                                        <i class="fas fa-wifi"></i> متصل
+                                    </span>
+                                }
                                 else if (item.IsActive)
                                 {
                                     if (!connectionsReady)
                                     {
                                         <span class="js-client-connection status-badge status-away">
                                             <i class="fas fa-spinner fa-spin"></i> جاري التحقق
-                                        </span>
-                                    }
-                                    else if (isConnected)
-                                    {
-                                        <span class="js-client-connection status-badge status-online">
-                                            <i class="fas fa-wifi"></i> متصل
                                         </span>
                                     }
                                     else
@@ -885,7 +889,7 @@
                 case 'inactive':
                     return !isActive;
                 case 'connected':
-                    return isActive && isConnected;
+                    return isConnected;
                 case 'disconnected':
                     return isActive && !isConnected;
                 default:
@@ -964,7 +968,7 @@
                     const isActive = row.getAttribute('data-active') === 'true';
                     const isConnected = row.getAttribute('data-connected') === 'true';
                     visibleTotalSpeed += speed;
-                    if (isActive && isConnected) {
+                    if (isConnected) {
                         visibleConnectedCount++;
                     }
                 });
@@ -978,7 +982,7 @@
                     if (shouldShow) {
                         row.style.display = '';
                         visibleTotalSpeed += speed;
-                        if (isActive && isConnected) {
+                        if (isConnected) {
                             visibleConnectedCount++;
                         }
                     } else {
@@ -999,46 +1003,49 @@
             let connectedCount = 0;
             let disconnectedCount = 0;
             let connectedSpeed = 0;
-            let activeCount = 0;
 
             document.querySelectorAll('.client-row').forEach(row => {
                 const id = row.getAttribute('data-client-id');
                 const isActive = row.getAttribute('data-active') === 'true';
                 const isPending = row.getAttribute('data-pending') === 'true';
                 const speed = parseFloat(row.getAttribute('data-speed')) || 0;
-                const isConnected = isActive && connectedSet.has(String(id));
+                const isConnected = connectedSet.has(String(id));
                 row.setAttribute('data-connected', isConnected ? 'true' : 'false');
 
                 const avatar = row.querySelector('.js-client-avatar');
-                if (avatar && isActive) {
+                if (avatar) {
                     avatar.classList.remove('online', 'away', 'offline');
-                    avatar.classList.add(isConnected ? 'online' : 'away');
+                    if (isConnected) {
+                        avatar.classList.add('online');
+                    } else if (isActive) {
+                        avatar.classList.add('away');
+                    } else {
+                        avatar.classList.add('offline');
+                    }
                 }
 
                 const badge = row.querySelector('.js-client-connection');
-                if (badge && !isPending && isActive) {
+                if (badge && !isPending) {
                     if (isConnected) {
                         badge.className = 'js-client-connection status-badge status-online';
                         badge.innerHTML = '<i class="fas fa-wifi"></i> متصل';
-                    } else {
+                    } else if (isActive) {
                         badge.className = 'js-client-connection status-badge status-away';
                         badge.innerHTML = '<i class="fas fa-wifi-slash"></i> غير متصل';
                     }
                 }
 
-                if (isActive) {
-                    activeCount++;
-                    if (isConnected) {
-                        connectedCount++;
-                        connectedSpeed += speed;
-                    } else {
-                        disconnectedCount++;
-                    }
+                if (isConnected) {
+                    connectedCount++;
+                    connectedSpeed += speed;
+                } else if (isActive) {
+                    disconnectedCount++;
                 }
             });
 
-            const connectedPercent = activeCount > 0
-                ? Math.round((connectedCount / activeCount) * 100)
+            const totalRows = document.querySelectorAll('.client-row').length;
+            const connectedPercent = totalRows > 0
+                ? Math.round((connectedCount / totalRows) * 100)
                 : 0;
 
             const setText = (id, value) => {
