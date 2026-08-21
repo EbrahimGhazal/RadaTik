@@ -1,10 +1,13 @@
 @model RadaTik.Models.MaintenanceRequest
 @using RadaTik.Models
+@using Microsoft.AspNetCore.Mvc.Rendering
 @{
     ViewData["Title"] = "طلب صيانة جديد";
     ViewBag.PageHeroIcon = "fas fa-tools";
     ViewBag.PageHeroBackUrl = Url.Action("MaintenanceRequests");
     ViewBag.PageHeroBackText = "العودة";
+    var assignableEmployees = ViewBag.AssignableEmployees as IEnumerable<SelectListItem>
+        ?? Enumerable.Empty<SelectListItem>();
 }
 <div class="radtk-page--clientportal-views-clientportal-createmaintenancerequest">
 
@@ -97,6 +100,15 @@
                         <textarea asp-for="Address" class="form-control" rows="2" 
                                   placeholder="العنوان التفصيلي للزيارة الفنية (إن لزم)"></textarea>
                         <span asp-validation-for="Address" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <label asp-for="AssignedToId" class="form-label">الموظف المطلوب للمهمة</label>
+                        <select asp-for="AssignedToId" class="form-select" asp-items="assignableEmployees">
+                            <option value="">— يحدده المدير أو قسم الصيانة لاحقاً —</option>
+                        </select>
+                        <span asp-validation-for="AssignedToId" class="text-danger"></span>
+                        <small class="form-text text-muted">اختياري. يمكنك اختيار الموظف الذي تريد إسناد مهمة الصيانة إليه، أو ترك الحقل فارغاً ليتم التعيين من المدير أو من قسم الصيانة إن وُجد.</small>
                     </div>
 
                     <!-- أزرار -->

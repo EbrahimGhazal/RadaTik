@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "إضافة مهمة";
     var employees = ViewBag.Employees as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+    var clients = ViewBag.Clients as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
 }
 
 <div class="financial-page financial-hub-page col-lg-8">
@@ -15,6 +16,13 @@
         <div class="mb-3">
             <label asp-for="Description" class="form-label">الوصف</label>
             <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="mb-3">
+            <label asp-for="ClientId" class="form-label">المشترك</label>
+            <select asp-for="ClientId" class="form-select" asp-items="clients">
+                <option value="">— بدون مشترك —</option>
+            </select>
+            <div class="form-text">اختياري. اربط المهمة بمشترك إذا كانت متعلقة به أو بطلب صيانة.</div>
         </div>
         <div class="mb-3">
             <label asp-for="AssignedToUserId" class="form-label">الموظف</label>

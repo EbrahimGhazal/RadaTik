@@ -46,6 +46,7 @@ public class MyEmployeeTasksController : Controller
 
         IQueryable<CompanyEmployeeTask> query = _context.CompanyEmployeeTasks.AsNoTracking()
             .Include(t => t.AssignedByUser)
+            .Include(t => t.Client)
             .Where(t =>
                 t.CompanyNetworkId == scope.CompanyNetworkId
                 && t.AssignedToUserId == user.Id);

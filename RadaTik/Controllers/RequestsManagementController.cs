@@ -29,6 +29,7 @@ namespace RadaTik.Controllers
         private readonly IPermissionService _permissionService;
         private readonly IMaintenanceBillingService _maintenanceBillingService;
         private readonly IMaintenancePricingService _maintenancePricingService;
+        private readonly IMaintenanceEmployeeTaskService _maintenanceEmployeeTasks;
         private readonly ILogger<RequestsManagementController> _logger;
 
         private sealed record NetworkIdParentSnapshot(int Id, int? ParentNetworkId);
@@ -40,6 +41,7 @@ namespace RadaTik.Controllers
             IPermissionService permissionService,
             IMaintenanceBillingService maintenanceBillingService,
             IMaintenancePricingService maintenancePricingService,
+            IMaintenanceEmployeeTaskService maintenanceEmployeeTasks,
             ILogger<RequestsManagementController> logger)
         {
             _context = context;
@@ -48,6 +50,7 @@ namespace RadaTik.Controllers
             _permissionService = permissionService;
             _maintenanceBillingService = maintenanceBillingService;
             _maintenancePricingService = maintenancePricingService;
+            _maintenanceEmployeeTasks = maintenanceEmployeeTasks;
             _logger = logger;
         }
 
@@ -197,11 +200,16 @@ namespace RadaTik.Controllers
                 return RedirectToRequestsAction(nameof(MaintenanceRequests));
             }
 
-            // جلب قائمة الموظفين للتعيين
-            IList<ApplicationUser> companyEmployees = await _userManager.GetUsersInRoleAsync(RoleNames.CompanyEmployee);
-            IList<ApplicationUser> legacyEmployees = await _userManager.GetUsersInRoleAsync(RoleNames.EmployeeLegacy);
-            IList<ApplicationUser> admins = await _userManager.GetUsersInRoleAsync(RoleNames.NetworkAdministrator);
-            ViewBag.AvailableStaff = companyEmployees.Concat(legacyEmployees).Concat(admins).Distinct().ToList();
+            // جلب قائمة الموظفين للتعيين ضمن شركة المشترك
+            ViewBag.AvailableStaff = new List<ApplicationUser>();
+            if (request.ClientId > 0)
+            {
+                int? companyNetworkId = await _maintenanceEmployeeTasks.ResolveCompanyNetworkIdForClientAsync(request.ClientId);
+                if (companyNetworkId.HasValue)
+                {
+                    ViewBag.AvailableStaff = await _maintenanceEmployeeTasks.GetAssignableEmployeesAsync(companyNetworkId.Value);
+                }
+            }
             ViewBag.MaintenanceInvoice = await _context.MaintenanceInvoices
                 .AsNoTracking()
                 .FirstOrDefaultAsync(i => i.MaintenanceRequestId == request.Id);
@@ -235,16 +243,68 @@ namespace RadaTik.Controllers
             request.AcceptedDate = DateTime.Now;
             request.ProcessedById = currentUser?.Id;
 
-            if (!string.IsNullOrEmpty(assignedToId))
+            if (!string.IsNullOrWhiteSpace(assignedToId))
             {
-                request.AssignedToId = assignedToId;
+                int? companyNetworkId = await _maintenanceEmployeeTasks.ResolveCompanyNetworkIdForClientAsync(request.ClientId);
+                if (companyNetworkId.HasValue
+                    && await _maintenanceEmployeeTasks.IsAssignableEmployeeAsync(companyNetworkId.Value, assignedToId))
+                {
+                    request.AssignedToId = assignedToId;
+                }
             }
 
             await _context.SaveChangesAsync();
+            await _maintenanceEmployeeTasks.EnsureTaskForAssignedMaintenanceAsync(request, currentUser?.Id);
 
             TempData["Success"] = AppMessages.OperationSuccess;
             _logger.LogInformation($"تم قبول طلب الصيانة #{id} بواسطة {currentUser?.UserName}");
 
+            return RedirectToRequestsAction(nameof(MaintenanceRequestDetails), new { id });
+        }
+
+        /// <summary>
+        /// إسناد أو تغيير موظف مهمة الصيانة بعد تقديم الطلب.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission("MaintenanceRequests.Manage")]
+        public async Task<IActionResult> AssignMaintenanceEmployee(int id, string assignedToId)
+        {
+            MaintenanceRequest? request = await _context.MaintenanceRequests.FindAsync(id);
+            if (request == null)
+            {
+                TempData["Error"] = AppMessages.RequestNotFound;
+                return RedirectToRequestsAction(nameof(MaintenanceRequests));
+            }
+
+            if (request.Status is MaintenanceRequestStatus.Rejected
+                or MaintenanceRequestStatus.Cancelled
+                or MaintenanceRequestStatus.Completed)
+            {
+                TempData["Error"] = "لا يمكن إسناد الطلب في هذه الحالة.";
+                return RedirectToRequestsAction(nameof(MaintenanceRequestDetails), new { id });
+            }
+
+            if (string.IsNullOrWhiteSpace(assignedToId))
+            {
+                TempData["Error"] = "يجب اختيار موظف لإسناد المهمة.";
+                return RedirectToRequestsAction(nameof(MaintenanceRequestDetails), new { id });
+            }
+
+            int? companyNetworkId = await _maintenanceEmployeeTasks.ResolveCompanyNetworkIdForClientAsync(request.ClientId);
+            if (!companyNetworkId.HasValue
+                || !await _maintenanceEmployeeTasks.IsAssignableEmployeeAsync(companyNetworkId.Value, assignedToId))
+            {
+                TempData["Error"] = "الموظف المحدد غير متاح لإسناد مهمة الصيانة.";
+                return RedirectToRequestsAction(nameof(MaintenanceRequestDetails), new { id });
+            }
+
+            ApplicationUser? currentUser = await _userManager.GetUserAsync(User);
+            request.AssignedToId = assignedToId;
+            await _context.SaveChangesAsync();
+            await _maintenanceEmployeeTasks.EnsureTaskForAssignedMaintenanceAsync(request, currentUser?.Id);
+
+            TempData["Success"] = AppMessages.OperationSuccess;
             return RedirectToRequestsAction(nameof(MaintenanceRequestDetails), new { id });
         }
 
@@ -371,6 +431,7 @@ namespace RadaTik.Controllers
             request.ProcessedById = currentUser?.Id;
 
             await _context.SaveChangesAsync();
+            await _maintenanceEmployeeTasks.CancelLinkedOpenTaskAsync(id);
 
             TempData["Success"] = AppMessages.OperationSuccess;
             _logger.LogInformation($"تم رفض طلب الصيانة #{id} بواسطة {currentUser?.UserName}");

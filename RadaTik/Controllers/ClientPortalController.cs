@@ -32,6 +32,7 @@ namespace RadaTik.Controllers
         private readonly ICollectionCommissionChargeService _collectionCommissionChargeService;
         private readonly IClientPortalSelfRenewOrchestrator _clientPortalSelfRenew;
         private readonly IWebHostEnvironment _environment;
+        private readonly IMaintenanceEmployeeTaskService _maintenanceEmployeeTasks;
 
         public ClientPortalController(
             ApplicationDbContext context,
@@ -43,6 +44,7 @@ namespace RadaTik.Controllers
             ICollectionCommissionChargeService collectionCommissionChargeService,
             IClientPortalSelfRenewOrchestrator clientPortalSelfRenew,
             IWebHostEnvironment environment,
+            IMaintenanceEmployeeTaskService maintenanceEmployeeTasks,
             IMikroTikPppoeUserService? mikroTikService = null)
         {
             _context = context;
@@ -54,6 +56,7 @@ namespace RadaTik.Controllers
             _collectionCommissionChargeService = collectionCommissionChargeService;
             _clientPortalSelfRenew = clientPortalSelfRenew;
             _environment = environment;
+            _maintenanceEmployeeTasks = maintenanceEmployeeTasks;
             _mikroTikService = mikroTikService;
         }
 
@@ -73,6 +76,20 @@ namespace RadaTik.Controllers
                 .Include(c => c.Receiver)
                 .Include(c => c.MikroTikServer)
                 .FirstOrDefaultAsync(c => c.Id == user.ClientId);
+        }
+
+        private async Task PopulateAssignableEmployeesAsync(int clientId, string? selectedUserId)
+        {
+            int? companyNetworkId = await _maintenanceEmployeeTasks.ResolveCompanyNetworkIdForClientAsync(clientId);
+            if (!companyNetworkId.HasValue)
+            {
+                ViewBag.AssignableEmployees = new List<SelectListItem>();
+                return;
+            }
+
+            ViewBag.AssignableEmployees = await _maintenanceEmployeeTasks.GetAssignableEmployeeSelectItemsAsync(
+                companyNetworkId.Value,
+                selectedUserId);
         }
 
         #region لوحة التحكم الرئيسية
@@ -817,6 +834,7 @@ namespace RadaTik.Controllers
                 Address = client.Receiver?.Name
             };
 
+            await PopulateAssignableEmployeesAsync(client.Id, model.AssignedToId);
             return View(model);
         }
 
@@ -838,9 +856,25 @@ namespace RadaTik.Controllers
             model.ClientId = client.Id;
             model.RequestDate = DateTime.Now;
             model.Status = MaintenanceRequestStatus.Pending;
+            if (string.IsNullOrWhiteSpace(model.AssignedToId))
+            {
+                model.AssignedToId = null;
+            }
 
             // إزالة حقول التحقق غير المطلوبة
             ModelState.Remove("Client");
+            ModelState.Remove("AssignedTo");
+
+            if (!string.IsNullOrWhiteSpace(model.AssignedToId))
+            {
+                int? companyNetworkId = await _maintenanceEmployeeTasks.ResolveCompanyNetworkIdForClientAsync(client.Id);
+                if (!companyNetworkId.HasValue
+                    || !await _maintenanceEmployeeTasks.IsAssignableEmployeeAsync(companyNetworkId.Value, model.AssignedToId))
+                {
+                    ModelState.AddModelError(nameof(model.AssignedToId), "الموظف المحدد غير متاح لإسناد مهمة الصيانة.");
+                    model.AssignedToId = null;
+                }
+            }
 
             if (ModelState.IsValid)
             {
@@ -848,6 +882,8 @@ namespace RadaTik.Controllers
                 {
                     _context.MaintenanceRequests.Add(model);
                     await _context.SaveChangesAsync();
+
+                    await _maintenanceEmployeeTasks.EnsureTaskForAssignedMaintenanceAsync(model, assignedByUserId: null);
 
                     await _requestNotificationService.NotifyMaintenanceRequestSubmittedAsync(
                         model,
@@ -867,6 +903,7 @@ namespace RadaTik.Controllers
                 }
             }
 
+            await PopulateAssignableEmployeesAsync(client.Id, model.AssignedToId);
             return View(model);
         }
 
@@ -924,6 +961,7 @@ namespace RadaTik.Controllers
 
             request.Status = MaintenanceRequestStatus.Cancelled;
             await _context.SaveChangesAsync();
+            await _maintenanceEmployeeTasks.CancelLinkedOpenTaskAsync(id);
 
             return Json(new { success = true, message = AppMessages.OperationSuccess });
         }

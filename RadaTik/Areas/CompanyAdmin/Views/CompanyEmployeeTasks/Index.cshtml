@@ -27,6 +27,7 @@
             <thead class="table-light">
                 <tr>
                     <th>المهمة</th>
+                    <th>المشترك</th>
                     <th>الموظف</th>
                     <th>الأولوية</th>
                     <th>الحالة</th>
@@ -38,7 +39,14 @@
             @foreach (var t in Model)
             {
                 <tr>
-                    <td>@t.Title</td>
+                    <td>
+                        @t.Title
+                        @if (t.MaintenanceRequestId.HasValue)
+                        {
+                            <span class="badge bg-info text-dark ms-1">صيانة</span>
+                        }
+                    </td>
+                    <td>@(t.Client?.Name ?? "—")</td>
                     <td>@(t.AssignedToUser?.FullName ?? t.AssignedToUser?.UserName)</td>
                     <td>@t.Priority</td>
                     <td>@StatusLabel(t.Status)</td>

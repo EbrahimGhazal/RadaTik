@@ -20,8 +20,9 @@ public class RequestsManagementController : global::RadaTik.Controllers.Requests
         IPermissionService permissionService,
         IMaintenanceBillingService maintenanceBillingService,
         IMaintenancePricingService maintenancePricingService,
+        IMaintenanceEmployeeTaskService maintenanceEmployeeTasks,
         ILogger<global::RadaTik.Controllers.RequestsManagementController> logger)
-        : base(context, userManager, mikroTikService, permissionService, maintenanceBillingService, maintenancePricingService, logger)
+        : base(context, userManager, mikroTikService, permissionService, maintenanceBillingService, maintenancePricingService, maintenanceEmployeeTasks, logger)
     {
     }
 }

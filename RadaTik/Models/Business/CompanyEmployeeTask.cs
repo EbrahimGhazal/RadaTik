@@ -43,7 +43,14 @@ public class CompanyEmployeeTask
 
     public DateTime? UpdatedAt { get; set; }
 
+    [Display(Name = "المشترك")]
+    public int? ClientId { get; set; }
+
+    public int? MaintenanceRequestId { get; set; }
+
     public virtual Network? CompanyNetwork { get; set; }
     public virtual ApplicationUser? AssignedToUser { get; set; }
     public virtual ApplicationUser? AssignedByUser { get; set; }
+    public virtual Client? Client { get; set; }
+    public virtual MaintenanceRequest? MaintenanceRequest { get; set; }
 }

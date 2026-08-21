@@ -77,6 +77,8 @@ public sealed class CompanyEmployeeTaskConfiguration : IEntityTypeConfiguration<
         entity.HasIndex(e => e.CompanyNetworkId);
         entity.HasIndex(e => new { e.CompanyNetworkId, e.Status });
         entity.HasIndex(e => e.AssignedToUserId);
+        entity.HasIndex(e => e.ClientId);
+        entity.HasIndex(e => e.MaintenanceRequestId);
 
         entity.HasOne(e => e.CompanyNetwork)
             .WithMany()
@@ -92,6 +94,16 @@ public sealed class CompanyEmployeeTaskConfiguration : IEntityTypeConfiguration<
             .WithMany()
             .HasForeignKey(e => e.AssignedByUserId)
             .OnDelete(DeleteBehavior.NoAction);
+
+        entity.HasOne(e => e.Client)
+            .WithMany()
+            .HasForeignKey(e => e.ClientId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        entity.HasOne(e => e.MaintenanceRequest)
+            .WithMany()
+            .HasForeignKey(e => e.MaintenanceRequestId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

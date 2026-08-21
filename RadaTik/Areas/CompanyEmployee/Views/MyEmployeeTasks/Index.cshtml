@@ -68,6 +68,15 @@
                                 <p class="small text-muted">@t.Description</p>
                             }
                             <dl class="small mb-3">
+                                @if (t.Client != null)
+                                {
+                                    <dt class="d-inline">المشترك:</dt>
+                                    <dd class="d-inline ms-1">@t.Client.Name</dd>
+                                }
+                                @if (t.MaintenanceRequestId.HasValue)
+                                {
+                                    <span class="badge bg-info text-dark ms-1">صيانة</span>
+                                }
                                 <dt class="d-inline">الحالة:</dt>
                                 <dd class="d-inline ms-1">@StatusLabel(t.Status)</dd>
                                 @if (t.DueDate.HasValue)

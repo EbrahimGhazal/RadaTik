@@ -61,6 +61,7 @@ internal static class ServiceRegistrationExtensions
         services.AddScoped<IErpSummaryService, ErpSummaryService>();
         services.AddScoped<IErpReportService, ErpReportService>();
         services.AddScoped<IErpNotificationService, ErpNotificationService>();
+        services.AddScoped<IMaintenanceEmployeeTaskService, MaintenanceEmployeeTaskService>();
         services.AddScoped<EmployeeRewardPenaltyService>();
         services.AddScoped<CompanyAccountingService>();
         services.AddScoped<IWarehouseMaterialInvoiceService, WarehouseMaterialInvoiceService>();

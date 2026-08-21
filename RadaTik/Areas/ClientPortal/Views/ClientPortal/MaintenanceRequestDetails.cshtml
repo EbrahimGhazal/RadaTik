@@ -64,6 +64,19 @@
                 <strong>@Model.ScheduledVisitDate.Value.ToString("yyyy/MM/dd HH:mm")</strong>
             </div>
         }
+        @if (Model.AssignedTo != null)
+        {
+            <div class="mb-2">
+                <span class="text-muted">الموظف المسند:</span>
+                <strong>@(Model.AssignedTo.FullName ?? Model.AssignedTo.UserName)</strong>
+            </div>
+        }
+        else if (Model.Status == MaintenanceRequestStatus.Pending)
+        {
+            <div class="mb-2 text-muted">
+                سيتم تحديد الموظف من المدير أو قسم الصيانة.
+            </div>
+        }
         @if (Model.CompletedDate.HasValue)
         {
             <div class="mb-2">

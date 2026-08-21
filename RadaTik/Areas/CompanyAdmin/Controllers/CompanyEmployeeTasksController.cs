@@ -45,6 +45,7 @@ public class CompanyEmployeeTasksController : Controller
         IQueryable<CompanyEmployeeTask> query = _context.CompanyEmployeeTasks.AsNoTracking()
             .Include(t => t.AssignedToUser)
             .Include(t => t.AssignedByUser)
+            .Include(t => t.Client)
             .Where(t => t.CompanyNetworkId == scope.CompanyNetworkId);
 
         if (status.HasValue)
@@ -68,6 +69,7 @@ public class CompanyEmployeeTasksController : Controller
         }
 
         await PopulateEmployeesAsync(scope.CompanyNetworkId);
+        await PopulateClientsAsync(scope.CompanyNetworkId);
         return View(new CompanyEmployeeTask
         {
             CompanyNetworkId = scope.CompanyNetworkId,
@@ -88,6 +90,7 @@ public class CompanyEmployeeTasksController : Controller
 
         model.CompanyNetworkId = scope.CompanyNetworkId;
         model.Title = model.Title?.Trim() ?? string.Empty;
+        model.ClientId = model.ClientId is > 0 ? model.ClientId : null;
         if (string.IsNullOrWhiteSpace(model.Title))
         {
             ModelState.AddModelError(nameof(model.Title), "عنوان المهمة مطلوب.");
@@ -98,9 +101,25 @@ public class CompanyEmployeeTasksController : Controller
             ModelState.AddModelError(nameof(model.AssignedToUserId), "يجب اختيار موظف.");
         }
 
+        if (model.ClientId.HasValue)
+        {
+            List<int> networkIds = await GetCompanyNetworkIdsAsync(scope.CompanyNetworkId);
+            bool clientInCompany = await _context.Clients.AsNoTracking()
+                .AnyAsync(c =>
+                    c.Id == model.ClientId.Value
+                    && c.NetworkId != null
+                    && networkIds.Contains(c.NetworkId.Value));
+            if (!clientInCompany)
+            {
+                ModelState.AddModelError(nameof(model.ClientId), "المشترك المحدد لا ينتمي لهذه الشركة.");
+                model.ClientId = null;
+            }
+        }
+
         if (!ModelState.IsValid)
         {
             await PopulateEmployeesAsync(scope.CompanyNetworkId);
+            await PopulateClientsAsync(scope.CompanyNetworkId);
             return View(model);
         }
 
@@ -159,10 +178,7 @@ public class CompanyEmployeeTasksController : Controller
 
     private async Task PopulateEmployeesAsync(int companyNetworkId)
     {
-        List<int> networkIds = await _context.Networks.AsNoTracking()
-            .Where(n => n.Id == companyNetworkId || n.ParentNetworkId == companyNetworkId)
-            .Select(n => n.Id)
-            .ToListAsync();
+        List<int> networkIds = await GetCompanyNetworkIdsAsync(companyNetworkId);
 
         ViewBag.Employees = await _context.Users.AsNoTracking()
             .Where(u => u.NetworkId != null && networkIds.Contains(u.NetworkId.Value) && u.IsActive)
@@ -172,6 +188,30 @@ public class CompanyEmployeeTasksController : Controller
                 Value = u.Id,
                 Text = u.FullName ?? u.UserName ?? u.Id,
             })
+            .ToListAsync();
+    }
+
+    private async Task PopulateClientsAsync(int companyNetworkId)
+    {
+        List<int> networkIds = await GetCompanyNetworkIdsAsync(companyNetworkId);
+
+        ViewBag.Clients = await _context.Clients.AsNoTracking()
+            .Where(c => c.IsActive && c.NetworkId != null && networkIds.Contains(c.NetworkId.Value))
+            .OrderBy(c => c.Name)
+            .Select(c => new SelectListItem
+            {
+                Value = c.Id.ToString(),
+                Text = string.IsNullOrWhiteSpace(c.UserName) ? c.Name : c.Name + " (" + c.UserName + ")",
+            })
+            .Take(500)
+            .ToListAsync();
+    }
+
+    private async Task<List<int>> GetCompanyNetworkIdsAsync(int companyNetworkId)
+    {
+        return await _context.Networks.AsNoTracking()
+            .Where(n => n.Id == companyNetworkId || n.ParentNetworkId == companyNetworkId)
+            .Select(n => n.Id)
             .ToListAsync();
     }
 }

@@ -23,8 +23,20 @@ namespace RadaTik.Areas.ClientPortal.Controllers
             global::RadaTik.Services.ICollectionCommissionChargeService collectionCommissionChargeService,
             global::RadaTik.Services.Clients.IClientPortalSelfRenewOrchestrator clientPortalSelfRenew,
             IWebHostEnvironment environment,
+            global::RadaTik.Services.IMaintenanceEmployeeTaskService maintenanceEmployeeTasks,
             global::RadaTik.Services.MikroTik.IMikroTikPppoeUserService mikroTikService)
-            : base(context, userManager, logger, requestNotificationService, maintenanceBillingService, clientRenewalGuardService, collectionCommissionChargeService, clientPortalSelfRenew, environment, mikroTikService)
+            : base(
+                context,
+                userManager,
+                logger,
+                requestNotificationService,
+                maintenanceBillingService,
+                clientRenewalGuardService,
+                collectionCommissionChargeService,
+                clientPortalSelfRenew,
+                environment,
+                maintenanceEmployeeTasks,
+                mikroTikService)
         {
         }
     }
