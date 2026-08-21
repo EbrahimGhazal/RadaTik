@@ -6,8 +6,6 @@
     var items = ViewBag.Items as IEnumerable<FeaturePricing> ?? Enumerable.Empty<FeaturePricing>();
     var list = items.ToList();
 
-    const decimal OldSypFactor = 100m; // 1 ل.س.ج ≈ 100 ل.س القديمة (للعرض كملاحظة)
-
     var billingNames = new Dictionary<PricingBillingPeriod, string>
     {
         { PricingBillingPeriod.OneTime, "مرة واحدة" },
@@ -237,7 +235,7 @@
                 <div class="col-md-2">
                     <label class="form-label" id="createSypAmountLabel">السعر ل.س.ج</label>
                     <input type="number" id="createSypAmountInput" name="amountSYP" class="form-control" value="0" min="0" step="0.01" required />
-                    <div class="form-text" id="createSypAmountHintCurrency">ملاحظة: يعرض النظام أيضاً قيمة الليرة القديمة (× @OldSypFactor.ToString("N0")).</div>
+                    <div class="form-text" id="createSypAmountHintCurrency">المبلغ بالليرة السورية (ل.س.ج).</div>
                     <div class="form-text text-primary d-none" id="createSypAmountHintPercent">أدخل النسبة المئوية كرقم (مثال: <strong>3.5</strong> يعني 3.5٪). تُحفظ في الحقل نفسه الذي يُستخدم لليرة عند باقي الخيارات.</div>
                 </div>
                 <div class="col-md-2" id="createUsdAmountCol">
@@ -381,7 +379,6 @@
                                 var featureName = featureNameByKey.TryGetValue(item.FeatureKey, out var n) ? n : item.FeatureKey;
                                 var billingName = billingNames.GetValueOrDefault(item.BillingPeriod, item.BillingPeriod.ToString());
                                 var unitName = unitNames.GetValueOrDefault(item.ChargeUnit, item.ChargeUnit.ToString());
-                                var oldSyp = item.AmountSYP * OldSypFactor;
                                 var isPercentRow = item.ChargeUnit == PricingChargeUnit.PercentOfCollectedAmount;
                                 <tr id="pricingRow_@item.Id" data-feature-key="@item.FeatureKey">
                                     <td data-label="الخدمة">
@@ -399,7 +396,6 @@
                                         else
                                         {
                                             <div>@item.AmountSYP.ToString("N2")</div>
-                                            <div class="text-muted small">الليرة القديمة: @oldSyp.ToString("N0")</div>
                                         }
                                     </td>
                                     <td class="text-center amount-usd-cell" data-label="السعر $">
@@ -486,7 +482,7 @@
                         <div class="mb-3">
                             <label class="form-label js-edit-syp-label">@(editIsPercent ? "النسبة المئوية (%)" : "السعر ل.س.ج")</label>
                             <input type="number" name="amountSYP" class="form-control js-edit-syp-input" value="@item.AmountSYP.ToString(System.Globalization.CultureInfo.InvariantCulture)" min="0" step="0.01" @(editIsPercent ? Html.Raw("max=\"100\"") : null) required />
-                            <div class="form-text js-edit-syp-hint-currency" style="@(editIsPercent ? "display:none" : "display:block")">الليرة القديمة (تقريبي): @((item.AmountSYP * OldSypFactor).ToString("N0"))</div>
+                            <div class="form-text js-edit-syp-hint-currency" style="@(editIsPercent ? "display:none" : "display:block")">المبلغ بالليرة السورية (ل.س.ج).</div>
                             <div class="form-text text-primary js-edit-syp-hint-percent" style="@(editIsPercent ? "display:block" : "display:none")">القيمة كنسبة مئوية من المبلغ (مثال: 5 = 5٪). حقل الدولار لا يُستخدم لهذا النوع.</div>
                         </div>
                         <div class="mb-3 js-edit-usd-wrap" style="@(editIsPercent ? "display:none" : "display:block")">
@@ -730,7 +726,6 @@
                             const unitText = form.querySelector('select[name="chargeUnit"] option:checked')?.textContent?.trim() || '';
                             const amountSyp = Number(data.item.amountSYP || 0);
                             const amountUsd = Number(data.item.amountUSD || 0);
-                            const oldSyp = amountSyp * @OldSypFactor;
 
                             const billingCell = row.querySelector('.billing-cell');
                             const unitCell = row.querySelector('.unit-cell');
@@ -744,7 +739,7 @@
                             if (amountSypCell) {
                                 amountSypCell.innerHTML = isPct
                                     ? `<div>${formatMoney(amountSyp)}%</div><div class="text-muted small">قيمة مئوية من المبلغ</div>`
-                                    : `<div>${formatMoney(amountSyp)}</div><div class="text-muted small">الليرة القديمة: ${Math.round(oldSyp).toLocaleString('en-US')}</div>`;
+                                    : `<div>${formatMoney(amountSyp)}</div>`;
                             }
                             if (amountUsdCell) {
                                 amountUsdCell.innerHTML = isPct
@@ -925,12 +920,11 @@
                         const unitText = createForm.querySelector('select[name="chargeUnit"] option:checked')?.textContent?.trim() || '';
                         const amountSyp = Number(item.amountSYP || 0);
                         const amountUsd = Number(item.amountUSD || 0);
-                        const oldSyp = amountSyp * @OldSypFactor;
                         const rowId = `pricingRow_${item.id}`;
                         const isPctRow = Number(item.chargeUnit) === CHARGE_UNIT_PERCENT;
                         const sypCellHtml = isPctRow
                             ? `<div>${formatMoney(amountSyp)}%</div><div class="text-muted small">قيمة مئوية من المبلغ</div>`
-                            : `<div>${formatMoney(amountSyp)}</div><div class="text-muted small">الليرة القديمة: ${Math.round(oldSyp).toLocaleString('en-US')}</div>`;
+                            : `<div>${formatMoney(amountSyp)}</div>`;
                         const usdCellHtml = '<span class="text-muted">—</span>';
 
                         const tr = document.createElement('tr');
@@ -1058,7 +1052,6 @@
                                 : 'خصم مباشر بعد نجاح العملية'}
                         </div>
                         <div class="col-12"><strong>التجديد:</strong> ${sim.renewalSummary || '—'}</div>
-                        <div class="col-12 text-muted small">ملاحظة: التحويل التقريبي لليرة القديمة = السعر × 100.</div>
                     </div>`;
             }
 

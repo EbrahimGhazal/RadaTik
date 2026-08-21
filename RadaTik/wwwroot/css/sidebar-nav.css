@@ -320,10 +320,14 @@
     flex-shrink: 0;
 }
 
-/* ——— رصيد المحفظة في الشريط ——— */
+/* ——— أرصدة المحفظة والصندوق في الشريط ——— */
 .sidebar-pro .sidebar-wallet-balance {
     flex-shrink: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-pro .sidebar-wallet-balance .header-balances {
+    width: 100%;
 }
 
 /* ——— تابلت (768–992) ——— */

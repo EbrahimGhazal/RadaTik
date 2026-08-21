@@ -1,10 +1,8 @@
 /**
- * حقول مبلغ بالليرة السورية الجديدة — فواصل آلاف + تلميح الليرة القديمة.
+ * حقول مبلغ بالليرة السورية — فواصل آلاف.
  */
 (function () {
     'use strict';
-
-    var OLD_PER_NEW = 100;
 
     function parseRaw(str) {
         if (str == null || str === '') {
@@ -34,17 +32,9 @@
         return split[1] === '00' && num % 1 === 0 ? split[0] : split.join('.');
     }
 
-    function formatOldHint(newAmount) {
-        if (!isFinite(newAmount) || newAmount <= 0) {
-            return '0';
-        }
-        return Math.round(newAmount * OLD_PER_NEW).toLocaleString('en-US');
-    }
-
     function initField(root) {
         var display = root.querySelector('.syp-amount-display');
         var hidden = root.querySelector('.syp-amount-value');
-        var oldHint = root.querySelector('.syp-old-value');
         if (!display || !hidden) {
             return;
         }
@@ -56,14 +46,8 @@
             var v = parseRaw(display.value);
             if (isFinite(v) && v > 0) {
                 hidden.value = v.toFixed(maxDecimals);
-                if (oldHint) {
-                    oldHint.textContent = formatOldHint(v);
-                }
             } else {
                 hidden.value = '';
-                if (oldHint) {
-                    oldHint.textContent = '0';
-                }
             }
         }
 
@@ -117,7 +101,6 @@
         initAll: initAll,
         initField: initField,
         parseRaw: parseRaw,
-        formatWithCommas: formatWithCommas,
-        formatOldHint: formatOldHint
+        formatWithCommas: formatWithCommas
     };
 })();

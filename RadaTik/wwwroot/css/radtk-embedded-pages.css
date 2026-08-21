@@ -3194,11 +3194,10 @@ body.profile-import-busy {
     }
 
 [data-theme="dark"] .company-dashboard-page .sidebar-pro .sidebar-wallet-balance {
-        background: rgba(255, 255, 255, 0.04);
-        border-bottom-color: rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
+        background: transparent;
+        border: none;
         margin: 0.5rem 0.65rem 0.75rem;
-        padding: 0.65rem 0.75rem !important;
+        padding: 0 !important;
     }
 
 /* RadaTik\Areas\CompanyAdmin\Views\Sector\Users.cshtml */

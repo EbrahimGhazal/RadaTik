@@ -1,7 +1,6 @@
 @using System.Globalization
 @model RadaTik.Areas.SystemAdmin.ViewModels.ServiceCatalogPageViewModel
 @using RadaTik.Areas.SystemAdmin.ViewModels
-@using RadaTik.Helpers
 @using RadaTik.Models
 @{
     ViewData["Title"] = ViewData["Title"] ?? "كتالوج الخدمات";
@@ -178,26 +177,9 @@
         </div>
         <div class="service-catalog-currency-note__content">
             <h2 class="service-catalog-currency-note__title">ملاحظة عامة — العملة</h2>
-            <p class="service-catalog-currency-note__text">
-                جميع حقول الأسعار في هذه الصفحة تُدخل بالليرة السورية الجديدة.
+            <p class="service-catalog-currency-note__text mb-0">
+                جميع حقول الأسعار في هذه الصفحة تُدخل بالليرة السورية (ل.س.ج).
             </p>
-            <div class="service-catalog-currency-note__rule">
-                <span class="currency-pill currency-pill--new">ل.س.ج</span>
-                <span class="currency-pill currency-pill--arrow" aria-hidden="true">
-                    <i class="fas fa-arrow-left-long"></i>
-                </span>
-                <span class="currency-pill currency-pill--ratio" dir="ltr">1 = @SyrianCurrencyHelper.OldLiraPerNewLira</span>
-                <span class="currency-pill currency-pill--old">ل.س قديمة</span>
-            </div>
-            <div class="service-catalog-currency-note__example">
-                <i class="fas fa-lightbulb" aria-hidden="true"></i>
-                <span>
-                    <strong>مثال:</strong>
-                    <span dir="ltr" class="currency-example-num">10,000</span> ل.س.ج
-                    <span class="currency-example-sep">≈</span>
-                    <span dir="ltr" class="currency-example-num">1,000,000</span> ل.س قديمة
-                </span>
-            </div>
         </div>
     </div>
 </aside>

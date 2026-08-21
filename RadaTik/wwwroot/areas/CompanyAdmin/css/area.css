@@ -135,15 +135,25 @@
 
 .company-dashboard-page .sidebar.sidebar-pro .sidebar-wallet-balance {
     margin: 0.35rem 0.65rem 0.75rem;
-    padding: 0.65rem 0.75rem !important;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(76, 201, 240, 0.18);
-    backdrop-filter: blur(6px);
+    padding: 0 !important;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    backdrop-filter: none;
 }
 
 .company-dashboard-page .sidebar.sidebar-pro .sidebar-wallet-balance .header-wallet-balance {
     font-size: 0.82rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(76, 201, 240, 0.18);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .sidebar-wallet-balance .header-wallet-balance--wallet {
+    border-color: rgba(96, 165, 250, 0.35);
+}
+
+.company-dashboard-page .sidebar.sidebar-pro .sidebar-wallet-balance .header-wallet-balance--cashbox {
+    border-color: rgba(74, 222, 128, 0.35);
 }
 
 .company-dashboard-page .sidebar.sidebar-pro .sidebar-header {
@@ -3017,6 +3027,10 @@ body.modal-open:has(#nmCompanyBalanceBlockModal.show) .modal-backdrop {
 
 .material-invoice-page--create .material-invoice-lines-formula--sales {
     background: rgba(25, 135, 84, 0.06);
+}
+
+.material-invoice-cash-shortfall h2 {
+    color: inherit;
 }
 
 .material-invoice-page--create .price-hint {

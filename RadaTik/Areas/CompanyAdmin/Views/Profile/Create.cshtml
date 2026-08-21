@@ -234,7 +234,7 @@
                                                         </label>
                                                         <div class="input-group">
                                                             <span class="input-group-text bg-light">
-                                                                <i class="fas fa-lira-sign"></i> ل.س جديد
+                                                                <i class="fas fa-lira-sign"></i> ل.س.ج
                                                             </span>
                                                             <input asp-for="Price" class="form-control" type="number" step="0.01" min="0" id="priceInput" readonly />
                                                             <button type="button" class="btn btn-outline-secondary" id="editPriceBtn" title="تعديل السعر يدوياً">
@@ -244,12 +244,7 @@
                                                         <span asp-validation-for="Price" class="text-danger small d-block mt-1"></span>
                                                         <small class="form-text text-muted mt-2 d-block">
                                                             <i class="fas fa-info-circle"></i>
-                                                            السعر يُحسب تلقائياً: 1 ميغابت = 500 ل.س جديد
-                                                            <br />
-                                                            <span id="oldPriceHint" class="text-info fw-bold">
-                                                                <i class="fas fa-coins me-1"></i>
-                                                                القيمة بالليرة القديمة: <strong id="oldPriceValue">0</strong> ل.س
-                                                            </span>
+                                                            السعر يُحسب تلقائياً: 1 ميغابت = 500 ل.س.ج
                                                         </small>
                                                     </div>
                                                 </div>
@@ -277,11 +272,7 @@
                                                         <i class="fas fa-calculator me-2"></i>
                                                         السعر بعد الضريبة:
                                                     </strong>
-                                                    <span id="priceWithVAT" class="fs-4">0 ل.س جديد</span>
-                                                </div>
-                                                <div class="text-muted small">
-                                                    <i class="fas fa-coins me-1"></i>
-                                                    القيمة بالليرة القديمة: <strong id="priceWithVATOld">0</strong> ل.س
+                                                    <span id="priceWithVAT" class="fs-4">0 ل.س.ج</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -733,13 +724,7 @@
                 var priceWithVAT = price * (1 + vat / 100);
                 
                 // عرض السعر بعد الضريبة
-                $('#priceWithVAT').text(priceWithVAT.toFixed(2) + ' ل.س جديد');
-                
-                // عرض القيمة بالليرة القديمة (السعر * 100)
-                var oldPrice = price * 100;
-                var oldPriceWithVAT = priceWithVAT * 100;
-                $('#oldPriceValue').text(oldPrice.toLocaleString('ar-SY'));
-                $('#priceWithVATOld').text(oldPriceWithVAT.toLocaleString('ar-SY'));
+                $('#priceWithVAT').text(priceWithVAT.toFixed(2) + ' ل.س.ج');
             }
 
             // تفعيل/تعطيل تعديل السعر يدوياً

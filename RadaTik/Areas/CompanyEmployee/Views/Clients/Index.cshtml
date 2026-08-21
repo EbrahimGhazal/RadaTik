@@ -99,8 +99,8 @@
 @if (canEdit)
 {
     <div class="mb-3">
-        <button type="button" class="btn btn-outline-primary btn-sm" id="btnOpenClientInfoImport" data-bs-toggle="modal" data-bs-target="#clientInfoImportModal">
-            <i class="fas fa-file-excel"></i> استيراد معلومات من ملف
+        <button type="button" class="btn btn-outline-primary btn-sm" id="btnOpenClientInfoImport" data-bs-toggle="modal" data-bs-target="#clientInfoImportModal" title="تحديث بيانات المشتركين الموجودين في قاعدة البيانات من ملف — لا يُضاف مشتركون جدد">
+            <i class="fas fa-file-excel"></i> استيراد معلومات المشتركين من ملف
         </button>
     </div>
     <div class="modal fade" id="clientInfoImportModal" tabindex="-1" aria-hidden="true">
@@ -114,6 +114,7 @@
                     </div>
                     <div class="modal-body">
                         <p class="small text-muted">
+                            لا يُضاف مشتركون جدد. يُحدَّث فقط من يوجد حسابه مسبقاً في قاعدة البيانات.
                             المطابقة عبر <strong>الحساب</strong>. عند التطابق تُحدَّث:
                             الاسم الكامل، الجوال، آخر تجديد، البناء.
                             والتكرارات لنفس الحساب/الاسم تُحدَّث كلها بنفس المعلومات.

@@ -379,26 +379,42 @@
         const sypWrap = form.querySelector('.cashbox-ops-amount-syp');
         const usdWrap = form.querySelector('.cashbox-ops-amount-usd');
         const usdInput = form.querySelector('.cashbox-usd-field');
-        const sypHidden = form.querySelector('.fmt-number-value');
-        const sypDisplay = form.querySelector('.fmt-number-display');
+        const sypHidden = sypWrap && (sypWrap.querySelector('.syp-amount-value') || sypWrap.querySelector('.fmt-number-value'));
+        const sypDisplay = sypWrap && (sypWrap.querySelector('.syp-amount-display') || sypWrap.querySelector('.fmt-number-display'));
+        const sypWasRequired = !!(sypDisplay && sypDisplay.required);
+
+        function setAmountFieldActive(input, hidden, active, required) {
+            if (input) {
+                input.disabled = !active;
+                if (active && required) input.setAttribute('required', 'required');
+                else input.removeAttribute('required');
+            }
+            if (hidden) {
+                hidden.disabled = !active;
+                if (active) hidden.setAttribute('name', 'amount');
+                else hidden.removeAttribute('name');
+            }
+        }
 
         function sync() {
             const checked = form.querySelector('input[name="currency"]:checked');
             const isUsd = checked && checked.value === usdVal;
             if (sypWrap) sypWrap.classList.toggle('d-none', isUsd);
             if (usdWrap) usdWrap.classList.toggle('d-none', !isUsd);
+
+            setAmountFieldActive(sypDisplay, sypHidden, !isUsd, sypWasRequired);
             if (usdInput) {
                 usdInput.disabled = !isUsd;
                 if (isUsd) {
                     usdInput.setAttribute('name', 'amount');
-                    if (sypHidden) { sypHidden.removeAttribute('name'); sypHidden.disabled = true; }
-                    if (sypDisplay) sypDisplay.disabled = true;
+                    usdInput.setAttribute('required', 'required');
                 } else {
                     usdInput.removeAttribute('name');
-                    if (sypHidden) { sypHidden.setAttribute('name', 'amount'); sypHidden.disabled = false; }
-                    if (sypDisplay) sypDisplay.disabled = false;
+                    usdInput.removeAttribute('required');
+                    usdInput.classList.remove('is-invalid');
                 }
             }
+            if (isUsd && sypDisplay) sypDisplay.classList.remove('is-invalid');
         }
         pills.forEach(function (p) { p.addEventListener('change', sync); });
         sync();

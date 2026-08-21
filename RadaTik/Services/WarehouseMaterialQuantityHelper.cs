@@ -21,6 +21,36 @@ public static class WarehouseMaterialQuantityHelper
         return unitsPerPackage > 0 ? unitsPerPackage : 0;
     }
 
+    /// <summary>إجمالي فاتورة الشراء = مجموع (العدد × سعر وحدة الشراء). False إذا لم يمكن الاحتساب.</summary>
+    public static bool TryComputePurchaseTotal(IReadOnlyList<MaterialInvoiceLineInput>? lines, out decimal total)
+    {
+        total = 0m;
+        if (lines == null || lines.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (MaterialInvoiceLineInput input in lines)
+        {
+            if (input.PackageQuantity <= 0m || input.UnitPrice < 0m)
+            {
+                total = 0m;
+                return false;
+            }
+
+            decimal lineTotal = input.PackageQuantity * input.UnitPrice;
+            if (lineTotal <= 0m)
+            {
+                total = 0m;
+                return false;
+            }
+
+            total += lineTotal;
+        }
+
+        return total > 0m;
+    }
+
     public static decimal ComputeBaseQuantity(MaterialPackageUnit unit, decimal packageQuantity, int unitsPerPackage)
     {
         if (packageQuantity <= 0m)

@@ -4,7 +4,6 @@
 (function () {
     'use strict';
 
-    var OLD_PER_NEW = 100;
     var MIN_COMMA_INTEGER = 1000;
 
     var MONEY_LABEL_RE = /رصيد|مبلغ|إجمال|صافي|رواتب|مصروف|دخل|محفظة|صندوق|مدفوع|مستحق|عمولة|تكلفة|سعر|قيمة|تحصيل|خصم|إضاف|تغذية|دفع|فاتورة|قبض|سحب|إيراد|المبلغ|الرصيد/i;
@@ -68,13 +67,6 @@
             return sign + split[0];
         }
         return sign + split.join('.');
-    }
-
-    function formatOldHint(newAmount) {
-        if (!isFinite(newAmount) || newAmount === 0) {
-            return '0';
-        }
-        return formatWithCommas(Math.round(Math.abs(newAmount) * OLD_PER_NEW), 0);
     }
 
     function looksLikeMoneyText(text) {
@@ -166,13 +158,6 @@
             el.textContent = formatted;
         }
 
-        if (options.showOld === true && el.getAttribute('data-syp-show-old') === 'true' && !el.querySelector('.syp-old-inline')) {
-            var hint = document.createElement('small');
-            hint.className = 'syp-old-inline text-muted d-block';
-            hint.textContent = '≈ ' + formatOldHint(num) + ' ل.س قديمة';
-            el.appendChild(hint);
-        }
-
         el.dataset.sypFormatted = '1';
         el.dataset.sypFmtKind = options.kind || 'number';
         el.classList.add('syp-fmt-applied');
@@ -181,8 +166,7 @@
     function formatDataAttributes() {
         document.querySelectorAll('[data-syp-new]').forEach(function (el) {
             var dec = parseInt(el.getAttribute('data-syp-decimals') || '2', 10);
-            var showOld = el.getAttribute('data-syp-show-old') === 'true';
-            applyNumberFormat(el, { decimals: dec, showOld: showOld, kind: 'money', force: true });
+            applyNumberFormat(el, { decimals: dec, kind: 'money', force: true });
         });
         document.querySelectorAll('[data-fmt-number]').forEach(function (el) {
             var dec = parseInt(el.getAttribute('data-fmt-decimals') || '0', 10);
@@ -444,17 +428,9 @@
             hidden.value = input.value;
         }
 
-        var usePageAmountNote = !!input.closest('[data-syp-page-amount-note]');
-
         input.parentNode.insertBefore(wrapper, input);
         wrapper.appendChild(display);
         wrapper.appendChild(hidden);
-        if (!usePageAmountNote) {
-            var hint = document.createElement('small');
-            hint.className = 'text-muted d-block mt-1 syp-amount-hint';
-            hint.innerHTML = 'ل.س.ج — ≈ <strong class="syp-old-value">0</strong> ل.س قديمة <span class="text-muted">(×' + OLD_PER_NEW + ')</span>';
-            wrapper.appendChild(hint);
-        }
         input.remove();
         wrapper.dataset.sypUpgraded = '1';
         initAmountField(wrapper);
@@ -463,7 +439,6 @@
     function initAmountField(root) {
         var display = root.querySelector('.syp-amount-display');
         var hidden = root.querySelector('.syp-amount-value');
-        var oldHint = root.querySelector('.syp-old-value');
         if (!display || !hidden) {
             return;
         }
@@ -475,14 +450,8 @@
             var v = parseRaw(display.value);
             if (isFinite(v) && v > 0) {
                 hidden.value = v.toFixed(maxDecimals);
-                if (oldHint) {
-                    oldHint.textContent = formatOldHint(v);
-                }
             } else {
                 hidden.value = '';
-                if (oldHint) {
-                    oldHint.textContent = '0';
-                }
             }
         }
 
@@ -508,6 +477,9 @@
         var form = root.closest('form');
         if (form) {
             form.addEventListener('submit', function (e) {
+                if (display.disabled || (hidden && hidden.disabled) || display.closest('.d-none')) {
+                    return;
+                }
                 syncFromDisplay();
                 var v = parseRaw(display.value);
                 if (display.required && (!isFinite(v) || v < minValue)) {
@@ -575,13 +547,11 @@
     }
 
     window.SypGlobal = {
-        OLD_PER_NEW: OLD_PER_NEW,
         MIN_COMMA_INTEGER: MIN_COMMA_INTEGER,
         runAll: runAll,
         parseRaw: parseRaw,
         formatWithCommas: formatWithCommas,
         formatNumber: function (n, d) { return formatWithCommas(n, d != null ? d : 0); },
-        formatOldHint: formatOldHint,
         applyNumberFormat: applyNumberFormat,
         initAmountField: initAmountField,
         initAmountFields: initAmountFields
@@ -591,7 +561,6 @@
         initAll: initAmountFields,
         initField: initAmountField,
         parseRaw: parseRaw,
-        formatWithCommas: formatWithCommas,
-        formatOldHint: formatOldHint
+        formatWithCommas: formatWithCommas
     };
 })();

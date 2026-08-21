@@ -184,7 +184,6 @@ public interface IFeaturePublicContentComposer
 
 public sealed class FeaturePublicContentComposer : IFeaturePublicContentComposer
 {
-    private const decimal OldSypFactor = 100m;
     private readonly IServicePricingPolicyCatalog _policyCatalog;
     private readonly IReadOnlyList<IPricingScenarioStrategy> _strategies;
 
@@ -238,10 +237,6 @@ public sealed class FeaturePublicContentComposer : IFeaturePublicContentComposer
                 pricingBuilder.Append($"الاستحقاق: <strong>{periodLabel}</strong> — ");
                 pricingBuilder.Append($"طريقة الاحتساب: <strong>{unitLabel}</strong> — ");
                 pricingBuilder.Append($"القيمة: <strong>{computed.AmountDisplay}</strong>.");
-                if (computed.ChargeKind == PricingChargeKind.FixedAmount && computed.EffectiveAmountSyp > 0m)
-                {
-                    pricingBuilder.Append($" (الليرة القديمة تقريباً: {(computed.EffectiveAmountSyp * OldSypFactor):N0})");
-                }
                 pricingBuilder.Append("</li>");
             }
             pricingBuilder.Append("</ul>");
@@ -270,7 +265,7 @@ public sealed class FeaturePublicContentComposer : IFeaturePublicContentComposer
         pricingBuilder.Append("<p><strong>سياسة التجديد:</strong></p>");
         pricingBuilder.Append($"<p>{BuildRenewalSummary(activePricings, policy)}</p>");
         pricingBuilder.Append("<p class=\"small text-muted\">الخدمات التي لا تحتوي على تسعير تجديد دوري لا يتم تجديدها تلقائياً.</p>");
-        pricingBuilder.Append("<p class=\"text-muted small\">ملاحظة: جميع الأسعار الحالية تُعرض بالليرة السورية الجديدة، والتحويل التقريبي لليرة القديمة = القيمة × 100.</p>");
+        pricingBuilder.Append("<p class=\"text-muted small\">ملاحظة: جميع الأسعار الحالية تُعرض بالليرة السورية (ل.س.ج).</p>");
 
         return new FeaturePublicContentDraft
         {

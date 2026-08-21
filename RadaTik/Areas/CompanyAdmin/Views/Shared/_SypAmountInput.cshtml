@@ -9,7 +9,6 @@
     var placeholder = ViewData["Placeholder"] as string ?? "مثال: 5,000,000";
     var cssClass = ViewData["CssClass"] as string ?? "";
     var minValue = ViewData["Min"] as string ?? "0.01";
-    var showOldHint = ViewData["ShowOldHint"] as bool? ?? true;
     var initialValue = ViewData["InitialValue"] as decimal?;
     var displayValue = initialValue.HasValue && initialValue.Value > 0
         ? SyrianCurrencyHelper.FormatNew(initialValue.Value, 0)
@@ -39,12 +38,4 @@
                @(required ? "required" : null) />
     </div>
     <input type="hidden" name="@fieldName" class="syp-amount-value" value="@hiddenValue" />
-    @if (showOldHint)
-    {
-        <small class="text-muted d-block mt-1 syp-amount-hint">
-            بالليرة <strong>الجديدة</strong>.
-            يعادل تقريباً: <strong class="syp-old-value">@(initialValue.HasValue && initialValue > 0 ? SyrianCurrencyHelper.FormatOld(initialValue.Value) : "0")</strong> ل.س <strong>قديمة</strong>
-            <span class="text-muted">(×@SyrianCurrencyHelper.OldLiraPerNewLira)</span>
-        </small>
-    }
 </div>

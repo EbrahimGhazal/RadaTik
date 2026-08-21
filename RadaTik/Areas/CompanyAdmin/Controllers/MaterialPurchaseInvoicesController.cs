@@ -71,10 +71,9 @@ public class MaterialPurchaseInvoicesController : Controller
         }
 
         ViewData["Title"] = "فاتورة شراء مواد";
-        ViewBag.CompanyName = scope.CompanyNetworkName;
         ViewBag.BusinessModuleHint = "مادة جديدة: اختر «— مادة جديدة —» ثم اكتب الاسم. قطع المخزون = عدد الوحدات × قطع داخل الوحدة (مثال: 5 كرتون × 16 = 80 قطعة).";
         ViewBag.WarehouseHintsMode = "purchase";
-        ViewBag.ErpSuppliers = await ErpLookupHelper.GetActiveSuppliersAsync(_context, scope.CompanyNetworkId);
+        await PopulatePurchaseCreateViewAsync(scope);
         return View(new MaterialPurchaseInvoiceFormViewModel
         {
             Currency = null,
@@ -92,6 +91,7 @@ public class MaterialPurchaseInvoicesController : Controller
       string? paymentStatus,
       string? notes,
       PricingCurrency? currency,
+      string? cashShortfallAction,
       List<MaterialInvoiceLineInput>? lines)
     {
         CompanyBusinessScopeHelper.CompanyScope? scope = await CompanyBusinessScopeHelper.ResolveAsync(
@@ -102,6 +102,7 @@ public class MaterialPurchaseInvoicesController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        List<MaterialInvoiceLineInput> postedLines = lines ?? [];
         MaterialPurchaseInvoiceFormViewModel formModel = new()
         {
             InvoiceDate = invoiceDate,
@@ -110,20 +111,33 @@ public class MaterialPurchaseInvoicesController : Controller
             PaymentStatus = paymentStatus,
             Currency = currency,
             Notes = notes,
+            Lines = postedLines,
             WarehouseItems = await LoadWarehouseRowsAsync(scope.CompanyNetworkId)
         };
+
+        if (string.Equals(cashShortfallAction, "abort", StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["Error"] = "تم إلغاء حفظ فاتورة الشراء بناءً على طلبك.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (string.Equals(cashShortfallAction, "saveUnpaid", StringComparison.OrdinalIgnoreCase))
+        {
+            paymentStatus = "unpaid";
+            formModel.PaymentStatus = "unpaid";
+        }
 
         if (!currency.HasValue || (currency != PricingCurrency.SYP_New && currency != PricingCurrency.USD))
         {
             TempData["Error"] = "اختر عملة الفاتورة (ل.س.ج أو $).";
-            ViewBag.ErpSuppliers = await ErpLookupHelper.GetActiveSuppliersAsync(_context, scope.CompanyNetworkId);
+            await PopulatePurchaseCreateViewAsync(scope);
             return View(formModel);
         }
 
         if (paymentStatus is not "paid" and not "unpaid")
         {
             TempData["Error"] = "اختر حالة الدفع: مدفوعة أو غير مدفوعة.";
-            ViewBag.ErpSuppliers = await ErpLookupHelper.GetActiveSuppliersAsync(_context, scope.CompanyNetworkId);
+            await PopulatePurchaseCreateViewAsync(scope);
             return View(formModel);
         }
 
@@ -138,19 +152,32 @@ public class MaterialPurchaseInvoicesController : Controller
           isPaid,
           false,
           notes,
-          lines ?? [],
+          postedLines,
           currency.Value,
           erpSupplierId,
           HttpContext.RequestAborted);
 
-        if (!result.Success)
+        if (result.RequiresUnpaidOrCancelChoice)
         {
-            TempData["Error"] = result.ErrorMessage;
-            ViewBag.ErpSuppliers = await ErpLookupHelper.GetActiveSuppliersAsync(_context, scope.CompanyNetworkId);
+            ViewBag.ShowCashShortfallConfirm = true;
+            ViewBag.CashShortfallMessage = result.ErrorMessage;
+            ViewBag.CashShortfallRequired = result.RequiredAmount;
+            ViewBag.CashShortfallAvailable = result.AvailableCash;
+            ViewBag.CashShortfallCurrency = result.Currency ?? currency.Value;
+            await PopulatePurchaseCreateViewAsync(scope);
             return View(formModel);
         }
 
-        TempData["Success"] = "تم حفظ فاتورة الشراء وتحديث المستودع.";
+        if (!result.Success)
+        {
+            TempData["Error"] = result.ErrorMessage;
+            await PopulatePurchaseCreateViewAsync(scope);
+            return View(formModel);
+        }
+
+        TempData["Success"] = isPaid
+          ? "تم حفظ فاتورة الشراء وتحديث المستودع وخصم المبلغ من الصندوق."
+          : "تم حفظ فاتورة الشراء كغير مدفوعة وتحديث المستودع.";
         return RedirectToAction(nameof(Details), new { id = result.InvoiceId });
     }
 
@@ -314,6 +341,16 @@ public class MaterialPurchaseInvoicesController : Controller
         ViewBag.CompanyName = scope.CompanyNetworkName;
         ViewBag.PrintDate = DateTime.Today.ToString("yyyy-MM-dd");
         return View(invoice);
+    }
+
+    private async Task PopulatePurchaseCreateViewAsync(CompanyBusinessScopeHelper.CompanyScope scope)
+    {
+        ViewBag.CompanyName = scope.CompanyNetworkName;
+        ViewBag.ErpSuppliers = await ErpLookupHelper.GetActiveSuppliersAsync(_context, scope.CompanyNetworkId);
+        CashBox? cashBox = await CashBoxHelper.GetOrCreateCashBoxAsync(
+          _context, CashBoxOwnerType.Network, scope.CompanyNetworkId);
+        ViewBag.CashBoxBalanceSyp = cashBox?.Balance ?? 0m;
+        ViewBag.CashBoxBalanceUsd = cashBox?.BalanceUsd ?? 0m;
     }
 
     private async Task<MaterialPurchaseInvoice?> LoadPurchaseInvoiceAsync(int companyNetworkId, int id) =>

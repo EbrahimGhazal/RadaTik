@@ -1,12 +1,22 @@
 @using RadaTik.Areas.CompanyAdmin.ViewModels
+@using RadaTik.Helpers
 @using RadaTik.Models
 @using RadaTik.Models.Business
+@using System.Globalization
 @model MaterialPurchaseInvoiceFormViewModel
 @{
     ViewData["Title"] = "فاتورة شراء مواد";
     var companyName = ViewBag.CompanyName as string ?? "";
     var items = Model.WarehouseItems;
     var requireExplicitChoice = true;
+    var cashSyp = ViewBag.CashBoxBalanceSyp as decimal? ?? 0m;
+    var cashUsd = ViewBag.CashBoxBalanceUsd as decimal? ?? 0m;
+    var showCashShortfall = ViewBag.ShowCashShortfallConfirm as bool? ?? false;
+    var cashShortfallMessage = ViewBag.CashShortfallMessage as string;
+    var cashRequired = ViewBag.CashShortfallRequired as decimal?;
+    var cashAvailable = ViewBag.CashShortfallAvailable as decimal?;
+    var cashCurrency = ViewBag.CashShortfallCurrency as PricingCurrency? ?? Model.Currency ?? PricingCurrency.SYP_New;
+    var indexUrl = Url.Action("Index") ?? "";
 }
 
 <div class="financial-page financial-hub-page material-invoice-page material-invoice-page--purchase material-invoice-page--create">
@@ -26,6 +36,28 @@
     </div>
 
     @if (TempData["Error"] != null) { <div class="alert alert-danger mb-3">@TempData["Error"]</div> }
+    @if (showCashShortfall)
+    {
+        <div class="alert alert-warning material-invoice-cash-shortfall mb-3" role="alert">
+            <h2 class="h6 mb-2"><i class="fas fa-triangle-exclamation me-1"></i> قيمة الفاتورة أكبر من رصيد الصندوق</h2>
+            <p class="mb-2">@(cashShortfallMessage ?? "لا يكفي رصيد الصندوق لتسجيل الفاتورة كمدفوعة.")</p>
+            @if (cashRequired.HasValue && cashAvailable.HasValue)
+            {
+                <p class="mb-3 small mb-0">
+                    المطلوب: <strong>@CurrencyHelper.FormatAmount(cashRequired.Value, cashCurrency)</strong>
+                    — المتوفر في الصندوق: <strong>@CurrencyHelper.FormatAmount(cashAvailable.Value, cashCurrency)</strong>
+                </p>
+            }
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <button type="button" class="btn btn-warning" data-cash-shortfall-save-unpaid>
+                    <i class="fas fa-file-invoice-dollar me-1"></i> حفظ كغير مدفوعة
+                </button>
+                <a class="btn btn-outline-secondary" href="@indexUrl">
+                    <i class="fas fa-ban me-1"></i> إلغاء الفاتورة
+                </a>
+            </div>
+        </div>
+    }
 
     <details class="material-invoice-help mb-3">
         <summary class="material-invoice-help__summary"><i class="fas fa-circle-info"></i> مساعدة وإرشادات</summary>
@@ -37,8 +69,13 @@
         </div>
     </details>
 
-    <form method="post" id="purchase-form" class="material-invoice-form" data-syp-page-amount-note="true">
+    <form method="post" id="purchase-form" class="material-invoice-form" data-syp-page-amount-note="true"
+          data-cash-syp="@cashSyp.ToString(CultureInfo.InvariantCulture)"
+          data-cash-usd="@cashUsd.ToString(CultureInfo.InvariantCulture)"
+          data-usd-currency="@((int)PricingCurrency.USD)"
+          data-index-url="@indexUrl">
         @Html.AntiForgeryToken()
+        <input type="hidden" name="cashShortfallAction" id="cashShortfallAction" value="" />
 
         <div class="card material-invoice-section material-invoice-section--meta border-0 shadow-sm mb-3">
             <div class="card-header material-invoice-section__header py-2">
@@ -153,6 +190,33 @@
     </form>
 </div>
 
+<div class="modal fade" id="cashShortfallModal" tabindex="-1" aria-labelledby="cashShortfallModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="cashShortfallModalLabel">قيمة الفاتورة أكبر من رصيد الصندوق</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">لا يمكن تسجيل الفاتورة كـ <strong>مدفوعة</strong> لأن مبلغها أكبر من الرصيد الحالي للصندوق.</p>
+                <ul class="mb-0">
+                    <li>المطلوب: <strong data-cash-shortfall-required>—</strong></li>
+                    <li>رصيد الصندوق: <strong data-cash-shortfall-available>—</strong></li>
+                </ul>
+                <p class="text-muted small mt-3 mb-0">يمكنك حفظ الفاتورة كغير مدفوعة (بدون خصم من الصندوق) أو إلغاء حفظها.</p>
+            </div>
+            <div class="modal-footer justify-content-between flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-secondary" data-cash-shortfall-abort>
+                    <i class="fas fa-ban me-1"></i> إلغاء الفاتورة
+                </button>
+                <button type="button" class="btn btn-warning" data-cash-shortfall-save-unpaid>
+                    <i class="fas fa-file-invoice-dollar me-1"></i> حفظ كغير مدفوعة
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <partial name="_MaterialInvoiceChoicePanelsScript" />
 <script>
@@ -164,6 +228,18 @@
         wholesalePrice = i.WholesalePrice,
         retailPrice = i.RetailPrice
     })));
+    const postedLines = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((Model.Lines ?? []).Select(l => new {
+        warehouseItemId = l.WarehouseItemId,
+        itemName = l.ItemName,
+        modelNumber = l.ModelNumber,
+        packageUnit = (int)l.PackageUnit,
+        unitsPerPackage = l.UnitsPerPackage,
+        packageQuantity = l.PackageQuantity,
+        unitPrice = l.UnitPrice,
+        wholesalePrice = l.WholesalePrice,
+        retailPrice = l.RetailPrice
+    })));
+    const showCashShortfall = @(showCashShortfall ? "true" : "false");
     let lineIndex = 0;
     const body = document.getElementById('lines-body');
 
@@ -244,12 +320,14 @@
         }
     }
 
-    function addLine() {
+    function addLine(seed) {
         const idx = lineIndex++;
+        const selectedWh = seed && seed.warehouseItemId ? seed.warehouseItemId : null;
+        const selectedUnit = seed && seed.packageUnit != null ? seed.packageUnit : 0;
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td data-label="المستودع" class="mat-cell-wh">
-                <select name="lines[${idx}].WarehouseItemId" class="form-select form-select-sm wh-select" title="صنف مسجّل أو مادة جديدة">${itemOptions(null)}</select>
+                <select name="lines[${idx}].WarehouseItemId" class="form-select form-select-sm wh-select" title="صنف مسجّل أو مادة جديدة">${itemOptions(selectedWh)}</select>
             </td>
             <td data-label="الاسم" class="mat-cell-name">
                 <input name="lines[${idx}].ItemName" class="form-control form-control-sm name-input" required maxlength="120" placeholder="اسم المادة" />
@@ -259,7 +337,7 @@
                 <input name="lines[${idx}].ModelNumber" class="form-control form-control-sm model-input" maxlength="60" placeholder="—" />
             </td>
             <td data-label="الوحدة" class="mat-cell-unit">
-                <select name="lines[${idx}].PackageUnit" class="form-select form-select-sm unit-select">${unitOptions(0)}</select>
+                <select name="lines[${idx}].PackageUnit" class="form-select form-select-sm unit-select">${unitOptions(selectedUnit)}</select>
             </td>
             <td data-label="قطع/وحدة" class="material-per-pkg-cell mat-cell-per" data-units-per-package-cell>
                 <input name="lines[${idx}].UnitsPerPackage" type="number" min="1" step="1" value="1"
@@ -310,6 +388,20 @@
                 modelInput.readOnly = false;
             }
             syncLineUi(tr);
+        }
+
+        if (seed) {
+            if (seed.itemName) tr.querySelector('.name-input').value = seed.itemName;
+            if (seed.modelNumber) tr.querySelector('.model-input').value = seed.modelNumber;
+            if (seed.warehouseItemId) {
+                tr.querySelector('.name-input').readOnly = true;
+                tr.querySelector('.model-input').readOnly = true;
+            }
+            if (seed.unitsPerPackage) tr.querySelector('.per-pkg').value = seed.unitsPerPackage;
+            if (seed.packageQuantity) tr.querySelector('.pkg-qty').value = seed.packageQuantity;
+            if (seed.unitPrice != null) tr.querySelector('.unit-price').value = seed.unitPrice;
+            if (seed.wholesalePrice) tr.querySelector('.wh-price').value = seed.wholesalePrice;
+            if (seed.retailPrice) tr.querySelector('.rt-price').value = seed.retailPrice;
         }
 
         whSelect.addEventListener('change', syncFromWarehouse);
@@ -371,12 +463,112 @@
         }
     });
 
-    document.getElementById('add-line').addEventListener('click', addLine);
-    addLine();
+    document.getElementById('add-line').addEventListener('click', function () { addLine(); });
+    if (postedLines && postedLines.length) {
+        postedLines.forEach(function (line) { addLine(line); });
+    } else {
+        addLine();
+    }
 
     setTimeout(function () {
         document.querySelectorAll('#lines-body tr').forEach(syncLineUi);
     }, 400);
+
+    const form = document.getElementById('purchase-form');
+    const modalEl = document.getElementById('cashShortfallModal');
+
+    function parseNum(el) {
+        if (!el) return NaN;
+        const wrap = el.closest('.syp-amount-field');
+        const hidden = wrap && wrap.querySelector('.syp-amount-value');
+        const raw = (hidden && hidden.value) || el.value || '';
+        return parseFloat(String(raw).replace(/,/g, ''));
+    }
+
+    function invoiceTotal() {
+        let total = 0;
+        document.querySelectorAll('#lines-body tr').forEach(function (tr) {
+            const qty = parseNum(tr.querySelector('.pkg-qty'));
+            const price = parseNum(tr.querySelector('.unit-price'));
+            if (isFinite(qty) && isFinite(price) && qty > 0 && price >= 0) {
+                total += qty * price;
+            }
+        });
+        return total;
+    }
+
+    function isUsdCurrency() {
+        const usdVal = form.dataset.usdCurrency || '2';
+        const checked = form.querySelector('input[name="currency"]:checked');
+        return !!(checked && checked.value === usdVal);
+    }
+
+    function cashBalance() {
+        return isUsdCurrency()
+            ? parseFloat(form.dataset.cashUsd || '0')
+            : parseFloat(form.dataset.cashSyp || '0');
+    }
+
+    function formatAmt(n, usd) {
+        if (!isFinite(n)) return '—';
+        const parts = n.toFixed(2).split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return parts.join('.') + (usd ? ' $' : ' ل.س.ج');
+    }
+
+    function saveAsUnpaid() {
+        const unpaid = form.querySelector('input[name="paymentStatus"][value="unpaid"]');
+        if (unpaid) {
+            unpaid.checked = true;
+            unpaid.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        const action = document.getElementById('cashShortfallAction');
+        if (action) action.value = 'saveUnpaid';
+        form.dataset.cashGuardBypass = '1';
+        if (modalEl && window.bootstrap) {
+            bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        }
+        form.requestSubmit();
+    }
+
+    function abortInvoice() {
+        const url = form.dataset.indexUrl;
+        if (url) window.location.href = url;
+    }
+
+    form.addEventListener('submit', function (e) {
+        if (e.defaultPrevented || form.dataset.cashGuardBypass === '1') return;
+        const paid = form.querySelector('input[name="paymentStatus"][value="paid"]:checked');
+        if (!paid) return;
+        const total = invoiceTotal();
+        const cash = cashBalance();
+        if (!(isFinite(total) && isFinite(cash) && total > cash)) return;
+        e.preventDefault();
+        const usd = isUsdCurrency();
+        if (modalEl) {
+            const req = modalEl.querySelector('[data-cash-shortfall-required]');
+            const avail = modalEl.querySelector('[data-cash-shortfall-available]');
+            if (req) req.textContent = formatAmt(total, usd);
+            if (avail) avail.textContent = formatAmt(cash, usd);
+            if (window.bootstrap) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+    });
+
+    document.querySelectorAll('[data-cash-shortfall-save-unpaid]').forEach(function (btn) {
+        btn.addEventListener('click', saveAsUnpaid);
+    });
+    document.querySelectorAll('[data-cash-shortfall-abort]').forEach(function (btn) {
+        btn.addEventListener('click', abortInvoice);
+    });
+
+    if (showCashShortfall && modalEl && window.bootstrap) {
+        const usd = isUsdCurrency();
+        const req = modalEl.querySelector('[data-cash-shortfall-required]');
+        const avail = modalEl.querySelector('[data-cash-shortfall-available]');
+        if (req) req.textContent = formatAmt(invoiceTotal(), usd);
+        if (avail) avail.textContent = formatAmt(cashBalance(), usd);
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
 })();
 </script>
 }

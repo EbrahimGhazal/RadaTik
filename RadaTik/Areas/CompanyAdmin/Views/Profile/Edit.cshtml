@@ -216,12 +216,7 @@
                                             <span asp-validation-for="Price" class="text-danger small d-block mt-1"></span>
                                             <small class="form-text text-muted mt-2 d-block">
                                                 <i class="fas fa-info-circle"></i>
-                                                السعر يُحسب تلقائياً: 1 ميغابت = 500 ل.س جديد
-                                                <br />
-                                                <span id="oldPriceHint" class="text-info fw-bold">
-                                                    <i class="fas fa-coins me-1"></i>
-                                                    القيمة بالليرة القديمة: <strong id="oldPriceValue">0</strong> ل.س
-                                                </span>
+                                                السعر يُحسب تلقائياً: 1 ميغابت = 500 ل.س.ج
                                             </small>
                                         </div>
                                     </div>
@@ -250,10 +245,6 @@
                                             السعر بعد الضريبة:
                                         </strong>
                                         <span id="priceWithVAT" class="fs-4">0</span>
-                                    </div>
-                                    <div class="text-muted small">
-                                        <i class="fas fa-coins me-1"></i>
-                                        القيمة بالليرة القديمة: <strong id="priceWithVATOld">0</strong> ل.س
                                     </div>
                                 </div>
                             </div>
@@ -694,12 +685,6 @@
                 
                 // عرض السعر بعد الضريبة
                 $('#priceWithVAT').text(priceWithVAT.toFixed(2));
-                
-                // عرض القيمة بالليرة القديمة (السعر * 100)
-                var oldPrice = price * 100;
-                var oldPriceWithVAT = priceWithVAT * 100;
-                $('#oldPriceValue').text(oldPrice.toLocaleString('ar-SY'));
-                $('#priceWithVATOld').text(oldPriceWithVAT.toLocaleString('ar-SY'));
             }
 
             // تفعيل/تعطيل تعديل السعر يدوياً

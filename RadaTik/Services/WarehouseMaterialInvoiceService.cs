@@ -36,6 +36,16 @@ public sealed class WarehouseMaterialInvoiceService(
             return MaterialInvoiceResult.Fail("يجب تسجيل الدخول.");
         }
 
+        if (isPaid && !linkWallet)
+        {
+            MaterialInvoiceResult? cashChoice = await EvaluatePaidPurchaseCashBoxAsync(
+              companyNetworkId, currency, lines, ct);
+            if (cashChoice != null)
+            {
+                return cashChoice;
+            }
+        }
+
         await using IDbContextTransaction tx = await _context.Database.BeginTransactionAsync(ct);
         MaterialInvoiceResult build = await BuildAndSavePurchaseAsync(
           companyNetworkId, userId, invoiceDate, supplierName, isPaid, notes, lines, currency, erpSupplierId, ct);
@@ -79,6 +89,36 @@ public sealed class WarehouseMaterialInvoiceService(
 
         await tx.CommitAsync(ct);
         return build;
+    }
+
+    private async Task<MaterialInvoiceResult?> EvaluatePaidPurchaseCashBoxAsync(
+      int companyNetworkId,
+      PricingCurrency? currency,
+      IReadOnlyList<MaterialInvoiceLineInput> lines,
+      CancellationToken ct)
+    {
+        if (!WarehouseMaterialQuantityHelper.TryComputePurchaseTotal(lines, out decimal total))
+        {
+            return null;
+        }
+
+        Network? company = await _context.Networks.AsNoTracking()
+          .FirstOrDefaultAsync(n => n.Id == companyNetworkId, ct);
+        PricingCurrency invoiceCurrency = currency ?? company?.DefaultMaterialInvoiceCurrency ?? PricingCurrency.SYP_New;
+
+        CashBox? box = await CashBoxHelper.GetOrCreateCashBoxAsync(
+          _context, CashBoxOwnerType.Network, companyNetworkId);
+        if (box == null || CashBoxHelper.HasSufficientBalance(box, invoiceCurrency, total))
+        {
+            return null;
+        }
+
+        decimal available = CashBoxHelper.GetBalance(box, invoiceCurrency);
+        string message =
+          "قيمة الفاتورة أكبر من رصيد الصندوق الحالي. " +
+          CashBoxHelper.FormatInsufficientBalanceMessage(box, invoiceCurrency, total) +
+          " اختر حفظ الفاتورة كغير مدفوعة أو إلغاء حفظها.";
+        return MaterialInvoiceResult.NeedUnpaidOrCancel(message, total, available, invoiceCurrency);
     }
 
     public async Task<MaterialInvoiceResult> CreateSalesInvoiceAsync(

@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace RadaTik.Helpers;
 
-/// <summary>تحويل وعرض الليرة السورية الجديدة (ل.س.ج) والقديمة في الواجهة.</summary>
+/// <summary>تنسيق وعرض الليرة السورية (ل.س.ج) في الواجهة.</summary>
 public static class SyrianCurrencyHelper
 {
     /// <summary>1 ليرة جديدة = 100 ليرة قديمة (وفق تسوية النظام في RadaTik).</summary>

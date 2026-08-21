@@ -73,12 +73,44 @@ public class WalletBalanceViewComponent : ViewComponent
 
                 if (effectiveNetwork != null)
                 {
+                    CashBox? cashBox = await _context.CashBoxes.AsNoTracking()
+                        .FirstOrDefaultAsync(c =>
+                            c.OwnerType == CashBoxOwnerType.Network
+                            && c.OwnerId == effectiveNetworkId);
+
+                    bool stacked = string.Equals(layout, "stacked", StringComparison.OrdinalIgnoreCase);
                     model = new HeaderWalletBalanceViewModel
                     {
                         BalanceSyp = effectiveNetwork.Balance,
                         BalanceUsd = effectiveNetwork.BalanceUsd,
                         ShowDualCurrency = true,
-                        WalletUrl = "/networkManager/wallet"
+                        BalanceLabel = "المحفظة",
+                        WalletUrl = "/networkManager/wallet",
+                        Chips =
+                        [
+                            new HeaderBalanceChipViewModel
+                            {
+                                Label = "المحفظة",
+                                IconClass = "fas fa-wallet",
+                                AmountSyp = effectiveNetwork.Balance,
+                                AmountUsd = effectiveNetwork.BalanceUsd,
+                                ShowUsd = true,
+                                Url = "/networkManager/wallet",
+                                Tone = "wallet",
+                                Stacked = stacked
+                            },
+                            new HeaderBalanceChipViewModel
+                            {
+                                Label = "الصندوق",
+                                IconClass = "fas fa-cash-register",
+                                AmountSyp = cashBox?.Balance ?? 0m,
+                                AmountUsd = cashBox?.BalanceUsd ?? 0m,
+                                ShowUsd = true,
+                                Url = "/networkManager/CashBox",
+                                Tone = "cashbox",
+                                Stacked = stacked
+                            }
+                        ]
                     };
                 }
             }

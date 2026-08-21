@@ -1790,12 +1790,41 @@ button[data-critical-confirm-submit][disabled] {
 }
 
 .admin-dashboard-page .header-wallet-balance,
-.company-dashboard-page .header-wallet-balance{
-    background: rgba(37, 99, 235, 0.08);
-    border: 1px solid rgba(37, 99, 235, 0.22);
-    color: var(--rt-spa-primary);
+.company-dashboard-page .header-wallet-balance {
     border-radius: 0.5rem;
     font-size: 0.8125rem;
+}
+
+.admin-dashboard-page .header-wallet-balance:not(.header-wallet-balance--cashbox),
+.company-dashboard-page .header-wallet-balance--wallet {
+    background: rgba(37, 99, 235, 0.08);
+    border: 1px solid rgba(37, 99, 235, 0.22);
+}
+
+.company-dashboard-page .header-wallet-balance--cashbox {
+    background: rgba(22, 163, 74, 0.10);
+    border: 1px solid rgba(22, 163, 74, 0.30);
+}
+
+.company-dashboard-page .header .header-wallet-balance--wallet .header-wallet-balance__head,
+.company-dashboard-page .header .header-wallet-balance--wallet .header-wallet-balance__head i {
+    color: var(--rt-spa-primary, #2563eb);
+}
+
+.company-dashboard-page .header .header-wallet-balance--cashbox .header-wallet-balance__head,
+.company-dashboard-page .header .header-wallet-balance--cashbox .header-wallet-balance__head i {
+    color: #15803d;
+}
+
+.company-dashboard-page .header .header-wallet-amount,
+.company-dashboard-page .header .header-wallet-currency {
+    color: var(--rt-spa-primary, #2563eb);
+    opacity: 1;
+}
+
+.company-dashboard-page .header .header-wallet-usd,
+.company-dashboard-page .header .header-wallet-usd-currency {
+    color: var(--success, #16a34a);
 }
 
 /* ——— Sidebar كـ Sidebar.tsx: w-64، سطح نظيف، روابط مسطّحة ——— */

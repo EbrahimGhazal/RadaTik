@@ -1,0 +1,61 @@
+@model RadaTik.ViewModels.HeaderBalanceChipViewModel
+@using RadaTik.Helpers
+@using System.Globalization
+@{
+    var css = "header-wallet-balance header-wallet-balance--chip header-wallet-balance--" + Model.Tone
+        + (Model.Stacked ? " header-wallet-balance--stacked" : " header-wallet-balance--labeled");
+    if (!string.IsNullOrWhiteSpace(Model.Url))
+    {
+        css += " header-wallet-balance--link";
+    }
+
+    var usdText = Model.ShowUsd && Model.AmountUsd.HasValue
+        ? Model.AmountUsd.Value.ToString("N2", CultureInfo.InvariantCulture)
+        : null;
+    var titleText = $"{Model.Label} — {SyrianCurrencyHelper.FormatNew(Model.AmountSyp)} ل.س.ج"
+        + (usdText != null ? $" · {usdText} $" : "");
+}
+@if (!string.IsNullOrWhiteSpace(Model.Url))
+{
+    <a class="@css" href="@Model.Url" title="@titleText">
+        <div class="header-wallet-balance__head">
+            <i class="@Model.IconClass" aria-hidden="true"></i>
+            <span class="header-wallet-balance__label">@Model.Label</span>
+        </div>
+        <div class="header-wallet-balance__lines">
+            <div class="header-wallet-balance__line header-wallet-balance__line--syp">
+                <span class="header-wallet-amount" data-syp-new="@Model.AmountSyp.ToString(CultureInfo.InvariantCulture)" data-syp-decimals="0">@SyrianCurrencyHelper.FormatNew(Model.AmountSyp, 0)</span>
+                <span class="header-wallet-currency syp-currency-suffix">ل.س.ج</span>
+            </div>
+            @if (usdText != null)
+            {
+                <div class="header-wallet-balance__line header-wallet-balance__line--usd">
+                    <span class="header-wallet-usd">@usdText</span>
+                    <span class="header-wallet-usd-currency">$</span>
+                </div>
+            }
+        </div>
+    </a>
+}
+else
+{
+    <div class="@css" title="@titleText">
+        <div class="header-wallet-balance__head">
+            <i class="@Model.IconClass" aria-hidden="true"></i>
+            <span class="header-wallet-balance__label">@Model.Label</span>
+        </div>
+        <div class="header-wallet-balance__lines">
+            <div class="header-wallet-balance__line header-wallet-balance__line--syp">
+                <span class="header-wallet-amount" data-syp-new="@Model.AmountSyp.ToString(CultureInfo.InvariantCulture)" data-syp-decimals="0">@SyrianCurrencyHelper.FormatNew(Model.AmountSyp, 0)</span>
+                <span class="header-wallet-currency syp-currency-suffix">ل.س.ج</span>
+            </div>
+            @if (usdText != null)
+            {
+                <div class="header-wallet-balance__line header-wallet-balance__line--usd">
+                    <span class="header-wallet-usd">@usdText</span>
+                    <span class="header-wallet-usd-currency">$</span>
+                </div>
+            }
+        </div>
+    </div>
+}

@@ -26,4 +26,13 @@ public sealed class CashBoxHelperExchangeTests
         Assert.Equal(PricingCurrency.USD, CashBoxHelper.GetOppositeOperatingCurrency(PricingCurrency.SYP_New));
         Assert.Equal(PricingCurrency.SYP_New, CashBoxHelper.GetOppositeOperatingCurrency(PricingCurrency.USD));
     }
+
+    [Fact]
+    public void HasSufficientBalance_IsFalseWhenAmountExceedsCash()
+    {
+        CashBox box = new() { Balance = 100m, BalanceUsd = 5m };
+        Assert.False(CashBoxHelper.HasSufficientBalance(box, PricingCurrency.SYP_New, 150m));
+        Assert.True(CashBoxHelper.HasSufficientBalance(box, PricingCurrency.USD, 5m));
+        Assert.False(CashBoxHelper.HasSufficientBalance(box, PricingCurrency.USD, 5.01m));
+    }
 }

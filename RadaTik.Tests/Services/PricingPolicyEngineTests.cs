@@ -68,7 +68,7 @@ public class PricingPolicyEngineTests
 
         Assert.Contains("إضافة الموظف المفوض", draft.PricingPolicyHtml);
         Assert.Contains("مدير النظام", draft.PricingPolicyHtml);
-        Assert.Contains("× 100", draft.PricingPolicyHtml);
+        Assert.DoesNotContain("الليرة القديمة", draft.PricingPolicyHtml);
         Assert.Contains("قيمة التجديد × عدد الوحدات الفعلية", draft.PricingPolicyHtml);
     }
 

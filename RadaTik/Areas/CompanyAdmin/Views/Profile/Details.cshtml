@@ -116,14 +116,9 @@
                                 </div>
                                 <div class="card-body">
                                     <dl class="row">
-                                        <dt class="col-sm-4">السعر (ل.س جديد):</dt>
+                                        <dt class="col-sm-4">السعر (ل.س.ج):</dt>
                                         <dd class="col-sm-8">
-                                            @SyrianCurrencyHelper.FormatNew(Model.Price) ل.س جديد
-                                            <br />
-                                            <small class="text-muted">
-                                                <i class="fas fa-coins"></i>
-                                                القيمة بالليرة القديمة: @((Model.Price * 100).ToString("N0")) ل.س
-                                            </small>
+                                            @SyrianCurrencyHelper.FormatNew(Model.Price) ل.س.ج
                                         </dd>
 
                                         <dt class="col-sm-4">الضريبة:</dt>
@@ -131,12 +126,7 @@
 
                                         <dt class="col-sm-4">السعر شامل الضريبة:</dt>
                                         <dd class="col-sm-8">
-                                            @SyrianCurrencyHelper.FormatNew(Model.PriceWithVAT) ل.س جديد
-                                            <br />
-                                            <small class="text-muted">
-                                                <i class="fas fa-coins"></i>
-                                                القيمة بالليرة القديمة: @((Model.PriceWithVAT * 100).ToString("N0")) ل.س
-                                            </small>
+                                            @SyrianCurrencyHelper.FormatNew(Model.PriceWithVAT) ل.س.ج
                                         </dd>
 
                                         <dt class="col-sm-4">سرعة التنزيل:</dt>

@@ -37,9 +37,29 @@ public sealed class MaterialInvoiceResult
     public bool Success { get; init; }
     public int? InvoiceId { get; init; }
     public string? ErrorMessage { get; init; }
+    /// <summary>رصيد الصندوق لا يكفي للدفع: يختار المستخدم الحفظ كغير مدفوعة أو إلغاء الحفظ.</summary>
+    public bool RequiresUnpaidOrCancelChoice { get; init; }
+    public decimal? RequiredAmount { get; init; }
+    public decimal? AvailableCash { get; init; }
+    public PricingCurrency? Currency { get; init; }
 
     public static MaterialInvoiceResult Ok(int id) => new() { Success = true, InvoiceId = id };
     public static MaterialInvoiceResult Fail(string message) => new() { Success = false, ErrorMessage = message };
+
+    public static MaterialInvoiceResult NeedUnpaidOrCancel(
+      string message,
+      decimal required,
+      decimal available,
+      PricingCurrency currency) =>
+      new()
+      {
+          Success = false,
+          RequiresUnpaidOrCancelChoice = true,
+          ErrorMessage = message,
+          RequiredAmount = required,
+          AvailableCash = available,
+          Currency = currency
+      };
 }
 
 public interface IWarehouseMaterialInvoiceService

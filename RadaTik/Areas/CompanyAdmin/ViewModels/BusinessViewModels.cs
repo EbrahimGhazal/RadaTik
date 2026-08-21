@@ -28,6 +28,7 @@ public sealed class MaterialPurchaseInvoiceFormViewModel
     /// <summary>paid | unpaid — null عند أول فتح النموذج.</summary>
     public string? PaymentStatus { get; set; }
     public string? Notes { get; set; }
+    public IReadOnlyList<MaterialInvoiceLineInput> Lines { get; set; } = [];
     public IReadOnlyList<WarehouseItemRowViewModel> WarehouseItems { get; init; } = Array.Empty<WarehouseItemRowViewModel>();
 }
 
