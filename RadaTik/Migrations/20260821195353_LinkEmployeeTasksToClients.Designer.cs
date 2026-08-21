@@ -5139,7 +5139,7 @@ namespace RadaTik.Migrations
                     b.HasOne("RadaTik.Models.MaintenanceRequest", "MaintenanceRequest")
                         .WithMany()
                         .HasForeignKey("MaintenanceRequestId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("AssignedByUser");
 

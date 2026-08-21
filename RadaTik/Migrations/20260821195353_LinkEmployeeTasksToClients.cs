@@ -46,7 +46,7 @@ namespace RadaTik.Migrations
                 column: "MaintenanceRequestId",
                 principalTable: "MaintenanceRequests",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+                onDelete: ReferentialAction.NoAction);
         }
 
         /// <inheritdoc />
