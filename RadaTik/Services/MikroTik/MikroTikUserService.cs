@@ -4,6 +4,7 @@ using RadaTik.Data;
 using RadaTik.Helpers;
 using RadaTik.Models;
 using RadaTik.Services;
+using RadaTik.Services.Clients;
 using RadaTik.ViewModels.MikroTikServers;
 using System.Globalization;
 using tik4net;
@@ -14,12 +15,14 @@ public sealed class MikroTikUserService(
     ApplicationDbContext context,
     ILogger<MikroTikUserService> logger,
     IMikroTikProfilesService profiles,
-    MikroTikConnectionSupport connection) : IMikroTikPppoeUserService
+    MikroTikConnectionSupport connection,
+    IClientVipPolicyService vipPolicy) : IMikroTikPppoeUserService
 {
     private readonly ApplicationDbContext _context = context;
     private readonly ILogger<MikroTikUserService> _logger = logger;
     private readonly IMikroTikProfilesService _profiles = profiles;
     private readonly MikroTikConnectionSupport _connection = connection;
+    private readonly IClientVipPolicyService _vipPolicy = vipPolicy;
 
     /// <summary>
     /// تحديث بيانات مستخدم من صفحة AllUsers
@@ -1554,6 +1557,15 @@ public sealed class MikroTikUserService(
             {
                 try
                 {
+                    if (await _vipPolicy.IsProtectedFromAutoDisableAsync(client, DateTime.Now))
+                    {
+                        _logger.LogInformation(
+                            "تخطي الفصل التلقائي لمشترك VIP: {UserName} (انتهى في {ExpirationDate})",
+                            client.UserName,
+                            client.AccountExpirationDate);
+                        continue;
+                    }
+
                     if (client.MikroTikServerId is not null && !string.IsNullOrEmpty(client.UserName))
                     {
                         await DisableExpiredAccount(client.UserName, client.MikroTikServerId.Value);

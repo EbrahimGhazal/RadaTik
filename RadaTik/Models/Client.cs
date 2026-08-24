@@ -100,6 +100,16 @@ namespace RadaTik.Models
         [Display(Name = "مكرر عبر السيرفرات")]
         public bool IsCrossServerDuplicate { get; set; }
 
+        [Display(Name = "مشترك مميز (VIP)")]
+        public bool IsVip { get; set; }
+
+        [Display(Name = "ملاحظة التمييز")]
+        [StringLength(200, ErrorMessage = "ملاحظة التمييز يجب أن لا تتجاوز 200 حرف")]
+        public string? VipNote { get; set; }
+
+        [Display(Name = "تاريخ التعليم كـ VIP")]
+        public DateTime? VipSince { get; set; }
+
         [Display(Name = "آخر تحديث")]
         public DateTime LastUpdated { get; set; } = DateTime.Now;
 

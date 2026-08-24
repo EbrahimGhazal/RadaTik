@@ -17,6 +17,8 @@
     var totalClients = Model.Count();
     var activeClients = Model.Count(c => c.IsActive);
     var inactiveClients = Model.Count(c => !c.IsActive);
+    var duplicateClients = Model.Count(c => c.IsCrossServerDuplicate);
+    var vipClients = Model.Count(c => c.IsVip);
 
     // حساب مجموع السرعات (بالميجابت)
     var totalSpeed = 0m;
@@ -213,6 +215,22 @@
             <span class="stat-label">معطل</span>
         </div>
     </button>
+
+    <button type="button" class="stat-item stat-duplicate is-filter" data-filter="duplicate" onclick="filterByStatus('duplicate')" title="الحسابات المكررة عبر سيرفرات MikroTik ضمن الشبكة">
+        <div class="stat-icon-mini"><i class="fas fa-clone"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@duplicateClients</span>
+            <span class="stat-label">مكرر</span>
+        </div>
+    </button>
+
+    <button type="button" class="stat-item stat-vip is-filter" data-filter="vip" onclick="filterByStatus('vip')" title="المشتركون المميزون (VIP)">
+        <div class="stat-icon-mini"><i class="fas fa-crown"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@vipClients</span>
+            <span class="stat-label">VIP</span>
+        </div>
+    </button>
     
     <div class="stat-divider"></div>
     
@@ -265,8 +283,14 @@
                 <button class="filter-btn" onclick="filterByStatus('inactive')" data-filter="inactive" title="المشتركون الذين حسابهم معطّل لأي سبب">
                     معطل <span class="filter-count">@inactiveClients</span>
                 </button>
+                <button class="filter-btn" onclick="filterByStatus('duplicate')" data-filter="duplicate" title="الحسابات المكررة عبر سيرفرات MikroTik ضمن الشبكة">
+                    مكرر <span class="filter-count">@duplicateClients</span>
+                </button>
+                <button class="filter-btn" onclick="filterByStatus('vip')" data-filter="vip" title="المشتركون المميزون (VIP)">
+                    VIP <span class="filter-count">@vipClients</span>
+                </button>
             </div>
-            <div class="dropdown">
+            <div class="dropdown clients-column-picker">
                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-columns"></i> الحقول
                 </button>
@@ -354,6 +378,8 @@
                             data-client-id="@item.Id"
                             data-active="@item.IsActive.ToString().ToLower()"
                             data-pending="@isPendingApproval.ToString().ToLower()"
+                            data-duplicate="@item.IsCrossServerDuplicate.ToString().ToLower()"
+                            data-vip="@item.IsVip.ToString().ToLower()"
                             data-connected="@isConnected.ToString().ToLower()"
                             data-speed="@speed"
                             data-speed-display="@(item.Profile?.DownloadSpeedDisplay ?? speed.ToString())">
@@ -363,7 +389,15 @@
                                         @(item.Name?.Substring(0, 1).ToUpper() ?? "?")
                                     </div>
                                     <div>
-                                        <div class="client-name">@item.Name</div>
+                                        <div class="client-name">
+                                            @item.Name
+                                            @if (item.IsVip)
+                                            {
+                                                <span class="badge clients-vip-badge" title="@(string.IsNullOrWhiteSpace(item.VipNote) ? "مشترك مميز" : item.VipNote)">
+                                                    <i class="fas fa-crown"></i> VIP
+                                                </span>
+                                            }
+                                        </div>
                                         @if (!string.IsNullOrEmpty(item.SID))
                                         {
                                             <div class="client-sid">#@item.SID</div>
@@ -600,6 +634,8 @@
         function rowMatchesStatusFilter(rowNode, filterType) {
             const isActive = rowNode.getAttribute('data-active') === 'true';
             const isConnected = rowNode.getAttribute('data-connected') === 'true';
+            const isDuplicate = rowNode.getAttribute('data-duplicate') === 'true';
+            const isVip = rowNode.getAttribute('data-vip') === 'true';
             switch (filterType) {
                 case 'active':
                     return isActive;
@@ -609,6 +645,10 @@
                     return isConnected;
                 case 'disconnected':
                     return isActive && !isConnected;
+                case 'duplicate':
+                    return isDuplicate;
+                case 'vip':
+                    return isVip;
                 default:
                     return true;
             }
@@ -647,7 +687,8 @@
                 'active': 'النشطين:',
                 'inactive': 'المعطلين:',
                 'connected': 'المتصلين:',
-                'disconnected': 'غير المتصلين:'
+                'disconnected': 'غير المتصلين:',
+                'duplicate': 'المكررين:'
             };
             if (speedLabel) {
                 speedLabel.textContent = labels[filterType] || labels.all;
@@ -807,10 +848,14 @@
 
         function applyColumnVisibility() {
             const selected = JSON.parse(localStorage.getItem('clients.employee.columns.visible') || '{}');
+            const table = document.getElementById('clientsTable');
             document.querySelectorAll('.column-toggle').forEach(chk => {
                 const key = chk.getAttribute('data-col');
                 const visible = Object.prototype.hasOwnProperty.call(selected, key) ? !!selected[key] : true;
                 chk.checked = visible;
+                if (table && key) {
+                    table.classList.toggle('hide-col-' + key, !visible);
+                }
                 document.querySelectorAll('[data-col="' + key + '"]').forEach(el => {
                     el.style.display = visible ? '' : 'none';
                 });
@@ -829,11 +874,8 @@
             applyColumnVisibility();
             document.querySelectorAll('.column-toggle').forEach(chk => {
                 chk.addEventListener('change', function () {
-                    const key = this.getAttribute('data-col');
-                    document.querySelectorAll('[data-col="' + key + '"]').forEach(el => {
-                        el.style.display = this.checked ? '' : 'none';
-                    });
                     persistColumnVisibility();
+                    applyColumnVisibility();
                 });
             });
 

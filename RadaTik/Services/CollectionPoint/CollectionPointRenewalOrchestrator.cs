@@ -6,6 +6,7 @@ using RadaTik.Domain.Common;
 using RadaTik.Helpers;
 using RadaTik.Models;
 using RadaTik.Services;
+using RadaTik.Services.Clients;
 
 namespace RadaTik.Services.CollectionPoint;
 
@@ -15,7 +16,8 @@ public sealed class CollectionPointRenewalOrchestrator(
     ICollectionCommissionChargeService collectionCommissionChargeService,
     IClientRenewalGuardService clientRenewalGuardService,
     ICurrencyHelper currencyHelper,
-    ICompanyFinancialHelper companyFinancial)
+    ICompanyFinancialHelper companyFinancial,
+    IClientVipPolicyService vipPolicy)
     : ApplicationServiceBase(context), ICollectionPointRenewalOrchestrator
 {
     private readonly ICollectionPaymentService _collectionPayment = collectionPaymentService;
@@ -202,10 +204,9 @@ public sealed class CollectionPointRenewalOrchestrator(
         bool useClientNetworkForFinancial,
         CancellationToken ct)
     {
-        decimal basePricePerMonth = client.Profile?.Price ?? 0m;
+        (decimal basePricePerMonth, decimal vatPerMonth, decimal amountPerMonth) =
+            await vipPolicy.ApplyMonthlyPriceAsync(client, ct);
         decimal vatPercentage = client.Profile?.VATPercentage ?? 0m;
-        decimal vatPerMonth = basePricePerMonth * (vatPercentage / 100m);
-        decimal amountPerMonth = basePricePerMonth + vatPerMonth;
         if (amountPerMonth <= 0m)
         {
             return null;

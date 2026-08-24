@@ -18,6 +18,30 @@ public static class SchemaColumnRepair
         await EnsureColumnAsync(db, "FeaturePublicInfos", "RenewalPolicyHtml", """
             ALTER TABLE [dbo].[FeaturePublicInfos] ADD [RenewalPolicyHtml] nvarchar(max) NULL;
             """, logger, ct);
+
+        await EnsureColumnAsync(db, "Clients", "IsVip", """
+            ALTER TABLE [dbo].[Clients] ADD [IsVip] bit NOT NULL
+                CONSTRAINT [DF_Clients_IsVip] DEFAULT (0);
+            """, logger, ct);
+        await EnsureColumnAsync(db, "Clients", "VipNote", """
+            ALTER TABLE [dbo].[Clients] ADD [VipNote] nvarchar(200) NULL;
+            """, logger, ct);
+        await EnsureColumnAsync(db, "Clients", "VipSince", """
+            ALTER TABLE [dbo].[Clients] ADD [VipSince] datetime2 NULL;
+            """, logger, ct);
+
+        await EnsureColumnAsync(db, "Networks", "VipDiscountPercent", """
+            ALTER TABLE [dbo].[Networks] ADD [VipDiscountPercent] decimal(5,2) NOT NULL
+                CONSTRAINT [DF_Networks_VipDiscountPercent] DEFAULT (0);
+            """, logger, ct);
+        await EnsureColumnAsync(db, "Networks", "VipGraceDays", """
+            ALTER TABLE [dbo].[Networks] ADD [VipGraceDays] int NOT NULL
+                CONSTRAINT [DF_Networks_VipGraceDays] DEFAULT (0);
+            """, logger, ct);
+        await EnsureColumnAsync(db, "Networks", "VipSkipAutoDisable", """
+            ALTER TABLE [dbo].[Networks] ADD [VipSkipAutoDisable] bit NOT NULL
+                CONSTRAINT [DF_Networks_VipSkipAutoDisable] DEFAULT (0);
+            """, logger, ct);
     }
 
     private static async Task EnsureColumnAsync(

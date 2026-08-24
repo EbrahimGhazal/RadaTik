@@ -24,6 +24,7 @@ namespace RadaTik.Areas.ClientPortal.Controllers
             global::RadaTik.Services.Clients.IClientPortalSelfRenewOrchestrator clientPortalSelfRenew,
             IWebHostEnvironment environment,
             global::RadaTik.Services.IMaintenanceEmployeeTaskService maintenanceEmployeeTasks,
+            global::RadaTik.Services.Clients.IClientVipPolicyService vipPolicy,
             global::RadaTik.Services.MikroTik.IMikroTikPppoeUserService mikroTikService)
             : base(
                 context,
@@ -36,6 +37,7 @@ namespace RadaTik.Areas.ClientPortal.Controllers
                 clientPortalSelfRenew,
                 environment,
                 maintenanceEmployeeTasks,
+                vipPolicy,
                 mikroTikService)
         {
         }

@@ -90,6 +90,8 @@ public sealed partial class ClientProvisioningService
             Building = submitted.Building,
             Floor = submitted.Floor,
             ReceiverId = submitted.ReceiverId,
+            IsVip = submitted.IsVip,
+            VipNote = submitted.VipNote,
             DbUserName = request.DbUserName,
             DbPassword = request.DbPassword
         };
@@ -139,6 +141,7 @@ public sealed partial class ClientProvisioningService
         existingClient.Building = submitted.Building;
         existingClient.Floor = submitted.Floor;
         existingClient.ServiceStartDate = submitted.ServiceStartDate;
+        ClientVipAssignment.Apply(existingClient, submitted.IsVip, submitted.VipNote, DateTime.Now);
         existingClient.LastUpdated = DateTime.Now;
         existingClient.NetworkId = request.NetworkId;
 

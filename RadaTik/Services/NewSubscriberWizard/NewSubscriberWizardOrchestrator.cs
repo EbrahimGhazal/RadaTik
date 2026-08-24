@@ -413,6 +413,8 @@ public sealed class NewSubscriberWizardOrchestrator
             MikroTikServerId = client.MikroTikServerId,
             ServiceStartDate = client.ServiceStartDate,
             AccountExpirationDate = client.AccountExpirationDate,
+            IsVip = client.IsVip,
+            VipNote = client.VipNote,
             DbUserName = dbUserName,
             DbPassword = dbPassword
         };

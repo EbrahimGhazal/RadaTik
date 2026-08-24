@@ -120,6 +120,24 @@
                             </span>
                         }
                     </dd>
+
+                    <dt class="col-sm-4">التمييز</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.IsVip)
+                        {
+                            <span class="badge clients-vip-badge">
+                                <i class="fas fa-crown"></i> VIP
+                            </span>
+                            @if (!string.IsNullOrWhiteSpace(Model.VipNote))
+                            {
+                                <span class="text-muted ms-2">@Model.VipNote</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">عادي</span>
+                        }
+                    </dd>
                 </dl>
             </div>
         </div>
@@ -404,6 +422,24 @@
                             <span class="badge bg-danger">
                                 <i class="fas fa-times"></i> معطل
                             </span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">التمييز</dt>
+                    <dd class="col-sm-8">
+                        @if (Model.IsVip)
+                        {
+                            <span class="badge clients-vip-badge">
+                                <i class="fas fa-crown"></i> VIP
+                            </span>
+                            @if (!string.IsNullOrWhiteSpace(Model.VipNote))
+                            {
+                                <span class="text-muted ms-2">@Model.VipNote</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">عادي</span>
                         }
                     </dd>
                 </dl>

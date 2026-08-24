@@ -48,7 +48,7 @@ public sealed class ClientSelfRenewalServiceTests
             .Setup(m => m.RenewPPPoESubscription("self", 3, It.IsAny<DateTime>()))
             .ReturnsAsync(true);
 
-        ClientSelfRenewalService sut = new(db, guard.Object, mikroTik.Object);
+        ClientSelfRenewalService sut = new(db, guard.Object, mikroTik.Object, new ClientVipPolicyService(db));
         ClientOperationOutcome outcome = await sut.RenewFromWalletAsync(5);
 
         Assert.True(outcome.IsSuccess);

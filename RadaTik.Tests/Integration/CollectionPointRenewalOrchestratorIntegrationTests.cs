@@ -4,6 +4,7 @@ using RadaTik.Data;
 using RadaTik.Helpers;
 using RadaTik.Models;
 using RadaTik.Services;
+using RadaTik.Services.Clients;
 using RadaTik.Services.CollectionPoint;
 using Xunit;
 
@@ -39,7 +40,8 @@ public sealed class CollectionPointRenewalOrchestratorIntegrationTests
             commission.Object,
             guard.Object,
             new CurrencyHelperAdapter(),
-            new CompanyFinancialService(db));
+            new CompanyFinancialService(db),
+            new ClientVipPolicyService(db));
     }
 
     private static void SeedRenewalScenario(ApplicationDbContext db, decimal pointBalance)

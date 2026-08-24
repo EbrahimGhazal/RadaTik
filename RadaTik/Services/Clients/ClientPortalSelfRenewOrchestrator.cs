@@ -12,7 +12,8 @@ public sealed class ClientPortalSelfRenewOrchestrator(
     ApplicationDbContext context,
     IClientRenewalGuardService renewalGuardService,
     IMikroTikPppoeUserService mikroTikPppoe,
-    ICollectionCommissionChargeService collectionCommissionChargeService)
+    ICollectionCommissionChargeService collectionCommissionChargeService,
+    IClientVipPolicyService vipPolicy)
     : ApplicationServiceBase(context), IClientPortalSelfRenewOrchestrator
 {
     public async Task<ClientPortalSelfRenewOutcome> ExecuteAsync(
@@ -30,10 +31,9 @@ public sealed class ClientPortalSelfRenewOrchestrator(
                 renewPage: false);
         }
 
-        decimal basePrice = client.Profile?.Price ?? 0m;
+        (decimal basePrice, decimal vatAmount, decimal amountDue) =
+            await vipPolicy.ApplyMonthlyPriceAsync(client, ct);
         decimal vatPercentage = client.Profile?.VATPercentage ?? 0m;
-        decimal vatAmount = basePrice * (vatPercentage / 100m);
-        decimal amountDue = basePrice + vatAmount;
         if (amountDue <= 0)
         {
             return ClientPortalSelfRenewOutcome.Fail(

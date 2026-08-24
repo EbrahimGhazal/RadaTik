@@ -10,7 +10,8 @@ namespace RadaTik.Services.Clients;
 public sealed class ClientSelfRenewalService(
     ApplicationDbContext context,
     IClientRenewalGuardService renewalGuardService,
-    IMikroTikPppoeUserService mikroTikPppoe)
+    IMikroTikPppoeUserService mikroTikPppoe,
+    IClientVipPolicyService vipPolicy)
     : ApplicationServiceBase(context), IClientSelfRenewalService
 {
     public async Task<ClientOperationOutcome> RenewFromWalletAsync(int clientId, CancellationToken ct = default)
@@ -23,10 +24,9 @@ public sealed class ClientSelfRenewalService(
             return ClientOperationOutcome.NotFoundClient();
         }
 
-        decimal basePrice = client.Profile?.Price ?? 0m;
+        (decimal basePrice, decimal vatAmount, decimal amountDue) =
+            await vipPolicy.ApplyMonthlyPriceAsync(client, ct);
         decimal vatPercentage = client.Profile?.VATPercentage ?? 0m;
-        decimal vatAmount = basePrice * (vatPercentage / 100m);
-        decimal amountDue = basePrice + vatAmount;
         if (amountDue <= 0)
         {
             return ClientOperationOutcome.Fail("لا يوجد سعر محدد للباقة. يرجى التواصل مع الإدارة.");

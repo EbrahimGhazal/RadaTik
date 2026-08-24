@@ -72,6 +72,20 @@
                             <label asp-for="DefaultMaterialInvoiceCurrency" class="form-label mt-2"></label>
                             <select asp-for="DefaultMaterialInvoiceCurrency" class="form-select" asp-items="CurrencyHelper.GetCompanyOperatingCurrencySelectItems(Model.DefaultMaterialInvoiceCurrency)"></select>
                             <small class="form-text text-muted">عملة افتراضية لفواتير شراء/بيع المواد الجديدة.</small>
+                            <h6 class="text-muted mt-3">سياسة المشتركين المميزين (VIP)</h6>
+                            <label asp-for="VipDiscountPercent" class="form-label"></label>
+                            <input asp-for="VipDiscountPercent" class="form-control form-control-sm" step="0.01" min="0" max="100" />
+                            <span asp-validation-for="VipDiscountPercent" class="text-danger"></span>
+                            <small class="form-text text-muted">يُطبَّق الخصم على سعر الباقة عند التجديد، ثم تُحسب الضريبة.</small>
+                            <label asp-for="VipGraceDays" class="form-label mt-2"></label>
+                            <input asp-for="VipGraceDays" class="form-control form-control-sm" min="0" max="365" />
+                            <span asp-validation-for="VipGraceDays" class="text-danger"></span>
+                            <small class="form-text text-muted">عدد الأيام بعد انتهاء الاشتراك دون فصل تلقائي.</small>
+                            <div class="form-check form-switch radtk-switch-left-label mt-3" dir="ltr">
+                                <label class="form-check-label" asp-for="VipSkipAutoDisable"></label>
+                                <input class="form-check-input" asp-for="VipSkipAutoDisable" />
+                            </div>
+                            <small class="form-text text-muted">إذا فُعّل، لا يُفصل المميزون تلقائياً حتى مع انتهاء الاشتراك.</small>
                         </div>
                     }
                     else

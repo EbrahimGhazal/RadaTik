@@ -115,6 +115,7 @@ public sealed partial class ClientProvisioningService
         client.AccountExpirationDate ??= DateTime.Now.AddMonths(1);
         client.ServiceStartDate ??= DateTime.Now.Date;
         client.LastRenewalDate = DateTime.Now.Date;
+        ClientVipAssignment.NormalizeNew(client, DateTime.Now);
 
         Db.Clients.Add(client);
         await Db.SaveChangesAsync(ct);
@@ -199,6 +200,7 @@ public sealed partial class ClientProvisioningService
             client.AccountExpirationDate ??= DateTime.Now.AddMonths(1);
             client.ServiceStartDate ??= DateTime.Now.Date;
             client.LastRenewalDate = DateTime.Now.Date;
+            ClientVipAssignment.NormalizeNew(client, DateTime.Now);
 
             try
             {
@@ -351,6 +353,8 @@ public sealed partial class ClientProvisioningService
             MikroTikServerId = client.MikroTikServerId,
             ServiceStartDate = client.ServiceStartDate,
             AccountExpirationDate = client.AccountExpirationDate,
+            IsVip = client.IsVip,
+            VipNote = client.VipNote,
             DbUserName = dbUserName,
             DbPassword = dbPassword
         };

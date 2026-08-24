@@ -9,6 +9,7 @@ using global::RadaTik.Helpers;
 using global::RadaTik.Models;
 using global::RadaTik.Security;
 using global::RadaTik.Services;
+using global::RadaTik.Services.Clients;
 using global::RadaTik.Services.MikroTik;
 using global::RadaTik.Services.PricingPolicies;
 using global::RadaTik.Models.Business;
@@ -506,6 +507,7 @@ public class EmployeeServiceApprovalsController : Controller
         client.Building = payload.Building;
         client.Floor = payload.Floor;
         client.ReceiverId = payload.ReceiverId;
+        ClientVipAssignment.Apply(client, payload.IsVip, payload.VipNote, DateTime.Now);
         if (!string.IsNullOrWhiteSpace(payload.Password))
         {
             client.Password = payload.Password;

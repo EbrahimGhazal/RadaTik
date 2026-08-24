@@ -10,6 +10,7 @@ using global::RadaTik.Security;
 using global::RadaTik.Services;
 using global::RadaTik.Domain.CollectionPoint;
 using global::RadaTik.Services.CollectionPoint;
+using global::RadaTik.Services.Clients;
 using global::RadaTik.ViewModels.CollectionPoint;
 
 namespace RadaTik.Areas.CollectionPoint.Controllers
@@ -28,6 +29,7 @@ namespace RadaTik.Areas.CollectionPoint.Controllers
         private readonly ICollectionPointTopUpOrchestrator _topUpOrchestrator;
         private readonly ICurrencyHelper _currencyHelper;
         private readonly ICompanyFinancialHelper _companyFinancial;
+        private readonly IClientVipPolicyService _vipPolicy;
 
         public CollectionPointController(
             ApplicationDbContext context,
@@ -39,7 +41,8 @@ namespace RadaTik.Areas.CollectionPoint.Controllers
             ICollectionPointRenewalOrchestrator renewalOrchestrator,
             ICollectionPointTopUpOrchestrator topUpOrchestrator,
             ICurrencyHelper currencyHelper,
-            ICompanyFinancialHelper companyFinancial)
+            ICompanyFinancialHelper companyFinancial,
+            IClientVipPolicyService vipPolicy)
         {
             _context = context;
             _userManager = userManager;
@@ -51,6 +54,7 @@ namespace RadaTik.Areas.CollectionPoint.Controllers
             _topUpOrchestrator = topUpOrchestrator;
             _currencyHelper = currencyHelper;
             _companyFinancial = companyFinancial;
+            _vipPolicy = vipPolicy;
         }
 
         private IActionResult ApplyOperationOutcome(CollectionPointOperationOutcome outcome)
@@ -194,7 +198,8 @@ namespace RadaTik.Areas.CollectionPoint.Controllers
             foreach (Client c in clients)
             {
                 int pendingMonths = SubscriptionArrearsCalculator.CalculatePendingMonths(c.AccountExpirationDate, now);
-                decimal amountPerMonth = c.Profile != null ? c.Profile.Price * (1 + c.Profile.VATPercentage / 100) : 0m;
+                (decimal discountedBase, decimal vatAmount, decimal amountPerMonth) =
+                    await _vipPolicy.ApplyMonthlyPriceAsync(c);
                 decimal amountDueAccount = amountPerMonth * pendingMonths;
                 CollectionRenewalQuote quote = _collectionPaymentService.QuoteAccountCharge(
                     c.AccountCurrency,
@@ -210,8 +215,8 @@ namespace RadaTik.Areas.CollectionPoint.Controllers
                     NetworkName = networkName,
                     PhoneNumber = c.PhoneNumber,
                     ProfileName = c.Profile?.Name ?? c.ProfileName ?? "",
-                    BasePrice = c.Profile?.Price ?? 0m,
-                    CommissionAmount = c.Profile != null ? c.Profile.Price * (c.Profile.VATPercentage / 100) : 0m,
+                    BasePrice = discountedBase,
+                    CommissionAmount = vatAmount,
                     TotalPrice = amountPerMonth,
                     PendingMonths = pendingMonths,
                     AccountCurrency = c.AccountCurrency,
@@ -280,8 +285,8 @@ namespace RadaTik.Areas.CollectionPoint.Controllers
 
             CollectionPointAccount? pointAccount = await _context.CollectionPointAccounts.FirstOrDefaultAsync(a => a.UserId == user.Id);
             decimal pointBalance = pointAccount?.Balance ?? 0m;
-            decimal currentPrice = client.Profile?.Price ?? 0m;
-            decimal currentPriceWithVat = client.Profile != null ? client.Profile.Price * (1 + client.Profile.VATPercentage / 100) : 0m;
+            (decimal currentPrice, decimal currentVat, decimal currentPriceWithVat) =
+                await _vipPolicy.ApplyMonthlyPriceAsync(client);
 
             List<ClientTopUpTransaction> recentTopUps = await _context.ClientTopUpTransactions
                 .Where(t => t.ClientId == client.Id)
@@ -311,7 +316,7 @@ namespace RadaTik.Areas.CollectionPoint.Controllers
                 CurrentProfileName = client.Profile?.Name,
                 CurrentProfilePrice = currentPriceWithVat,
                 CurrentBasePrice = currentPrice,
-                CurrentCommissionAmount = currentPriceWithVat - currentPrice,
+                CurrentCommissionAmount = currentVat,
                 ClientBalance = client.Balance,
                 AccountCurrency = client.AccountCurrency,
                 RequiresExchange = _currencyHelper.RequiresExchangeAtCollection(client.AccountCurrency),

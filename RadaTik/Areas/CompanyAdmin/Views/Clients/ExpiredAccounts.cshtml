@@ -104,7 +104,13 @@
                                             @(client.Name?.Substring(0, 1).ToUpper() ?? "?")
                                         </div>
                                         <div>
-                                            <div class="client-name">@client.Name</div>
+                                            <div class="client-name">
+                                                @client.Name
+                                                @if (client.IsVip)
+                                                {
+                                                    <span class="badge clients-vip-badge" title="لا يُفصل تلقائياً وفق سياسة الشركة"><i class="fas fa-crown"></i> VIP</span>
+                                                }
+                                            </div>
                                             @if (!string.IsNullOrEmpty(client.PhoneNumber))
                                             {
                                                 <div class="client-sid">@client.PhoneNumber</div>

@@ -20,6 +20,9 @@ public sealed class NetworkConfiguration : IEntityTypeConfiguration<Network>
         entity.Property(e => e.DefaultUsdToSypExchangeRate).HasColumnType("decimal(18,4)");
         entity.Property(e => e.BalanceUsd).HasColumnType("decimal(18,2)").HasDefaultValue(0m);
         entity.Property(e => e.DefaultMaterialInvoiceCurrency).HasConversion<int>().HasDefaultValue(PricingCurrency.SYP_New);
+        entity.Property(e => e.VipDiscountPercent).HasColumnType("decimal(5,2)").HasDefaultValue(0m);
+        entity.Property(e => e.VipGraceDays).HasDefaultValue(0);
+        entity.Property(e => e.VipSkipAutoDisable).HasDefaultValue(false);
         entity.Property(e => e.ManagerUserId).HasMaxLength(450);
         entity.ConfigureBalanceRowVersion();
 

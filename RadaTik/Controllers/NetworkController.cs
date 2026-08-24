@@ -475,7 +475,10 @@ namespace RadaTik.Controllers
                     : null,
                 DefaultMaterialInvoiceCurrency = network.ParentNetworkId == null
                     ? network.DefaultMaterialInvoiceCurrency
-                    : PricingCurrency.SYP_New
+                    : PricingCurrency.SYP_New,
+                VipDiscountPercent = network.ParentNetworkId == null ? network.VipDiscountPercent : 0m,
+                VipGraceDays = network.ParentNetworkId == null ? network.VipGraceDays : 0,
+                VipSkipAutoDisable = network.ParentNetworkId == null && network.VipSkipAutoDisable
             };
 
             if (network.ParentNetworkId.HasValue)
@@ -484,6 +487,9 @@ namespace RadaTik.Controllers
                     .FirstOrDefaultAsync(n => n.Id == network.ParentNetworkId.Value);
                 model.DefaultUsdToSypExchangeRate = parent?.DefaultUsdToSypExchangeRate;
                 model.DefaultMaterialInvoiceCurrency = parent?.DefaultMaterialInvoiceCurrency ?? PricingCurrency.SYP_New;
+                model.VipDiscountPercent = parent?.VipDiscountPercent ?? 0m;
+                model.VipGraceDays = parent?.VipGraceDays ?? 0;
+                model.VipSkipAutoDisable = parent?.VipSkipAutoDisable ?? false;
             }
 
             return View(model);
@@ -536,6 +542,9 @@ namespace RadaTik.Controllers
                     }
 
                     network.DefaultMaterialInvoiceCurrency = model.DefaultMaterialInvoiceCurrency;
+                    network.VipDiscountPercent = Math.Clamp(model.VipDiscountPercent, 0m, 100m);
+                    network.VipGraceDays = Math.Clamp(model.VipGraceDays, 0, 365);
+                    network.VipSkipAutoDisable = model.VipSkipAutoDisable;
                 }
 
                 // تحديث الشعار إذا تم تحميل ملف جديد

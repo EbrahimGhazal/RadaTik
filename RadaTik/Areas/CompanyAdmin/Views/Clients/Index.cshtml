@@ -8,6 +8,8 @@
     var totalClients = Model.Count();
     var activeClients = Model.Count(c => c.IsActive);
     var inactiveClients = Model.Count(c => !c.IsActive);
+    var duplicateClients = Model.Count(c => c.IsCrossServerDuplicate);
+    var vipClients = Model.Count(c => c.IsVip);
 
     // حساب مجموع السرعات (بالميجابت)
     var totalSpeed = 0m;
@@ -76,7 +78,7 @@
 <div class="operational-page clients-list-page">
     @{
         ViewBag.OperationalHeroIcon = "fas fa-users";
-        ViewBag.OperationalHeroSubtitle = $"إجمالي {totalClients} مشترك — نشط {activeClients}";
+        ViewBag.OperationalHeroSubtitle = $"إجمالي {totalClients} مشترك — نشط {activeClients} — مكرر {duplicateClients} — VIP {vipClients}";
     }
     <partial name="_OperationalSysHero" />
     <div class="page-actions-toolbar clients-page-toolbar d-flex flex-wrap gap-2 mb-3 justify-content-end">
@@ -221,6 +223,22 @@
             <span class="stat-label">معطل</span>
         </div>
     </button>
+
+    <button type="button" class="stat-item stat-duplicate is-filter" data-filter="duplicate" onclick="filterByStatus('duplicate')" title="الحسابات المكررة عبر سيرفرات MikroTik ضمن الشبكة">
+        <div class="stat-icon-mini"><i class="fas fa-clone"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@duplicateClients</span>
+            <span class="stat-label">مكرر</span>
+        </div>
+    </button>
+
+    <button type="button" class="stat-item stat-vip is-filter" data-filter="vip" onclick="filterByStatus('vip')" title="المشتركون المميزون (VIP)">
+        <div class="stat-icon-mini"><i class="fas fa-crown"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@vipClients</span>
+            <span class="stat-label">VIP</span>
+        </div>
+    </button>
     
     <div class="stat-divider"></div>
     
@@ -278,6 +296,14 @@
                     <span class="filter-btn__label">معطل</span>
                     <span class="filter-count">@inactiveClients</span>
                 </button>
+                <button class="filter-btn filter-btn--duplicate" onclick="filterByStatus('duplicate')" data-filter="duplicate" title="الحسابات المكررة عبر سيرفرات MikroTik ضمن الشبكة">
+                    <span class="filter-btn__label">مكرر</span>
+                    <span class="filter-count">@duplicateClients</span>
+                </button>
+                <button class="filter-btn filter-btn--vip" onclick="filterByStatus('vip')" data-filter="vip" title="المشتركون المميزون (VIP)">
+                    <span class="filter-btn__label">VIP</span>
+                    <span class="filter-count">@vipClients</span>
+                </button>
             </div>
             @if (User.IsInRole("NetworkAdministrator") || User.IsInRole("CompanyEmployee") || User.IsInRole("Employee") || User.IsInRole("EmployeeLegacy"))
             {
@@ -297,7 +323,7 @@
                     <i class="fas fa-copy"></i> نسخ المحدد إلى برج
                 </button>
             }
-            <div class="dropdown">
+            <div class="dropdown clients-column-picker">
                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-columns"></i> الحقول
                 </button>
@@ -389,6 +415,8 @@
                             data-client-name="@(item.Name ?? item.UserName ?? ("#" + item.Id))"
                             data-active="@item.IsActive.ToString().ToLower()"
                             data-pending="@isPendingApproval.ToString().ToLower()"
+                            data-duplicate="@item.IsCrossServerDuplicate.ToString().ToLower()"
+                            data-vip="@item.IsVip.ToString().ToLower()"
                             data-connected="@isConnected.ToString().ToLower()"
                             data-speed="@speed"
                             data-speed-display="@(item.Profile?.DownloadSpeedDisplay ?? speed.ToString())"
@@ -402,7 +430,15 @@
                                         @(item.Name?.Substring(0, 1).ToUpper() ?? "?")
                                     </div>
                                     <div>
-                                        <div class="client-name">@item.Name</div>
+                                        <div class="client-name">
+                                            @item.Name
+                                            @if (item.IsVip)
+                                            {
+                                                <span class="badge clients-vip-badge" title="@(string.IsNullOrWhiteSpace(item.VipNote) ? "مشترك مميز" : item.VipNote)">
+                                                    <i class="fas fa-crown"></i> VIP
+                                                </span>
+                                            }
+                                        </div>
                                         @if (!string.IsNullOrEmpty(item.SID))
                                         {
                                             <div class="client-sid">#@item.SID</div>
@@ -451,7 +487,7 @@
                             <td data-col="serverAccount" data-label="الحساب في السيرفر">
                                 <code class="text-nowrap">@item.UserName</code>
                             </td>
-                            <td data-col="duplicate" data-label="مكرر" data-order="@(item.IsCrossServerDuplicate ? 1 : 0)">
+                            <td data-col="duplicate" data-label="مكرر" class="@(item.IsCrossServerDuplicate ? null : "clients-card-hide-empty")" data-order="@(item.IsCrossServerDuplicate ? 1 : 0)">
                                 @if (item.IsCrossServerDuplicate)
                                 {
                                     <span class="badge bg-warning text-dark" title="نفس الحساب موجود على سيرفر MikroTik آخر ضمن الشبكة">
@@ -884,6 +920,8 @@
         function rowMatchesStatusFilter(rowNode, filterType) {
             const isActive = rowNode.getAttribute('data-active') === 'true';
             const isConnected = rowNode.getAttribute('data-connected') === 'true';
+            const isDuplicate = rowNode.getAttribute('data-duplicate') === 'true';
+            const isVip = rowNode.getAttribute('data-vip') === 'true';
             switch (filterType) {
                 case 'active':
                     return isActive;
@@ -893,6 +931,10 @@
                     return isConnected;
                 case 'disconnected':
                     return isActive && !isConnected;
+                case 'duplicate':
+                    return isDuplicate;
+                case 'vip':
+                    return isVip;
                 default:
                     return true;
             }
@@ -931,7 +973,8 @@
                 'active': 'النشطين:',
                 'inactive': 'المعطلين:',
                 'connected': 'المتصلين:',
-                'disconnected': 'غير المتصلين:'
+                'disconnected': 'غير المتصلين:',
+                'duplicate': 'المكررين:'
             };
             if (speedLabel) {
                 speedLabel.textContent = labels[filterType] || labels.all;
@@ -1127,6 +1170,16 @@
             floor: false
         };
 
+        function isClientsMobileViewport() {
+            return window.matchMedia('(max-width: 1199.98px)').matches;
+        }
+
+        function clearInlineColumnDisplay() {
+            document.querySelectorAll('#clientsTable [data-col]').forEach(function (el) {
+                el.style.removeProperty('display');
+            });
+        }
+
         function applyColumnVisibility() {
             let saved = null;
             try {
@@ -1135,8 +1188,10 @@
                 saved = null;
             }
             const selected = Object.assign({}, CLIENTS_DEFAULT_VISIBLE_COLS, saved && typeof saved === 'object' ? saved : {});
+            const table = document.getElementById('clientsTable');
             const usingDt = typeof $.fn.DataTable !== 'undefined' && $.fn.DataTable.isDataTable('#clientsTable');
             const api = usingDt ? $('#clientsTable').DataTable() : null;
+            const useInlineHide = !isClientsMobileViewport();
 
             document.querySelectorAll('.column-toggle').forEach(chk => {
                 const key = chk.getAttribute('data-col');
@@ -1144,8 +1199,15 @@
                     ? !!selected[key]
                     : !!CLIENTS_DEFAULT_VISIBLE_COLS[key];
                 chk.checked = visible;
-                document.querySelectorAll('[data-col="' + key + '"]').forEach(el => {
-                    el.style.display = visible ? '' : 'none';
+                if (table && key) {
+                    table.classList.toggle('hide-col-' + key, !visible);
+                }
+                document.querySelectorAll('#clientsTable [data-col="' + key + '"]').forEach(el => {
+                    if (useInlineHide) {
+                        el.style.display = visible ? '' : 'none';
+                    } else {
+                        el.style.removeProperty('display');
+                    }
                 });
                 if (api) {
                     api.columns().every(function () {
@@ -1562,11 +1624,8 @@
             applyColumnVisibility();
             document.querySelectorAll('.column-toggle').forEach(chk => {
                 chk.addEventListener('change', function () {
-                    const key = this.getAttribute('data-col');
-                    document.querySelectorAll('[data-col="' + key + '"]').forEach(el => {
-                        el.style.display = this.checked ? '' : 'none';
-                    });
                     persistColumnVisibility();
+                    applyColumnVisibility();
                 });
             });
 
@@ -1576,7 +1635,10 @@
             let resizeTimer = null;
             $(window).on('resize', function () {
                 clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(initClientsTableIfDesktop, 180);
+                resizeTimer = setTimeout(function () {
+                    initClientsTableIfDesktop();
+                    applyColumnVisibility();
+                }, 180);
             });
 
             const selectAll = document.getElementById('clientsSelectAll');

@@ -111,6 +111,7 @@ internal static class ServiceRegistrationExtensions
         services.AddScoped<Services.Clients.IClientExpirationQueryService, Services.Clients.ClientExpirationQueryService>();
         services.AddScoped<Services.Clients.IClientFormLookupService, Services.Clients.ClientFormLookupService>();
         services.AddScoped<Services.Clients.IClientInfoFileImportService, Services.Clients.ClientInfoFileImportService>();
+        services.AddScoped<Services.Clients.IClientVipPolicyService, Services.Clients.ClientVipPolicyService>();
         services.AddScoped<Services.Clients.IClientPortalSelfRenewOrchestrator, Services.Clients.ClientPortalSelfRenewOrchestrator>();
         services.AddScoped<Services.Profiles.IProfileImportPricingService, Services.Profiles.ProfileImportPricingService>();
         services.AddScoped<Services.Approvals.IEmployeeServiceApprovalRequestService, Services.Approvals.EmployeeServiceApprovalRequestService>();

@@ -112,7 +112,13 @@
                             var daysExpired = (DateTime.Now - client.AccountExpirationDate!.Value).Days;
                             <tr class="@(client.IsActive ? "table-danger" : string.Empty)">
                                 <td>
-                                    <div class="fw-semibold">@client.Name</div>
+                                    <div class="fw-semibold">
+                                        @client.Name
+                                        @if (client.IsVip)
+                                        {
+                                            <span class="badge clients-vip-badge"><i class="fas fa-crown"></i> VIP</span>
+                                        }
+                                    </div>
                                     @if (!string.IsNullOrEmpty(client.PhoneNumber))
                                     {
                                         <small class="text-muted">@client.PhoneNumber</small>

@@ -71,6 +71,18 @@ namespace RadaTik.Models
         [Display(Name = "عملة فواتير المواد")]
         public PricingCurrency DefaultMaterialInvoiceCurrency { get; set; } = PricingCurrency.SYP_New;
 
+        [Display(Name = "خصم باقات المميزين (%)")]
+        [Column(TypeName = "decimal(5,2)")]
+        [Range(0, 100, ErrorMessage = "نسبة الخصم يجب أن تكون بين 0 و 100")]
+        public decimal VipDiscountPercent { get; set; }
+
+        [Display(Name = "مهلة السماح بعد الانتهاء (أيام)")]
+        [Range(0, 365, ErrorMessage = "مهلة السماح يجب أن تكون بين 0 و 365 يوماً")]
+        public int VipGraceDays { get; set; }
+
+        [Display(Name = "عدم فصل المميزين تلقائياً")]
+        public bool VipSkipAutoDisable { get; set; }
+
         [Display(Name = "معرف مدير الشركة")]
         [StringLength(450)]
         public string? ManagerUserId { get; set; }

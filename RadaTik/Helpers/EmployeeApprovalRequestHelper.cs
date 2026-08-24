@@ -43,6 +43,8 @@ public sealed class ClientApprovalPayload
     public int? MikroTikServerId { get; set; }
     public DateTime? ServiceStartDate { get; set; }
     public DateTime? AccountExpirationDate { get; set; }
+    public bool IsVip { get; set; }
+    public string? VipNote { get; set; }
     public string? DbUserName { get; set; }
     public string? DbPassword { get; set; }
 }

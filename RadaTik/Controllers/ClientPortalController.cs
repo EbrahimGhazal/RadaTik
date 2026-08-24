@@ -33,6 +33,7 @@ namespace RadaTik.Controllers
         private readonly IClientPortalSelfRenewOrchestrator _clientPortalSelfRenew;
         private readonly IWebHostEnvironment _environment;
         private readonly IMaintenanceEmployeeTaskService _maintenanceEmployeeTasks;
+        private readonly IClientVipPolicyService _vipPolicy;
 
         public ClientPortalController(
             ApplicationDbContext context,
@@ -45,6 +46,7 @@ namespace RadaTik.Controllers
             IClientPortalSelfRenewOrchestrator clientPortalSelfRenew,
             IWebHostEnvironment environment,
             IMaintenanceEmployeeTaskService maintenanceEmployeeTasks,
+            IClientVipPolicyService vipPolicy,
             IMikroTikPppoeUserService? mikroTikService = null)
         {
             _context = context;
@@ -57,6 +59,7 @@ namespace RadaTik.Controllers
             _clientPortalSelfRenew = clientPortalSelfRenew;
             _environment = environment;
             _maintenanceEmployeeTasks = maintenanceEmployeeTasks;
+            _vipPolicy = vipPolicy;
             _mikroTikService = mikroTikService;
         }
 
@@ -623,10 +626,9 @@ namespace RadaTik.Controllers
             }
 
             DateTime now = DateTime.Now;
-            decimal basePrice = client.Profile?.Price ?? 0m;
+            (decimal basePrice, decimal vatAmount, decimal amountDue) =
+                await _vipPolicy.ApplyMonthlyPriceAsync(client);
             decimal vatPercentage = client.Profile?.VATPercentage ?? 0m;
-            decimal vatAmount = basePrice * (vatPercentage / 100m);
-            decimal amountDue = basePrice + vatAmount;
             bool isExpired = client.AccountExpirationDate.HasValue && client.AccountExpirationDate.Value < now;
             bool isExpiringSoon = client.AccountExpirationDate.HasValue &&
                                  client.AccountExpirationDate.Value >= now &&
