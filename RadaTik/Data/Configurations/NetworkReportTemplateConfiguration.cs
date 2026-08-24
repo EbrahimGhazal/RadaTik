@@ -10,6 +10,7 @@ public sealed class NetworkReportTemplateConfiguration : IEntityTypeConfiguratio
     {
         entity.ToTable("NetworkReportTemplates");
         entity.Property(e => e.BodyContent).HasColumnType("nvarchar(max)");
+        entity.Property(e => e.PrintedColumnKeys).HasMaxLength(1000);
         entity.Property(e => e.UpdatedByUserId).HasMaxLength(450);
         entity.HasIndex(e => new { e.CompanyNetworkId, e.ReportKind }).IsUnique();
         entity.HasOne(e => e.CompanyNetwork)

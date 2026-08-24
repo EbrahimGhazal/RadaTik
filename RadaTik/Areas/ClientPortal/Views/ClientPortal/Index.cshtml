@@ -20,7 +20,10 @@
         Title = $"مرحباً، {Model.Name}",
         Subtitle = "إدارة اشتراكك، تجديد الرصيد، وطلبات الدعم",
         IconClass = "fas fa-user-circle",
-        Theme = "client"
+        Theme = "client",
+        Chips = Model.IsVip
+            ? [new PageHeroChipViewModel { IconClass = "fas fa-crown", Text = "VIP — مشترك مميز" }]
+            : []
     };
 }
 <div class="radtk-page--clientportal-views-clientportal-index">
@@ -71,7 +74,15 @@
             </div>
             <div class="stat-details">
                 <span class="stat-label">الباقة الحالية</span>
-                <span class="stat-value">@(Model.Profile?.Name ?? "غير محدد")</span>
+                <span class="stat-value">
+                    @(Model.Profile?.Name ?? "غير محدد")
+                    @if (Model.IsVip)
+                    {
+                        <span class="badge clients-vip-badge" title="@(string.IsNullOrWhiteSpace(Model.VipNote) ? "مشترك مميز" : Model.VipNote)">
+                            <i class="fas fa-crown"></i> VIP
+                        </span>
+                    }
+                </span>
                 @if (Model.Profile != null)
                 {
                     <span class="stat-sub">@Model.Profile.DownloadSpeedDisplay</span>

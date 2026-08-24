@@ -58,6 +58,14 @@ namespace RadaTik.Models
         [StringLength(500, ErrorMessage = "مكان السكن يجب أن لا يتجاوز 500 حرف")]
         public string? ResidenceAddress { get; set; }
 
+        [Display(Name = "العمل الوظيفي")]
+        [StringLength(100, ErrorMessage = "العمل الوظيفي يجب أن لا يتجاوز 100 حرف")]
+        public string? Occupation { get; set; }
+
+        [Display(Name = "مكان العمل")]
+        [StringLength(200, ErrorMessage = "مكان العمل يجب أن لا يتجاوز 200 حرف")]
+        public string? Workplace { get; set; }
+
         [Display(Name = "خط العرض")]
         public double? Latitude { get; set; }
 

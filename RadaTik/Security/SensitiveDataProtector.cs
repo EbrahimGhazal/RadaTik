@@ -7,8 +7,8 @@ public static class SensitiveDataProtector
     private const string Prefix = "enc::";
 
     private static readonly Lazy<IDataProtector> Protector = new(() =>
-        DataProtectionProvider.Create("RadaTik.SensitiveFields")
-            .CreateProtector("RadaTik.Security.SensitiveDataProtector.v1"));
+        RadaTikDataProtection.CreateProvider()
+            .CreateProtector(RadaTikDataProtection.SensitivePurpose));
 
     public static string? Protect(string? value)
     {

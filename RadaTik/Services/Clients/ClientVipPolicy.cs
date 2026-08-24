@@ -1,4 +1,9 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using RadaTik.Data;
 using RadaTik.Models;
+using RadaTik.Security;
 
 namespace RadaTik.Services.Clients;
 
@@ -88,5 +93,34 @@ public static class ClientVipAssignment
         {
             client.VipSince ??= now;
         }
+    }
+}
+
+public static class CurrentClientVipLookup
+{
+    public static async Task<(bool IsVip, string? Note)> ResolveAsync(
+        UserManager<ApplicationUser> userManager,
+        ApplicationDbContext db,
+        ClaimsPrincipal principal,
+        CancellationToken ct = default)
+    {
+        if (principal.Identity?.IsAuthenticated != true
+            || !principal.IsInRole(RoleNames.Client))
+        {
+            return (false, null);
+        }
+
+        ApplicationUser? user = await userManager.GetUserAsync(principal);
+        if (user?.ClientId == null)
+        {
+            return (false, null);
+        }
+
+        var row = await db.Clients.AsNoTracking()
+            .Where(c => c.Id == user.ClientId.Value)
+            .Select(c => new { c.IsVip, c.VipNote })
+            .FirstOrDefaultAsync(ct);
+
+        return row == null ? (false, null) : (row.IsVip, row.VipNote);
     }
 }

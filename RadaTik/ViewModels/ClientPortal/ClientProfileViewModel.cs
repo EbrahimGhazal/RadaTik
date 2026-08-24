@@ -27,5 +27,12 @@ namespace RadaTik.ViewModels.ClientPortal
 
         [Display(Name = "خط الطول")]
         public double? Longitude { get; set; }
+
+        /// <summary>عرض فقط: يُحدَّد من شركة الإدارة ولا يُعدَّل من بوابة العميل.</summary>
+        public bool IsVip { get; set; }
+
+        public string? VipNote { get; set; }
+
+        public DateTime? VipSince { get; set; }
     }
 }

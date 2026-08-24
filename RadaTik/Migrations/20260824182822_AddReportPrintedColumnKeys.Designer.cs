@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RadaTik.Data;
 
@@ -11,9 +12,11 @@ using RadaTik.Data;
 namespace RadaTik.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260824182822_AddReportPrintedColumnKeys")]
+    partial class AddReportPrintedColumnKeys
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2014,10 +2017,6 @@ namespace RadaTik.Migrations
                     b.Property<DateTime?>("NextBillingDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Occupation")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(512)
@@ -2088,10 +2087,6 @@ namespace RadaTik.Migrations
 
                     b.Property<DateTime?>("VipSince")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Workplace")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
 

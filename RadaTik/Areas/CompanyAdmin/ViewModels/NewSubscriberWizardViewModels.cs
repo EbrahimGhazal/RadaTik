@@ -106,6 +106,15 @@ public sealed class NewSubscriberWizardSubscriberFormModel
     public string? PhoneNumber { get; set; }
 
     public string? ResidenceAddress { get; set; }
+
+    [Display(Name = "العمل الوظيفي")]
+    [StringLength(100, ErrorMessage = "العمل الوظيفي يجب أن لا يتجاوز 100 حرف")]
+    public string? Occupation { get; set; }
+
+    [Display(Name = "مكان العمل")]
+    [StringLength(200, ErrorMessage = "مكان العمل يجب أن لا يتجاوز 200 حرف")]
+    public string? Workplace { get; set; }
+
     public int? ReceiverId { get; set; }
     public int? MikroTikServerId { get; set; }
     public bool IsActive { get; set; } = true;
@@ -113,4 +122,11 @@ public sealed class NewSubscriberWizardSubscriberFormModel
     public DateTime? AccountExpirationDate { get; set; }
     public string? DbUserName { get; set; }
     public string? DbPassword { get; set; }
+
+    [Display(Name = "مشترك مميز (VIP)")]
+    public bool IsVip { get; set; }
+
+    [Display(Name = "ملاحظة التمييز")]
+    [StringLength(200, ErrorMessage = "ملاحظة التمييز يجب أن لا تتجاوز 200 حرف")]
+    public string? VipNote { get; set; }
 }

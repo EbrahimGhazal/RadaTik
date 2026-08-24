@@ -4,6 +4,8 @@
     var userRole = ViewData["Layout_UserRole"] as string ?? "";
     var isCompanyEmployee = (bool?)(ViewData["Layout_IsCompanyEmployee"]) == true;
     var employeeNetworkName = ViewData["Layout_EmployeeNetworkName"] as string;
+    var isClientVip = (bool?)(ViewData["Layout_IsClientVip"]) == true;
+    var clientVipNote = ViewData["Layout_ClientVipNote"] as string;
 
     var hasProfileOrHub =
         User.IsInRole("SystemAdministrator") ||
@@ -21,7 +23,15 @@
         <div class="header-user-avatar" aria-hidden="true">@userInitials</div>
         <div class="header-user-info">
             <div class="header-user-name">@userName</div>
-            <div class="header-user-role">@userRole</div>
+            <div class="header-user-role">
+                @userRole
+                @if (isClientVip)
+                {
+                    <span class="badge clients-vip-badge header-vip-badge" title="@(string.IsNullOrWhiteSpace(clientVipNote) ? "مشترك مميز" : clientVipNote)">
+                        <i class="fas fa-crown"></i> VIP
+                    </span>
+                }
+            </div>
             @if (isCompanyEmployee && !string.IsNullOrWhiteSpace(employeeNetworkName))
             {
                 <div class="header-user-role text-muted small">@employeeNetworkName</div>

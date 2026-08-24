@@ -53,6 +53,7 @@ namespace RadaTik.Data
         public DbSet<CashBoxDeposit> CashBoxDeposits { get; set; }
         public DbSet<CashBoxCurrencyExchange> CashBoxCurrencyExchanges { get; set; }
         public DbSet<NetworkReportTemplate> NetworkReportTemplates { get; set; }
+        public DbSet<CompanyDocumentAppearance> CompanyDocumentAppearances { get; set; }
         public DbSet<MaintenanceInvoice> MaintenanceInvoices { get; set; }
         public DbSet<NetworkMaintenancePrice> NetworkMaintenancePrices { get; set; }
         public DbSet<MikroTikServerTrafficSample> MikroTikServerTrafficSamples { get; set; }

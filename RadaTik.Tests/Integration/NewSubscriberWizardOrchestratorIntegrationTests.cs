@@ -108,6 +108,10 @@ public class NewSubscriberWizardOrchestratorIntegrationTests
         NewSubscriberWizardOrchestrator orchestrator = BuildOrchestrator(db, userManager, mikroTik, invoice, usage);
 
         Client newClient = BuildClient("new-user", serverId: null);
+        newClient.Occupation = "مهندس";
+        newClient.Workplace = "شركة النور";
+        newClient.IsVip = true;
+        newClient.VipNote = "شريك";
         ApplicationUser actor = new() { Id = "actor-1", UserName = "admin" };
 
         NewSubscriberWizardOrchestrator.CreateSubscriberResult result = await orchestrator.CreateSubscriberAsync(
@@ -120,7 +124,12 @@ public class NewSubscriberWizardOrchestratorIntegrationTests
 
         Assert.True(result.Success, result.ErrorMessage);
         Assert.NotNull(result.ClientId);
-        Assert.Equal(1, await db.Clients.CountAsync(c => c.UserName == "new-user"));
+        Client saved = await db.Clients.SingleAsync(c => c.UserName == "new-user");
+        Assert.Equal("مهندس", saved.Occupation);
+        Assert.Equal("شركة النور", saved.Workplace);
+        Assert.True(saved.IsVip);
+        Assert.Equal("شريك", saved.VipNote);
+        Assert.NotNull(saved.VipSince);
         invoice.Verify(i => i.CreateDraftInitialSetupInvoiceAsync(It.IsAny<Client>(), NewSubscriberWizardPath.TowerDirect, actor.Id, It.IsAny<CancellationToken>()), Times.Once);
         usage.Verify(u => u.ChargeUsageIncreaseAsync(1, actor.Id, PricingChargeUnit.PerSubscriber, It.IsAny<CancellationToken>()), Times.Once);
     }

@@ -371,9 +371,13 @@ public class NewSubscriberWizardController : Controller
             ProfileId = model.ProfileId!.Value,
             PhoneNumber = model.PhoneNumber,
             ResidenceAddress = model.ResidenceAddress,
+            Occupation = string.IsNullOrWhiteSpace(model.Occupation) ? null : model.Occupation.Trim(),
+            Workplace = string.IsNullOrWhiteSpace(model.Workplace) ? null : model.Workplace.Trim(),
             ReceiverId = state.Path == NewSubscriberWizardPath.TowerDirect ? null : model.ReceiverId,
             MikroTikServerId = model.MikroTikServerId,
             IsActive = model.IsActive,
+            IsVip = model.IsVip,
+            VipNote = model.VipNote,
             ServiceStartDate = model.ServiceStartDate,
             AccountExpirationDate = model.AccountExpirationDate
         };

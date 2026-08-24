@@ -4,6 +4,10 @@ set -euo pipefail
 
 host="${SQL_SERVER_HOST:-radatik-sqlserver}"
 port="${SQL_SERVER_PORT:-1433}"
+keys_dir="${RADATIK_DATA_PROTECTION_KEYS_PATH:-/var/radatik/dp-keys}"
+
+mkdir -p "${keys_dir}"
+chmod 700 "${keys_dir}" || true
 
 echo "Waiting for SQL Server at ${host}:${port}..."
 for i in $(seq 1 90); do

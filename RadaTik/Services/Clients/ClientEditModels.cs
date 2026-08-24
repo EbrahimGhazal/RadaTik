@@ -10,7 +10,7 @@ public enum ClientEditStatus
     NotFound
 }
 
-public sealed class ClientEditRequest
+public sealed record ClientEditRequest
 {
     public required int ClientId { get; init; }
     public required Client SubmittedClient { get; init; }
@@ -19,6 +19,12 @@ public sealed class ClientEditRequest
     public required int NetworkId { get; init; }
     public required string ActorUserId { get; init; }
     public required bool IsEmployee { get; init; }
+
+    /// <summary>
+    /// عند تفعيله من مدير الشركة فقط: تُطبَّق حقول MikroTik وتُدفع إلى الخادم.
+    /// الافتراضي إبقاء بيانات المايكروتك كما هي وحفظ التعديلات الإدارية فقط.
+    /// </summary>
+    public bool ApplyMikroTikChanges { get; init; }
 }
 
 public sealed class ClientEditOutcome

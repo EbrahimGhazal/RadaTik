@@ -749,7 +749,10 @@ namespace RadaTik.Controllers
                 PhoneNumber = client.PhoneNumber ?? "",
                 ResidenceAddress = client.ResidenceAddress,
                 Latitude = client.Latitude,
-                Longitude = client.Longitude
+                Longitude = client.Longitude,
+                IsVip = client.IsVip,
+                VipNote = client.VipNote,
+                VipSince = client.VipSince
             };
             return View(model);
         }
@@ -789,6 +792,9 @@ namespace RadaTik.Controllers
                 return RedirectToAction(nameof(MyProfile));
             }
 
+            model.IsVip = client.IsVip;
+            model.VipNote = client.VipNote;
+            model.VipSince = client.VipSince;
             return View(model);
         }
 

@@ -29,6 +29,10 @@ public class NetworkReportTemplate
     /// </summary>
     public string? BodyContent { get; set; }
 
+    /// <summary>مفاتيح أعمدة الطباعة المختارة لهذا النوع، مفصولة بفاصلة. خاصة بالشركة.</summary>
+    [StringLength(1000)]
+    public string? PrintedColumnKeys { get; set; }
+
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     [StringLength(450)]

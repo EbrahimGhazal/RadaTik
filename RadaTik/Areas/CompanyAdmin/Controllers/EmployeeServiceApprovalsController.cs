@@ -501,6 +501,8 @@ public class EmployeeServiceApprovalsController : Controller
         client.UserName = payload.UserName ?? client.UserName;
         client.PhoneNumber = payload.PhoneNumber ?? client.PhoneNumber;
         client.ResidenceAddress = payload.ResidenceAddress;
+        client.Occupation = payload.Occupation;
+        client.Workplace = payload.Workplace;
         client.Latitude = payload.Latitude;
         client.Longitude = payload.Longitude;
         client.PowerSource = payload.PowerSource;

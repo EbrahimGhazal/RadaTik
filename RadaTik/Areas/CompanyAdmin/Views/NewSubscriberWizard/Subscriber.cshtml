@@ -102,6 +102,16 @@
                     <label asp-for="ResidenceAddress" class="form-label">الموقع</label>
                     <input asp-for="ResidenceAddress" class="form-control" />
                 </div>
+                <div class="col-md-6">
+                    <label asp-for="Occupation" class="form-label"></label>
+                    <input asp-for="Occupation" class="form-control" placeholder="موظف، تاجر، طالب..." />
+                    <span asp-validation-for="Occupation" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Workplace" class="form-label"></label>
+                    <input asp-for="Workplace" class="form-control" placeholder="اسم الشركة أو الجهة" />
+                    <span asp-validation-for="Workplace" class="text-danger small"></span>
+                </div>
                 <div class="col-md-4">
                     <label asp-for="ServiceStartDate" class="form-label"></label>
                     <input asp-for="ServiceStartDate" type="date" class="form-control" />
@@ -117,6 +127,19 @@
                 <div class="col-md-6">
                     <label asp-for="DbPassword" class="form-label">كلمة مرور النظام (اختياري)</label>
                     <input asp-for="DbPassword" type="password" class="form-control" />
+                </div>
+                <div class="col-12">
+                    <div class="border rounded p-3">
+                        <div class="form-check form-switch radtk-switch-left-label mb-2" dir="ltr">
+                            <label asp-for="IsVip" class="form-check-label">مشترك مميز (VIP)</label>
+                            <input asp-for="IsVip" class="form-check-input" />
+                        </div>
+                        <div class="form-group mb-0">
+                            <label asp-for="VipNote" class="form-label"></label>
+                            <input asp-for="VipNote" class="form-control" placeholder="شريك، موظف، عائلة..." maxlength="200" />
+                            <span asp-validation-for="VipNote" class="text-danger small"></span>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-12">
                     <div class="form-check form-switch radtk-switch-left-label mb-3" dir="ltr">

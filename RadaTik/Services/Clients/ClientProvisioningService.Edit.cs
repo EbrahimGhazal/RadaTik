@@ -26,21 +26,30 @@ public sealed partial class ClientProvisioningService
             return ClientEditOutcome.NotFound();
         }
 
-        Client submitted = request.SubmittedClient;
-        if (request.IsEmployee)
+        ClientEditRequest effectiveRequest = request with
+        {
+            ApplyMikroTikChanges = request.ApplyMikroTikChanges && !request.IsEmployee
+        };
+
+        Client submitted = effectiveRequest.SubmittedClient;
+        if (effectiveRequest.IsEmployee)
         {
             ApplyEmployeeEditRestrictions(submitted, originalClient);
+        }
+        else if (!effectiveRequest.ApplyMikroTikChanges)
+        {
+            PreserveMikroTikIdentity(submitted, originalClient);
         }
 
         try
         {
-            if (request.IsEmployee)
+            if (effectiveRequest.IsEmployee)
             {
-                return await SubmitEmployeeEditApprovalAsync(request, existingClient, submitted, ct);
+                return await SubmitEmployeeEditApprovalAsync(effectiveRequest, existingClient, submitted, ct);
             }
 
             return await ApplyAdministratorEditAsync(
-                request,
+                effectiveRequest,
                 existingClient,
                 originalClient,
                 submitted,
@@ -71,6 +80,22 @@ public sealed partial class ClientProvisioningService
         submitted.NextBillingDate = original.NextBillingDate;
     }
 
+    private static void PreserveMikroTikIdentity(Client submitted, Client original)
+    {
+        submitted.UserName = original.UserName;
+        submitted.Password = null;
+        submitted.MikroTikServerId = original.MikroTikServerId;
+        submitted.ProfileId = original.ProfileId;
+        submitted.ProfileName = original.ProfileName;
+        submitted.Service = original.Service;
+        submitted.Address = original.Address;
+        submitted.IsActive = original.IsActive;
+        submitted.Uptime = original.Uptime;
+        submitted.ConnectionStatus = original.ConnectionStatus;
+        submitted.MacAddress = original.MacAddress;
+        submitted.AccountExpirationDate = original.AccountExpirationDate;
+    }
+
     private async Task<ClientEditOutcome> SubmitEmployeeEditApprovalAsync(
         ClientEditRequest request,
         Client existingClient,
@@ -84,6 +109,8 @@ public sealed partial class ClientProvisioningService
             Password = string.IsNullOrWhiteSpace(submitted.Password) ? null : submitted.Password,
             PhoneNumber = submitted.PhoneNumber,
             ResidenceAddress = submitted.ResidenceAddress,
+            Occupation = submitted.Occupation,
+            Workplace = submitted.Workplace,
             Latitude = submitted.Latitude,
             Longitude = submitted.Longitude,
             PowerSource = submitted.PowerSource,
@@ -135,6 +162,8 @@ public sealed partial class ClientProvisioningService
         existingClient.MikroTikServerId = submitted.MikroTikServerId;
         existingClient.AccountExpirationDate = submitted.AccountExpirationDate;
         existingClient.ResidenceAddress = submitted.ResidenceAddress;
+        existingClient.Occupation = string.IsNullOrWhiteSpace(submitted.Occupation) ? null : submitted.Occupation.Trim();
+        existingClient.Workplace = string.IsNullOrWhiteSpace(submitted.Workplace) ? null : submitted.Workplace.Trim();
         existingClient.Latitude = submitted.Latitude;
         existingClient.Longitude = submitted.Longitude;
         existingClient.PowerSource = submitted.PowerSource;
@@ -155,6 +184,27 @@ public sealed partial class ClientProvisioningService
         existingClient.Address = submitted.Address;
         existingClient.ConnectionStatus = submitted.IsActive ? "مفعل" : "معطل";
 
+        if (request.ApplyMikroTikChanges)
+        {
+            await PushEditedClientToMikroTikAsync(existingClient, originalClient, ct);
+        }
+        else
+        {
+            await Db.SaveChangesAsync(ct);
+        }
+
+        await UpdateLinkedIdentityUserAsync(existingClient, request, ct);
+
+        return ClientEditOutcome.Success(request.ApplyMikroTikChanges
+            ? "تم تعديل بيانات العميل بنجاح في قاعدة البيانات والمايكروتك"
+            : "تم تعديل بيانات العميل في قاعدة البيانات دون تغيير إعدادات MikroTik");
+    }
+
+    private async Task PushEditedClientToMikroTikAsync(
+        Client existingClient,
+        Client originalClient,
+        CancellationToken ct)
+    {
         int? originalServerId = originalClient.MikroTikServerId;
         int? newServerId = existingClient.MikroTikServerId;
         string? originalUserName = originalClient.UserName;
@@ -177,29 +227,25 @@ public sealed partial class ClientProvisioningService
             {
                 await _mikroTik.DeletePPPoEUser(originalUserName, originalServerId.Value);
             }
+
+            return;
         }
-        else
+
+        if (existingClient.MikroTikServerId.HasValue)
         {
-            if (existingClient.MikroTikServerId.HasValue)
+            if (userNameChanged)
             {
-                if (userNameChanged)
-                {
-                    await _mikroTik.UpdatePPPoEUserWithOriginalUsername(
-                        existingClient,
-                        originalUserName ?? string.Empty);
-                }
-                else
-                {
-                    await _mikroTik.UpdatePPPoEUser(existingClient);
-                }
+                await _mikroTik.UpdatePPPoEUserWithOriginalUsername(
+                    existingClient,
+                    originalUserName ?? string.Empty);
             }
-
-            await Db.SaveChangesAsync(ct);
+            else
+            {
+                await _mikroTik.UpdatePPPoEUser(existingClient);
+            }
         }
 
-        await UpdateLinkedIdentityUserAsync(existingClient, request, ct);
-
-        return ClientEditOutcome.Success("تم تعديل بيانات العميل بنجاح في قاعدة البيانات والمايكروتك");
+        await Db.SaveChangesAsync(ct);
     }
 
     private async Task UpdateLinkedIdentityUserAsync(

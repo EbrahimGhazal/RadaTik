@@ -1,6 +1,7 @@
 using System.Data;
 using System.IO;
 using System.Linq;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -50,6 +51,11 @@ namespace RadaTik
                 || builder.Configuration.GetValue<bool>("RadaTik:SkipStartupDataInit")
                 || string.Equals(Environment.GetEnvironmentVariable("RADATIK_SKIP_STARTUP_DATA_INIT"), "true", StringComparison.OrdinalIgnoreCase);
             CookieSecurePolicy cookieSecure = insecureHttp ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
+
+            DirectoryInfo dataProtectionKeys = RadaTikDataProtection.EnsureKeysDirectory();
+            builder.Services.AddDataProtection()
+                .PersistKeysToFileSystem(dataProtectionKeys)
+                .SetApplicationName("RadaTik");
 
             // Add services to the container.
             builder.Services.AddScoped<AuditActionFilter>();

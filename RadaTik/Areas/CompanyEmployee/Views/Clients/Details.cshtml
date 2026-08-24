@@ -1,11 +1,11 @@
-<div class="radtk-page--companyemployee-views-clients-details">
-<div class="radtk-page--companyemployee-views-clients-details">
 @model RadaTik.Models.Client
+<div class="radtk-page--companyemployee-views-clients-details">
 
 @{
     ViewData["Title"] = ViewBag.IsClientOnly == true ? "بيانات حسابي" : "تفاصيل العميل";
     var isClientOnly = ViewBag.IsClientOnly == true;
-    var canEdit = await PermissionService.HasPermissionAsync(User, "Clients.Edit");
+    var canEdit = ViewBag.CanEditClient == true
+        || await PermissionService.HasPermissionAsync(User, "Clients.Edit");
     var isPendingApproval = (bool?)ViewBag.IsPendingClientApproval == true;
 }
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -69,6 +69,12 @@
                         <i class="fas fa-phone text-info"></i>
                         @Html.DisplayFor(model => model.PhoneNumber)
                     </dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Occupation)</dt>
+                    <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Occupation) ? "—" : Model.Occupation)</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Workplace)</dt>
+                    <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Workplace) ? "—" : Model.Workplace)</dd>
 
                     <dt class="col-sm-4">@Html.DisplayNameFor(model => model.CreatedDate)</dt>
                     <dd class="col-sm-8">@Html.DisplayFor(model => model.CreatedDate)</dd>
@@ -162,9 +168,6 @@
                             </span>
                         }
                     </dd>
-
-                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Password)</dt>
-                    <dd class="col-sm-8"><code>@Html.DisplayFor(model => model.Password)</code></dd>
 
                     <dt class="col-sm-4">البروفايل</dt>
                     <dd class="col-sm-8">
@@ -380,6 +383,12 @@
                         @Html.DisplayFor(model => model.PhoneNumber)
                     </dd>
 
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Occupation)</dt>
+                    <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Occupation) ? "—" : Model.Occupation)</dd>
+
+                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Workplace)</dt>
+                    <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Workplace) ? "—" : Model.Workplace)</dd>
+
                     <dt class="col-sm-4">@Html.DisplayNameFor(model => model.CreatedDate)</dt>
                     <dd class="col-sm-8">@Html.DisplayFor(model => model.CreatedDate)</dd>
 
@@ -466,9 +475,6 @@
                             </span>
                         }
                     </dd>
-
-                    <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Password)</dt>
-                    <dd class="col-sm-8"><code>@Html.DisplayFor(model => model.Password)</code></dd>
 
                     <dt class="col-sm-4">البروفايل</dt>
                     <dd class="col-sm-8">

@@ -9,6 +9,10 @@
         ("fas fa-user", "صلاحية: عميل"),
         ("fas fa-map-marker-alt", "موقع السكن")
     };
+    if (Model.IsVip)
+    {
+        heroChips.Insert(0, ("fas fa-crown", "VIP — مشترك مميز"));
+    }
 }
 
 <div class="client-portal-profile-page">
@@ -22,6 +26,30 @@
              }' />
 
     <partial name="_TempDataAlerts" />
+
+    @if (Model.IsVip)
+    {
+        <div class="client-vip-profile-banner mb-4" title="@(string.IsNullOrWhiteSpace(Model.VipNote) ? "مشترك مميز" : Model.VipNote)">
+            <span class="badge clients-vip-badge">
+                <i class="fas fa-crown"></i> VIP
+            </span>
+            <div>
+                <strong>حسابك مميز</strong>
+                @if (!string.IsNullOrWhiteSpace(Model.VipNote))
+                {
+                    <div class="small text-muted">@Model.VipNote</div>
+                }
+                else
+                {
+                    <div class="small text-muted">أنت مشترك VIP لدى الشركة.</div>
+                }
+                @if (Model.VipSince.HasValue)
+                {
+                    <div class="small text-muted">منذ @Model.VipSince.Value.ToString("yyyy/MM/dd")</div>
+                }
+            </div>
+        </div>
+    }
 
     <form asp-action="MyProfile" method="post" id="profileForm">
         @Html.AntiForgeryToken()
@@ -112,6 +140,15 @@
 <style>
     .client-portal-profile-page { padding: var(--spacing-lg, 1.5rem); }
     #map { min-height: 320px; background: #e5e3df; }
+    .client-vip-profile-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(245, 215, 110, 0.28), rgba(212, 160, 23, 0.12));
+        border: 1px solid rgba(212, 160, 23, 0.45);
+    }
 </style>
 
 @section Scripts {

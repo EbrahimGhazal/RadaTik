@@ -50,7 +50,7 @@ namespace RadaTik.Controllers
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "NetworkAdministrator,CompanyEmployee,Employee")]
         [RequirePermission("Clients.Create")]
-        public async Task<IActionResult> Create([Bind("Id,Name,SID,UserName,Password,ProfileId,PhoneNumber,ResidenceAddress,Latitude,Longitude,PowerSource,Building,Floor,IsActive,ReceiverId,Service,Address,MikroTikServerId,ServiceStartDate,AccountExpirationDate")] Client client, string? dbUserName, string? dbPassword)
+        public async Task<IActionResult> Create([Bind("Id,Name,SID,UserName,Password,ProfileId,PhoneNumber,ResidenceAddress,Occupation,Workplace,Latitude,Longitude,PowerSource,Building,Floor,IsActive,ReceiverId,Service,Address,MikroTikServerId,ServiceStartDate,AccountExpirationDate,IsVip,VipNote")] Client client, string? dbUserName, string? dbPassword)
         {
             var user = await _userManager.GetUserAsync(User);
             var networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
@@ -155,6 +155,7 @@ namespace RadaTik.Controllers
             var linkedUser = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.ClientId == client.Id);
             ViewBag.DbUserName = linkedUser?.UserName ?? client.UserName;
             ViewBag.IsEmployee = isEmployee;
+            ViewBag.ApplyMikroTikChanges = false;
             return View(client);
         }
 
@@ -165,9 +166,10 @@ namespace RadaTik.Controllers
         [RequirePermission("Clients.Edit")]
         public async Task<IActionResult> Edit(
             int id,
-            [Bind("Id,Name,SID,UserName,Password,ProfileId,PhoneNumber,ResidenceAddress,Latitude,Longitude,PowerSource,Building,Floor,ServiceStartDate,CreatedDate,IsActive,ReceiverId,Service,Address,Uptime,ConnectionStatus,MacAddress,MikroTikServerId,AccountExpirationDate")] Client client,
+            [Bind("Id,Name,SID,UserName,Password,ProfileId,PhoneNumber,ResidenceAddress,Occupation,Workplace,Latitude,Longitude,PowerSource,Building,Floor,ServiceStartDate,CreatedDate,IsActive,ReceiverId,Service,Address,Uptime,ConnectionStatus,MacAddress,MikroTikServerId,AccountExpirationDate,IsVip,VipNote")] Client client,
             string? dbUserName,
-            string? dbPassword)
+            string? dbPassword,
+            bool applyMikroTikChanges = false)
         {
             if (id != client.Id)
             {
@@ -192,6 +194,7 @@ namespace RadaTik.Controllers
                 ApplyEditFormViewData(await _app.FormViewData.BuildEditFormDataAsync(networkId.Value, client));
                 ViewBag.DbUserName = string.IsNullOrWhiteSpace(dbUserName) ? client.UserName : dbUserName;
                 ViewBag.IsEmployee = isEmployee;
+                ViewBag.ApplyMikroTikChanges = applyMikroTikChanges && !isEmployee;
                 return View(client);
             }
 
@@ -203,7 +206,8 @@ namespace RadaTik.Controllers
                 DbPassword = dbPassword,
                 NetworkId = networkId.Value,
                 ActorUserId = currentUser.Id,
-                IsEmployee = isEmployee
+                IsEmployee = isEmployee,
+                ApplyMikroTikChanges = applyMikroTikChanges && !isEmployee
             });
 
             switch (outcome.Status)
@@ -224,6 +228,7 @@ namespace RadaTik.Controllers
             ApplyEditFormViewData(await _app.FormViewData.BuildEditFormDataAsync(networkId.Value, client));
             ViewBag.DbUserName = string.IsNullOrWhiteSpace(dbUserName) ? client.UserName : dbUserName;
             ViewBag.IsEmployee = isEmployee;
+            ViewBag.ApplyMikroTikChanges = applyMikroTikChanges && !isEmployee;
             return View(client);
         }
 

@@ -3,6 +3,7 @@
 @using RadaTik.Data
 @using RadaTik.Helpers
 @using RadaTik.Models
+@using RadaTik.Services.Clients
 @inject ApplicationDbContext Db
 @inject UserManager<ApplicationUser> UserManager
 @{
@@ -67,6 +68,13 @@
         }
     }
 
+    bool isClientVip = false;
+    string? clientVipNote = null;
+    if (isAuthenticated && User.IsInRole("Client"))
+    {
+        (isClientVip, clientVipNote) = await CurrentClientVipLookup.ResolveAsync(UserManager, Db, User);
+    }
+
     // Expose common values for layouts/partials (enables area-specific sidebar partials).
     ViewData["Layout_IsAuthenticated"] = isAuthenticated;
     ViewData["Layout_UserName"] = userName;
@@ -75,6 +83,8 @@
     ViewData["Layout_IsCompanyEmployee"] = isCompanyEmployee;
     ViewData["Layout_IsSystemEmployee"] = isSystemEmployee;
     ViewData["Layout_IsAnyEmployee"] = isAnyEmployee;
+    ViewData["Layout_IsClientVip"] = isClientVip;
+    ViewData["Layout_ClientVipNote"] = clientVipNote;
     ViewData["Layout_IsClientOnly"] = isClientOnly;
     ViewData["Layout_IsCollectionPointOnly"] = isCollectionPointOnly;
     ViewData["Layout_EmployeeNetworkName"] = employeeNetworkName;

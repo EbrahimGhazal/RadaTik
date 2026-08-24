@@ -6,6 +6,7 @@ using RadaTik.Data;
 using RadaTik.Helpers;
 using RadaTik.Models;
 using RadaTik.Security;
+using RadaTik.Services.Clients;
 using RadaTik.Services.MikroTik;
 
 namespace RadaTik.Services.NewSubscriberWizard;
@@ -119,6 +120,9 @@ public sealed class NewSubscriberWizardOrchestrator
         client.NetworkId = networkId;
         client.CreatedDate = DateTime.Now;
         client.LastUpdated = DateTime.Now;
+        client.Occupation = string.IsNullOrWhiteSpace(client.Occupation) ? null : client.Occupation.Trim();
+        client.Workplace = string.IsNullOrWhiteSpace(client.Workplace) ? null : client.Workplace.Trim();
+        ClientVipAssignment.NormalizeNew(client, DateTime.Now);
 
         if (isEmployee)
         {
@@ -404,6 +408,8 @@ public sealed class NewSubscriberWizardOrchestrator
             ProfileName = client.ProfileName,
             PhoneNumber = client.PhoneNumber,
             ResidenceAddress = client.ResidenceAddress,
+            Occupation = client.Occupation,
+            Workplace = client.Workplace,
             Latitude = client.Latitude,
             Longitude = client.Longitude,
             PowerSource = client.PowerSource,

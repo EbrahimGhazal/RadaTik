@@ -29,6 +29,12 @@ public static class SchemaColumnRepair
         await EnsureColumnAsync(db, "Clients", "VipSince", """
             ALTER TABLE [dbo].[Clients] ADD [VipSince] datetime2 NULL;
             """, logger, ct);
+        await EnsureColumnAsync(db, "Clients", "Occupation", """
+            ALTER TABLE [dbo].[Clients] ADD [Occupation] nvarchar(100) NULL;
+            """, logger, ct);
+        await EnsureColumnAsync(db, "Clients", "Workplace", """
+            ALTER TABLE [dbo].[Clients] ADD [Workplace] nvarchar(200) NULL;
+            """, logger, ct);
 
         await EnsureColumnAsync(db, "Networks", "VipDiscountPercent", """
             ALTER TABLE [dbo].[Networks] ADD [VipDiscountPercent] decimal(5,2) NOT NULL

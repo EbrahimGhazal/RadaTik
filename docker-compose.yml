@@ -15,12 +15,15 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       # Required for HTTP-only access (no TLS in container); set false behind nginx/HTTPS terminator
       - RADATIK_INSECURE_HTTP=true
+      - RADATIK_DATA_PROTECTION_KEYS_PATH=/var/radatik/dp-keys
       - SQL_SERVER_HOST=radatik-sqlserver
       - SQL_SERVER_PORT=1433
       - ConnectionStrings__MyDBConnection=Server=radatik-sqlserver,1433;Database=RadaTikDB;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=True;Connection Timeout=120;
     volumes:
       # Overlay the baked-in entrypoint so a host-side script fix takes effect without a full image rebuild.
       - ./docker-entrypoint.sh:/docker-entrypoint.sh:ro
+      # Keep encryption keys across image rebuilds so MikroTik server passwords stay readable.
+      - /opt/radatik/dp-keys:/var/radatik/dp-keys
     depends_on:
       sqlserver:
         condition: service_healthy

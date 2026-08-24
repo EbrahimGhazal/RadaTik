@@ -34,6 +34,8 @@ public sealed class ClientApprovalPayload
     public string? ProfileName { get; set; }
     public string? PhoneNumber { get; set; }
     public string? ResidenceAddress { get; set; }
+    public string? Occupation { get; set; }
+    public string? Workplace { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public string? PowerSource { get; set; }

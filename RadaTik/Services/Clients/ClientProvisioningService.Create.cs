@@ -344,6 +344,8 @@ public sealed partial class ClientProvisioningService
             ProfileName = profileName,
             PhoneNumber = client.PhoneNumber,
             ResidenceAddress = client.ResidenceAddress,
+            Occupation = client.Occupation,
+            Workplace = client.Workplace,
             Latitude = client.Latitude,
             Longitude = client.Longitude,
             PowerSource = client.PowerSource,

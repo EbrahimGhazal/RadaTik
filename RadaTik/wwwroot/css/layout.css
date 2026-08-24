@@ -1064,8 +1064,18 @@ button.header-user:focus-visible {
 }
 
 .header-user-role {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
     font-size: 0.75rem;
     color: var(--text-muted);
+}
+
+.header-vip-badge {
+    font-size: 0.62rem;
+    padding: 0.12rem 0.4rem;
+    line-height: 1.2;
 }
 
 .header-user-chevron {
