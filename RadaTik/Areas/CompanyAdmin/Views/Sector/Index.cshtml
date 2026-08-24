@@ -68,6 +68,10 @@
                 <a asp-route="networkManager-sector" asp-route-action="RadioMonitoring" class="btn btn-outline-info btn-sm">
                     <i class="fas fa-wave-square"></i> <span class="sector-btn-text">مراقبة القطاعات</span>
                 </a>
+                <button type="button" class="btn btn-outline-success btn-sm" id="btnOpenSectorExcelImport"
+                        title="استيراد مرسلات من ملف Excel">
+                    <i class="fas fa-file-excel"></i> <span class="sector-btn-text">استيراد من Excel</span>
+                </button>
                 <a asp-action="Create" class="btn btn-success btn-sm">
                     <i class="fas fa-plus"></i> <span class="sector-btn-text">إضافة قطاع</span>
                 </a>
@@ -114,6 +118,49 @@
         @importWarnings
     </div>
 }
+
+<div class="modal fade" id="sectorExcelImportModal" tabindex="-1" aria-labelledby="sectorExcelImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="ImportFromExcel" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sectorExcelImportModalLabel">
+                        <i class="fas fa-file-excel text-success"></i>
+                        استيراد المرسلات من ملف Excel
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-2">
+                        يُضاف مرسل جديد لكل صف صالح. يجب أن يكون <strong>اسم الخادم</strong> مطابقاً لخادم موجود في الشبكة الحالية.
+                        المرسل الموجود مسبقاً بنفس الاسم أو عنوان IP يُتخطى.
+                    </p>
+                    <div class="alert alert-info small py-2 mb-3">
+                        <i class="fas fa-info-circle"></i>
+                        الأعمدة المطلوبة:
+                        <strong>اسم المرسل، اسم الخادم، عنوان IP، خط الطول، خط العرض، الاتجاه، الزاوية، المدى، ارتفاع الهوائي</strong>.
+                        قناع الشبكة الافتراضي هو <code>255.255.255.0</code> ويمكن كتابته مع العنوان بصيغة CIDR مثل <code>10.1.1.10/24</code>.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="sectorExcelImportFile">ملف Excel أو CSV</label>
+                        <input type="file" class="form-control" id="sectorExcelImportFile" name="file"
+                               accept=".xlsx,.xlsm,.csv,.txt" required />
+                    </div>
+                    <a asp-action="DownloadSectorExcelImportTemplate" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-download"></i> تنزيل قالب Excel
+                    </a>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-upload"></i> استيراد
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 @if (importServers.Any())
 {
@@ -683,6 +730,14 @@
                     map.invalidateSize();
                 }
             });
+
+            const excelImportBtn = document.getElementById('btnOpenSectorExcelImport');
+            const excelImportModalEl = document.getElementById('sectorExcelImportModal');
+            if (excelImportBtn && excelImportModalEl && typeof bootstrap !== 'undefined') {
+                excelImportBtn.addEventListener('click', function () {
+                    bootstrap.Modal.getOrCreateInstance(excelImportModalEl).show();
+                });
+            }
 
             // Refresh button
             $('#btnRefresh').click(function() {

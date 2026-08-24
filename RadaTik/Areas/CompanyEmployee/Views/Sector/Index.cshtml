@@ -60,6 +60,10 @@
                         </button>
                     </form>
                 }
+                <button type="button" class="btn btn-outline-success btn-sm sector-action-btn" id="btnOpenSectorExcelImport"
+                        title="استيراد مرسلات من ملف Excel">
+                    <i class="fas fa-file-excel"></i> استيراد من Excel
+                </button>
                 <a asp-action="Create" class="btn btn-success btn-sm sector-action-btn">
                     <i class="fas fa-plus"></i> إضافة قطاع
                 </a>
@@ -75,6 +79,62 @@
         <div class="alert-content">@TempData["Success"]</div>
     </div>
 }
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Error"]</div>
+    </div>
+}
+
+@if (TempData["ImportSectorWarnings"] is string importWarnings && !string.IsNullOrWhiteSpace(importWarnings))
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle alert-icon"></i>
+        <div class="alert-content">@importWarnings</div>
+    </div>
+}
+
+<div class="modal fade" id="sectorExcelImportModal" tabindex="-1" aria-labelledby="sectorExcelImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="ImportFromExcel" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sectorExcelImportModalLabel">
+                        <i class="fas fa-file-excel text-success"></i>
+                        استيراد المرسلات من ملف Excel
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-2">
+                        يُضاف مرسل جديد لكل صف صالح. يجب أن يكون <strong>اسم الخادم</strong> مطابقاً لخادم موجود في الشبكة الحالية.
+                    </p>
+                    <div class="alert alert-info small py-2 mb-3">
+                        الأعمدة المطلوبة:
+                        <strong>اسم المرسل، اسم الخادم، عنوان IP، خط الطول، خط العرض، الاتجاه، الزاوية، المدى، ارتفاع الهوائي</strong>.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="sectorExcelImportFile">ملف Excel أو CSV</label>
+                        <input type="file" class="form-control" id="sectorExcelImportFile" name="file"
+                               accept=".xlsx,.xlsm,.csv,.txt" required />
+                    </div>
+                    <a asp-action="DownloadSectorExcelImportTemplate" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-download"></i> تنزيل قالب Excel
+                    </a>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-upload"></i> استيراد
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <div class="small text-muted mb-2 sector-price-note">
     سعر الوحدة الفعال لاستيراد كل قطاع: <strong>@sectorImportUnitPrice.ToString("N2")</strong> ل.س.ج
@@ -106,22 +166,6 @@
                 </div>
             </div>
         </div>
-    </div>
-}
-
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger">
-        <i class="fas fa-exclamation-circle alert-icon"></i>
-        <div class="alert-content">@TempData["Error"]</div>
-    </div>
-}
-
-@if (TempData["ImportSectorWarnings"] is string importWarnings && !string.IsNullOrWhiteSpace(importWarnings))
-{
-    <div class="alert alert-warning">
-        <i class="fas fa-exclamation-triangle alert-icon"></i>
-        <div class="alert-content">@importWarnings</div>
     </div>
 }
 
@@ -506,6 +550,14 @@
 
     document.getElementById('employeeSectorImportServerSelect')?.addEventListener('change', updateEmployeeSectorImportPreviewCard);
     updateEmployeeSectorImportPreviewCard();
+
+    const excelImportBtn = document.getElementById('btnOpenSectorExcelImport');
+    const excelImportModalEl = document.getElementById('sectorExcelImportModal');
+    if (excelImportBtn && excelImportModalEl && typeof bootstrap !== 'undefined') {
+        excelImportBtn.addEventListener('click', function () {
+            bootstrap.Modal.getOrCreateInstance(excelImportModalEl).show();
+        });
+    }
 </script>
 
 <div class="card border-0 shadow-sm sector-table-card">

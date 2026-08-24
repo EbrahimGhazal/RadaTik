@@ -23,7 +23,7 @@ namespace RadaTik.Controllers
     // CompanyEmployee هو الدور الجديد للموظف التابع للشركة، و EmployeeLegacy للتوافق.
     [Authorize(Roles = "NetworkAdministrator,CompanyEmployee,Employee")]
     [Authorize(Policy = FeaturePolicyProvider.PolicyPrefix + FeatureKeys.Sectors)]
-    public class SectorController : Controller
+    public partial class SectorController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
