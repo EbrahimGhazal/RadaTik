@@ -119,18 +119,57 @@ namespace RadaTik.Controllers
             IReadOnlyList<string> userRoles = (await _userManager.GetRolesAsync(user)).ToList();
             bool canLoadMikroTik = User.IsInRole(RoleNames.NetworkAdministrator);
 
-            ClientDetailsPageModel page = await _app.ListQuery.BuildDetailsPageAsync(
-                id.Value,
-                user,
-                User,
-                userRoles,
-                canLoadMikroTik);
+            ClientDetailsPageModel page;
+            try
+            {
+                page = await _app.ListQuery.BuildDetailsPageAsync(
+                    id.Value,
+                    user,
+                    User,
+                    userRoles,
+                    canLoadMikroTik);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "فشل تحميل صفحة تفاصيل العميل {ClientId}", id);
+                page = await BuildDetailsFallbackAsync(id.Value, userRoles);
+            }
 
             return page.Access switch
             {
                 ClientListAccessOutcome.Forbidden => Forbid(),
                 ClientListAccessOutcome.NotFound => NotFound(),
                 _ => BindDetailsView(page)
+            };
+        }
+
+        private async Task<ClientDetailsPageModel> BuildDetailsFallbackAsync(
+            int clientId,
+            IReadOnlyList<string> userRoles)
+        {
+            Client? client = await _context.Clients
+                .Include(c => c.Receiver)
+                .Include(c => c.MikroTikServer)
+                .Include(c => c.Profile)
+                .FirstOrDefaultAsync(m => m.Id == clientId);
+
+            if (client == null)
+            {
+                return new ClientDetailsPageModel { Access = ClientListAccessOutcome.NotFound };
+            }
+
+            bool isEmployee = userRoles.Contains(RoleNames.CompanyEmployee) ||
+                              userRoles.Contains(RoleNames.EmployeeLegacy);
+            bool isClientOnly = userRoles.Contains(RoleNames.Client) && !isEmployee &&
+                                !userRoles.Contains(RoleNames.NetworkAdministrator);
+
+            return new ClientDetailsPageModel
+            {
+                Access = ClientListAccessOutcome.Ok,
+                Client = client,
+                IsClientOnly = isClientOnly,
+                CanEditClient = !isClientOnly,
+                MikroTikError = "تعذر تحميل بعض البيانات الإضافية. يتم عرض بيانات المشترك المحفوظة."
             };
         }
 
@@ -142,6 +181,7 @@ namespace RadaTik.Controllers
             ViewBag.MikroTikError = page.MikroTikError;
             ViewBag.IsClientView = page.IsClientView;
             ViewBag.IsClientOnly = page.IsClientOnly;
+            ViewBag.CanEditClient = page.CanEditClient;
             ViewBag.RecentTopUps = page.RecentTopUps;
             return View(page.Client);
         }

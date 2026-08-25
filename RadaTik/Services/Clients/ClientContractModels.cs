@@ -43,13 +43,14 @@ public sealed class ClientContractMeta
     public string? LicenseNumber { get; init; }
 }
 
-public sealed class ClientContractPrintViewData
+public sealed record ClientContractPrintViewData
 {
     public required DateTime ContractDate { get; init; }
     public required string ContractTitle { get; init; }
     public required string RecordNumber { get; init; }
     public required string LicenseNumber { get; init; }
     public required string BodyHtml { get; init; }
+    public RadaTik.Services.Documents.CompanyDocumentChrome? Chrome { get; init; }
 }
 
 public sealed class ClientContractTemplateSettingsViewData

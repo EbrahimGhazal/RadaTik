@@ -16,7 +16,7 @@
         ViewBag.FinancialHeroIcon = "fas fa-file-alt";
         ViewBag.FinancialHeroTheme = "wallet";
         ViewBag.FinancialHeroSubtitle = "تقارير مخصّصة — خصم من محفظة الشركة عند التصدير/الطباعة";
-        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-primary btn-sm micro-btn"" href=""" + Url.RouteUrl("networkManager-reports", new { action = "Templates" }) + @"""><i class=""fas fa-file-code""></i> قوالب التقارير</a>";
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-primary btn-sm micro-btn"" href=""" + Url.RouteUrl("networkManager-reports", new { action = "DocumentAppearance" }) + @"""><i class=""fas fa-stamp""></i> هوية المستندات</a> <a class=""btn btn-outline-primary btn-sm micro-btn"" href=""" + Url.RouteUrl("networkManager-reports", new { action = "Templates" }) + @"""><i class=""fas fa-file-code""></i> قوالب التقارير</a>";
     }
     <partial name="_FinancialSysHero" />
 
@@ -49,9 +49,9 @@
                 <table class="table table-bordered align-middle mb-0 report-settings-table">
                     <tbody>
                         <tr>
-                            <th scope="row" class="text-nowrap bg-light" style="width: 220px;">نوع التقرير</th>
+                            <th scope="row" class="text-nowrap bg-light">نوع التقرير</th>
                             <td>
-                                <select name="Kind" class="form-select" required aria-label="نوع التقرير">
+                                <select name="Kind" id="reportKindSelect" class="form-select" required aria-label="نوع التقرير">
                                     <option value="@((int)CompanyReportKind.Subscribers)">تقارير المشتركين</option>
                                     <option value="@((int)CompanyReportKind.Sectors)">تقارير المرسلات (القطاعات)</option>
                                     <option value="@((int)CompanyReportKind.Receivers)">تقارير المستقبلات</option>

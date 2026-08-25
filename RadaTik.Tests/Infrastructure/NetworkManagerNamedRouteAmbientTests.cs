@@ -36,6 +36,7 @@ public class NetworkManagerNamedRouteAmbientTests : IClassFixture<RadaTikWebAppl
     [InlineData("networkManager-employee-wallet-topups", "Index", "/networkManager/wallet/employee-topups")]
     [InlineData("networkManager-maintenance-invoices", "Index", "/networkManager/MaintenanceInvoices")]
     [InlineData("networkManager-maintenance-pricing", "Index", "/networkManager/MaintenancePricing")]
+    [InlineData("networkManager-maintenance-pricing", "SaveAll", "/networkManager/MaintenancePricing/SaveAll")]
     [InlineData("networkManager-subscriber-installation-invoices", "Index", "/networkManager/SubscriberInstallationInvoices")]
     [InlineData("networkManager-subscriber-installation-pricing", "Index", "/networkManager/SubscriberInstallationPricing")]
     [InlineData("networkManager-erp-customers", "Index", "/networkManager/erp/customers")]

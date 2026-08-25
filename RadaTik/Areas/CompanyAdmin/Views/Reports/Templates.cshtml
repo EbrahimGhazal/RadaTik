@@ -14,7 +14,7 @@
         ViewBag.FinancialHeroIcon = "fas fa-file-code";
         ViewBag.FinancialHeroTheme = "wallet";
         ViewBag.FinancialHeroSubtitle = "ثوابت ومتغيرات قوالب التقارير";
-        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-secondary btn-sm micro-btn"" href=""" + Url.RouteUrl("networkManager-reports", new { action = "Index", id = "" }) + @"""><i class=""fas fa-arrow-right""></i> التقارير</a>";
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-primary btn-sm micro-btn"" href=""" + Url.Action("DocumentAppearance") + @"""><i class=""fas fa-stamp""></i> هوية المستندات</a> <a class=""btn btn-outline-secondary btn-sm micro-btn"" href=""" + Url.RouteUrl("networkManager-reports", new { action = "Index", id = "" }) + @"""><i class=""fas fa-arrow-right""></i> التقارير</a>";
     }
     <partial name="_FinancialSysHero" />
 
@@ -32,6 +32,10 @@
         <p class="text-muted">
             لكل نوع تقرير يمكنك كتابة نصوص وثوابت وتنسيق HTML، بينما تُستبدل المتغيرات مثل <code>{{CompanyName}}</code> تلقائياً من التطبيق.
             ضع <code>{{DATA_TABLE}}</code> حيث تريد إدراج <strong>جدول بيانات</strong> (صفوف = السجلات، أعمدة = الحقول) يُولَّد من النظام كـ HTML.
+        </p>
+        <p class="alert alert-light border">
+            ترويسة الشعار والعلامة المائية وألوان الجدول هي <strong>هوية شركتك الخاصة</strong> وتُطبَّق على كل التقارير والعقود.
+            <a asp-action="DocumentAppearance">تعديل هوية المستندات</a>
         </p>
         <div class="table-responsive">
             <table class="table align-middle radtk-data-table radtk-data-table--cards">

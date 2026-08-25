@@ -9,6 +9,7 @@ using global::RadaTik.Helpers;
 using global::RadaTik.Models;
 using global::RadaTik.Security;
 using global::RadaTik.Services;
+using global::RadaTik.Services.Documents;
 using global::RadaTik.Services.Reports;
 using global::RadaTik.ViewModels.CompanyAdmin;
 using System.Globalization;
@@ -19,7 +20,7 @@ namespace RadaTik.Areas.CompanyAdmin.Controllers;
 [Area("CompanyAdmin")]
 [Authorize(Roles = RoleNames.NetworkOrSystemAdministrator)]
 [Authorize(Policy = FeaturePolicyProvider.PolicyPrefix + FeatureKeys.Reports)]
-public sealed class ReportsController : Controller
+public sealed partial class ReportsController : Controller
 {
     /// <summary>يُرجَع مع ملف Excel بعد التصدير لتحديث رصيد الهيدر دون إعادة تحميل الصفحة.</summary>
     private const string CompanyWalletBalanceHeaderName = "X-Company-Wallet-Balance";
@@ -37,15 +38,18 @@ public sealed class ReportsController : Controller
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IUsageBasedSubscriptionChargeService _usageCharge;
+    private readonly ICompanyDocumentAppearanceService _documentAppearance;
 
     public ReportsController(
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
-        IUsageBasedSubscriptionChargeService usageCharge)
+        IUsageBasedSubscriptionChargeService usageCharge,
+        ICompanyDocumentAppearanceService documentAppearance)
     {
         _db = db;
         _userManager = userManager;
         _usageCharge = usageCharge;
+        _documentAppearance = documentAppearance;
     }
 
     [HttpGet]
@@ -129,6 +133,8 @@ public sealed class ReportsController : Controller
         ViewBag.KindTitle = ReportTemplateFormatter.GetReportTitleDisplay(kind);
         ViewBag.BodyContent = row?.BodyContent ?? "";
         ViewBag.DefaultSample = DefaultTemplateSample;
+        ViewBag.PrintColumns = ReportPrintColumns.Selectable(kind);
+        ViewBag.SelectedPrintColumns = ReportPrintColumns.Deserialize(kind, row?.PrintedColumnKeys);
         ViewBag.Networks = await NetworkHelper.GetAvailableNetworksAsync(_db, user, _userManager);
         ViewBag.CurrentNetworkId = selectedNetworkId;
 
@@ -139,6 +145,7 @@ public sealed class ReportsController : Controller
     {
         public CompanyReportKind Kind { get; set; }
         public string? BodyContent { get; set; }
+        public List<string>? Columns { get; set; }
     }
 
     [HttpPost]
@@ -173,6 +180,7 @@ public sealed class ReportsController : Controller
         int companyNetworkId = selectedNetwork.ParentNetworkId ?? selectedNetwork.Id;
 
         string? body = string.IsNullOrWhiteSpace(form.BodyContent) ? null : form.BodyContent.Trim();
+        string printedColumns = ReportPrintColumns.Serialize(form.Kind, form.Columns ?? []);
         NetworkReportTemplate? row = await _db.NetworkReportTemplates
             .FirstOrDefaultAsync(t => t.CompanyNetworkId == companyNetworkId && t.ReportKind == form.Kind);
 
@@ -184,6 +192,7 @@ public sealed class ReportsController : Controller
                 CompanyNetworkId = companyNetworkId,
                 ReportKind = form.Kind,
                 BodyContent = body,
+                PrintedColumnKeys = printedColumns,
                 UpdatedAt = now,
                 UpdatedByUserId = user.Id
             });
@@ -191,6 +200,8 @@ public sealed class ReportsController : Controller
         else
         {
             row.BodyContent = body;
+            row.PrintedColumnKeys = printedColumns;
+
             row.UpdatedAt = now;
             row.UpdatedByUserId = user.Id;
         }
@@ -206,6 +217,7 @@ public sealed class ReportsController : Controller
         public CompanyReportPeriodPreset Period { get; set; }
         public DateTime? CustomFrom { get; set; }
         public DateTime? CustomTo { get; set; }
+        public List<string>? Columns { get; set; }
     }
 
     [HttpPost]
@@ -400,28 +412,30 @@ public sealed class ReportsController : Controller
             }
         }
 
+        IReadOnlyList<string> selectedColumns = await ResolveAndPersistColumnsAsync(
+            companyNetworkId, user.Id, form.Kind, form.Columns, ct);
         string[] headers;
         List<IReadOnlyList<string>> rows;
         switch (form.Kind)
         {
             case CompanyReportKind.Subscribers:
-                (headers, rows) = await QuerySubscribersAsync(networkIds, range, ct);
+                (headers, rows) = await QuerySubscribersAsync(networkIds, range, selectedColumns, ct);
                 break;
             case CompanyReportKind.Sectors:
-                (headers, rows) = await QuerySectorsAsync(networkIds, range, ct);
+                (headers, rows) = await QuerySectorsAsync(networkIds, range, selectedColumns, ct);
                 break;
             case CompanyReportKind.Receivers:
-                (headers, rows) = await QueryReceiversAsync(networkIds, range, ct);
+                (headers, rows) = await QueryReceiversAsync(networkIds, range, selectedColumns, ct);
                 break;
             case CompanyReportKind.Servers:
-                (headers, rows) = await QueryServersAsync(networkIds, range, ct);
+                (headers, rows) = await QueryServersAsync(networkIds, range, selectedColumns, ct);
                 break;
             case CompanyReportKind.Subcontractors:
-                (headers, rows) = await QuerySubcontractorsAsync(networkIds, range, ct);
+                (headers, rows) = await QuerySubcontractorsAsync(networkIds, range, selectedColumns, ct);
                 break;
             default:
                 headers = [];
-                rows = new List<IReadOnlyList<string>>();
+                rows = [];
                 break;
         }
 
@@ -487,15 +501,61 @@ public sealed class ReportsController : Controller
             ChargedAmountSyp = charge?.Success == true ? charge.ChargedAmountSyp : null,
             UseCustomTemplate = useCustom,
             CustomHtmlBeforeTable = before,
-            CustomHtmlAfterTable = after
+            CustomHtmlAfterTable = after,
+            SelectedColumnKeys = selectedColumns,
+            Chrome = await _documentAppearance.GetChromeAsync(
+                companyNetworkId,
+                ReportTemplateFormatter.GetReportTitleDisplay(form.Kind),
+                selectedNetwork.Name,
+                DateTime.Now.ToString("yyyy/MM/dd HH:mm"),
+                ct)
         };
 
         return new BuildReportOutcome(vm, null);
     }
 
+    private async Task<IReadOnlyList<string>> ResolveAndPersistColumnsAsync(
+        int companyNetworkId,
+        string userId,
+        CompanyReportKind kind,
+        IEnumerable<string>? requested,
+        CancellationToken ct)
+    {
+        NetworkReportTemplate? row = await _db.NetworkReportTemplates
+            .FirstOrDefaultAsync(t => t.CompanyNetworkId == companyNetworkId && t.ReportKind == kind, ct);
+
+        IReadOnlyList<string> selected = requested != null && requested.Any(k => !string.IsNullOrWhiteSpace(k))
+            ? ReportPrintColumns.ResolveSelected(kind, requested)
+            : ReportPrintColumns.Deserialize(kind, row?.PrintedColumnKeys);
+
+        string serialized = ReportPrintColumns.Serialize(kind, selected);
+        if (row == null)
+        {
+            _db.NetworkReportTemplates.Add(new NetworkReportTemplate
+            {
+                CompanyNetworkId = companyNetworkId,
+                ReportKind = kind,
+                PrintedColumnKeys = serialized,
+                UpdatedAt = DateTime.UtcNow,
+                UpdatedByUserId = userId
+            });
+            await _db.SaveChangesAsync(ct);
+        }
+        else if (!string.Equals(row.PrintedColumnKeys, serialized, StringComparison.Ordinal))
+        {
+            row.PrintedColumnKeys = serialized;
+            row.UpdatedAt = DateTime.UtcNow;
+            row.UpdatedByUserId = userId;
+            await _db.SaveChangesAsync(ct);
+        }
+
+        return selected;
+    }
+
     private async Task<(string[] Headers, List<IReadOnlyList<string>> Rows)> QuerySubscribersAsync(
         List<int> networkIds,
         CompanyReportDateRange range,
+        IReadOnlyList<string> selectedColumns,
         CancellationToken ct)
     {
         List<Client> list = await _db.Clients
@@ -503,36 +563,19 @@ public sealed class ReportsController : Controller
             .Where(c => c.NetworkId.HasValue && networkIds.Contains(c.NetworkId.Value))
             .Where(c => c.CreatedDate >= range.FromInclusive && c.CreatedDate <= range.ToInclusive)
             .Include(c => c.Profile)
-            .OrderBy(c => c.Id)
+            .Include(c => c.Receiver)
+            .Include(c => c.Network)
+            .OrderBy(c => c.Name)
+            .ThenBy(c => c.Id)
             .ToListAsync(ct);
 
-        string[] headers =
-        [
-            "الرقم", "الاسم الثلاثي", "الرقم الوطني", "اسم المستخدم", "الجوال", "البروفايل", "تاريخ الانضمام", "العنوان"
-        ];
-
-        List<IReadOnlyList<string>> rows = new List<IReadOnlyList<string>>(list.Count);
-        foreach (Client? c in list)
-        {
-            rows.Add(new[]
-            {
-                c.Id.ToString(),
-                c.Name ?? "",
-                c.SID ?? "",
-                c.UserName ?? "",
-                c.PhoneNumber ?? "",
-                c.Profile?.Name ?? c.ProfileName ?? "",
-                c.CreatedDate.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture),
-                c.ResidenceAddress ?? ""
-            });
-        }
-
-        return (headers, rows);
+        return ReportPrintColumns.BuildSubscribers(list, selectedColumns);
     }
 
     private async Task<(string[] Headers, List<IReadOnlyList<string>> Rows)> QuerySectorsAsync(
         List<int> networkIds,
         CompanyReportDateRange range,
+        IReadOnlyList<string> selectedColumns,
         CancellationToken ct)
     {
         List<Sector> list = await _db.Sectors
@@ -540,39 +583,18 @@ public sealed class ReportsController : Controller
             .Where(s => s.NetworkId.HasValue && networkIds.Contains(s.NetworkId.Value))
             .Where(s => s.CreatedDate >= range.FromInclusive && s.CreatedDate <= range.ToInclusive)
             .Include(s => s.Network)
-            .OrderBy(s => s.Id)
+            .Include(s => s.MikroTikServer)
+            .OrderBy(s => s.Name)
+            .ThenBy(s => s.Id)
             .ToListAsync(ct);
 
-        // صف واحد لكل مرسل، أعمدة أفقية مختصرة لتوفير الورق عند الطباعة (بدون خادم/تاريخ إنشاء/نشط؛ إحداثيات مدمجة).
-        string[] headers =
-        [
-            "المعرف", "الاسم", "IP", "الإحداثيات (عرض، طول)", "الارتفاع (م)", "الاتجاه", "زاوية الانتشار", "مدى (كم)", "الشبكة"
-        ];
-
-        List<IReadOnlyList<string>> rows = new List<IReadOnlyList<string>>(list.Count);
-        foreach (Sector? s in list)
-        {
-            string latLon = string.Create(CultureInfo.InvariantCulture, $"{s.Latitude:F5}، {s.Longitude:F5}");
-            rows.Add(new[]
-            {
-                s.Id.ToString(),
-                s.Name ?? "",
-                s.IPAddress ?? "",
-                latLon,
-                s.ElevationMeters?.ToString("F1", CultureInfo.InvariantCulture) ?? "",
-                s.Direction.ToString("F0", CultureInfo.InvariantCulture),
-                s.CoverageAngle.ToString("F0", CultureInfo.InvariantCulture),
-                s.CoverageRange.ToString("F2", CultureInfo.InvariantCulture),
-                s.Network?.Name ?? ""
-            });
-        }
-
-        return (headers, rows);
+        return ReportPrintColumns.BuildSectors(list, selectedColumns);
     }
 
     private async Task<(string[] Headers, List<IReadOnlyList<string>> Rows)> QueryReceiversAsync(
         List<int> networkIds,
         CompanyReportDateRange range,
+        IReadOnlyList<string> selectedColumns,
         CancellationToken ct)
     {
         List<Receiver> list = await _db.Receivers
@@ -581,40 +603,18 @@ public sealed class ReportsController : Controller
             .Where(r => r.CreatedDate >= range.FromInclusive && r.CreatedDate <= range.ToInclusive)
             .Include(r => r.Sector)
             .Include(r => r.Network)
-            .OrderBy(r => r.Id)
+            .Include(r => r.Clients)
+            .OrderBy(r => r.Name)
+            .ThenBy(r => r.Id)
             .ToListAsync(ct);
 
-        string[] headers =
-        [
-            "المعرف", "الاسم", "IP", "قناع الشبكة", "القطاع", "الشبكة", "خط العرض", "خط الطول",
-            "عدد المشتركين", "تاريخ الإنشاء", "نشط"
-        ];
-
-        List<IReadOnlyList<string>> rows = new List<IReadOnlyList<string>>(list.Count);
-        foreach (Receiver? r in list)
-        {
-            rows.Add(new[]
-            {
-                r.Id.ToString(),
-                r.Name ?? "",
-                r.IPAddress ?? "",
-                r.NetworkMask ?? "",
-                r.Sector?.Name ?? "",
-                r.Network?.Name ?? "",
-                r.Latitude.ToString("F6"),
-                r.Longitude.ToString("F6"),
-                r.UserCount.ToString(),
-                r.CreatedDate.ToString("yyyy/MM/dd HH:mm"),
-                r.IsActive ? "نعم" : "لا"
-            });
-        }
-
-        return (headers, rows);
+        return ReportPrintColumns.BuildReceivers(list, selectedColumns);
     }
 
     private async Task<(string[] Headers, List<IReadOnlyList<string>> Rows)> QueryServersAsync(
         List<int> networkIds,
         CompanyReportDateRange range,
+        IReadOnlyList<string> selectedColumns,
         CancellationToken ct)
     {
         List<MikroTikServer> list = await _db.MikroTikServers
@@ -622,37 +622,17 @@ public sealed class ReportsController : Controller
             .Where(s => s.NetworkId.HasValue && networkIds.Contains(s.NetworkId.Value))
             .Where(s => s.CreatedAt >= range.FromInclusive && s.CreatedAt <= range.ToInclusive)
             .Include(s => s.Network)
-            .OrderBy(s => s.Id)
+            .OrderBy(s => s.Name)
+            .ThenBy(s => s.Id)
             .ToListAsync(ct);
 
-        string[] headers =
-        [
-            "المعرف", "الاسم", "المضيف", "المنفذ", "المستخدم", "ملاحظات", "الشبكة", "تاريخ الإنشاء", "نشط"
-        ];
-
-        List<IReadOnlyList<string>> rows = new List<IReadOnlyList<string>>(list.Count);
-        foreach (MikroTikServer? s in list)
-        {
-            rows.Add(new[]
-            {
-                s.Id.ToString(),
-                s.Name,
-                s.Host,
-                s.Port.ToString(),
-                s.User,
-                s.Notes ?? "",
-                s.Network?.Name ?? "",
-                s.CreatedAt.ToString("yyyy/MM/dd HH:mm"),
-                s.IsActive ? "نعم" : "لا"
-            });
-        }
-
-        return (headers, rows);
+        return ReportPrintColumns.BuildServers(list, selectedColumns);
     }
 
     private async Task<(string[] Headers, List<IReadOnlyList<string>> Rows)> QuerySubcontractorsAsync(
         List<int> networkIds,
         CompanyReportDateRange range,
+        IReadOnlyList<string> selectedColumns,
         CancellationToken ct)
     {
         List<CollectionPointAccount> list = await _db.CollectionPointAccounts
@@ -661,31 +641,11 @@ public sealed class ReportsController : Controller
             .Where(a => a.CreatedAt >= range.FromInclusive && a.CreatedAt <= range.ToInclusive)
             .Include(a => a.User)
             .Include(a => a.Network)
-            .OrderBy(a => a.Id)
+            .OrderBy(a => a.User != null ? a.User.UserName : "")
+            .ThenBy(a => a.Id)
             .ToListAsync(ct);
 
-        string[] headers =
-        [
-            "معرف الحساب", "اسم المستخدم", "الاسم الكامل", "البريد", "الهاتف", "الشبكة", "الرصيد", "تاريخ الإنشاء"
-        ];
-
-        List<IReadOnlyList<string>> rows = new List<IReadOnlyList<string>>(list.Count);
-        foreach (CollectionPointAccount? a in list)
-        {
-            rows.Add(new[]
-            {
-                a.Id.ToString(),
-                a.User?.UserName ?? "",
-                a.User?.FullName ?? "",
-                a.User?.Email ?? "",
-                a.User?.PhoneNumber ?? "",
-                a.Network?.Name ?? "",
-                a.Balance.ToString("N2"),
-                a.CreatedAt.ToString("yyyy/MM/dd HH:mm")
-            });
-        }
-
-        return (headers, rows);
+        return ReportPrintColumns.BuildSubcontractors(list, selectedColumns);
     }
 
     private static byte[] BuildExcelBytes(CompanyReportsResultViewModel vm)

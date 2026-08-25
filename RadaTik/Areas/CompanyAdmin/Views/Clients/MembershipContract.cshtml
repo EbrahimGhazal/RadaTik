@@ -6,6 +6,7 @@
     var recordNumber = (string?)ViewBag.ContractRecordNumber ?? "-";
     var licenseNumber = (string?)ViewBag.ContractLicenseNumber ?? "-";
     var contractBodyHtml = (string?)ViewBag.ContractBodyHtml ?? string.Empty;
+    var documentChrome = ViewBag.DocumentChrome as RadaTik.Services.Documents.CompanyDocumentChrome;
 }
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -13,6 +14,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@contractTitle</title>
+    <link rel="stylesheet" href="~/css/company-document-chrome.css" asp-append-version="true" />
     <style>
         body {
             margin: 0;
@@ -137,6 +139,12 @@
             <button class="btn btn-secondary" onclick="window.close()">إغلاق</button>
         </div>
 
+        @if (documentChrome != null)
+        {
+            <partial name="_CompanyDocumentChromeStart" model="documentChrome" />
+        }
+        else
+        {
         <div class="contract-header">
             <div class="header-grid">
                 <div class="meta-list">
@@ -163,6 +171,17 @@
                 </div>
             </div>
         </div>
+        }
+
+        @if (documentChrome != null)
+        {
+            <div class="meta-list" style="margin-bottom:16px;font-size:14px;line-height:1.9;">
+                <div><strong>تاريخ العقد:</strong> @contractDate.ToString("yyyy/MM/dd")</div>
+                <div><strong>رقم السجل:</strong> @recordNumber</div>
+                <div><strong>رقم الترخيص:</strong> @licenseNumber</div>
+                <div><strong>رقم المشترك:</strong> @(Model.SID ?? "-")</div>
+            </div>
+        }
 
         <h1 class="contract-title">@contractTitle</h1>
 
@@ -178,6 +197,10 @@
                 توقيع المشترك
             </div>
         </div>
+        @if (documentChrome != null)
+        {
+            <partial name="_CompanyDocumentChromeEnd" model="documentChrome" />
+        }
     </div>
 </body>
 </html>

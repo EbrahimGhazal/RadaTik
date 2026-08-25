@@ -54,6 +54,47 @@ public sealed class ClientProvisioningServiceTests
     }
 
     [Fact]
+    public async Task DeleteClientAsync_WhenLastDuplicateRemoved_ClearsFlagOnRemainingClient()
+    {
+        await using ApplicationDbContext db = CreateDb();
+        db.Clients.Add(MinimalClient(1, "same-user", 2, 9, isCrossServerDuplicate: true));
+        db.Clients.Add(MinimalClient(2, "same-user", 2, 10, isCrossServerDuplicate: true));
+        await db.SaveChangesAsync();
+
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        mikroTik.Setup(m => m.DeletePPPoEUser("same-user", 10)).ReturnsAsync(true);
+
+        ClientProvisioningService sut = CreateSut(db, mikroTik.Object);
+        ClientOperationOutcome outcome = await sut.DeleteClientAsync(2, 2);
+
+        Assert.True(outcome.IsSuccess);
+        Client remaining = Assert.Single(await db.Clients.ToListAsync());
+        Assert.Equal(1, remaining.Id);
+        Assert.False(remaining.IsCrossServerDuplicate);
+    }
+
+    [Fact]
+    public async Task DeleteClientAsync_WhenOtherDuplicatesRemain_KeepsFlag()
+    {
+        await using ApplicationDbContext db = CreateDb();
+        db.Clients.Add(MinimalClient(1, "same-user", 2, 9, isCrossServerDuplicate: true));
+        db.Clients.Add(MinimalClient(2, "same-user", 2, 10, isCrossServerDuplicate: true));
+        db.Clients.Add(MinimalClient(3, "same-user", 2, 11, isCrossServerDuplicate: true));
+        await db.SaveChangesAsync();
+
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        mikroTik.Setup(m => m.DeletePPPoEUser("same-user", 11)).ReturnsAsync(true);
+
+        ClientProvisioningService sut = CreateSut(db, mikroTik.Object);
+        ClientOperationOutcome outcome = await sut.DeleteClientAsync(3, 2);
+
+        Assert.True(outcome.IsSuccess);
+        List<Client> remaining = await db.Clients.OrderBy(c => c.Id).ToListAsync();
+        Assert.Equal(2, remaining.Count);
+        Assert.All(remaining, c => Assert.True(c.IsCrossServerDuplicate));
+    }
+
+    [Fact]
     public async Task DeleteClientAsync_UnknownClient_ReturnsNotFound()
     {
         await using ApplicationDbContext db = CreateDb();
@@ -98,6 +139,121 @@ public sealed class ClientProvisioningServiceTests
 
         Assert.Equal(ClientEditStatus.EmployeePendingApproval, outcome.Status);
         approvals.VerifyAll();
+        mikroTik.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task UpdateClientAsync_AdminWithoutMikroTikFlag_SavesDatabaseOnly()
+    {
+        await using ApplicationDbContext db = CreateDb();
+        db.Networks.Add(new Network { Id = 2, Name = "Net" });
+        db.Profiles.Add(new Profile { Id = 1, Name = "10M", NetworkId = 2 });
+        db.Clients.Add(MinimalClient(5, "keep-user", 2, 9));
+        await db.SaveChangesAsync();
+
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        ClientProvisioningService sut = CreateSut(db, mikroTik.Object);
+        Client submitted = new()
+        {
+            Id = 5,
+            Name = "اسم جديد",
+            UserName = "hacked-user",
+            Password = "new-pass",
+            ProfileId = 1,
+            PhoneNumber = "0999999999",
+            IsActive = false
+        };
+
+        ClientEditOutcome outcome = await sut.UpdateClientAsync(new ClientEditRequest
+        {
+            ClientId = 5,
+            SubmittedClient = submitted,
+            NetworkId = 2,
+            ActorUserId = "admin-1",
+            IsEmployee = false,
+            ApplyMikroTikChanges = false
+        });
+
+        Assert.Equal(ClientEditStatus.Success, outcome.Status);
+        Assert.Contains("دون تغيير إعدادات MikroTik", outcome.Message);
+        Client saved = await db.Clients.SingleAsync(c => c.Id == 5);
+        Assert.Equal("اسم جديد", saved.Name);
+        Assert.Equal("keep-user", saved.UserName);
+        Assert.Equal("pass", saved.Password);
+        Assert.True(saved.IsActive);
+        mikroTik.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task UpdateClientAsync_AdminWithMikroTikFlag_PushesToMikroTik()
+    {
+        await using ApplicationDbContext db = CreateDb();
+        db.Networks.Add(new Network { Id = 2, Name = "Net" });
+        db.Profiles.Add(new Profile { Id = 1, Name = "10M", NetworkId = 2 });
+        db.Clients.Add(MinimalClient(5, "keep-user", 2, 9));
+        await db.SaveChangesAsync();
+
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        mikroTik.Setup(m => m.UpdatePPPoEUser(It.IsAny<Client>())).ReturnsAsync(true);
+
+        ClientProvisioningService sut = CreateSut(db, mikroTik.Object);
+        Client submitted = new()
+        {
+            Id = 5,
+            Name = "اسم جديد",
+            UserName = "keep-user",
+            Password = "new-pass",
+            ProfileId = 1,
+            PhoneNumber = "0999999999",
+            MikroTikServerId = 9,
+            IsActive = true
+        };
+
+        ClientEditOutcome outcome = await sut.UpdateClientAsync(new ClientEditRequest
+        {
+            ClientId = 5,
+            SubmittedClient = submitted,
+            NetworkId = 2,
+            ActorUserId = "admin-1",
+            IsEmployee = false,
+            ApplyMikroTikChanges = true
+        });
+
+        Assert.Equal(ClientEditStatus.Success, outcome.Status);
+        Assert.Contains("المايكروتك", outcome.Message);
+        Client saved = await db.Clients.SingleAsync(c => c.Id == 5);
+        Assert.Equal("اسم جديد", saved.Name);
+        Assert.Equal("new-pass", saved.Password);
+        mikroTik.Verify(m => m.UpdatePPPoEUser(It.Is<Client>(c => c.Id == 5 && c.Password == "new-pass")), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateClientAsync_EmployeeFlagCannotForceMikroTikPush()
+    {
+        await using ApplicationDbContext db = CreateDb();
+        db.Networks.Add(new Network { Id = 2, Name = "Net" });
+        db.Clients.Add(MinimalClient(5, "u5", 2, 1));
+        await db.SaveChangesAsync();
+
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        Mock<IEmployeeServiceApprovalRequestService> approvals = new(MockBehavior.Strict);
+        approvals
+            .Setup(a => a.CreatePendingAsync(2, "emp-1", FeatureKeys.Clients, It.IsAny<string>(), 0m, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(42);
+
+        ClientProvisioningService sut = CreateSut(db, mikroTik.Object, approvals.Object);
+        ClientEditOutcome outcome = await sut.UpdateClientAsync(new ClientEditRequest
+        {
+            ClientId = 5,
+            SubmittedClient = new Client { Id = 5, Name = "New Name", UserName = "u5-new", ProfileId = 1 },
+            NetworkId = 2,
+            ActorUserId = "emp-1",
+            IsEmployee = true,
+            ApplyMikroTikChanges = true
+        });
+
+        Assert.Equal(ClientEditStatus.EmployeePendingApproval, outcome.Status);
+        mikroTik.VerifyNoOtherCalls();
     }
 
     [Fact]
@@ -123,7 +279,12 @@ public sealed class ClientProvisioningServiceTests
             approvals ?? Mock.Of<IEmployeeServiceApprovalRequestService>(),
             Mock.Of<ILogger<ClientProvisioningService>>());
 
-    private static Client MinimalClient(int id, string userName, int networkId, int? serverId = null) =>
+    private static Client MinimalClient(
+        int id,
+        string userName,
+        int networkId,
+        int? serverId = null,
+        bool isCrossServerDuplicate = false) =>
         new()
         {
             Id = id,
@@ -134,7 +295,8 @@ public sealed class ClientProvisioningServiceTests
             PhoneNumber = "0999999999",
             NetworkId = networkId,
             ProfileId = 1,
-            MikroTikServerId = serverId
+            MikroTikServerId = serverId,
+            IsCrossServerDuplicate = isCrossServerDuplicate
         };
 
     private static Mock<UserManager<ApplicationUser>> BuildUserManagerMock()

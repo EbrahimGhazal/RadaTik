@@ -4,12 +4,14 @@ using RadaTik.Data;
 using RadaTik.Domain.Clients;
 using RadaTik.Domain.Common;
 using RadaTik.Models;
+using RadaTik.Services.Documents;
 
 namespace RadaTik.Services.Clients;
 
 public sealed class ClientContractService(
     ApplicationDbContext context,
-    IClientRenewalGuardService renewalGuardService)
+    IClientRenewalGuardService renewalGuardService,
+    ICompanyDocumentAppearanceService documentAppearance)
     : ApplicationServiceBase(context), IClientContractService
 {
     private const string ContractTemplateServiceKey = "CONTRACT_TEMPLATE";
@@ -163,11 +165,25 @@ public sealed class ClientContractService(
             ? await GetTemplateBodyAsync(contractNetworkId, ct)
             : DefaultTemplateBody;
 
+        ClientContractPrintViewData printView = BuildPrintView(client, meta, templateBody, DateTime.Now);
+        int appearanceScope = client.Network?.ParentNetworkId ?? contractNetworkId;
+        if (appearanceScope > 0)
+        {
+            printView = printView with
+            {
+                Chrome = await documentAppearance.GetChromeAsync(
+                    appearanceScope,
+                    printView.ContractTitle,
+                    client.Network?.Name,
+                    printView.ContractDate.ToString("yyyy/MM/dd"),
+                    ct)
+            };
+        }
         return new ClientMembershipContractPageResult
         {
             Status = ClientContractPageStatus.Success,
             Client = client,
-            PrintView = BuildPrintView(client, meta, templateBody, DateTime.Now)
+            PrintView = printView
         };
     }
 

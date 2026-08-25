@@ -18,8 +18,15 @@
             @ViewData["Title"]
         </h1>
         <div class="page-actions">
+            <a asp-action="ExportToExcel" class="btn btn-outline-success btn-sm receiver-action-btn" title="تصدير بيانات المستقبلات إلى Excel">
+                <i class="fas fa-file-export"></i> تصدير إلى Excel
+            </a>
             @if (canCreate)
             {
+                <button type="button" class="btn btn-outline-success btn-sm receiver-action-btn" id="btnOpenReceiverExcelImport"
+                        title="استيراد مستقبلات من ملف Excel">
+                    <i class="fas fa-file-excel"></i> استيراد من Excel
+                </button>
                 <a asp-action="Create" class="btn btn-success btn-sm receiver-action-btn">
                     <i class="fas fa-plus"></i> إضافة مستقبل
                 </a>
@@ -43,6 +50,54 @@
         <div class="alert-content">@TempData["Error"]</div>
     </div>
 }
+
+@if (TempData["ImportReceiverWarnings"] is string importWarnings && !string.IsNullOrWhiteSpace(importWarnings))
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle alert-icon"></i>
+        <div class="alert-content">@importWarnings</div>
+    </div>
+}
+
+<div class="modal fade" id="receiverExcelImportModal" tabindex="-1" aria-labelledby="receiverExcelImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="ImportFromExcel" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="receiverExcelImportModalLabel">
+                        <i class="fas fa-file-excel text-success"></i>
+                        استيراد المستقبلات من ملف Excel
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-2">
+                        يُضاف مستقبل جديد لكل صف صالح. يجب أن يكون <strong>اسم المرسل</strong> مطابقاً لمرسل موجود في الشبكة الحالية.
+                    </p>
+                    <div class="alert alert-info small py-2 mb-3">
+                        الأعمدة المطلوبة:
+                        <strong>اسم المستقبل، اسم المرسل، عنوان IP، خط الطول، خط العرض، ارتفاع الهوائي</strong>.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="receiverExcelImportFile">ملف Excel أو CSV</label>
+                        <input type="file" class="form-control" id="receiverExcelImportFile" name="file"
+                               accept=".xlsx,.xlsm,.csv,.txt" required />
+                    </div>
+                    <a asp-action="DownloadReceiverExcelImportTemplate" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-download"></i> تنزيل قالب Excel
+                    </a>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-upload"></i> استيراد
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <div class="row g-2 mb-3">
     <div class="col-md-4 col-6">
@@ -149,6 +204,14 @@
             var mapDataJson = '@Html.Raw(ViewBag.MapDataJson ?? "[]")';
             if (typeof initReceiverMap === 'function') {
                 initReceiverMap('receiversMap', mapDataJson);
+            }
+
+            const excelImportBtn = document.getElementById('btnOpenReceiverExcelImport');
+            const excelImportModalEl = document.getElementById('receiverExcelImportModal');
+            if (excelImportBtn && excelImportModalEl && typeof bootstrap !== 'undefined') {
+                excelImportBtn.addEventListener('click', function () {
+                    bootstrap.Modal.getOrCreateInstance(excelImportModalEl).show();
+                });
             }
         });
     </script>

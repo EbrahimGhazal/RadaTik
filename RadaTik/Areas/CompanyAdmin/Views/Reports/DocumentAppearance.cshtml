@@ -1,0 +1,224 @@
+@using RadaTik.Models
+@using RadaTik.Services.Documents
+@model CompanyDocumentAppearanceEditor
+@{
+    ViewData["Title"] = "هوية مستندات الشركة";
+    var previewLogo = Model.UseNetworkLogo ? Model.NetworkLogoPath : (Model.CustomLogoPath ?? Model.NetworkLogoPath);
+}
+<div class="radtk-page--companyadmin-views-reports-documentappearance">
+<div class="financial-page financial-hub-page">
+    @{
+        ViewBag.FinancialNavCurrent = "reports";
+        ViewBag.FinancialNavShowWarehouse = false;
+        ViewBag.FinancialHeroIcon = "fas fa-stamp";
+        ViewBag.FinancialHeroTheme = "wallet";
+        ViewBag.FinancialHeroSubtitle = "تصميم خاص بشركتك — التقارير والعقود";
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-secondary btn-sm micro-btn"" href=""" + Url.Action("Templates") + @"""><i class=""fas fa-arrow-right""></i> قوالب التقارير</a>";
+    }
+    <partial name="_FinancialQuickNav" />
+    <partial name="_FinancialSysHero" />
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="alert alert-info">
+    هذه الهوية ملك <strong>@Model.CompanyName</strong> وحدها. لا تُنسخ إلى شركات أخرى، وتُستخدم في طباعة التقارير وعقود الانضمام عند تقديمها للعميل أو للهيئة الناظمة للاتصالات والبريد.
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title mb-0">إعدادات العرض</h3></div>
+            <div class="card-body">
+                <form asp-action="DocumentAppearance" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label">شكل الترويسة</label>
+                        <select name="HeaderLayout" class="form-select" id="hdrLayout">
+                            <!option value="0" @(Model.HeaderLayout == DocumentHeaderLayout.ClassicSplit ? "selected" : null)>كلاسيكي: اسم الشركة والشعار في الوسط</!option>
+                            <!option value="1" @(Model.HeaderLayout == DocumentHeaderLayout.CenteredLogo ? "selected" : null)>شعار واسم في الوسط</!option>
+                            <!option value="2" @(Model.HeaderLayout == DocumentHeaderLayout.ColorBar ? "selected" : null)>شريط لوني علوي</!option>
+                            <!option value="3" @(Model.HeaderLayout == DocumentHeaderLayout.Minimal ? "selected" : null)>مختصر</!option>
+                        </select>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="ShowLogo" value="true" id="showLogo" @(Model.ShowLogo ? "checked" : null) />
+                        <label class="form-check-label" for="showLogo">إظهار الشعار في المستند</label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="UseNetworkLogo" value="true" id="useNetworkLogo" @(Model.UseNetworkLogo ? "checked" : null) />
+                        <label class="form-check-label" for="useNetworkLogo">استخدام شعار الشركة من بيانات الشبكة</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="logoFile">شعار خاص بالمستندات (اختياري)</label>
+                        <input type="file" class="form-control" id="logoFile" name="LogoFile" accept=".png,.jpg,.jpeg,.webp,.gif" />
+                        <div class="form-text">إن رُفع شعار هنا يُستخدم في التقارير والعقود بدل شعار الشبكة. الحد 3 ميغابايت.</div>
+                        @if (!string.IsNullOrWhiteSpace(Model.CustomLogoPath))
+                        {
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" name="RemoveCustomLogo" value="true" id="removeCustomLogo" />
+                                <label class="form-check-label" for="removeCustomLogo">حذف الشعار الخاص والعودة لشعار الشبكة</label>
+                            </div>
+                        }
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="primaryColor">لون الترويسة</label>
+                            <input type="color" class="form-control form-control-color w-100" id="primaryColor" name="PrimaryColor" value="@Model.PrimaryColor" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="tableHeaderColor">لون رأس الجدول</label>
+                            <input type="color" class="form-control form-control-color w-100" id="tableHeaderColor" name="TableHeaderColor" value="@Model.TableHeaderColor" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">العلامة المائية</label>
+                        <select name="WatermarkMode" class="form-select" id="watermarkMode">
+                            <!option value="0" @(Model.WatermarkMode == DocumentWatermarkMode.None ? "selected" : null)>بدون</!option>
+                            <!option value="1" @(Model.WatermarkMode == DocumentWatermarkMode.CompanyName ? "selected" : null)>اسم الشركة</!option>
+                            <!option value="2" @(Model.WatermarkMode == DocumentWatermarkMode.Logo ? "selected" : null)>الشعار باهتاً</!option>
+                            <!option value="3" @(Model.WatermarkMode == DocumentWatermarkMode.CustomText ? "selected" : null)>نص مخصص</!option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="watermarkText">نص العلامة المائية</label>
+                        <input class="form-control" id="watermarkText" name="WatermarkText" maxlength="80" value="@Model.WatermarkText" placeholder="مثال: سري — للهيئة الناظمة" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="watermarkOpacity">شفافية العلامة المائية (@Model.WatermarkOpacityPercent%)</label>
+                        <input type="range" class="form-range" id="watermarkOpacity" name="WatermarkOpacityPercent" min="5" max="40" value="@Model.WatermarkOpacityPercent" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">كثافة جدول البيانات</label>
+                        <select name="TableDensity" class="form-select" id="tableDensity">
+                            <!option value="0" @(Model.TableDensity == DocumentTableDensity.Comfortable ? "selected" : null)>عادي</!option>
+                            <!option value="1" @(Model.TableDensity == DocumentTableDensity.Compact ? "selected" : null)>مدمج للطباعة</!option>
+                            <!option value="2" @(Model.TableDensity == DocumentTableDensity.Wide ? "selected" : null)>واسع للقراءة</!option>
+                        </select>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="StripedRows" value="true" id="stripedRows" @(Model.StripedRows ? "checked" : null) />
+                        <label class="form-check-label" for="stripedRows">صفوف متناوبة في الجدول</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="footerText">تذييل المستند</label>
+                        <input class="form-control" id="footerText" name="FooterText" maxlength="250" value="@Model.FooterText" placeholder="عنوان الشركة أو عبارة تقديم للهيئة الناظمة" />
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="ShowGeneratedAt" value="true" id="showGeneratedAt" @(Model.ShowGeneratedAt ? "checked" : null) />
+                        <label class="form-check-label" for="showGeneratedAt">إظهار تاريخ ووقت إعداد المستند</label>
+                    </div>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> حفظ هوية الشركة</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title mb-0">معاينة</h3></div>
+            <div class="card-body">
+                <link rel="stylesheet" href="~/css/company-document-chrome.css" asp-append-version="true" />
+                <div id="docPreview" class="company-doc-sheet border rounded p-2"
+                     data-density="@((int)Model.TableDensity)"
+                     data-striped="@(Model.StripedRows ? "true" : "false")"
+                     style="--doc-primary:@Model.PrimaryColor;--doc-table-head:@Model.TableHeaderColor;--doc-watermark-opacity:@((Model.WatermarkOpacityPercent / 100.0).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))">
+                    <div class="company-doc-watermark" id="previewWatermark" aria-hidden="true">
+                        @if (Model.WatermarkMode == DocumentWatermarkMode.Logo && !string.IsNullOrWhiteSpace(previewLogo))
+                        {
+                            <img src="@previewLogo" alt="" />
+                        }
+                        else if (Model.WatermarkMode != DocumentWatermarkMode.None)
+                        {
+                            @(string.IsNullOrWhiteSpace(Model.WatermarkText) ? Model.CompanyName : Model.WatermarkText)
+                        }
+                    </div>
+                    <div class="company-doc-inner">
+                        <header class="company-doc-header" id="previewHeader">
+                            <div class="company-doc-header-grid">
+                                <div>
+                                    <p class="company-doc-company">@Model.CompanyName</p>
+                                    <p class="company-doc-title">تقرير تجريبي</p>
+                                </div>
+                                <div class="text-center">
+                                    @if (!string.IsNullOrWhiteSpace(previewLogo) && Model.ShowLogo)
+                                    {
+                                        <img class="company-doc-logo" id="previewLogo" src="@previewLogo" alt="" />
+                                    }
+                                </div>
+                                <div class="text-start">
+                                    <p class="company-doc-sub mb-0">معاينة خاصة بشركتك</p>
+                                </div>
+                            </div>
+                        </header>
+                        <table class="table table-sm table-bordered report-data-table report-data-table-elegant mb-0">
+                            <thead><tr><th>البند</th><th>القيمة</th></tr></thead>
+                            <tbody>
+                                <tr><th class="report-data-row-head">شركة</th><td>@Model.CompanyName</td></tr>
+                                <tr><th class="report-data-row-head">نوع المستند</th><td>تقرير / عقد</td></tr>
+                            </tbody>
+                        </table>
+                        <footer class="company-doc-footer">
+                            <span id="previewFooter">@(Model.FooterText ?? "")</span>
+                            <span id="previewGenerated">@(Model.ShowGeneratedAt ? "أُعدّ في " + DateTime.Now.ToString("yyyy/MM/dd HH:mm") : "")</span>
+                        </footer>
+                    </div>
+                </div>
+                <p class="small text-muted mt-2 mb-0">المعاينة تقريبية. الشكل النهائي يظهر عند طباعة التقرير أو العقد.</p>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/company-document-chrome.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var companyName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CompanyName));
+            var preview = document.getElementById('docPreview');
+            var watermark = document.getElementById('previewWatermark');
+            var footer = document.getElementById('previewFooter');
+            var generated = document.getElementById('previewGenerated');
+            function hexOpacity(pct) { return (Math.min(40, Math.max(5, Number(pct) || 12)) / 100).toFixed(2); }
+            function refresh() {
+                if (!preview) return;
+                var primary = document.getElementById('primaryColor')?.value || '#1B3A4B';
+                var table = document.getElementById('tableHeaderColor')?.value || '#1B3A4B';
+                var opacity = document.getElementById('watermarkOpacity')?.value || 12;
+                var density = document.getElementById('tableDensity')?.value || '0';
+                var striped = document.getElementById('stripedRows')?.checked ? 'true' : 'false';
+                preview.style.setProperty('--doc-primary', primary);
+                preview.style.setProperty('--doc-table-head', table);
+                preview.style.setProperty('--doc-watermark-opacity', hexOpacity(opacity));
+                preview.setAttribute('data-density', density);
+                preview.setAttribute('data-striped', striped);
+                var mode = document.getElementById('watermarkMode')?.value || '0';
+                var custom = (document.getElementById('watermarkText')?.value || '').trim();
+                if (watermark) {
+                    if (mode === '0') watermark.textContent = '';
+                    else if (mode === '1') watermark.textContent = companyName;
+                    else if (mode === '3') watermark.textContent = custom || companyName;
+                }
+                if (footer) footer.textContent = document.getElementById('footerText')?.value || '';
+                if (generated) generated.textContent = document.getElementById('showGeneratedAt')?.checked
+                    ? ('أُعدّ في ' + new Date().toISOString().slice(0, 16).replace('T', ' '))
+                    : '';
+            }
+            ['primaryColor','tableHeaderColor','watermarkOpacity','tableDensity','stripedRows','watermarkMode','watermarkText','footerText','showGeneratedAt']
+                .forEach(function (id) {
+                    document.getElementById(id)?.addEventListener('input', refresh);
+                    document.getElementById(id)?.addEventListener('change', refresh);
+                });
+        })();
+    </script>
+}

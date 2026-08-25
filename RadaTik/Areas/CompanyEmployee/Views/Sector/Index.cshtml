@@ -25,6 +25,9 @@
             @ViewData["Title"]
         </h1>
         <div class="page-actions">
+            <a asp-action="ExportToExcel" class="btn btn-outline-success btn-sm sector-action-btn" title="تصدير بيانات المرسلات إلى Excel">
+                <i class="fas fa-file-export"></i> تصدير إلى Excel
+            </a>
             @if (canCreate)
             {
                 @if (importServers.Any())

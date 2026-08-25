@@ -31,13 +31,67 @@
             <button type="button" class="btn btn-sm btn-icon" id="btnFilter" title="تصفية">
                 <i class="fas fa-filter"></i>
             </button>
-            <button type="button" class="btn btn-sm btn-icon" id="btnExport" title="تصدير">
-                <i class="fas fa-download"></i>
+            <a asp-action="ExportToExcel" class="btn btn-outline-success btn-sm" title="تصدير بيانات المستقبلات إلى Excel">
+                <i class="fas fa-file-export"></i> تصدير إلى Excel
+            </a>
+            <button type="button" class="btn btn-outline-success btn-sm" id="btnOpenReceiverExcelImport"
+                    title="استيراد مستقبلات من ملف Excel">
+                <i class="fas fa-file-excel"></i> استيراد من Excel
             </button>
             <a asp-action="Create" class="btn btn-success btn-sm">
                 <i class="fas fa-plus"></i> إضافة مستقبل
             </a>
     </div>
+
+@if (TempData["ImportReceiverWarnings"] is string importWarnings && !string.IsNullOrWhiteSpace(importWarnings))
+{
+    <div class="alert alert-warning mb-3">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        @importWarnings
+    </div>
+}
+
+<div class="modal fade" id="receiverExcelImportModal" tabindex="-1" aria-labelledby="receiverExcelImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="ImportFromExcel" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="receiverExcelImportModalLabel">
+                        <i class="fas fa-file-excel text-success"></i>
+                        استيراد المستقبلات من ملف Excel
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-2">
+                        يُضاف مستقبل جديد لكل صف صالح. يجب أن يكون <strong>اسم المرسل</strong> مطابقاً لمرسل موجود في الشبكة الحالية.
+                        المستقبل الموجود مسبقاً بنفس الاسم أو عنوان IP يُتخطى.
+                    </p>
+                    <div class="alert alert-info small py-2 mb-3">
+                        الأعمدة المطلوبة:
+                        <strong>اسم المستقبل، اسم المرسل، عنوان IP، خط الطول، خط العرض، ارتفاع الهوائي</strong>.
+                        قناع الشبكة الافتراضي هو <code>255.255.255.0</code> ويمكن كتابته مع العنوان بصيغة CIDR مثل <code>10.1.1.20/24</code>.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="receiverExcelImportFile">ملف Excel أو CSV</label>
+                        <input type="file" class="form-control" id="receiverExcelImportFile" name="file"
+                               accept=".xlsx,.xlsm,.csv,.txt" required />
+                    </div>
+                    <a asp-action="DownloadReceiverExcelImportTemplate" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-download"></i> تنزيل قالب Excel
+                    </a>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-upload"></i> استيراد
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- Compact Statistics Bar -->
 <div class="stats-bar">
@@ -310,43 +364,12 @@
                 setTimeout(function() { location.reload(); }, 500);
             });
 
-            // Export
-            $('#btnExport').click(function () {
-                var $icon = $(this).find('i');
-                $icon.removeClass('fa-download').addClass('fa-spinner fa-spin');
-
-                setTimeout(function() {
-                    $icon.removeClass('fa-spinner fa-spin').addClass('fa-download');
-                    exportToCSV();
-                }, 1000);
-            });
-
-            function exportToCSV() {
-                var data = [];
-                var headers = ['المستقبل', 'القطاع', 'السيرفر', 'IP', 'الموقع', 'المستخدمين', 'الحالة'];
-                
-                $('#receiversTable tbody tr').each(function() {
-                    var rowData = [];
-                    $(this).find('td').each(function(index) {
-                        if (index < 8) {
-                            rowData.push($(this).text().trim().replace(/\s+/g, ' '));
-                        }
-                    });
-                    if (rowData.length > 0) data.push(rowData);
+            const excelImportBtn = document.getElementById('btnOpenReceiverExcelImport');
+            const excelImportModalEl = document.getElementById('receiverExcelImportModal');
+            if (excelImportBtn && excelImportModalEl && typeof bootstrap !== 'undefined') {
+                excelImportBtn.addEventListener('click', function () {
+                    bootstrap.Modal.getOrCreateInstance(excelImportModalEl).show();
                 });
-
-                var csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-                csvContent += headers.join(",") + "\n";
-                data.forEach(function(row) {
-                    csvContent += row.map(c => '"' + c.replace(/"/g, '""') + '"').join(",") + "\n";
-                });
-
-                var link = document.createElement("a");
-                link.setAttribute("href", encodeURI(csvContent));
-                link.setAttribute("download", "المستقبلات_" + new Date().toISOString().split('T')[0] + ".csv");
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
             }
         });
     </script>

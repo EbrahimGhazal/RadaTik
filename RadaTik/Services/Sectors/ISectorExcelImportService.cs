@@ -74,6 +74,8 @@ public interface ISectorExcelImportService
 {
     byte[] BuildTemplateWorkbook();
 
+    Task<byte[]> BuildExportWorkbookAsync(int networkId, CancellationToken ct = default);
+
     Task<SectorExcelImportParseResult> ParseAsync(
         Stream fileStream,
         string fileName,

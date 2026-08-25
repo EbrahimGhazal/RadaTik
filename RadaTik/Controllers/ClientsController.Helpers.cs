@@ -79,6 +79,7 @@ namespace RadaTik.Controllers
             ViewBag.ContractLicenseNumber = data.LicenseNumber;
 
             ViewBag.ContractBodyHtml = data.BodyHtml;
+            ViewBag.DocumentChrome = data.Chrome;
 
         }
 

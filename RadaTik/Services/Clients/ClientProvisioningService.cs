@@ -68,7 +68,17 @@ public sealed partial class ClientProvisioningService(
                 }
             }
 
+            int deletedId = client.Id;
+            int? clientNetworkId = client.NetworkId;
+            string? userName = client.UserName;
+
             Db.Clients.Remove(client);
+            await ClientCrossServerDuplicate.RefreshRemainingAsync(
+                Db,
+                clientNetworkId,
+                userName,
+                deletedId,
+                ct);
             await Db.SaveChangesAsync(ct);
             return ClientOperationOutcome.Success(
                 mikroTikWarning

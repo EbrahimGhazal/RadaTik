@@ -43,4 +43,8 @@ public sealed class CompanyReportsResultViewModel
 
     public string? CustomHtmlBeforeTable { get; init; }
     public string? CustomHtmlAfterTable { get; init; }
+
+    public IReadOnlyList<string> SelectedColumnKeys { get; init; } = [];
+
+    public RadaTik.Services.Documents.CompanyDocumentChrome? Chrome { get; init; }
 }

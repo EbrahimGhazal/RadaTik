@@ -1,6 +1,7 @@
 @model RadaTik.ViewModels.CompanyAdmin.CompanyReportsResultViewModel
 @using System.Globalization
 @using System.Text.Json
+@using RadaTik.ViewModels.CompanyAdmin
 @{
     ViewData["Title"] = Model.Title;
     Layout = "~/Areas/CompanyAdmin/Views/Shared/_Layout.cshtml";
@@ -43,7 +44,8 @@
     }
     .report-summary-table th,
     .report-data-table thead th {
-        background: #e9ecef !important;
+        background: var(--doc-table-head, #1B3A4B) !important;
+        color: #fff !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
@@ -79,6 +81,7 @@
         word-break: break-word;
     }
 </style>
+<link rel="stylesheet" href="~/css/company-document-chrome.css" asp-append-version="true" />
 
 <div class="no-print mb-3 d-flex flex-wrap gap-2 align-items-center">
     <form id="reportChargePrintForm" class="d-none" asp-area="CompanyAdmin" asp-controller="Reports" asp-action="ChargeForPrint" method="post">
@@ -97,8 +100,52 @@
     <span id="printChargeNote" class="text-muted small d-none" aria-live="polite"></span>
 </div>
 
+@{
+    var resultColumns = RadaTik.Services.Reports.ReportPrintColumns.Selectable(Model.Kind);
+    var resultDefaults = RadaTik.Services.Reports.ReportPrintColumns.DefaultKeys(Model.Kind);
+}
+@if (resultColumns.Count > 0)
+{
+    <form asp-action="Print" method="post" class="no-print card mb-3">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="Kind" value="@((int)Model.Kind)" />
+        <input type="hidden" name="Period" value="@((int)Model.Period)" />
+        <input type="hidden" name="CustomFrom" value="@customFromStr" />
+        <input type="hidden" name="CustomTo" value="@customToStr" />
+        <div class="card-body">
+            <div class="fw-semibold mb-2">حقول الطباعة</div>
+            <p class="small text-muted mb-2">عمود التسلسل يُعرض دائماً. الحقول تختلف حسب نوع التقرير. غيّر الاختيار ثم اضغط تطبيق.</p>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                @foreach (var col in resultColumns)
+                {
+                    var isOn = Model.SelectedColumnKeys.Contains(col.Key, StringComparer.OrdinalIgnoreCase)
+                        || (Model.SelectedColumnKeys.Count == 0 && resultDefaults.Contains(col.Key, StringComparer.OrdinalIgnoreCase));
+                    <div class="form-check">
+                        @if (isOn)
+                        {
+                            <input class="form-check-input" type="checkbox" name="Columns" value="@col.Key" id="res_col_@col.Key" checked />
+                        }
+                        else
+                        {
+                            <input class="form-check-input" type="checkbox" name="Columns" value="@col.Key" id="res_col_@col.Key" />
+                        }
+                        <label class="form-check-label" for="res_col_@col.Key">@col.Title</label>
+                    </div>
+                }
+            </div>
+            <button type="submit" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-check"></i> تطبيق الحقول
+            </button>
+        </div>
+    </form>
+}
+
 <div class="card report-print-area border" data-report-kind="@((int)Model.Kind)">
     <div class="card-body">
+        @if (Model.Chrome != null)
+        {
+            <partial name="_CompanyDocumentChromeStart" model="Model.Chrome" />
+        }
         @if (!string.IsNullOrEmpty(Model.IntegratedBodyHtml))
         {
             <div class="report-integrated">@Html.Raw(Model.IntegratedBodyHtml)</div>
@@ -145,6 +192,10 @@
             {
                 <div class="report-custom-html mt-3">@Html.Raw(Model.CustomHtmlAfterTable)</div>
             }
+        }
+        @if (Model.Chrome != null)
+        {
+            <partial name="_CompanyDocumentChromeEnd" model="Model.Chrome" />
         }
     </div>
 </div>

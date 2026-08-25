@@ -21,7 +21,7 @@
         ViewBag.FinancialHeroIcon = "fas fa-edit";
         ViewBag.FinancialHeroTheme = "wallet";
         ViewBag.FinancialHeroSubtitle = kindTitle;
-        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-secondary btn-sm micro-btn"" href=""" + Url.RouteUrl("networkManager-reports", new { action = "Templates" }) + @"""><i class=""fas fa-arrow-right""></i> القوالب</a>";
+        ViewBag.FinancialHeroActions = @"<a class=""btn btn-outline-secondary btn-sm micro-btn"" href=""" + Url.RouteUrl("networkManager-reports", new { action = "Templates" }) + @"""><i class=""fas fa-arrow-right""></i> القوالب</a> <a class=""btn btn-outline-primary btn-sm micro-btn"" href=""" + Url.Action("DocumentAppearance") + @"""><i class=""fas fa-stamp""></i> هوية المستندات</a>";
     }
     <partial name="_FinancialSysHero" />
 
@@ -52,6 +52,36 @@
                             اتركه <strong>فارغاً</strong> إذا أردت الاعتماد على تنسيق النظام الافتراضي فقط.
                         </div>
                     </div>
+                    @{
+                        var printColumns = ViewBag.PrintColumns as IReadOnlyList<RadaTik.Services.Reports.ReportColumnOption>
+                            ?? RadaTik.Services.Reports.ReportPrintColumns.Selectable(kind);
+                        var selectedCols = ViewBag.SelectedPrintColumns as IReadOnlyList<string>
+                            ?? RadaTik.Services.Reports.ReportPrintColumns.DefaultKeys(kind);
+                        var selectedSet = selectedCols.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    }
+                    @if (printColumns.Count > 0)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">حقول الجدول عند الطباعة</label>
+                            <p class="small text-muted">عمود التسلسل (1، 2، 3…) يُطبع دائماً. الحقول تختلف حسب نوع التقرير، والاختيار خاص بشركتك.</p>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var col in printColumns)
+                                {
+                                    <div class="form-check">
+                                        @if (selectedSet.Contains(col.Key))
+                                        {
+                                            <input class="form-check-input" type="checkbox" name="Columns" value="@col.Key" id="tpl_col_@col.Key" checked />
+                                        }
+                                        else
+                                        {
+                                            <input class="form-check-input" type="checkbox" name="Columns" value="@col.Key" id="tpl_col_@col.Key" />
+                                        }
+                                        <label class="form-check-label" for="tpl_col_@col.Key">@col.Title</label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
                     <div class="d-flex gap-2 flex-wrap">
                         <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> حفظ</button>
                         <button type="button" class="btn btn-outline-secondary" id="btnLoadSample">تحميل مثال جاهز</button>

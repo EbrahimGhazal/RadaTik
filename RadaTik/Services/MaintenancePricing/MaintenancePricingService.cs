@@ -161,9 +161,12 @@ public sealed class MaintenancePricingService : IMaintenancePricingService
         int targetNetworkId = targetScope.ResolveTargetNetworkId(context);
         List<MaintenanceType> targetTypes = rows.Select(r => r.Type).Distinct().ToList();
 
-        Dictionary<MaintenanceType, NetworkMaintenancePrice> existingByType = await _db.NetworkMaintenancePrices
+        List<NetworkMaintenancePrice> existingRows = await _db.NetworkMaintenancePrices
             .Where(x => x.NetworkId == targetNetworkId && targetTypes.Contains(x.MaintenanceType))
-            .ToDictionaryAsync(x => x.MaintenanceType, ct);
+            .ToListAsync(ct);
+        Dictionary<MaintenanceType, NetworkMaintenancePrice> existingByType = existingRows
+            .GroupBy(x => x.MaintenanceType)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Id).First());
 
         DateTime now = DateTime.Now;
         int affected = 0;
@@ -187,7 +190,15 @@ public sealed class MaintenancePricingService : IMaintenancePricingService
             affected++;
         }
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            return MaintenancePricingOperationResult.Fail("تعذر حفظ الأسعار. أعد المحاولة، وإذا تكرر الخطأ راجع عدم تكرار نوع الحل لنفس الشبكة.");
+        }
+
         return MaintenancePricingOperationResult.Ok(affected);
     }
 

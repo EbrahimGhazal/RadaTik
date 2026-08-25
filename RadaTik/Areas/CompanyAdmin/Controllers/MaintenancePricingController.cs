@@ -30,6 +30,7 @@ public class MaintenancePricingController : Controller
         _maintenancePricingService = maintenancePricingService;
     }
 
+    [HttpGet]
     [RequirePermission("MaintenancePricing.View")]
     public async Task<IActionResult> Index(string networkScope = "main")
     {
@@ -101,8 +102,16 @@ public class MaintenancePricingController : Controller
     [RequirePermission("MaintenancePricing.Manage")]
     public async Task<IActionResult> SaveAll(MaintenancePricingBulkSaveInput input)
     {
-        List<MaintenancePricingBulkSaveRowInput> rows = input?.Rows ?? [];
-        string networkScope = _maintenancePricingService.NormalizeScope(input?.NetworkScope);
+        List<MaintenancePricingBulkSaveRowInput> rows = MaintenancePricingBulkSaveInput.BindRows(Request.Form);
+        if (rows.Count == 0)
+        {
+            rows = input?.Rows ?? [];
+        }
+
+        string networkScope = _maintenancePricingService.NormalizeScope(
+            Request.Form.TryGetValue("NetworkScope", out Microsoft.Extensions.Primitives.StringValues postedScope)
+                ? postedScope.ToString()
+                : input?.NetworkScope);
         if (rows.Count == 0)
         {
             TempData["Error"] = "لا توجد بيانات للحفظ.";

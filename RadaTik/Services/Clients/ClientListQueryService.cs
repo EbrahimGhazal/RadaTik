@@ -258,13 +258,29 @@ public sealed class ClientListQueryService(
             return new ClientDetailsPageModel { Access = ClientListAccessOutcome.NotFound };
         }
 
-        bool isPending = await _pendingApproval.IsPendingClientApprovalAsync(client, ct);
-        string? renewalBlocked = null;
-        RenewalBlockResult renewalGuard = await _renewalGuard.CheckBlockingInvoicesAsync(client.Id, ct);
-        if (!renewalGuard.CanRenew)
+        bool isPending = false;
+        try
         {
-            renewalBlocked =
-                $"لا يمكن تنفيذ التجديد حالياً قبل تسديد جميع فواتير الصيانة المستحقة (عدد الفواتير: {renewalGuard.PendingInvoicesCount}، إجمالي المستحقات: {renewalGuard.TotalOutstanding:N0} ل.س).";
+            isPending = await _pendingApproval.IsPendingClientApprovalAsync(client, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "تعذر تحديد حالة اعتماد العميل {ClientId}", client.Id);
+        }
+
+        string? renewalBlocked = null;
+        try
+        {
+            RenewalBlockResult renewalGuard = await _renewalGuard.CheckBlockingInvoicesAsync(client.Id, ct);
+            if (!renewalGuard.CanRenew)
+            {
+                renewalBlocked =
+                    $"لا يمكن تنفيذ التجديد حالياً قبل تسديد جميع فواتير الصيانة المستحقة (عدد الفواتير: {renewalGuard.PendingInvoicesCount}، إجمالي المستحقات: {renewalGuard.TotalOutstanding:N0} ل.س).";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "تعذر فحص فواتير الصيانة للعميل {ClientId}", client.Id);
         }
 
         Client? mikrotikInfo = null;
@@ -275,7 +291,17 @@ public sealed class ClientListQueryService(
         {
             try
             {
-                mikrotikInfo = await _mikroTik.GetPPPoEUserInfo(client.UserName, client.MikroTikServerId.Value);
+                Task<Client?> mikrotikTask = _mikroTik.GetPPPoEUserInfo(client.UserName, client.MikroTikServerId.Value);
+                Task timeoutTask = Task.Delay(TimeSpan.FromSeconds(8), ct);
+                Task completed = await Task.WhenAny(mikrotikTask, timeoutTask);
+                if (completed == mikrotikTask)
+                {
+                    mikrotikInfo = await mikrotikTask;
+                }
+                else
+                {
+                    mikrotikError = "انتهت مهلة جلب بيانات MikroTik. يتم عرض بيانات المشترك المحفوظة.";
+                }
             }
             catch (Exception ex)
             {
@@ -287,12 +313,23 @@ public sealed class ClientListQueryService(
             isClientView = true;
         }
 
-        List<ClientTopUpTransaction> recentTopUps = await Db.ClientTopUpTransactions
-            .Where(t => t.ClientId == client.Id)
-            .OrderByDescending(t => t.CreatedAt)
-            .Take(10)
-            .Include(t => t.CreatedByUser)
-            .ToListAsync(ct);
+        List<ClientTopUpTransaction> recentTopUps = [];
+        try
+        {
+            recentTopUps = await Db.ClientTopUpTransactions
+                .Where(t => t.ClientId == client.Id)
+                .OrderByDescending(t => t.CreatedAt)
+                .Take(10)
+                .Include(t => t.CreatedByUser)
+                .ToListAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "تعذر جلب عمليات تغذية الرصيد للعميل {ClientId}", client.Id);
+        }
+
+        bool canEditClient = !isClientOnly &&
+            await _permissionService.HasPermissionAsync(principal, "Clients.Edit");
 
         return new ClientDetailsPageModel
         {
@@ -304,6 +341,7 @@ public sealed class ClientListQueryService(
             MikroTikError = mikrotikError,
             IsClientView = isClientView,
             IsClientOnly = isClientOnly,
+            CanEditClient = canEditClient,
             RecentTopUps = recentTopUps
         };
     }

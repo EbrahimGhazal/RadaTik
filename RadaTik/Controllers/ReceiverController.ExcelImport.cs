@@ -5,28 +5,26 @@ using RadaTik.Helpers;
 using RadaTik.Models;
 using RadaTik.Security;
 using RadaTik.Services;
-using RadaTik.Services.Sectors;
+using RadaTik.Services.Receivers;
 
 namespace RadaTik.Controllers;
 
-public partial class SectorController
+public partial class ReceiverController
 {
-    /// <summary>تنزيل قالب Excel لاستيراد المرسلات.</summary>
     [HttpGet]
-    [RequirePermission("Sectors.Create")]
-    public IActionResult DownloadSectorExcelImportTemplate([FromServices] ISectorExcelImportService importService)
+    [RequirePermission("Receivers.Create")]
+    public IActionResult DownloadReceiverExcelImportTemplate([FromServices] IReceiverExcelImportService importService)
     {
         byte[] bytes = importService.BuildTemplateWorkbook();
         return File(
             bytes,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "قالب_استيراد_المرسلات.xlsx");
+            "قالب_استيراد_المستقبلات.xlsx");
     }
 
-    /// <summary>تصدير مرسلات الشبكة الحالية إلى Excel بنفس أعمدة الاستيراد.</summary>
     [HttpGet]
-    [RequirePermission("Sectors.View")]
-    public async Task<IActionResult> ExportToExcel([FromServices] ISectorExcelImportService importService)
+    [RequirePermission("Receivers.View")]
+    public async Task<IActionResult> ExportToExcel([FromServices] IReceiverExcelImportService importService)
     {
         ApplicationUser? user = await _userManager.GetUserAsync(User);
         int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
@@ -40,16 +38,15 @@ public partial class SectorController
         return File(
             bytes,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            $"المرسلات_{DateTime.Now:yyyyMMdd}.xlsx");
+            $"المستقبلات_{DateTime.Now:yyyyMMdd}.xlsx");
     }
 
-    /// <summary>استيراد مرسلات جديدة من ملف Excel/CSV وإضافتها إلى قاعدة البيانات.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [RequirePermission("Sectors.Create")]
+    [RequirePermission("Receivers.Create")]
     public async Task<IActionResult> ImportFromExcel(
         IFormFile? file,
-        [FromServices] ISectorExcelImportService importService)
+        [FromServices] IReceiverExcelImportService importService)
     {
         ApplicationUser? user = await _userManager.GetUserAsync(User);
         int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
@@ -81,19 +78,12 @@ public partial class SectorController
         try
         {
             await using Stream stream = file.OpenReadStream();
-            SectorExcelImportParseResult parsed = await importService.ParseAsync(
+            ReceiverExcelImportParseResult parsed = await importService.ParseAsync(
                 stream,
                 file.FileName,
                 networkId.Value);
 
-            if (!parsed.Success)
-            {
-                TempData["Error"] = parsed.Message;
-                StoreImportDetails(parsed.Details);
-                return RedirectToAction(nameof(Index));
-            }
-
-            if (parsed.ImportableCount <= 0)
+            if (!parsed.Success || parsed.ImportableCount <= 0)
             {
                 TempData["Error"] = parsed.Message;
                 StoreImportDetails(parsed.Details);
@@ -107,7 +97,7 @@ public partial class SectorController
 
             UsageImportChargeEstimate estimate = await _usageChargeService.EstimateImportChargeAsync(
                 companyNetworkId,
-                PricingChargeUnit.PerSector,
+                PricingChargeUnit.PerReceiver,
                 parsed.ImportableCount);
 
             if (estimate.HasCharge && !estimate.HasSufficientBalance)
@@ -117,25 +107,17 @@ public partial class SectorController
                 return RedirectToAction(nameof(Index));
             }
 
-            SectorExcelImportResult result = await importService.CommitAsync(parsed.SectorsToAdd);
+            ReceiverExcelImportResult result = await importService.CommitAsync(parsed.ReceiversToAdd);
             if (result.AddedCount > 0 && user != null)
             {
                 await _usageChargeService.ChargeUsageIncreaseAsync(
                     companyNetworkId,
                     user.Id,
-                    PricingChargeUnit.PerSector);
+                    PricingChargeUnit.PerReceiver);
             }
 
             string summary = $"{result.Message} تم تخطي {parsed.SkippedCount} وفشل {parsed.FailedCount}.";
-            if (result.AddedCount > 0)
-            {
-                TempData["Success"] = summary;
-            }
-            else
-            {
-                TempData["Error"] = summary;
-            }
-
+            TempData[result.AddedCount > 0 ? "Success" : "Error"] = summary;
             StoreImportDetails(parsed.Details);
         }
         catch (Exception)
@@ -153,6 +135,6 @@ public partial class SectorController
             return;
         }
 
-        TempData["ImportSectorWarnings"] = string.Join(" | ", details.Take(20));
+        TempData["ImportReceiverWarnings"] = string.Join(" | ", details.Take(20));
     }
 }

@@ -1,0 +1,111 @@
+@using RadaTik.Models
+@using RadaTik.Services.Documents
+@model CompanyDocumentChrome
+@{
+    var opacity = Math.Clamp(Model.WatermarkOpacityPercent, 5, 40) / 100.0;
+    var watermarkIsLogo = Model.WatermarkMode == DocumentWatermarkMode.Logo && !string.IsNullOrWhiteSpace(Model.LogoUrl);
+    var showWatermarkText = Model.WatermarkMode is DocumentWatermarkMode.CompanyName or DocumentWatermarkMode.CustomText
+        && !string.IsNullOrWhiteSpace(Model.WatermarkText);
+}
+<div class="company-doc-sheet"
+     data-density="@((int)Model.TableDensity)"
+     data-striped="@(Model.StripedRows ? "true" : "false")"
+     data-company="@Model.CompanyNetworkId"
+     style="--doc-primary:@Model.PrimaryColor;--doc-table-head:@Model.TableHeaderColor;--doc-watermark-opacity:@opacity.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)">
+    @if (watermarkIsLogo)
+    {
+        <div class="company-doc-watermark" aria-hidden="true">
+            <img src="@Model.LogoUrl" alt="" />
+        </div>
+    }
+    else if (showWatermarkText)
+    {
+        <div class="company-doc-watermark" aria-hidden="true">@Model.WatermarkText</div>
+    }
+    <div class="company-doc-inner">
+        @if (Model.HeaderLayout == DocumentHeaderLayout.CenteredLogo)
+        {
+            <header class="company-doc-header company-doc-header-centered">
+                @if (!string.IsNullOrWhiteSpace(Model.LogoUrl))
+                {
+                    <img class="company-doc-logo company-doc-logo--lg" src="@Model.LogoUrl" alt="@Model.CompanyName" />
+                }
+                <p class="company-doc-company">@Model.CompanyName</p>
+                @if (!string.IsNullOrWhiteSpace(Model.DocumentTitle))
+                {
+                    <p class="company-doc-title">@Model.DocumentTitle</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Subtitle))
+                {
+                    <p class="company-doc-sub">@Model.Subtitle</p>
+                }
+            </header>
+        }
+        else if (Model.HeaderLayout == DocumentHeaderLayout.ColorBar)
+        {
+            <header class="company-doc-header company-doc-header--colorbar">
+                <div class="company-doc-header-grid">
+                    <div>
+                        <p class="company-doc-company">@Model.CompanyName</p>
+                        @if (!string.IsNullOrWhiteSpace(Model.Subtitle))
+                        {
+                            <p class="company-doc-sub">@Model.Subtitle</p>
+                        }
+                    </div>
+                    <div class="text-center">
+                        @if (!string.IsNullOrWhiteSpace(Model.LogoUrl))
+                        {
+                            <img class="company-doc-logo" src="@Model.LogoUrl" alt="@Model.CompanyName" />
+                        }
+                    </div>
+                    <div class="text-start">
+                        @if (!string.IsNullOrWhiteSpace(Model.DocumentTitle))
+                        {
+                            <p class="company-doc-title mb-0">@Model.DocumentTitle</p>
+                        }
+                    </div>
+                </div>
+            </header>
+        }
+        else if (Model.HeaderLayout == DocumentHeaderLayout.Minimal)
+        {
+            <header class="company-doc-header company-doc-header--minimal d-flex justify-content-between align-items-center gap-3">
+                <div>
+                    <p class="company-doc-company">@Model.CompanyName</p>
+                    @if (!string.IsNullOrWhiteSpace(Model.DocumentTitle))
+                    {
+                        <p class="company-doc-title">@Model.DocumentTitle</p>
+                    }
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.LogoUrl))
+                {
+                    <img class="company-doc-logo" src="@Model.LogoUrl" alt="@Model.CompanyName" />
+                }
+            </header>
+        }
+        else
+        {
+            <header class="company-doc-header">
+                <div class="company-doc-header-grid">
+                    <div>
+                        <p class="company-doc-company">@Model.CompanyName</p>
+                        @if (!string.IsNullOrWhiteSpace(Model.DocumentTitle))
+                        {
+                            <p class="company-doc-title">@Model.DocumentTitle</p>
+                        }
+                    </div>
+                    <div class="text-center">
+                        @if (!string.IsNullOrWhiteSpace(Model.LogoUrl))
+                        {
+                            <img class="company-doc-logo" src="@Model.LogoUrl" alt="@Model.CompanyName" />
+                        }
+                    </div>
+                    <div class="text-start">
+                        @if (!string.IsNullOrWhiteSpace(Model.Subtitle))
+                        {
+                            <p class="company-doc-sub mb-0">@Model.Subtitle</p>
+                        }
+                    </div>
+                </div>
+            </header>
+        }

@@ -4,6 +4,7 @@ using RadaTik.Data;
 using RadaTik.Models;
 using RadaTik.Services;
 using RadaTik.Services.Clients;
+using RadaTik.Services.Documents;
 using Xunit;
 
 namespace RadaTik.Tests.Services;
@@ -33,7 +34,7 @@ public sealed class ClientContractServiceTests
         guard.Setup(g => g.CheckBlockingInvoicesAsync(client.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new RenewalBlockResult { CanRenew = false, PendingInvoicesCount = 2 });
 
-        ClientContractService sut = new(db, guard.Object);
+        ClientContractService sut = new(db, guard.Object, Mock.Of<ICompanyDocumentAppearanceService>());
         ClientMembershipContractPageResult result = await sut.BuildMembershipContractPageAsync(client.Id, 2);
 
         Assert.Equal(ClientContractPageStatus.RenewalBlocked, result.Status);
@@ -43,7 +44,7 @@ public sealed class ClientContractServiceTests
     public void ValidateSettingsSave_UnknownVariable_ReturnsInvalid()
     {
         using ApplicationDbContext db = CreateDb();
-        ClientContractService sut = new(db, Mock.Of<IClientRenewalGuardService>());
+        ClientContractService sut = new(db, Mock.Of<IClientRenewalGuardService>(), Mock.Of<ICompanyDocumentAppearanceService>());
         Network network = new() { Id = 1, Name = "Net" };
 
         ClientContractSettingsSaveResult result = sut.ValidateSettingsSave(network, new ClientContractSettingsSaveCommand

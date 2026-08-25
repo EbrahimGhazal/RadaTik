@@ -6,6 +6,7 @@ using RadaTik.Domain.Common;
 using RadaTik.Domain.ValueObjects;
 using RadaTik.Helpers;
 using RadaTik.Models;
+using RadaTik.Services.Clients;
 
 namespace RadaTik.Services.MikroTik;
 
@@ -206,6 +207,12 @@ public sealed class MikroTikUserImportService(
                 }
             }
 
+            result.RemovedStaleDuplicateCount = await ClientCrossServerDuplicate.RemoveCopiesMissingFromServerAsync(
+                _context,
+                networkId,
+                serverId,
+                allUsers.Select(user => user.UserName ?? string.Empty));
+
             if (_context.ChangeTracker.HasChanges())
             {
                 await _context.SaveChangesAsync();
@@ -226,6 +233,7 @@ public sealed class MikroTikUserImportService(
                 $"تم استيراد {result.AddedCount} مستخدم جديد" +
                 (result.UpdatedCount > 0 ? $"، تم تحديث {result.UpdatedCount} مشترك من بيانات السيرفر" : "") +
                 (result.DuplicateCount > 0 ? $" (منها {result.DuplicateCount} مكرر عبر السيرفرات)" : "") +
+                (result.RemovedStaleDuplicateCount > 0 ? $"، أُلغي {result.RemovedStaleDuplicateCount} تكرار بعد حذفه من البرج" : "") +
                 (result.RelinkedCount > 0 ? $"، تم ربط {result.RelinkedCount} مشترك كان بلا سيرفر" : "") +
                 (result.ProfilesCreatedCount > 0 ? $"، أُنشئ {result.ProfilesCreatedCount} بروفايل تلقائياً" : "") +
                 $"، تم تخطي {result.ExistingCount} مستخدم موجود مسبقاً، وفشل استيراد {result.FailedCount} مستخدم.{userMsg}";

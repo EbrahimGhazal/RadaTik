@@ -55,7 +55,12 @@
         </div>
     </details>
 
-    <form asp-action="SaveAll" method="post" id="maintenancePricingBulkForm" class="maintenance-pricing-form" data-syp-page-amount-note="true">
+    <form asp-route="networkManager-maintenance-pricing"
+          asp-route-action="SaveAll"
+          method="post"
+          id="maintenancePricingBulkForm"
+          class="maintenance-pricing-form"
+          data-syp-page-amount-note="true">
         @Html.AntiForgeryToken()
         <input type="hidden" name="NetworkScope" value="@Model.NetworkScope" />
 
@@ -152,7 +157,7 @@
                                 <tr class="maintenance-pricing-row @(row.IsActive ? "is-active" : "is-inactive")">
                                     <td data-label="طريقة الحل" class="maint-cell-name">
                                         <span class="maintenance-pricing-solution-name">@row.SolutionName</span>
-                                        <input type="hidden" name="Rows[@i].Type" value="@row.Type" />
+                                        <input type="hidden" name="Rows[@i].Type" value="@((int)row.Type)" />
                                     </td>
                                     <td data-label="السعر (ل.س.ج)" class="maint-cell-price">
                                         <input type="number"
@@ -165,7 +170,6 @@
                                                placeholder="0" />
                                     </td>
                                     <td data-label="نشط" class="maint-cell-active text-center">
-                                        <input type="hidden" name="Rows[@i].IsActive" value="false" />
                                         <div class="form-check form-switch form-check-inline mb-0 maintenance-pricing-switch">
                                             <input class="form-check-input"
                                                    type="checkbox"
@@ -174,6 +178,7 @@
                                                    value="true"
                                                    id="row-active-@i"
                                                    @(row.IsActive ? "checked" : "") />
+                                            <input type="hidden" name="Rows[@i].IsActive" value="false" />
                                             <label class="form-check-label visually-hidden" for="row-active-@i">مفعّل</label>
                                         </div>
                                     </td>
@@ -194,11 +199,11 @@
     </form>
 </div>
 
-<form method="get" asp-action="Index" id="networkScopeForm" class="d-none" aria-hidden="true"></form>
+<form method="get" asp-route="networkManager-maintenance-pricing" asp-route-action="Index" id="networkScopeForm" class="d-none" aria-hidden="true"></form>
 
 @if (Model.CanUseCurrentNetworkScope)
 {
-    <form method="post" asp-action="CopyFromOtherScope" id="copyScopeForm" class="d-none">
+    <form method="post" asp-route="networkManager-maintenance-pricing" asp-route-action="CopyFromOtherScope" id="copyScopeForm" class="d-none">
         @Html.AntiForgeryToken()
         <input type="hidden" name="networkScope" value="@Model.NetworkScope" />
     </form>

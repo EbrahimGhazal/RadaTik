@@ -28,6 +28,8 @@ public class ImportUsersResult
     public int UpdatedCount { get; set; }
     public int ExistingCount { get; set; }
     public int DuplicateCount { get; set; }
+    /// <summary>نسخ مكررة حُذفت من البرج في MikroTik فأُزيل سجلها الزائد من التطبيق.</summary>
+    public int RemovedStaleDuplicateCount { get; set; }
     /// <summary>مشتركون كانوا في الشبكة بدون MikroTikServerId وتم ربطهم بالسيرفر.</summary>
     public int RelinkedCount { get; set; }
     /// <summary>بروفايلات أُنشئت تلقائياً لأن اسم البروفايل موجود على MikroTik فقط.</summary>

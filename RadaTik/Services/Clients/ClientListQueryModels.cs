@@ -35,5 +35,6 @@ public sealed class ClientDetailsPageModel
     public string? MikroTikError { get; init; }
     public bool IsClientView { get; init; }
     public bool IsClientOnly { get; init; }
+    public bool CanEditClient { get; init; }
     public List<ClientTopUpTransaction> RecentTopUps { get; init; } = [];
 }

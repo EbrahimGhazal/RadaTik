@@ -1,0 +1,14 @@
+@using RadaTik.Services.Documents
+@model CompanyDocumentChrome
+        @if (!string.IsNullOrWhiteSpace(Model.FooterText) || (Model.ShowGeneratedAt && !string.IsNullOrWhiteSpace(Model.GeneratedAt)))
+        {
+            <footer class="company-doc-footer">
+                <span>@Model.FooterText</span>
+                @if (Model.ShowGeneratedAt && !string.IsNullOrWhiteSpace(Model.GeneratedAt))
+                {
+                    <span>أُعدّ في @Model.GeneratedAt</span>
+                }
+            </footer>
+        }
+    </div>
+</div>

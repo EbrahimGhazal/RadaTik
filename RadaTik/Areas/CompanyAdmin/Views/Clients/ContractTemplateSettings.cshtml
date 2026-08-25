@@ -15,9 +15,14 @@
         <i class="fas fa-file-signature text-primary"></i>
         إعدادات عقد الانضمام
     </h2>
-    <a asp-route="networkManager-clients" asp-route-action="Index" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-right"></i> العودة للعملاء
-    </a>
+    <div class="d-flex gap-2">
+        <a asp-route="networkManager-clients" asp-route-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-right"></i> العودة للعملاء
+        </a>
+        <a asp-area="CompanyAdmin" asp-controller="Reports" asp-action="DocumentAppearance" class="btn btn-outline-primary">
+            <i class="fas fa-stamp"></i> هوية المستندات
+        </a>
+    </div>
 </div>
 
 @if (TempData["Success"] != null)
