@@ -2946,6 +2946,33 @@ body.modal-open:has(#nmCompanyBalanceBlockModal.show) .modal-backdrop {
     }
 }
 
+@media (max-width: 767.98px) {
+    .operational-page.sector-index-page .dataTables_wrapper,
+    .operational-page.sector-index-page .table-container {
+        overflow: visible !important;
+    }
+
+    .operational-page.sector-index-page #sectorsTable tbody tr {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+    }
+
+    .operational-page.sector-index-page #sectorsTable tbody td {
+        display: flex !important;
+        flex-direction: row !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .operational-page.sector-index-page #sectorsTable .action-buttons {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+    }
+}
+
 [data-theme="dark"] .operational-sys-hero {
     border-color: rgba(148, 163, 184, 0.15);
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.4));

@@ -1,0 +1,245 @@
+/* Sector index — mobile cards. Loaded after main.css so DataTables/cache cannot hide values. */
+
+@media (max-width: 991.98px) {
+    .radtk-page-sector-index .sector-btn-text {
+        display: none;
+    }
+
+    .radtk-page-sector-index .sector-page-nav-add .sector-btn-text {
+        display: inline;
+    }
+
+    .radtk-page-sector-index .page-actions-toolbar {
+        flex-direction: column;
+        align-items: stretch !important;
+        justify-content: stretch !important;
+    }
+
+    .radtk-page-sector-index .sector-toolbar-cluster {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 0.35rem;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .radtk-page-sector-index .sector-import-form {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        width: auto;
+        min-width: 0;
+    }
+
+    .radtk-page-sector-index .sector-import-server-select {
+        width: 8.25rem;
+        max-width: 8.25rem;
+        flex: 0 0 8.25rem;
+    }
+
+    .radtk-page-sector-index .sector-import-form-actions,
+    .radtk-page-sector-index .sector-page-nav-actions-row {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 0.35rem;
+    }
+
+    .radtk-page-sector-index .sector-toolbar-cluster .btn,
+    .radtk-page-sector-index .sector-import-form-actions .btn,
+    .radtk-page-sector-index .sector-page-nav-actions-row .btn {
+        flex: 0 0 auto;
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        padding: 0;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .radtk-page-sector-index .sector-page-nav-add {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .radtk-page-sector-index .table-container,
+    .radtk-page-sector-index .radtk-data-table-wrap,
+    .radtk-page-sector-index .dataTables_wrapper,
+    .radtk-page-sector-index .dataTables_scroll,
+    .radtk-page-sector-index .dataTables_scrollBody {
+        overflow: visible !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .radtk-page-sector-index #sectorsTable colgroup {
+        display: none !important;
+    }
+
+    .radtk-page-sector-index #sectorsTable,
+    .radtk-page-sector-index #sectorsTable.radtk-data-table--cards,
+    .radtk-page-sector-index #sectorsTable.table,
+    .radtk-page-sector-index #sectorsTable.dataTable {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: auto !important;
+        border-collapse: separate;
+    }
+
+    .radtk-page-sector-index #sectorsTable thead {
+        display: none !important;
+    }
+
+    .radtk-page-sector-index #sectorsTable tbody {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .radtk-page-sector-index #sectorsTable tbody tr {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+        margin-bottom: 0.75rem;
+        padding: 0.35rem 0;
+        border: 1px solid var(--rtk-border, var(--border-color, #e5e7eb));
+        border-radius: 12px;
+        background: var(--rtk-card, var(--bg-card, #fff));
+        float: none !important;
+        height: auto !important;
+    }
+
+    .radtk-page-sector-index #sectorsTable tbody td {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0.65rem;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        height: auto !important;
+        box-sizing: border-box !important;
+        float: none !important;
+        padding: 0.5rem 0.85rem !important;
+        border: none !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        text-align: start !important;
+        font-size: 0.9rem;
+        color: var(--rtk-text, var(--text-primary, #0f172a));
+    }
+
+    .radtk-page-sector-index #sectorsTable tbody td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        max-width: 40%;
+        font-weight: 700;
+        font-size: 0.78rem;
+        color: var(--text-muted, #64748b);
+    }
+
+    .radtk-page-sector-index #sectorsTable tbody td > * {
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 60%;
+        text-align: start;
+        font-weight: 700;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        white-space: normal;
+    }
+
+    .radtk-page-sector-index #sectorsTable tbody td code {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: inherit;
+    }
+
+    .radtk-page-sector-index #sectorsTable tbody td[data-label="القطاع"] {
+        display: block !important;
+        border-bottom: 1px solid var(--border-light, #edf2f7) !important;
+        padding-bottom: 0.7rem !important;
+    }
+
+    .radtk-page-sector-index #sectorsTable tbody td[data-label="القطاع"]::before {
+        display: none;
+    }
+
+    .radtk-page-sector-index #sectorsTable tbody td[data-label="القطاع"] > * {
+        max-width: none;
+        width: 100%;
+    }
+
+    .radtk-page-sector-index #sectorsTable tbody td.radtk-col-actions,
+    .radtk-page-sector-index #sectorsTable tbody td[data-label="إجراءات"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        border-top: 1px dashed var(--border-light, #edf2f7) !important;
+        padding-top: 0.7rem !important;
+        overflow: visible !important;
+    }
+
+    .radtk-page-sector-index #sectorsTable tbody td.radtk-col-actions::before,
+    .radtk-page-sector-index #sectorsTable tbody td[data-label="إجراءات"]::before {
+        max-width: none;
+        margin: 0;
+    }
+
+    .radtk-page-sector-index #sectorsTable tbody td.radtk-col-actions > *,
+    .radtk-page-sector-index #sectorsTable tbody td[data-label="إجراءات"] > *,
+    .radtk-page-sector-index #sectorsTable .action-buttons {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 0.35rem !important;
+        width: auto !important;
+        max-width: none !important;
+        flex: 0 0 auto !important;
+        font-weight: 400;
+    }
+
+    .radtk-page-sector-index #sectorsTable .action-buttons > .btn,
+    .radtk-page-sector-index #sectorsTable .action-buttons > a,
+    .radtk-page-sector-index #sectorsTable .action-buttons .btn-icon {
+        flex: 0 0 36px !important;
+        width: 36px !important;
+        min-width: 36px !important;
+        max-width: 36px !important;
+        height: 36px !important;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        float: none !important;
+    }
+
+    .radtk-page-sector-index .sector-import-preview-stats {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.4rem;
+    }
+
+    .radtk-page-sector-index .sector-import-stat,
+    .radtk-page-sector-index .sector-import-money-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+    }
+}

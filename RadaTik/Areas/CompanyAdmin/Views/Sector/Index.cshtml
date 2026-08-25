@@ -480,6 +480,10 @@
 </div>
 </div>
 
+@section Styles {
+    <link rel="stylesheet" href="~/css/sector-index-mobile.css" asp-append-version="true" />
+}
+
 @section Scripts {
     <script>
         function showSectorImportHelpModal() {
@@ -726,25 +730,19 @@
                 updateSectorImportPreviewCard();
             }
 
-            // Initialize DataTable
-            var table = $('#sectorsTable').DataTable({
-                language: {
-                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
-                },
-                order: [[0, 'asc']],
-                pageLength: 15,
-                responsive: false,
-                autoWidth: false
-            });
-
-            function resetSectorsTableLayout() {
-                var $t = $('#sectorsTable');
-                $t.add($t.find('thead th, tbody td, col')).css({ width: '', minWidth: '', maxWidth: '' });
-                $t.find('colgroup').remove();
+            // DataTables column widths collapse mobile cards; keep native markup under 768px.
+            var table = null;
+            if (!window.matchMedia('(max-width: 767.98px)').matches) {
+                table = $('#sectorsTable').DataTable({
+                    language: {
+                        url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
+                    },
+                    order: [[0, 'asc']],
+                    pageLength: 15,
+                    responsive: false,
+                    autoWidth: false
+                });
             }
-
-            table.on('draw.dt', resetSectorsTableLayout);
-            resetSectorsTableLayout();
 
             // Initialize Map
             initializeMap();
