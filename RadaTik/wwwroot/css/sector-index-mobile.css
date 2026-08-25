@@ -81,6 +81,15 @@
         display: none !important;
     }
 
+    .radtk-page-sector-index .main-content,
+    .radtk-page-sector-index .page-content,
+    .radtk-page-sector-index .content-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-x: hidden !important;
+    }
+
     .radtk-page-sector-index #sectorsTable,
     .radtk-page-sector-index #sectorsTable.radtk-data-table--cards,
     .radtk-page-sector-index #sectorsTable.table,
@@ -88,6 +97,7 @@
         display: block !important;
         width: 100% !important;
         max-width: 100% !important;
+        min-width: 0 !important;
         table-layout: auto !important;
         border-collapse: separate;
     }

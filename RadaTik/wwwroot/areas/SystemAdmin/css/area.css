@@ -1482,8 +1482,15 @@ button[data-critical-confirm-submit][disabled] {
         font-size: 1.35rem;
     }
 
-    .table {
+    /* Horizontal scroll for classic tables only — card layouts must stay full-width. */
+    .table:not(.radtk-data-table--cards) {
         min-width: 720px;
+    }
+
+    .table.radtk-data-table--cards {
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
     }
 
     .btn {
@@ -1533,8 +1540,14 @@ button[data-critical-confirm-submit][disabled] {
         font-size: 1.12rem;
     }
 
-    .table {
+    .table:not(.radtk-data-table--cards) {
         min-width: 640px;
+    }
+
+    .table.radtk-data-table--cards {
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
     }
 }
 
