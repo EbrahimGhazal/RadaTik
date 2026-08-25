@@ -271,6 +271,12 @@ div.dataTables_wrapper {
         padding: 0.5rem 0.55rem;
         font-size: 0.8125rem;
     }
+
+    .page-content .radtk-data-table--cards th,
+    .page-content .radtk-data-table--cards td {
+        font-size: 0.9rem;
+        white-space: normal;
+    }
 }
 
 @media (max-width: 575.98px) {
