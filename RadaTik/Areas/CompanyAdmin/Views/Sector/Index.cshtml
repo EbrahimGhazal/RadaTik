@@ -21,61 +21,67 @@
     }
     <partial name="_OperationalSysHero" />
     <div class="page-actions-toolbar d-flex flex-wrap gap-2 mb-3 justify-content-end align-items-center">
-            <button type="button" class="btn btn-sm btn-icon sector-toolbar-refresh" id="btnRefresh" title="تحديث">
-                <i class="fas fa-sync-alt"></i>
-            </button>
-            @if (importServers.Any())
-            {
-                <form asp-action="ImportFromMikroTik" method="post" class="sector-import-form d-flex flex-wrap align-items-center gap-1">
-                    @Html.AntiForgeryToken()
-                    <select class="form-select form-select-sm sector-import-server-select" name="mikroTikServerId" id="sectorImportServerSelect">
-                        @foreach (var srv in importServers)
-                        {
-                            <option value="@srv.Id"
-                                    data-server-name="@srv.Name"
-                                    data-preview-loaded="0"
-                                    data-total-interfaces="0"
-                                    data-importable="0"
-                                    data-existing="0"
-                                    data-missing-ip="0"
-                                    data-unsupported="0"
-                                    data-preview-note=""
-                                    data-unit-price="0"
-                                    data-total-charge="0"
-                                    data-wallet="0">
-                                @srv.Name
-                            </option>
-                        }
-                    </select>
-                    <div class="sector-import-form-actions">
-                        <button type="submit" class="btn btn-outline-success btn-sm"
-                                id="sectorImportSubmitBtn"
-                                onclick="return confirmSectorImportPreview();">
-                            <i class="fas fa-download"></i> <span class="sector-btn-text">استيراد القطاعات</span>
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm"
-                                id="sectorImportPreviewReloadBtn"
-                                title="تحديث معاينة الاستيراد">
-                            <i class="fas fa-rotate"></i>
-                        </button>
-                    </div>
-                </form>
-            }
-            <div class="sector-page-nav-actions">
-                <a asp-route="networkManager-sector" asp-route-action="RadioEngineering" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-flask-vial"></i> <span class="sector-btn-text">دراسة التحكم الراديوي</span>
-                </a>
-                <a asp-route="networkManager-sector" asp-route-action="RadioMonitoring" class="btn btn-outline-info btn-sm">
-                    <i class="fas fa-wave-square"></i> <span class="sector-btn-text">مراقبة القطاعات</span>
-                </a>
-                <button type="button" class="btn btn-outline-success btn-sm" id="btnOpenSectorExcelImport"
-                        title="استيراد مرسلات من ملف Excel">
-                    <i class="fas fa-file-excel"></i> <span class="sector-btn-text">استيراد من Excel</span>
+            <div class="sector-toolbar-cluster">
+                <button type="button" class="btn btn-sm btn-icon sector-toolbar-refresh" id="btnRefresh" title="تحديث">
+                    <i class="fas fa-sync-alt"></i>
                 </button>
-                <a asp-action="Create" class="btn btn-success btn-sm">
-                    <i class="fas fa-plus"></i> <span class="sector-btn-text">إضافة قطاع</span>
-                </a>
+                @if (importServers.Any())
+                {
+                    <form asp-action="ImportFromMikroTik" method="post" class="sector-import-form d-flex flex-wrap align-items-center gap-1">
+                        @Html.AntiForgeryToken()
+                        <select class="form-select form-select-sm sector-import-server-select" name="mikroTikServerId" id="sectorImportServerSelect">
+                            @foreach (var srv in importServers)
+                            {
+                                <option value="@srv.Id"
+                                        data-server-name="@srv.Name"
+                                        data-preview-loaded="0"
+                                        data-total-interfaces="0"
+                                        data-importable="0"
+                                        data-existing="0"
+                                        data-missing-ip="0"
+                                        data-unsupported="0"
+                                        data-preview-note=""
+                                        data-unit-price="0"
+                                        data-total-charge="0"
+                                        data-wallet="0">
+                                    @srv.Name
+                                </option>
+                            }
+                        </select>
+                        <div class="sector-import-form-actions">
+                            <button type="submit" class="btn btn-outline-success btn-sm"
+                                    id="sectorImportSubmitBtn"
+                                    title="استيراد القطاعات"
+                                    onclick="return confirmSectorImportPreview();">
+                                <i class="fas fa-download"></i> <span class="sector-btn-text">استيراد القطاعات</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    id="sectorImportPreviewReloadBtn"
+                                    title="تحديث معاينة الاستيراد">
+                                <i class="fas fa-rotate"></i>
+                            </button>
+                        </div>
+                    </form>
+                }
+                <div class="sector-page-nav-actions-row">
+                    <a asp-route="networkManager-sector" asp-route-action="RadioEngineering" class="btn btn-outline-primary btn-sm" title="دراسة التحكم الراديوي">
+                        <i class="fas fa-flask-vial"></i> <span class="sector-btn-text">دراسة التحكم الراديوي</span>
+                    </a>
+                    <a asp-route="networkManager-sector" asp-route-action="RadioMonitoring" class="btn btn-outline-info btn-sm" title="مراقبة القطاعات">
+                        <i class="fas fa-wave-square"></i> <span class="sector-btn-text">مراقبة القطاعات</span>
+                    </a>
+                    <a asp-action="ExportToExcel" class="btn btn-outline-success btn-sm" title="تصدير بيانات المرسلات إلى Excel">
+                        <i class="fas fa-file-export"></i> <span class="sector-btn-text">تصدير إلى Excel</span>
+                    </a>
+                    <button type="button" class="btn btn-outline-success btn-sm" id="btnOpenSectorExcelImport"
+                            title="استيراد مرسلات من ملف Excel">
+                        <i class="fas fa-file-excel"></i> <span class="sector-btn-text">استيراد من Excel</span>
+                    </button>
+                </div>
             </div>
+            <a asp-action="Create" class="btn btn-success btn-sm sector-page-nav-add">
+                <i class="fas fa-plus"></i> <span class="sector-btn-text">إضافة قطاع</span>
+            </a>
     </div>
 
 <div class="small text-muted mb-2">
@@ -87,20 +93,29 @@
     <div class="card border-0 shadow-sm mb-3 border-start border-4 border-success" id="sectorImportPreviewCard">
         <div class="card-body py-2">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-                <div>
+                <div class="sector-import-preview-main">
                     <div class="fw-semibold" id="sipServerName">—</div>
                     <div class="small text-muted mt-1 sector-import-preview-stats">
-                        إجمالي الواجهات: <strong id="sipTotal">0</strong> |
-                        قابل للاستيراد: <strong id="sipImportable">0</strong> |
-                        موجود مسبقاً: <strong id="sipExisting">0</strong> |
-                        بدون IP: <strong id="sipMissingIp">0</strong>
+                        <div class="sector-import-stat"><span>إجمالي الواجهات</span> <strong id="sipTotal">0</strong></div>
+                        <div class="sector-import-stat"><span>قابل للاستيراد</span> <strong id="sipImportable">0</strong></div>
+                        <div class="sector-import-stat"><span>موجود مسبقاً</span> <strong id="sipExisting">0</strong></div>
+                        <div class="sector-import-stat"><span>بدون IP</span> <strong id="sipMissingIp">0</strong></div>
                     </div>
                 </div>
-                <div class="text-end">
-                    <div class="small text-muted">سعر الوحدة / الإجمالي / الرصيد</div>
-                    <div class="fw-bold text-success">
-                        <span id="sipUnitPrice">0.00</span> / <span id="sipTotalCharge">0.00</span> / <span id="sipWallet">0.00</span> ل.س.ج
+                <div class="text-end sector-import-preview-money">
+                    <div class="sector-import-money-row">
+                        <span>سعر الوحدة</span>
+                        <strong id="sipUnitPrice">0.00</strong>
                     </div>
+                    <div class="sector-import-money-row">
+                        <span>الإجمالي</span>
+                        <strong id="sipTotalCharge">0.00</strong>
+                    </div>
+                    <div class="sector-import-money-row">
+                        <span>الرصيد</span>
+                        <strong id="sipWallet">0.00</strong>
+                    </div>
+                    <div class="small text-muted">ل.س.ج</div>
                     <div class="small text-danger mt-1 d-none" id="sipWarningText">
                         <span id="sipWarningMessage"></span>
                         <a href="#" id="sipWarningHelpLink" class="ms-1" onclick="return showSectorImportHelpModal();">تفاصيل الحل</a>
@@ -373,7 +388,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td data-label="IP"><code>@item.IPAddress</code></td>
+                            <td data-label="IP"><span class="radtk-td-value"><code>@item.IPAddress</code></span></td>
                             <td data-label="السيرفر">
                                 @if (item.MikroTikServer != null)
                                 {
@@ -721,6 +736,15 @@
                 responsive: false,
                 autoWidth: false
             });
+
+            function resetSectorsTableLayout() {
+                var $t = $('#sectorsTable');
+                $t.add($t.find('thead th, tbody td, col')).css({ width: '', minWidth: '', maxWidth: '' });
+                $t.find('colgroup').remove();
+            }
+
+            table.on('draw.dt', resetSectorsTableLayout);
+            resetSectorsTableLayout();
 
             // Initialize Map
             initializeMap();
