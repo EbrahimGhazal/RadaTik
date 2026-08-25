@@ -353,6 +353,21 @@
         </div>
     </div>
     <div class="card-body clients-table-wrap">
+        <div class="clients-mobile-search" id="clientsMobileSearchBar">
+            <label class="visually-hidden" for="clientsMobileSearchInput">بحث في العملاء</label>
+            <div class="clients-mobile-search__field">
+                <i class="fas fa-search clients-mobile-search__icon" aria-hidden="true"></i>
+                <input type="search"
+                       class="form-control"
+                       id="clientsMobileSearchInput"
+                       placeholder="بحث بالاسم أو الجوال أو الحساب..."
+                       autocomplete="off"
+                       enterkeyhint="search" />
+                <button type="button" class="clients-mobile-search__clear" id="clientsMobileSearchClear" title="مسح البحث" aria-label="مسح البحث" hidden>
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
         <div class="table-container table-responsive">
             <table class="table table-sm table-compact radtk-data-table radtk-data-table--cards" id="clientsTable">
                 <thead>
@@ -413,6 +428,7 @@
                         <tr class="client-row"
                             data-client-id="@item.Id"
                             data-client-name="@(item.Name ?? item.UserName ?? ("#" + item.Id))"
+                            data-search="@($"{item.Name} {item.PhoneNumber} {item.UserName} {dbAccount} {item.SID} {item.MikroTikServer?.Name} {item.Receiver?.Name} {senderName} {profileName}".Trim())"
                             data-active="@item.IsActive.ToString().ToLower()"
                             data-pending="@isPendingApproval.ToString().ToLower()"
                             data-duplicate="@item.IsCrossServerDuplicate.ToString().ToLower()"
@@ -916,6 +932,7 @@
     <script>
         let currentFilter = 'all';
         let clientsStatusFilterRegistered = false;
+        let clientsCardSearchQuery = '';
 
         function rowMatchesStatusFilter(rowNode, filterType) {
             const isActive = rowNode.getAttribute('data-active') === 'true';
@@ -937,6 +954,25 @@
                     return isVip;
                 default:
                     return true;
+            }
+        }
+
+        function rowMatchesCardSearch(rowNode) {
+            const q = (clientsCardSearchQuery || '').trim().toLowerCase();
+            if (!q) {
+                return true;
+            }
+            const hay = (rowNode.getAttribute('data-search')
+                || rowNode.getAttribute('data-client-name')
+                || rowNode.textContent
+                || '').toLowerCase();
+            return hay.indexOf(q) !== -1;
+        }
+
+        function syncClientsMobileSearchUi() {
+            const clearBtn = document.getElementById('clientsMobileSearchClear');
+            if (clearBtn) {
+                clearBtn.hidden = !(clientsCardSearchQuery || '').trim();
             }
         }
 
@@ -1018,10 +1054,9 @@
                 });
             } else {
                 document.querySelectorAll('.client-row').forEach(row => {
-                    const isActive = row.getAttribute('data-active') === 'true';
                     const isConnected = row.getAttribute('data-connected') === 'true';
                     const speed = parseInt(row.getAttribute('data-speed')) || 0;
-                    const shouldShow = rowMatchesStatusFilter(row, filterType);
+                    const shouldShow = rowMatchesStatusFilter(row, filterType) && rowMatchesCardSearch(row);
 
                     if (shouldShow) {
                         row.style.display = '';
@@ -1632,6 +1667,33 @@
             initClientsTableIfDesktop();
             applyColumnVisibility();
             loadConnectionStatus(false);
+
+            const mobileSearchInput = document.getElementById('clientsMobileSearchInput');
+            const mobileSearchClear = document.getElementById('clientsMobileSearchClear');
+            if (mobileSearchInput) {
+                let searchTimer = null;
+                mobileSearchInput.addEventListener('input', function () {
+                    clientsCardSearchQuery = mobileSearchInput.value || '';
+                    syncClientsMobileSearchUi();
+                    clearTimeout(searchTimer);
+                    searchTimer = setTimeout(function () {
+                        filterByStatus(currentFilter);
+                    }, 120);
+                });
+            }
+            if (mobileSearchClear) {
+                mobileSearchClear.addEventListener('click', function () {
+                    clientsCardSearchQuery = '';
+                    if (mobileSearchInput) {
+                        mobileSearchInput.value = '';
+                        mobileSearchInput.focus();
+                    }
+                    syncClientsMobileSearchUi();
+                    filterByStatus(currentFilter);
+                });
+            }
+            syncClientsMobileSearchUi();
+
             let resizeTimer = null;
             $(window).on('resize', function () {
                 clearTimeout(resizeTimer);

@@ -2075,6 +2075,46 @@ body.profile-import-busy {
         width: 100%;
         overflow-x: hidden;
     }
+.radtk-surface .radtk-page-clients-index .clients-mobile-search {
+        display: none;
+        margin: 0 0 0.85rem;
+    }
+.radtk-surface .radtk-page-clients-index .clients-mobile-search__field {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+.radtk-surface .radtk-page-clients-index .clients-mobile-search__icon {
+        position: absolute;
+        inset-inline-start: 0.85rem;
+        color: var(--text-muted, #64748b);
+        pointer-events: none;
+        z-index: 1;
+    }
+.radtk-surface .radtk-page-clients-index .clients-mobile-search__field .form-control {
+        padding-inline-start: 2.35rem;
+        padding-inline-end: 2.5rem;
+        min-height: 2.65rem;
+        border-radius: 0.85rem;
+        font-size: 1rem;
+    }
+.radtk-surface .radtk-page-clients-index .clients-mobile-search__clear {
+        position: absolute;
+        inset-inline-end: 0.45rem;
+        width: 2rem;
+        height: 2rem;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--text-muted, #64748b);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+.radtk-surface .radtk-page-clients-index .clients-mobile-search__clear:hover {
+        background: rgba(148, 163, 184, 0.18);
+        color: var(--text-primary, #0f172a);
+    }
 .radtk-surface .radtk-page-clients-index .clients-table-wrap .dataTables_wrapper {
         max-width: 100%;
         overflow-x: hidden;
@@ -2273,6 +2313,12 @@ body.profile-import-busy {
 
 /* بطاقات العملاء — تابلت + موبايل */
 @media (max-width: 1199.98px) {
+    .radtk-surface .radtk-page-clients-index .clients-mobile-search,
+    .radtk-page-clients-index .clients-mobile-search,
+    body.clients-cards-mode .radtk-page-clients-index .clients-mobile-search {
+        display: block;
+    }
+
     .radtk-surface .radtk-page-clients-index .stats-bar {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
