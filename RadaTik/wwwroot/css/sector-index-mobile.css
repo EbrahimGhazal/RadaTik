@@ -81,13 +81,20 @@
         display: none !important;
     }
 
-    .radtk-page-sector-index .main-content,
-    .radtk-page-sector-index .page-content,
-    .radtk-page-sector-index .content-wrapper {
+    /* .main-content wraps the page — use :has, not a descendant selector. */
+    body:has(.radtk-page-sector-index) .main-content,
+    body:has(.radtk-page-sector-index) .page-content,
+    body:has(.radtk-page-sector-index) .map-card,
+    body:has(.radtk-page-sector-index) #map,
+    body:has(.radtk-page-sector-index) .leaflet-container {
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
-        overflow-x: hidden !important;
+    }
+
+    body:has(.radtk-page-sector-index) .main-content,
+    body:has(.radtk-page-sector-index) .page-content {
+        overflow-x: clip !important;
     }
 
     .radtk-page-sector-index #sectorsTable,

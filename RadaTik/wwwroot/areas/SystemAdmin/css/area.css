@@ -1493,6 +1493,23 @@ button[data-critical-confirm-submit][disabled] {
         max-width: 100%;
     }
 
+    /* Prevent flex min-content (maps/toolbars) from widening past the viewport. */
+    .admin-dashboard-page .main-content,
+    .company-dashboard-page .main-content {
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: clip;
+    }
+
+    .admin-dashboard-page .main-content > .header,
+    .company-dashboard-page .main-content > .header,
+    .admin-dashboard-page .page-content,
+    .company-dashboard-page .page-content {
+        min-width: 0;
+        max-width: 100%;
+    }
+
     .btn {
         min-height: 40px;
     }

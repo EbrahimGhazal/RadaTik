@@ -193,16 +193,36 @@ body {
     body.admin-dashboard-page .main-content,
     body.company-dashboard-page .main-content,
     body.role-company-admin .main-content {
-        overflow: visible;
+        /* Flex default min-width:auto expands past the viewport (e.g. Leaflet). */
+        overflow-x: clip;
+        overflow-y: visible;
         min-height: 0;
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    body.admin-dashboard-page .main-content > .header,
+    body.company-dashboard-page .main-content > .header,
+    body.admin-dashboard-page .main-content > .app-footer,
+    body.company-dashboard-page .main-content > .app-footer {
+        min-width: 0;
+        max-width: 100%;
     }
 
     body.admin-dashboard-page .page-content,
     body.company-dashboard-page .page-content,
     body.role-company-admin .page-content {
         padding-top: 1rem !important;
-        overflow-x: visible;
+        overflow-x: clip;
         min-height: 0;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .leaflet-container,
+    .leaflet-container .leaflet-pane svg {
+        max-width: 100% !important;
     }
 }
 
