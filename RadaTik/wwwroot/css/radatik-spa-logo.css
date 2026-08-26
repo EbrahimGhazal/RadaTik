@@ -1,99 +1,57 @@
-/* شعار RadaTik موحّد مع واجهة SPA (/app/admin) — يُستخدم في الشريط الجانبي والبطاقات */
+/* شعار RADATIK الرسمي — صورة كاملة + أيقونة عند الطي */
 
 .rt-brand-block {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0;
+    line-height: 0;
 }
 
-.rt-brand-block--hero {
-    gap: 0.65rem;
+.rt-logo-img {
+    display: block;
+    height: auto;
+    max-width: 100%;
+    object-fit: contain;
 }
 
-.rt-brand-block--hero .rt-wm-text {
-    font-size: 1.35rem;
+.rt-logo-full {
+    height: 40px;
+    width: auto;
 }
 
-.rt-svg-ring {
-    stroke: #2563eb;
+.rt-logo-mark {
+    display: none;
+    height: 40px;
+    width: 40px;
 }
 
-.rt-svg-accent {
-    stroke: #06b6d4;
+.rt-brand-block--hero .rt-logo-full {
+    height: 52px;
 }
 
-.rt-svg-glow {
-    fill: #22d3ee;
+.rt-brand-block--hero .rt-logo-mark {
+    height: 52px;
+    width: 52px;
 }
 
-[data-theme="dark"] .rt-svg-ring {
-    stroke: #3b82f6;
+.rt-brand-block--sidebar .rt-logo-full {
+    height: 36px;
 }
 
-[data-theme="dark"] .rt-svg-accent {
-    stroke: #fb923c;
+.rt-brand-block--sidebar .rt-logo-mark {
+    height: 36px;
+    width: 36px;
 }
 
-[data-theme="dark"] .rt-svg-glow {
-    fill: #60a5fa;
+.rt-brand-block--mark-only .rt-logo-full {
+    display: none;
 }
 
-.rt-wordmark {
-    display: flex;
-    flex-direction: column;
-    line-height: 1;
-    user-select: none;
+.rt-brand-block--mark-only .rt-logo-mark {
+    display: block;
 }
 
-.rt-wm-text {
-    font-family: "Poppins", sans-serif;
-    font-weight: 600;
-    font-size: 1.05rem;
-    letter-spacing: -0.02em;
-}
-
-.rt-wm-r {
-    color: #2563eb;
-}
-
-[data-theme="dark"] .rt-wm-r {
-    color: #3b82f6;
-}
-
-.rt-wm-ad {
-    color: #06b6d4;
-}
-
-[data-theme="dark"] .rt-wm-ad {
-    color: #fb923c;
-}
-
-.rt-wm-i {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-}
-
-.rt-wm-dot {
-    position: absolute;
-    top: -0.15em;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0.35em;
-    height: 0.35em;
-    min-width: 5px;
-    min-height: 5px;
-    border-radius: 999px;
-    background: #22d3ee;
-    box-shadow: 0 0 8px #22d3ee;
-}
-
-[data-theme="dark"] .rt-wm-dot {
-    background: #60a5fa;
-    box-shadow: 0 0 8px #60a5fa;
-}
-
-/* تكامل رأس الشريط الجانبي — مدير النظام */
+/* تكامل رأس الشريط الجانبي — مدير النظام / البوابات */
 .rt-sysadmin-brand {
     display: flex;
     flex-direction: column;
@@ -105,6 +63,13 @@
 
 .rt-sysadmin-brand .rt-brand-block {
     justify-content: flex-start;
+}
+
+[data-theme="dark"] .rt-sysadmin-brand .rt-brand-block,
+[data-theme="dark"] .header-brand-mark .rt-brand-block {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 0.25rem 0.45rem;
 }
 
 .rt-sysadmin-brand .sidebar-brand-sub {
@@ -122,13 +87,13 @@
     height: auto;
     padding: 0.35rem 0.6rem 0.35rem 0.35rem;
     background: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(37, 99, 235, 0.2);
-    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
+    border: 1px solid rgba(15, 42, 74, 0.14);
+    box-shadow: 0 8px 24px rgba(15, 42, 74, 0.1);
 }
 
 [data-theme="dark"] .sys-hero-icon.rt-hero-logo-wrap {
     background: rgba(30, 41, 59, 0.95);
-    border-color: rgba(59, 130, 246, 0.35);
+    border-color: rgba(148, 163, 184, 0.35);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
@@ -136,10 +101,16 @@
     display: none;
 }
 
-/* عند طي الشريط: إظهار أيقونة SVG فقط */
-.sidebar.collapsed .rt-sysadmin-brand .rt-wordmark,
+/* عند طي الشريط: إظهار الأيقونة فقط */
+.sidebar.collapsed .rt-sysadmin-brand .rt-logo-full,
+.sidebar.collapsed .sidebar-logo-brand .rt-logo-full,
 .sidebar.collapsed .rt-sysadmin-brand .sidebar-brand-sub {
     display: none !important;
+}
+
+.sidebar.collapsed .rt-sysadmin-brand .rt-logo-mark,
+.sidebar.collapsed .sidebar-logo-brand .rt-logo-mark {
+    display: block !important;
 }
 
 .sidebar.collapsed .rt-sysadmin-brand {
@@ -148,4 +119,10 @@
 
 .sidebar.collapsed .rt-sysadmin-brand .rt-brand-block {
     justify-content: center;
+}
+
+/* توافق خلفي مع الكلاسات القديمة إن بقيت في صفحات مخزّنة */
+.rt-wordmark,
+.rt-logomark {
+    display: none !important;
 }

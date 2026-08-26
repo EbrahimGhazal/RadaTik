@@ -11,12 +11,12 @@
 
 <aside class="sidebar sidebar-pro sidebar-employee" id="sidebar">
     <div class="sidebar-header">
-        <div class="sidebar-logo">
-            <i class="fas fa-briefcase"></i>
-        </div>
-        <div class="sidebar-brand">
-            <span class="sidebar-brand-name">RadaTik</span>
-            <small class="sidebar-brand-sub">بوابة الموظف</small>
+        <div class="rt-sysadmin-brand">
+            @{
+                ViewData["RtBrandVariant"] = "sidebar";
+            }
+            <partial name="_RadaTikBrandLogo" />
+            <small class="sidebar-brand-sub" dir="rtl">بوابة الموظف</small>
         </div>
     </div>
 

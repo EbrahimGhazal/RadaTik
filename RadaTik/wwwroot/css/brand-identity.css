@@ -315,8 +315,12 @@
     transform-origin: center;
 }
 
-.sidebar-logo-brand .rt-wordmark {
+.sidebar-logo-brand .rt-logo-full {
     display: none;
+}
+
+.sidebar-logo-brand .rt-logo-mark {
+    display: block;
 }
 
 /* Role-based subtle accents (same brand DNA) */

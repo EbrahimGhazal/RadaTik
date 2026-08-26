@@ -20,17 +20,17 @@
 
     <div class="sidebar-header">
 
-        <div class="sidebar-logo">
+        <div class="rt-sysadmin-brand">
 
-            <i class="fas fa-map-marker-alt"></i>
+            @{
 
-        </div>
+                ViewData["RtBrandVariant"] = "sidebar";
 
-        <div class="sidebar-brand">
+            }
 
-            <span class="sidebar-brand-name">RadaTik</span>
+            <partial name="_RadaTikBrandLogo" />
 
-            <small class="sidebar-brand-sub">نقطة التحصيل</small>
+            <small class="sidebar-brand-sub" dir="rtl">نقطة التحصيل</small>
 
         </div>
 
