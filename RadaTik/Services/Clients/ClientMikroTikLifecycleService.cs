@@ -622,6 +622,7 @@ public sealed class ClientMikroTikLifecycleService(
             Floor = source.Floor,
             MikroTikServerId = targetServerId,
             IsCrossServerDuplicate = true,
+            IsImportedFromServer = source.IsImportedFromServer,
             NetworkId = source.NetworkId,
             ServiceStartDate = source.ServiceStartDate,
             AccountExpirationDate = source.AccountExpirationDate,

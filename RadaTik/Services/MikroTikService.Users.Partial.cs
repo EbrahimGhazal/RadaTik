@@ -54,6 +54,7 @@ public partial class MikroTikService
                     IsActive = model.IsActive,
                     ReceiverId = model.ReceiverId,
                     MikroTikServerId = model.MikroTikServerId,
+                    IsImportedFromServer = true,
                     CreatedDate = DateTime.Now,
                     LastUpdated = DateTime.Now,
                     ConnectionStatus = model.IsActive ? "مفعل" : "معطل",

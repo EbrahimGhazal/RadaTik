@@ -7,6 +7,7 @@ using global::RadaTik.Helpers;
 using global::RadaTik.Models;
 using global::RadaTik.Security;
 using global::RadaTik.Services;
+using global::RadaTik.Services.Clients;
 
 namespace RadaTik.Areas.CompanyEmployee.Controllers;
 
@@ -17,15 +18,18 @@ public class DashboardController : Controller
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IPermissionService _permissionService;
+    private readonly IEmployeeDashboardQueryService _dashboardQuery;
 
     public DashboardController(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
-        IPermissionService permissionService)
+        IPermissionService permissionService,
+        IEmployeeDashboardQueryService dashboardQuery)
     {
         _context = context;
         _userManager = userManager;
         _permissionService = permissionService;
+        _dashboardQuery = dashboardQuery;
     }
 
     /// <summary>
@@ -72,12 +76,8 @@ public class DashboardController : Controller
             .OrderBy(m => m.ScheduledVisitDate)
             .ToListAsync();
 
-        List<Client> installationPendingUntilToday = await _context.Clients
-            .Include(c => c.Profile)
-            .Where(c => c.NetworkId == networkId.Value
-                && c.CreatedDate.Date <= todayDate)
-            .OrderBy(c => c.CreatedDate)
-            .ToListAsync();
+        List<Client> installationPendingUntilToday = await _dashboardQuery
+            .GetPendingInstallationsUntilAsync(networkId.Value, todayDate);
 
         List<MaintenanceRequest> maintenanceScheduledTomorrow = await _context.MaintenanceRequests
             .Include(m => m.Client)
@@ -92,12 +92,8 @@ public class DashboardController : Controller
             .OrderBy(m => m.ScheduledVisitDate)
             .ToListAsync();
 
-        List<Client> installationScheduledTomorrow = await _context.Clients
-            .Include(c => c.Profile)
-            .Where(c => c.NetworkId == networkId.Value
-                && c.CreatedDate.Date == tomorrowDate)
-            .OrderBy(c => c.CreatedDate)
-            .ToListAsync();
+        List<Client> installationScheduledTomorrow = await _dashboardQuery
+            .GetPendingInstallationsOnDateAsync(networkId.Value, tomorrowDate);
 
         ViewBag.MaintenancePendingUntilToday = maintenancePendingUntilToday;
         ViewBag.InstallationPendingUntilToday = installationPendingUntilToday;

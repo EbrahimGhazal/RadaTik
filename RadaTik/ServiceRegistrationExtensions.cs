@@ -109,6 +109,7 @@ internal static class ServiceRegistrationExtensions
         services.AddScoped<Services.Clients.IClientWalletTopUpService, Services.Clients.ClientWalletTopUpService>();
         services.AddScoped<Services.Clients.IClientSelfRenewalService, Services.Clients.ClientSelfRenewalService>();
         services.AddScoped<Services.Clients.IClientExpirationQueryService, Services.Clients.ClientExpirationQueryService>();
+        services.AddScoped<Services.Clients.IEmployeeDashboardQueryService, Services.Clients.EmployeeDashboardQueryService>();
         services.AddScoped<Services.Clients.IClientFormLookupService, Services.Clients.ClientFormLookupService>();
         services.AddScoped<Services.Clients.IClientInfoFileImportService, Services.Clients.ClientInfoFileImportService>();
         services.AddScoped<Services.Clients.IClientVipPolicyService, Services.Clients.ClientVipPolicyService>();

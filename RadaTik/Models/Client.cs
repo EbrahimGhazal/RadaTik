@@ -108,6 +108,12 @@ namespace RadaTik.Models
         [Display(Name = "مكرر عبر السيرفرات")]
         public bool IsCrossServerDuplicate { get; set; }
 
+        /// <summary>
+        /// أُنشئ باستيراد حساب موجود مسبقاً على سيرفر MikroTik (وليس مشتركاً جديداً يحتاج زيارة تركيب).
+        /// </summary>
+        [Display(Name = "مستورد من السيرفر")]
+        public bool IsImportedFromServer { get; set; }
+
         [Display(Name = "مشترك مميز (VIP)")]
         public bool IsVip { get; set; }
 
