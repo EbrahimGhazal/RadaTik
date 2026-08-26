@@ -11,6 +11,9 @@ public sealed class AreaIsolationMiddlewareTests
     [InlineData("/networkManager/Account/UpdateProfile", "/employee/Account/UpdateProfile")]
     [InlineData("/networkManager/Account/ChangePassword", "/employee/Account/ChangePassword")]
     [InlineData("/networkManager/Clients", "/employee/Clients")]
+    [InlineData("/networkManager/Clients/wizard", "/employee/Clients/wizard")]
+    [InlineData("/CompanyEmployee/Clients/wizard", "/employee/Clients/wizard")]
+    [InlineData("/CompanyEmployee/Clients/wizard/Start", "/employee/Clients/wizard/Start")]
     public void EmployeeAreaRemap_MapsCompanyAdminAccountPathsToEmployee(string fromPath, string expected)
     {
         bool mapped = InvokeMap(fromPath, null, out string mappedPath);

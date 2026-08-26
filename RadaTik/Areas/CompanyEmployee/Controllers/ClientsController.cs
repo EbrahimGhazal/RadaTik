@@ -52,7 +52,7 @@ public class ClientsController : global::RadaTik.Controllers.ClientsController
 
     public new IActionResult Create() =>
 
-        RedirectToAction("Index", "NewSubscriberWizard", new { area = "CompanyEmployee" });
+        RedirectToRoute("employee-new-subscriber-wizard");
 
 
 

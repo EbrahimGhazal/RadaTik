@@ -37,6 +37,17 @@ public sealed class AreaIsolationMiddleware(RequestDelegate _next, ILogger<AreaI
             return;
         }
 
+        // موظف الشركة: وحّد المسارات القديمة /CompanyEmployee/* إلى /employee/*
+        var isCompanyEmployeeUser =
+            context.User.IsInRole(RoleNames.CompanyEmployee) || context.User.IsInRole(RoleNames.EmployeeLegacy);
+        if (isCompanyEmployeeUser &&
+            path.StartsWith("/CompanyEmployee", StringComparison.OrdinalIgnoreCase) &&
+            TryMapCompanyAdminPathToEmployee(path, context.Request.QueryString.Value, out var legacyEmployeePath))
+        {
+            context.Response.Redirect(legacyEmployeePath);
+            return;
+        }
+
         var requestedArea = GetRequestedArea(context);
         if (string.IsNullOrWhiteSpace(requestedArea))
         {
@@ -108,7 +119,12 @@ public sealed class AreaIsolationMiddleware(RequestDelegate _next, ILogger<AreaI
         var p = context.Request.Path.Value ?? "";
         if (p.StartsWith("/networkManager", StringComparison.OrdinalIgnoreCase)) return "CompanyAdmin";
         if (p.StartsWith("/systemAdmin", StringComparison.OrdinalIgnoreCase)) return "SystemAdmin";
-        if (p.StartsWith("/employee", StringComparison.OrdinalIgnoreCase)) return "CompanyEmployee";
+        // /employee و /CompanyEmployee (مسارات قديمة) كلاهما بوابة الموظف
+        if (p.StartsWith("/employee", StringComparison.OrdinalIgnoreCase)
+            || p.StartsWith("/CompanyEmployee", StringComparison.OrdinalIgnoreCase))
+        {
+            return "CompanyEmployee";
+        }
         if (p.StartsWith("/clientPortal", StringComparison.OrdinalIgnoreCase)) return "ClientPortal";
         if (p.StartsWith("/collectionPoint", StringComparison.OrdinalIgnoreCase)) return "CollectionPoint";
 
@@ -118,6 +134,23 @@ public sealed class AreaIsolationMiddleware(RequestDelegate _next, ILogger<AreaI
     private static bool TryMapCompanyAdminPathToEmployee(string path, string? queryString, out string mappedPath)
     {
         mappedPath = string.Empty;
+
+        // توحيد المسارات القديمة /CompanyEmployee/... إلى /employee/...
+        if (path.StartsWith("/CompanyEmployee", StringComparison.OrdinalIgnoreCase))
+        {
+            var legacyRelative = path["/CompanyEmployee".Length..];
+            if (string.IsNullOrWhiteSpace(legacyRelative))
+            {
+                mappedPath = "/employee/dashboard" + (queryString ?? string.Empty);
+            }
+            else
+            {
+                mappedPath = "/employee" + legacyRelative + (queryString ?? string.Empty);
+            }
+
+            return true;
+        }
+
         if (!path.StartsWith("/networkManager", StringComparison.OrdinalIgnoreCase))
         {
             return false;
@@ -153,4 +186,3 @@ public sealed class AreaIsolationMiddleware(RequestDelegate _next, ILogger<AreaI
         return true;
     }
 }
-

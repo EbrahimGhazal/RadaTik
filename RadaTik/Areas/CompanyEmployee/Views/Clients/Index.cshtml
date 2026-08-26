@@ -90,7 +90,7 @@
     }
     if (canCreate)
     {
-        heroActions.Add(new() { Text = "إضافة مشترك جديد", Url = Url.Action("Index", "NewSubscriberWizard", new { area = "CompanyEmployee" })!, CssClass = "btn btn-success btn-sm", IconClass = "fas fa-user-plus" });
+        heroActions.Add(new() { Text = "إضافة مشترك جديد", Url = Url.RouteUrl("employee-new-subscriber-wizard")!, CssClass = "btn btn-success btn-sm", IconClass = "fas fa-user-plus" });
     }
     ViewBag.PageHeroIcon = "fas fa-users";
     ViewBag.PageHeroExtraActions = heroActions;

@@ -122,8 +122,15 @@ public static partial class RouteMappingExtensions
             pattern: "networkManager/Clients/wizard/{action=Index}/{id?}",
             defaults: new { area = "CompanyAdmin", controller = "NewSubscriberWizard", action = "Index" });
 
+        // مسار موظف الشركة تحت /employee حتى لا يُرفض عبر AreaIsolation
         app.MapControllerRoute(
-            name: "companyEmployee-new-subscriber-wizard",
+            name: "employee-new-subscriber-wizard",
+            pattern: "employee/Clients/wizard/{action=Index}/{id?}",
+            defaults: new { area = "CompanyEmployee", controller = "NewSubscriberWizard", action = "Index" });
+
+        // توافق مع الروابط القديمة /CompanyEmployee/Clients/wizard → نفس الـ controller
+        app.MapControllerRoute(
+            name: "companyEmployee-new-subscriber-wizard-legacy",
             pattern: "CompanyEmployee/Clients/wizard/{action=Index}/{id?}",
             defaults: new { area = "CompanyEmployee", controller = "NewSubscriberWizard", action = "Index" });
 

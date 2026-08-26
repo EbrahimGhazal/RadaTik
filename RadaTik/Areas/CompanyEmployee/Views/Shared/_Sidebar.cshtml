@@ -164,8 +164,8 @@
                                     @if (canCreateClients)
                                     {
                                         <li class="nav-item">
-                                            <a class="nav-link nav-link-sub @(controller == "Clients" && action == "Create" ? "active" : "")"
-                                               asp-area="CompanyEmployee" asp-controller="Clients" asp-action="Create">
+                                            <a class="nav-link nav-link-sub @(controller == "NewSubscriberWizard" || (controller == "Clients" && action == "Create") ? "active" : "")"
+                                               asp-route="employee-new-subscriber-wizard" asp-route-action="Index" asp-route-id="">
                                                 <i class="fas fa-user-plus"></i>
                                                 <span>إضافة عميل</span>
                                             </a>
