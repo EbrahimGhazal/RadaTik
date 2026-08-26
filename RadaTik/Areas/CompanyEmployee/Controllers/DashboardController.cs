@@ -75,7 +75,13 @@ public class DashboardController : Controller
         List<Client> installationPendingUntilToday = await _context.Clients
             .Include(c => c.Profile)
             .Where(c => c.NetworkId == networkId.Value
-                && c.CreatedDate.Date <= todayDate)
+                && c.CreatedDate.Date <= todayDate
+                && _context.SubscriberInstallationInvoices.Any(i =>
+                    i.ClientId == c.Id
+                    && i.Kind == SubscriberInstallationInvoiceKind.InitialSetup
+                    && (i.Status == SubscriberInstallationInvoiceStatus.Draft
+                        || i.Status == SubscriberInstallationInvoiceStatus.PendingWalletPayment
+                        || i.Status == SubscriberInstallationInvoiceStatus.PartiallyPaid)))
             .OrderBy(c => c.CreatedDate)
             .ToListAsync();
 
@@ -95,7 +101,13 @@ public class DashboardController : Controller
         List<Client> installationScheduledTomorrow = await _context.Clients
             .Include(c => c.Profile)
             .Where(c => c.NetworkId == networkId.Value
-                && c.CreatedDate.Date == tomorrowDate)
+                && c.CreatedDate.Date == tomorrowDate
+                && _context.SubscriberInstallationInvoices.Any(i =>
+                    i.ClientId == c.Id
+                    && i.Kind == SubscriberInstallationInvoiceKind.InitialSetup
+                    && (i.Status == SubscriberInstallationInvoiceStatus.Draft
+                        || i.Status == SubscriberInstallationInvoiceStatus.PendingWalletPayment
+                        || i.Status == SubscriberInstallationInvoiceStatus.PartiallyPaid)))
             .OrderBy(c => c.CreatedDate)
             .ToListAsync();
 
