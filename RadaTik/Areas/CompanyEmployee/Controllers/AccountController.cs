@@ -111,7 +111,7 @@ public class AccountController : Controller
         if (!hasChanges)
         {
             TempData["Info"] = "لم يتم إجراء أي تغيير.";
-            return RedirectToAction(nameof(Profile));
+            return RedirectToEmployeeProfile();
         }
 
         user.LastUpdated = DateTime.Now;
@@ -119,11 +119,11 @@ public class AccountController : Controller
         if (!result.Succeeded)
         {
             TempData["Error"] = string.Join(" | ", result.Errors.Select(e => e.Description));
-            return RedirectToAction(nameof(Profile));
+            return RedirectToEmployeeProfile();
         }
 
         TempData["Success"] = AppMessages.OperationSuccess;
-        return RedirectToAction(nameof(Profile));
+        return RedirectToEmployeeProfile();
     }
 
     [HttpPost]
@@ -140,20 +140,20 @@ public class AccountController : Controller
         {
             TempData["Error"] = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault()
                 ?? "بيانات تغيير كلمة المرور غير مكتملة.";
-            return RedirectToAction(nameof(Profile));
+            return RedirectToEmployeeProfile();
         }
 
         foreach (string err in StrongPasswordRules.Validate(model.NewPassword, user.UserName, user.Email))
         {
             TempData["Error"] = err;
-            return RedirectToAction(nameof(Profile));
+            return RedirectToEmployeeProfile();
         }
 
         IdentityResult result = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
         if (!result.Succeeded)
         {
             TempData["Error"] = string.Join(" | ", result.Errors.Select(e => e.Description));
-            return RedirectToAction(nameof(Profile));
+            return RedirectToEmployeeProfile();
         }
 
         user.MustChangePassword = false;
@@ -161,8 +161,11 @@ public class AccountController : Controller
         await _userManager.UpdateAsync(user);
         await _signInManager.RefreshSignInAsync(user);
         TempData["Success"] = "تم تغيير كلمة المرور بنجاح.";
-        return RedirectToAction(nameof(Profile));
+        return RedirectToEmployeeProfile();
     }
+
+    private RedirectToRouteResult RedirectToEmployeeProfile() =>
+        RedirectToRoute("employee-profile");
 
     private async Task<ProfileViewModel> BuildProfileViewModelAsync(ApplicationUser user)
     {

@@ -14,7 +14,12 @@ public sealed class SelfProfileViewTests
         Assert.Contains("كلمة مرور النظام", text);
         Assert.Contains("لا يمكن تغيير بيانات MikroTik", text);
         Assert.Contains("value=\"@Model.UserName\" disabled", text);
+        Assert.Contains("asp-area=\"CompanyEmployee\"", text);
+        Assert.Contains("asp-controller=\"Account\"", text);
+        Assert.Contains("asp-action=\"UpdateProfile\"", text);
+        Assert.Contains("asp-action=\"ChangePassword\"", text);
         Assert.DoesNotContain("asp-for=\"UserName\"", text);
+        Assert.DoesNotContain("/networkManager/Account/", text);
     }
 
     [Fact]

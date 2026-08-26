@@ -35,6 +35,11 @@ public static partial class RouteMappingExtensions
             defaults: new { area = "CompanyEmployee", controller = "Account", action = "Profile" });
 
         app.MapControllerRoute(
+            name: "employee-account",
+            pattern: "employee/Account/{action=Profile}/{id?}",
+            defaults: new { area = "CompanyEmployee", controller = "Account", action = "Profile" });
+
+        app.MapControllerRoute(
             name: "employee-requestsManagement",
             pattern: "employee/RequestsManagement/{action=Index}/{id?}",
             defaults: new { area = "CompanyEmployee", controller = "RequestsManagement", action = "Index" });

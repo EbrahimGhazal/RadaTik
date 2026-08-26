@@ -134,6 +134,7 @@ public sealed class AreaIsolationMiddleware(RequestDelegate _next, ILogger<AreaI
         var allowedEmployeeSegments = new[]
         {
             "/dashboard",
+            "/Account",
             "/Sector",
             "/Receiver",
             "/RequestsManagement",
