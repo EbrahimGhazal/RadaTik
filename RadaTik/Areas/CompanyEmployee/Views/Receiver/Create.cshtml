@@ -1,6 +1,7 @@
-<div class="radtk-page--companyemployee-views-receiver-create">
-<div class="radtk-page--companyemployee-views-receiver-create">
 @model RadaTik.Models.Receiver
+@using RadaTik.ViewModels
+<div class="radtk-page--companyemployee-views-receiver-create">
+<div class="radtk-page--companyemployee-views-receiver-create">
 
 @{
     ViewData["Title"] = "إضافة مستقبل";
@@ -12,10 +13,10 @@
     var receiverWalletBalance = (decimal?)(ViewBag.ReceiverCreateChargeWalletBalance) ?? 0m;
     var currentArea = ViewContext.RouteData.Values["area"]?.ToString() ?? "CompanyEmployee";
     string? wizardReturnUrl = ViewBag.WizardReturnUrl as string;
-    var createSectors = ViewBag.ReceiverCreateSectors as IEnumerable<dynamic>
-        ?? Enumerable.Empty<dynamic>();
-    var filterServers = ViewBag.MikroTikServersForFilter as IEnumerable<dynamic>
-        ?? Enumerable.Empty<dynamic>();
+    var createSectors = ViewBag.ReceiverCreateSectors as IList<ReceiverCreateSectorOption>
+        ?? Array.Empty<ReceiverCreateSectorOption>();
+    var filterServers = ViewBag.MikroTikServersForFilter as IList<ReceiverCreateServerOption>
+        ?? Array.Empty<ReceiverCreateServerOption>();
 }
 
 <div class="employee-receiver-page">
@@ -67,7 +68,7 @@
                         <option value="">-- اختر قطاع --</option>
                         @foreach (var sector in createSectors)
                         {
-                            if (Model.SectorId == (int)sector.Id)
+                            if (Model.SectorId == sector.Id)
                             {
                                 <option value="@sector.Id"
                                         data-server-id="@sector.MikroTikServerId"

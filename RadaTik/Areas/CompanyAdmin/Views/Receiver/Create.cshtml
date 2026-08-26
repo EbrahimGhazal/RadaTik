@@ -1,14 +1,15 @@
 @model RadaTik.Models.Receiver
+@using RadaTik.ViewModels
 
 @{
     ViewData["Title"] = "إضافة مستقبل جديد";
     var isEmployeeActor = User.IsInRole("CompanyEmployee") || User.IsInRole("Employee") || User.IsInRole("EmployeeLegacy");
     var pendingSectorApprovalsCount = (int?)(ViewBag.PendingSectorApprovalsCount) ?? 0;
     var currentArea = ViewContext.RouteData.Values["area"]?.ToString() ?? "CompanyAdmin";
-    var createSectors = ViewBag.ReceiverCreateSectors as IEnumerable<dynamic>
-        ?? Enumerable.Empty<dynamic>();
-    var filterServers = ViewBag.MikroTikServersForFilter as IEnumerable<dynamic>
-        ?? Enumerable.Empty<dynamic>();
+    var createSectors = ViewBag.ReceiverCreateSectors as IList<ReceiverCreateSectorOption>
+        ?? Array.Empty<ReceiverCreateSectorOption>();
+    var filterServers = ViewBag.MikroTikServersForFilter as IList<ReceiverCreateServerOption>
+        ?? Array.Empty<ReceiverCreateServerOption>();
     string? wizardReturnUrl = ViewBag.WizardReturnUrl as string;
 }
 
@@ -93,7 +94,7 @@ else if (pendingSectorApprovalsCount > 0)
                                 <option value="">-- اختر القطاع --</option>
                                 @foreach (var sector in createSectors)
                                 {
-                                    if (Model.SectorId == (int)sector.Id)
+                                    if (Model.SectorId == sector.Id)
                                     {
                                         <option value="@sector.Id"
                                                 data-server-id="@sector.MikroTikServerId"

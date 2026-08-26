@@ -956,15 +956,6 @@ namespace RadaTik.Controllers
             double coverageRange,
             IEnumerable<ReceiverMapPointJson> receivers);
 
-        private sealed record ReceiverCreateSectorOption(
-            int Id,
-            string? Name,
-            int MikroTikServerId,
-            string? NetworkMask,
-            string? IPAddress);
-
-        private sealed record ReceiverCreateServerOption(int Id, string? Name);
-
         private sealed record ReceiverCreateMapSectorJson(
             int id,
             string? name,
