@@ -324,10 +324,10 @@
                 </button>
             }
             <div class="dropdown clients-column-picker">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                     <i class="fas fa-columns"></i> الحقول
                 </button>
-                <div class="dropdown-menu dropdown-menu-end p-2 column-picker-menu">
+                <div class="dropdown-menu dropdown-menu-end p-2 column-picker-menu" onclick="event.stopPropagation()">
                     <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="fullName" checked /> الاسم الكامل</label>
                     <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="phone" checked /> الجوال</label>
                     <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="receiver" /> المستقبل</label>
@@ -1215,6 +1215,58 @@
             });
         }
 
+        function findDataTableColumnIndex(api, key) {
+            let found = -1;
+            api.columns().every(function (idx) {
+                if (found >= 0) {
+                    return;
+                }
+                const header = this.header();
+                if (header && header.getAttribute('data-col') === key) {
+                    found = idx;
+                }
+            });
+            return found;
+        }
+
+        function setColumnVisible(key, visible, options) {
+            if (!key) {
+                return;
+            }
+            const skipDraw = !!(options && options.skipDraw);
+            const table = document.getElementById('clientsTable');
+            if (table) {
+                table.classList.toggle('hide-col-' + key, !visible);
+            }
+
+            // CSS hide-col-* يستخدم !important ويتفوّق على تخطيط البطاقات.
+            // على سطح المكتب نضبط أيضاً display فوراً قبل مزامنة DataTables.
+            const useInlineHide = !isClientsMobileViewport();
+            document.querySelectorAll('#clientsTable [data-col="' + key + '"]').forEach(function (el) {
+                if (!useInlineHide) {
+                    el.style.removeProperty('display');
+                    return;
+                }
+                if (visible) {
+                    el.style.removeProperty('display');
+                } else {
+                    el.style.display = 'none';
+                }
+            });
+
+            if (typeof $.fn.DataTable === 'undefined' || !$.fn.DataTable.isDataTable('#clientsTable')) {
+                return;
+            }
+            const api = $('#clientsTable').DataTable();
+            const colIdx = findDataTableColumnIndex(api, key);
+            if (colIdx >= 0 && api.column(colIdx).visible() !== visible) {
+                api.column(colIdx).visible(visible, false);
+            }
+            if (!skipDraw) {
+                api.columns.adjust();
+            }
+        }
+
         function applyColumnVisibility() {
             let saved = null;
             try {
@@ -1223,39 +1275,18 @@
                 saved = null;
             }
             const selected = Object.assign({}, CLIENTS_DEFAULT_VISIBLE_COLS, saved && typeof saved === 'object' ? saved : {});
-            const table = document.getElementById('clientsTable');
-            const usingDt = typeof $.fn.DataTable !== 'undefined' && $.fn.DataTable.isDataTable('#clientsTable');
-            const api = usingDt ? $('#clientsTable').DataTable() : null;
-            const useInlineHide = !isClientsMobileViewport();
 
-            document.querySelectorAll('.column-toggle').forEach(chk => {
+            document.querySelectorAll('.column-toggle').forEach(function (chk) {
                 const key = chk.getAttribute('data-col');
                 const visible = Object.prototype.hasOwnProperty.call(selected, key)
                     ? !!selected[key]
                     : !!CLIENTS_DEFAULT_VISIBLE_COLS[key];
                 chk.checked = visible;
-                if (table && key) {
-                    table.classList.toggle('hide-col-' + key, !visible);
-                }
-                document.querySelectorAll('#clientsTable [data-col="' + key + '"]').forEach(el => {
-                    if (useInlineHide) {
-                        el.style.display = visible ? '' : 'none';
-                    } else {
-                        el.style.removeProperty('display');
-                    }
-                });
-                if (api) {
-                    api.columns().every(function () {
-                        const header = this.header();
-                        if (header && header.getAttribute('data-col') === key) {
-                            this.visible(visible, false);
-                        }
-                    });
-                }
+                setColumnVisible(key, visible, { skipDraw: true });
             });
 
-            if (api) {
-                api.columns.adjust().draw(false);
+            if (typeof $.fn.DataTable !== 'undefined' && $.fn.DataTable.isDataTable('#clientsTable')) {
+                $('#clientsTable').DataTable().columns.adjust();
             }
         }
 
@@ -1281,6 +1312,7 @@
                     $('#clientsTable').removeAttr('style');
                 }
                 document.body.classList.add('clients-cards-mode');
+                applyColumnVisibility();
                 return;
             }
 
@@ -1302,8 +1334,13 @@
                     ],
                     columnDefs: [
                         { orderable: false, targets: [0, 21] }
-                    ]
+                    ],
+                    initComplete: function () {
+                        applyColumnVisibility();
+                    }
                 });
+            } else {
+                applyColumnVisibility();
             }
         }
 
@@ -1657,10 +1694,16 @@
 
         $(document).ready(function () {
             applyColumnVisibility();
-            document.querySelectorAll('.column-toggle').forEach(chk => {
-                chk.addEventListener('change', function () {
+            document.querySelectorAll('.column-toggle').forEach(function (chk) {
+                chk.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                });
+                chk.addEventListener('change', function (e) {
+                    e.stopPropagation();
+                    const key = this.getAttribute('data-col');
+                    const visible = !!this.checked;
                     persistColumnVisibility();
-                    applyColumnVisibility();
+                    setColumnVisible(key, visible);
                 });
             });
 

@@ -291,10 +291,10 @@
                 </button>
             </div>
             <div class="dropdown clients-column-picker">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                     <i class="fas fa-columns"></i> الحقول
                 </button>
-                <div class="dropdown-menu dropdown-menu-end p-2 column-picker-menu">
+                <div class="dropdown-menu dropdown-menu-end p-2 column-picker-menu" onclick="event.stopPropagation()">
                     <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="fullName" checked /> الاسم الكامل</label>
                     <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="phone" checked /> الجوال</label>
                     <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="receiver" checked /> المستقبل</label>
@@ -846,20 +846,51 @@
                 .finally(() => { connectionStatusLoading = false; });
         }
 
+        function setColumnVisible(key, visible, options) {
+            if (!key) return;
+            const skipDraw = !!(options && options.skipDraw);
+            const table = document.getElementById('clientsTable');
+            if (table) {
+                table.classList.toggle('hide-col-' + key, !visible);
+            }
+            document.querySelectorAll('#clientsTable [data-col="' + key + '"]').forEach(function (el) {
+                if (visible) {
+                    el.style.removeProperty('display');
+                } else {
+                    el.style.display = 'none';
+                }
+            });
+            if (typeof $.fn.DataTable === 'undefined' || !$.fn.DataTable.isDataTable('#clientsTable')) {
+                return;
+            }
+            const api = $('#clientsTable').DataTable();
+            let colIdx = -1;
+            api.columns().every(function (idx) {
+                if (colIdx >= 0) return;
+                const header = this.header();
+                if (header && header.getAttribute('data-col') === key) {
+                    colIdx = idx;
+                }
+            });
+            if (colIdx >= 0 && api.column(colIdx).visible() !== visible) {
+                api.column(colIdx).visible(visible, false);
+            }
+            if (!skipDraw) {
+                api.columns.adjust();
+            }
+        }
+
         function applyColumnVisibility() {
             const selected = JSON.parse(localStorage.getItem('clients.employee.columns.visible') || '{}');
-            const table = document.getElementById('clientsTable');
-            document.querySelectorAll('.column-toggle').forEach(chk => {
+            document.querySelectorAll('.column-toggle').forEach(function (chk) {
                 const key = chk.getAttribute('data-col');
                 const visible = Object.prototype.hasOwnProperty.call(selected, key) ? !!selected[key] : true;
                 chk.checked = visible;
-                if (table && key) {
-                    table.classList.toggle('hide-col-' + key, !visible);
-                }
-                document.querySelectorAll('[data-col="' + key + '"]').forEach(el => {
-                    el.style.display = visible ? '' : 'none';
-                });
+                setColumnVisible(key, visible, { skipDraw: true });
             });
+            if (typeof $.fn.DataTable !== 'undefined' && $.fn.DataTable.isDataTable('#clientsTable')) {
+                $('#clientsTable').DataTable().columns.adjust();
+            }
         }
 
         function persistColumnVisibility() {
@@ -872,10 +903,12 @@
 
         $(document).ready(function () {
             applyColumnVisibility();
-            document.querySelectorAll('.column-toggle').forEach(chk => {
-                chk.addEventListener('change', function () {
+            document.querySelectorAll('.column-toggle').forEach(function (chk) {
+                chk.addEventListener('click', function (e) { e.stopPropagation(); });
+                chk.addEventListener('change', function (e) {
+                    e.stopPropagation();
                     persistColumnVisibility();
-                    applyColumnVisibility();
+                    setColumnVisible(this.getAttribute('data-col'), !!this.checked);
                 });
             });
 
@@ -893,7 +926,10 @@
                 ],
                 columnDefs: [
                     { orderable: false, targets: 20 }
-                ]
+                ],
+                initComplete: function () {
+                    applyColumnVisibility();
+                }
             });
             loadConnectionStatus(false);
         });
