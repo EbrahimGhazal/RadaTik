@@ -313,16 +313,11 @@ public sealed class ClientMikroTikLifecycleService(
 
         try
         {
-            bool exists = await _mikroTik.CheckUserExists(client.UserName, client.MikroTikServerId.Value);
-            if (exists)
-            {
-                await _mikroTik.UpdatePPPoEUser(client);
-                return ClientOperationOutcome.Success(
-                    "تم تحديث كلمة المرور والبروفايل على MikroTik من بيانات النظام.");
-            }
-
-            await _mikroTik.AddPPPoEUser(client);
-            return ClientOperationOutcome.Success("تمت إضافة المشترك إلى MikroTik من بيانات النظام.");
+            // مسار واحد (تحديث أو إضافة إن لم يوجد) بدل فحص منفصل ثم عملية ثانية —
+            // يقلّل انتظار الاتصال عند تعذر الوصول إلى MikroTik.
+            await _mikroTik.UpdatePPPoEUser(client);
+            return ClientOperationOutcome.Success(
+                "تمت مزامنة المشترك مع MikroTik من بيانات النظام (كلمة المرور والبروفايل).");
         }
         catch (Exception ex)
         {

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using RadaTik.Models;
+using RadaTik.Services.MikroTik;
 using tik4net;
 
 namespace RadaTik.Services.SectorRadio;
@@ -21,12 +22,10 @@ public sealed class MikroTikSectorRadioAdapter : ISectorRadioAdapter
     {
         try
         {
-            using ITikConnection connection = ConnectionFactory.OpenConnection(
-                TikConnectionType.Api,
-                server.Host,
-                server.Port,
-                server.User,
-                server.Pass);
+            using ITikConnection connection = ConnectionFactory.CreateConnection(TikConnectionType.Api);
+            connection.SendTimeout = MikroTikConnectionSupport.DefaultSendTimeoutMs;
+            connection.ReceiveTimeout = MikroTikConnectionSupport.DefaultReceiveTimeoutMs;
+            connection.Open(server.Host, server.Port, server.User, server.Pass);
 
             // PoC strategy:
             // 1) Try reading wireless metrics directly from MikroTik radio interface.
