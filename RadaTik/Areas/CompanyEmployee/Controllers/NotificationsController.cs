@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using global::RadaTik.Constants;
 using global::RadaTik.Data;
+using global::RadaTik.Helpers;
 using global::RadaTik.Models;
+using global::RadaTik.Models.Business;
 using global::RadaTik.Security;
 
 namespace RadaTik.Areas.CompanyEmployee.Controllers;
@@ -42,8 +44,27 @@ public class NotificationsController : Controller
             q = q.Where(n => !n.IsRead);
         }
 
+        List<UserNotification> notifications = await q
+            .OrderByDescending(n => n.CreatedAt)
+            .Take(200)
+            .ToListAsync();
+
+        Dictionary<int, CompanyEmployeeTaskStatus> taskStatuses = await LoadRelatedTaskStatusesAsync(notifications);
+
+        Dictionary<int, bool> canMarkReadById = notifications.ToDictionary(
+            n => n.Id,
+            n =>
+            {
+                int? taskId = EmployeeNotificationReadRules.TryParseErpTaskId(n.Key);
+                CompanyEmployeeTaskStatus? status = taskId is int id && taskStatuses.TryGetValue(id, out CompanyEmployeeTaskStatus s)
+                    ? s
+                    : null;
+                return EmployeeNotificationReadRules.CanMarkAsRead(n, status);
+            });
+
         ViewBag.UnreadOnly = unreadOnly;
-        return View(await q.OrderByDescending(n => n.CreatedAt).Take(200).ToListAsync());
+        ViewBag.CanMarkReadById = canMarkReadById;
+        return View(notifications);
     }
 
     [HttpGet]
@@ -79,16 +100,17 @@ public class NotificationsController : Controller
             return NotFound();
         }
 
+        if (!await CanMarkAsReadAsync(row))
+        {
+            TempData["Error"] = "لا يمكن تعليم تنبيه المهمة كمقروء قبل إنجاز المهمة.";
+            return RedirectToNotifications(returnUrl);
+        }
+
         row.IsRead = true;
         row.ReadAt = DateTime.Now;
         await _context.SaveChangesAsync();
 
-        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
-        {
-            return Redirect(returnUrl);
-        }
-
-        return RedirectToAction(nameof(Index));
+        return RedirectToNotifications(returnUrl);
     }
 
     [HttpGet]
@@ -107,7 +129,8 @@ public class NotificationsController : Controller
             return NotFound();
         }
 
-        if (!row.IsRead)
+        // لا تُعلَّم المهمة كمقروءة تلقائياً إلا بعد إنجازها.
+        if (!row.IsRead && await CanMarkAsReadAsync(row))
         {
             row.IsRead = true;
             row.ReadAt = DateTime.Now;
@@ -121,6 +144,51 @@ public class NotificationsController : Controller
         }
 
         return RedirectToAction(nameof(Index));
+    }
+
+    private IActionResult RedirectToNotifications(string? returnUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToRoute("employee-notifications");
+    }
+
+    private async Task<bool> CanMarkAsReadAsync(UserNotification notification)
+    {
+        int? taskId = EmployeeNotificationReadRules.TryParseErpTaskId(notification.Key);
+        CompanyEmployeeTaskStatus? status = null;
+        if (taskId is int id)
+        {
+            status = await _context.CompanyEmployeeTasks.AsNoTracking()
+                .Where(t => t.Id == id)
+                .Select(t => (CompanyEmployeeTaskStatus?)t.Status)
+                .FirstOrDefaultAsync();
+        }
+
+        return EmployeeNotificationReadRules.CanMarkAsRead(notification, status);
+    }
+
+    private async Task<Dictionary<int, CompanyEmployeeTaskStatus>> LoadRelatedTaskStatusesAsync(
+        IReadOnlyList<UserNotification> notifications)
+    {
+        List<int> taskIds = notifications
+            .Select(n => EmployeeNotificationReadRules.TryParseErpTaskId(n.Key))
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        if (taskIds.Count == 0)
+        {
+            return new Dictionary<int, CompanyEmployeeTaskStatus>();
+        }
+
+        return await _context.CompanyEmployeeTasks.AsNoTracking()
+            .Where(t => taskIds.Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id, t => t.Status);
     }
 
     private string? ResolveNotificationTargetUrl(UserNotification notification)
