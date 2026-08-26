@@ -1780,6 +1780,8 @@ body.profile-import-busy {
 .radtk-surface .radtk-page-clients-index .stat-vip .stat-number { color: #B8860B; }
 .radtk-surface .radtk-page-clients-index .stat-speed .stat-icon-mini { background: linear-gradient(135deg, #FFD700, #FFA500); }
 .radtk-surface .radtk-page-clients-index .stat-speed .stat-number { color: #E69500; }
+.radtk-surface .radtk-page-clients-index .stat-speed-upload .stat-icon-mini { background: linear-gradient(135deg, #42A5F5, #1E88E5); }
+.radtk-surface .radtk-page-clients-index .stat-speed-upload .stat-number { color: #1E88E5; }
 .radtk-surface .radtk-page-clients-index .stat-speed-active .stat-icon-mini { background: linear-gradient(135deg, #00C853, #00BFA5); }
 .radtk-surface .radtk-page-clients-index .stat-speed-active .stat-number { color: #00C853; }
 .radtk-surface .radtk-page-clients-index .stat-avg .stat-icon-mini { background: linear-gradient(135deg, #7C4DFF, #536DFE); }
@@ -5305,6 +5307,8 @@ html body :is(.radtk-page-clients-index, .radtk-page-emp-clients-index) #clients
 .radtk-surface .radtk-page-emp-clients-index .stat-vip .stat-number { color: #B8860B; }
 .radtk-surface .radtk-page-emp-clients-index .stat-speed .stat-icon-mini { background: linear-gradient(135deg, #FFD700, #FFA500); }
 .radtk-surface .radtk-page-emp-clients-index .stat-speed .stat-number { color: #E69500; }
+.radtk-surface .radtk-page-emp-clients-index .stat-speed-upload .stat-icon-mini { background: linear-gradient(135deg, #42A5F5, #1E88E5); }
+.radtk-surface .radtk-page-emp-clients-index .stat-speed-upload .stat-number { color: #1E88E5; }
 .radtk-surface .radtk-page-emp-clients-index .stat-speed-active .stat-icon-mini { background: linear-gradient(135deg, #00C853, #00BFA5); }
 .radtk-surface .radtk-page-emp-clients-index .stat-speed-active .stat-number { color: #00C853; }
 .radtk-surface .radtk-page-emp-clients-index .stat-avg .stat-icon-mini { background: linear-gradient(135deg, #7C4DFF, #536DFE); }

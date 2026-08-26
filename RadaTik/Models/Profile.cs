@@ -151,6 +151,16 @@ namespace RadaTik.Models
             }
             : null;
 
+        /// <summary>سرعة الرفع الفعلية بالميجابت — إن لم تُحدد تُعامل كسرعة التنزيل.</summary>
+        [NotMapped]
+        public decimal EffectiveUploadSpeedMbps => UploadSpeedMbps ?? DownloadSpeedMbps;
+
+        [NotMapped]
+        [Display(Name = "سرعة الرفع بالعرض (مع الافتراضي)")]
+        public string EffectiveUploadSpeedDisplay => UploadSpeed.HasValue
+            ? UploadSpeedDisplay!
+            : DownloadSpeedDisplay;
+
         [Display(Name = "حد البيانات (GB)")]
         [Range(0, double.MaxValue, ErrorMessage = "الحد يجب أن يكون أكبر من 0")]
         [Description("حد استهلاك البيانات بالجيجابايت - 0 يعني غير محدود")]

@@ -11,11 +11,13 @@
     var duplicateClients = Model.Count(c => c.IsCrossServerDuplicate);
     var vipClients = Model.Count(c => c.IsVip);
 
-    // حساب مجموع السرعات (بالميجابت)
-    var totalSpeed = 0m;
+    // حساب مجموع السرعات (بالميجابت) — تنزيل ورفع (الرفع الناقص = التنزيل)
+    var totalDownloadSpeed = 0m;
+    var totalUploadSpeed = 0m;
     var activeSpeed = 0m;
     var inactiveSpeed = 0m;
-    var connectedSpeed = 0m;
+    var connectedDownloadSpeed = 0m;
+    var connectedUploadSpeed = 0m;
     var disconnectedSpeed = 0m;
 
     var connectedClients = ViewBag.ConnectedClientIds as ISet<int> ?? new HashSet<int>();
@@ -23,41 +25,47 @@
 
     foreach (var item in Model)
     {
-        decimal speed = 0;
+        decimal downloadSpeed = 0;
+        decimal uploadSpeed = 0;
         if (item.Profile != null)
         {
-            speed = item.Profile.DownloadSpeedMbps;
+            downloadSpeed = item.Profile.DownloadSpeedMbps;
+            uploadSpeed = item.Profile.EffectiveUploadSpeedMbps;
         }
         else if (!string.IsNullOrEmpty(item.ProfileName))
         {
             var numbers = System.Text.RegularExpressions.Regex.Match(item.ProfileName, @"\d+");
             if (numbers.Success && int.TryParse(numbers.Value, out var parsedSpeed))
             {
-                speed = parsedSpeed;
+                downloadSpeed = parsedSpeed;
+                uploadSpeed = parsedSpeed;
             }
         }
 
-        if (speed > 0)
+        if (downloadSpeed > 0 || uploadSpeed > 0)
         {
-            totalSpeed += speed;
+            totalDownloadSpeed += downloadSpeed;
+            totalUploadSpeed += uploadSpeed;
             if (item.IsActive)
             {
-                activeSpeed += speed;
+                activeSpeed += downloadSpeed;
                 if (connectedClients.Contains(item.Id))
                 {
-                    connectedSpeed += speed;
+                    connectedDownloadSpeed += downloadSpeed;
+                    connectedUploadSpeed += uploadSpeed;
                 }
                 else
                 {
-                    disconnectedSpeed += speed;
+                    disconnectedSpeed += downloadSpeed;
                 }
             }
             else
             {
-                inactiveSpeed += speed;
+                inactiveSpeed += downloadSpeed;
                 if (connectedClients.Contains(item.Id))
                 {
-                    connectedSpeed += speed;
+                    connectedDownloadSpeed += downloadSpeed;
+                    connectedUploadSpeed += uploadSpeed;
                 }
             }
         }
@@ -65,7 +73,8 @@
 
     var disconnectedActiveClients = Model.Count(c => c.IsActive && !connectedClients.Contains(c.Id));
     var connectedActiveClients = Model.Count(c => connectedClients.Contains(c.Id));
-    var averageTotalSpeed = totalClients > 0 ? Math.Round((double)totalSpeed / totalClients, 1) : 0;
+    var averageDownloadSpeed = totalClients > 0 ? Math.Round((double)totalDownloadSpeed / totalClients, 1) : 0;
+    var averageUploadSpeed = totalClients > 0 ? Math.Round((double)totalUploadSpeed / totalClients, 1) : 0;
     var activePercent = totalClients > 0 ? Math.Round((double)activeClients / totalClients * 100, 0) : 0;
     var connectedPercent = totalClients > 0 ? Math.Round((double)connectedActiveClients / totalClients * 100, 0) : 0;
     var dbAccountMap = ViewBag.DbAccountMap as IDictionary<int, string> ?? new Dictionary<int, string>();
@@ -242,26 +251,34 @@
     
     <div class="stat-divider"></div>
     
-    <div class="stat-item stat-speed">
-        <div class="stat-icon-mini"><i class="fas fa-bolt"></i></div>
+    <div class="stat-item stat-speed" title="مجموع سرعات التنزيل لجميع المشتركين">
+        <div class="stat-icon-mini"><i class="fas fa-download"></i></div>
         <div class="stat-data">
-            <span class="stat-number">@totalSpeed</span>
-            <span class="stat-label">Mbps كلي</span>
+            <span class="stat-number">@totalDownloadSpeed.ToString("0.##")</span>
+            <span class="stat-label">Mbps تنزيل</span>
+        </div>
+    </div>
+
+    <div class="stat-item stat-speed-upload" title="مجموع سرعات الرفع (إن لم تُحدد في البروفايل تُحسب = التنزيل)">
+        <div class="stat-icon-mini"><i class="fas fa-upload"></i></div>
+        <div class="stat-data">
+            <span class="stat-number">@totalUploadSpeed.ToString("0.##")</span>
+            <span class="stat-label">Mbps رفع</span>
         </div>
     </div>
     
-    <div class="stat-item stat-speed-active">
+    <div class="stat-item stat-speed-active" title="مجموع السرعات للمشتركين المتصلين حالياً">
         <div class="stat-icon-mini"><i class="fas fa-tachometer-alt"></i></div>
         <div class="stat-data">
-            <span class="stat-number" id="statConnectedSpeed">@(connectionsReady ? connectedSpeed.ToString() : "…")</span>
-            <span class="stat-label">Mbps متصل</span>
+            <span class="stat-number" id="statConnectedSpeed">@(connectionsReady ? $"{connectedDownloadSpeed.ToString("0.##")}↓/{connectedUploadSpeed.ToString("0.##")}↑" : "…")</span>
+            <span class="stat-label">Mbps متصل تنزيل/رفع</span>
         </div>
     </div>
     
-    <div class="stat-item stat-avg">
+    <div class="stat-item stat-avg" title="متوسط سرعة التنزيل / الرفع لكل مشترك">
         <div class="stat-icon-mini"><i class="fas fa-chart-line"></i></div>
         <div class="stat-data">
-            <span class="stat-number">@averageTotalSpeed</span>
+            <span class="stat-number">@averageDownloadSpeed↓/@averageUploadSpeed↑</span>
             <span class="stat-label">Mbps متوسط</span>
         </div>
     </div>
@@ -401,18 +418,24 @@
                 <tbody>
                     @foreach (var item in Model)
                     {
-                        var speed = 0m;
+                        var downloadSpeed = 0m;
+                        var uploadSpeed = 0m;
                         var profileName = item.Profile?.Name ?? item.ProfileName;
+                        var uploadInferred = false;
                         if (item.Profile != null)
                         {
-                            speed = item.Profile.DownloadSpeedMbps;
+                            downloadSpeed = item.Profile.DownloadSpeedMbps;
+                            uploadSpeed = item.Profile.EffectiveUploadSpeedMbps;
+                            uploadInferred = !item.Profile.UploadSpeed.HasValue;
                         }
                         else if (!string.IsNullOrEmpty(item.ProfileName))
                         {
                             var numbers = System.Text.RegularExpressions.Regex.Match(item.ProfileName, @"\d+");
                             if (numbers.Success && int.TryParse(numbers.Value, out var parsedSpeed))
                             {
-                                speed = parsedSpeed;
+                                downloadSpeed = parsedSpeed;
+                                uploadSpeed = parsedSpeed;
+                                uploadInferred = true;
                             }
                         }
 
@@ -434,8 +457,9 @@
                             data-duplicate="@item.IsCrossServerDuplicate.ToString().ToLower()"
                             data-vip="@item.IsVip.ToString().ToLower()"
                             data-connected="@isConnected.ToString().ToLower()"
-                            data-speed="@speed"
-                            data-speed-display="@(item.Profile?.DownloadSpeedDisplay ?? speed.ToString())"
+                            data-speed="@downloadSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                            data-upload-speed="@uploadSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                            data-speed-display="@(item.Profile != null ? $"{item.Profile.DownloadSpeedDisplay} / {item.Profile.EffectiveUploadSpeedDisplay}" : downloadSpeed.ToString())"
                             data-profile-price="@((item.Profile?.Price ?? 0m).ToString(System.Globalization.CultureInfo.InvariantCulture))">
                             <td class="clients-select-cell" data-label="تحديد">
                                 <input type="checkbox" class="form-check-input client-select-check" value="@item.Id" />
@@ -485,7 +509,13 @@
                                     <span class="badge @(item.IsActive ? "badge-success" : "badge-secondary")">
                                         @(profileName ?? "غير محدد")
                                     </span>
-                                    <small class="speed-value">@speed Mbps</small>
+                                    <small class="speed-value" title="@(uploadInferred ? "الرفع غير محدد في البروفايل — اعتُبر مساوياً للتنزيل" : "تنزيل / رفع")">
+                                        ↓@downloadSpeed.ToString("0.##") / ↑@uploadSpeed.ToString("0.##") Mbps
+                                        @if (uploadInferred && downloadSpeed > 0)
+                                        {
+                                            <span class="text-muted">(رفع=تنزيل)</span>
+                                        }
+                                    </small>
                                 </div>
                             </td>
                             <td data-col="server" data-label="السيرفر">
@@ -667,7 +697,7 @@
             <span class="footer-stat">
                 <i class="fas fa-bolt text-warning"></i>
                 <span id="currentSpeedLabel">المجموع:</span>
-                <strong id="currentSpeedValue">@totalSpeed Mbps</strong>
+                <strong id="currentSpeedValue">↓@totalDownloadSpeed.ToString("0.##") / ↑@totalUploadSpeed.ToString("0.##") Mbps</strong>
             </span>
             <span class="footer-stat">
                 <i class="fas fa-wifi text-success"></i>
@@ -994,12 +1024,14 @@
             });
         }
 
-        function updateFilterFooterStats(visibleTotalSpeed, visibleConnectedCount, filterType) {
+        function updateFilterFooterStats(visibleDownloadSpeed, visibleUploadSpeed, visibleConnectedCount, filterType) {
             const speedValue = document.getElementById('currentSpeedValue');
             const connectedCount = document.getElementById('currentConnectedCount');
             const speedLabel = document.getElementById('currentSpeedLabel');
             if (speedValue) {
-                speedValue.textContent = visibleTotalSpeed + ' Mbps';
+                const dl = Number(visibleDownloadSpeed || 0);
+                const ul = Number(visibleUploadSpeed || 0);
+                speedValue.textContent = '↓' + formatMbps(dl) + ' / ↑' + formatMbps(ul) + ' Mbps';
             }
             if (connectedCount) {
                 connectedCount.textContent = visibleConnectedCount + ' متصل';
@@ -1010,16 +1042,36 @@
                 'inactive': 'المعطلين:',
                 'connected': 'المتصلين:',
                 'disconnected': 'غير المتصلين:',
-                'duplicate': 'المكررين:'
+                'duplicate': 'المكررين:',
+                'vip': 'VIP:'
             };
             if (speedLabel) {
                 speedLabel.textContent = labels[filterType] || labels.all;
             }
         }
 
+        function formatMbps(n) {
+            const v = Number(n || 0);
+            if (!isFinite(v)) return '0';
+            return (Math.round(v * 100) / 100).toString();
+        }
+
+        function rowDownloadSpeed(row) {
+            return parseFloat(row.getAttribute('data-speed')) || 0;
+        }
+
+        function rowUploadSpeed(row) {
+            const raw = row.getAttribute('data-upload-speed');
+            if (raw === null || raw === '') {
+                return rowDownloadSpeed(row);
+            }
+            return parseFloat(raw) || 0;
+        }
+
         function filterByStatus(filterType) {
             currentFilter = filterType;
-            let visibleTotalSpeed = 0;
+            let visibleDownloadSpeed = 0;
+            let visibleUploadSpeed = 0;
             let visibleConnectedCount = 0;
 
             document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -1044,23 +1096,21 @@
                     if (!row) {
                         return;
                     }
-                    const speed = parseInt(row.getAttribute('data-speed')) || 0;
-                    const isActive = row.getAttribute('data-active') === 'true';
-                    const isConnected = row.getAttribute('data-connected') === 'true';
-                    visibleTotalSpeed += speed;
-                    if (isConnected) {
+                    visibleDownloadSpeed += rowDownloadSpeed(row);
+                    visibleUploadSpeed += rowUploadSpeed(row);
+                    if (row.getAttribute('data-connected') === 'true') {
                         visibleConnectedCount++;
                     }
                 });
             } else {
                 document.querySelectorAll('.client-row').forEach(row => {
                     const isConnected = row.getAttribute('data-connected') === 'true';
-                    const speed = parseInt(row.getAttribute('data-speed')) || 0;
                     const shouldShow = rowMatchesStatusFilter(row, filterType) && rowMatchesCardSearch(row);
 
                     if (shouldShow) {
                         row.style.display = '';
-                        visibleTotalSpeed += speed;
+                        visibleDownloadSpeed += rowDownloadSpeed(row);
+                        visibleUploadSpeed += rowUploadSpeed(row);
                         if (isConnected) {
                             visibleConnectedCount++;
                         }
@@ -1070,7 +1120,7 @@
                 });
             }
 
-            updateFilterFooterStats(visibleTotalSpeed, visibleConnectedCount, filterType);
+            updateFilterFooterStats(visibleDownloadSpeed, visibleUploadSpeed, visibleConnectedCount, filterType);
         }
 
         function refreshConnections() {
@@ -1081,13 +1131,15 @@
             const connectedSet = new Set((connectedIds || []).map(String));
             let connectedCount = 0;
             let disconnectedCount = 0;
-            let connectedSpeed = 0;
+            let connectedDownloadSpeed = 0;
+            let connectedUploadSpeed = 0;
 
             document.querySelectorAll('.client-row').forEach(row => {
                 const id = row.getAttribute('data-client-id');
                 const isActive = row.getAttribute('data-active') === 'true';
                 const isPending = row.getAttribute('data-pending') === 'true';
-                const speed = parseFloat(row.getAttribute('data-speed')) || 0;
+                const downloadSpeed = rowDownloadSpeed(row);
+                const uploadSpeed = rowUploadSpeed(row);
                 const isConnected = connectedSet.has(String(id));
                 row.setAttribute('data-connected', isConnected ? 'true' : 'false');
 
@@ -1116,7 +1168,8 @@
 
                 if (isConnected) {
                     connectedCount++;
-                    connectedSpeed += speed;
+                    connectedDownloadSpeed += downloadSpeed;
+                    connectedUploadSpeed += uploadSpeed;
                 } else if (isActive) {
                     disconnectedCount++;
                 }
@@ -1134,7 +1187,7 @@
 
             setText('statConnectedCount', String(connectedCount));
             setText('statDisconnectedCount', String(disconnectedCount));
-            setText('statConnectedSpeed', String(connectedSpeed));
+            setText('statConnectedSpeed', formatMbps(connectedDownloadSpeed) + '↓/' + formatMbps(connectedUploadSpeed) + '↑');
             setText('filterConnectedCount', String(connectedCount));
             setText('filterDisconnectedCount', String(disconnectedCount));
             const percentEl = document.getElementById('statConnectedPercent');
