@@ -22,6 +22,18 @@ public sealed class ClientPortalVipBadgeViewTests
     }
 
     [Fact]
+    public void MyProfile_ShowsPersonalFieldsAndLocksMikroTikIdentity()
+    {
+        string text = File.ReadAllText(FindFile("RadaTik", "Areas", "ClientPortal", "Views", "ClientPortal", "MyProfile.cshtml"));
+        Assert.Contains("asp-for=\"Email\"", text);
+        Assert.Contains("كلمة مرور النظام", text);
+        Assert.Contains("asp-action=\"ChangePassword\"", text);
+        Assert.Contains("MikroTikUserName", text);
+        Assert.Contains("ممنوع تغيير اسم المستخدم أو كلمة المرور على سيرفر MikroTik", text);
+        Assert.DoesNotContain("asp-for=\"Password\"", text);
+    }
+
+    [Fact]
     public void MyProfile_ShowsReadOnlyVipBanner()
     {
         string text = File.ReadAllText(FindFile("RadaTik", "Areas", "ClientPortal", "Views", "ClientPortal", "MyProfile.cshtml"));

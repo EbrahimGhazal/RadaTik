@@ -40,6 +40,71 @@ public sealed class MikroTikSaveChangesInterceptorTests
         Assert.True(job.EntityId > 0);
     }
 
+    [Fact]
+    public async Task SavedChanges_PersonalFieldsOnly_DoesNotEnqueueClientUpdate()
+    {
+        RecordingQueue queue = new();
+        MikroTikSaveChangesInterceptor interceptor = new(queue);
+        DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase($"interceptor-{Guid.NewGuid():N}")
+            .AddInterceptors(interceptor)
+            .Options;
+
+        await using ApplicationDbContext db = new(options);
+        Client client = new()
+        {
+            Name = "Old",
+            SID = "1",
+            UserName = "mt-user",
+            Password = "secret",
+            ProfileId = 1,
+            PhoneNumber = "099",
+            MikroTikServerId = 8
+        };
+        db.Clients.Add(client);
+        await db.SaveChangesAsync();
+        queue.Jobs.Clear();
+
+        client.Name = "New Personal Name";
+        client.PhoneNumber = "0988888888";
+        await db.SaveChangesAsync();
+
+        Assert.Empty(queue.Jobs);
+    }
+
+    [Fact]
+    public async Task SavedChanges_PasswordChange_EnqueuesClientUpdate()
+    {
+        RecordingQueue queue = new();
+        MikroTikSaveChangesInterceptor interceptor = new(queue);
+        DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase($"interceptor-{Guid.NewGuid():N}")
+            .AddInterceptors(interceptor)
+            .Options;
+
+        await using ApplicationDbContext db = new(options);
+        Client client = new()
+        {
+            Name = "User",
+            SID = "1",
+            UserName = "mt-user",
+            Password = "secret",
+            ProfileId = 1,
+            PhoneNumber = "099",
+            MikroTikServerId = 8
+        };
+        db.Clients.Add(client);
+        await db.SaveChangesAsync();
+        queue.Jobs.Clear();
+
+        client.Password = "new-secret";
+        await db.SaveChangesAsync();
+
+        MikroTikSyncJob job = Assert.Single(queue.Jobs);
+        Assert.Equal(MikroTikSyncAction.Update, job.Action);
+        Assert.Equal("mt-user", job.UserName);
+    }
+
     private sealed class RecordingQueue : IMikroTikSyncQueue
     {
         public List<MikroTikSyncJob> Jobs { get; } = [];

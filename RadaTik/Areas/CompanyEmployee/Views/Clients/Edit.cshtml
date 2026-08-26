@@ -21,7 +21,7 @@
 {
     <div class="alert alert-info mb-4">
         <i class="fas fa-info-circle"></i>
-        <strong>ملاحظة:</strong> يمكنك تعديل البيانات الإدارية للمشترك. إعدادات MikroTik الحساسة ضمن صلاحيات المدير.
+        <strong>ملاحظة:</strong> يمكنك تعديل البيانات الإدارية للمشترك. ممنوع تغيير اسم المستخدم أو كلمة المرور على MikroTik.
     </div>
     <div class="alert alert-info mb-4">
         <i class="fas fa-user-check"></i>
@@ -46,18 +46,21 @@
 
                     <div class="alert alert-primary mb-3">
                         <i class="fas fa-network-wired"></i>
-                        <strong>بيانات MikroTik:</strong> التعديلات هنا تنفذ مباشرة على المايكروتك.
+                        <strong>بيانات MikroTik:</strong> اسم المستخدم وكلمة المرور على السيرفر للقراءة فقط. لا يمكن للموظف تغييرهما.
                     </div>
 
                     <div class="form-group mb-3">
                         <label asp-for="UserName" class="form-label">اسم المستخدم (MikroTik)</label>
-                        <input asp-for="UserName" class="form-control" placeholder="اسم المستخدم على MikroTik" />
-                        <span asp-validation-for="UserName" class="text-danger"></span>
+                        <input class="form-control" value="@Model.UserName" disabled />
+                        <input type="hidden" asp-for="UserName" />
+                        <div class="form-text">ممنوع تغيير اسم المستخدم على المايكروتك.</div>
                     </div>
 
                     <div class="form-group mb-3">
                         <label asp-for="Password" class="form-label">كلمة المرور (MikroTik)</label>
-                        <input asp-for="Password" type="password" class="form-control" placeholder="كلمة المرور على MikroTik" />
+                        <input type="password" class="form-control" value="********" disabled autocomplete="off" />
+                        <input type="hidden" asp-for="Password" />
+                        <div class="form-text">ممنوع تغيير كلمة مرور السيرفر. كلمة مرور النظام تُعدَّل من الملف الشخصي للمشترك.</div>
                         <span asp-validation-for="Password" class="text-danger"></span>
                     </div>
 
@@ -265,6 +268,7 @@
                         <h6><i class="fas fa-exclamation-triangle"></i> صلاحيات الموظف:</h6>
                         <ul class="mb-0 small">
                             <li>يمكنك تعديل البيانات الإدارية الخاصة بالمشترك</li>
+                            <li class="text-danger">لا يمكنك تغيير: اسم المستخدم أو كلمة المرور على MikroTik</li>
                             <li class="text-danger">لا يمكنك تغيير: البروفايل، الخادم، الحالة</li>
                             <li class="text-danger">لا يمكنك تمديد الاشتراك</li>
                         </ul>
@@ -415,7 +419,7 @@
 {
     <div class="alert alert-info mb-4">
         <i class="fas fa-info-circle"></i>
-        <strong>ملاحظة:</strong> يمكنك تعديل البيانات الإدارية للمشترك. إعدادات MikroTik الحساسة ضمن صلاحيات المدير.
+        <strong>ملاحظة:</strong> يمكنك تعديل البيانات الإدارية للمشترك. ممنوع تغيير اسم المستخدم أو كلمة المرور على MikroTik.
     </div>
 }
 
@@ -435,18 +439,21 @@
 
                     <div class="alert alert-primary mb-3">
                         <i class="fas fa-network-wired"></i>
-                        <strong>بيانات MikroTik:</strong> التعديلات هنا تنفذ مباشرة على المايكروتك.
+                        <strong>بيانات MikroTik:</strong> اسم المستخدم وكلمة المرور على السيرفر للقراءة فقط. لا يمكن للموظف تغييرهما.
                     </div>
 
                     <div class="form-group mb-3">
                         <label asp-for="UserName" class="form-label">اسم المستخدم (MikroTik)</label>
-                        <input asp-for="UserName" class="form-control" placeholder="اسم المستخدم على MikroTik" />
-                        <span asp-validation-for="UserName" class="text-danger"></span>
+                        <input class="form-control" value="@Model.UserName" disabled />
+                        <input type="hidden" asp-for="UserName" />
+                        <div class="form-text">ممنوع تغيير اسم المستخدم على المايكروتك.</div>
                     </div>
 
                     <div class="form-group mb-3">
                         <label asp-for="Password" class="form-label">كلمة المرور (MikroTik)</label>
-                        <input asp-for="Password" type="password" class="form-control" placeholder="كلمة المرور على MikroTik" />
+                        <input type="password" class="form-control" value="********" disabled autocomplete="off" />
+                        <input type="hidden" asp-for="Password" />
+                        <div class="form-text">ممنوع تغيير كلمة مرور السيرفر. كلمة مرور النظام تُعدَّل من الملف الشخصي للمشترك.</div>
                         <span asp-validation-for="Password" class="text-danger"></span>
                     </div>
 
@@ -654,6 +661,7 @@
                         <h6><i class="fas fa-exclamation-triangle"></i> صلاحيات الموظف:</h6>
                         <ul class="mb-0 small">
                             <li>يمكنك تعديل البيانات الإدارية الخاصة بالمشترك</li>
+                            <li class="text-danger">لا يمكنك تغيير: اسم المستخدم أو كلمة المرور على MikroTik</li>
                             <li class="text-danger">لا يمكنك تغيير: البروفايل، الخادم، الحالة</li>
                             <li class="text-danger">لا يمكنك تمديد الاشتراك</li>
                         </ul>
@@ -828,18 +836,21 @@
 
                     <div class="alert alert-primary mb-3">
                         <i class="fas fa-network-wired"></i>
-                        <strong>بيانات MikroTik:</strong> التعديلات هنا تنفذ مباشرة على المايكروتك.
+                        <strong>بيانات MikroTik:</strong> اسم المستخدم وكلمة المرور على السيرفر للقراءة فقط. لا يمكن للموظف تغييرهما.
                     </div>
 
                     <div class="form-group mb-3">
                         <label asp-for="UserName" class="form-label">اسم المستخدم (MikroTik)</label>
-                        <input asp-for="UserName" class="form-control elegant-input" placeholder="اسم المستخدم على MikroTik" />
-                        <span asp-validation-for="UserName" class="text-danger"></span>
+                        <input class="form-control elegant-input" value="@Model.UserName" disabled />
+                        <input type="hidden" asp-for="UserName" />
+                        <div class="form-text">ممنوع تغيير اسم المستخدم على المايكروتك.</div>
                     </div>
 
                     <div class="form-group mb-3">
                         <label asp-for="Password" class="form-label">كلمة المرور (MikroTik)</label>
-                        <input asp-for="Password" type="password" class="form-control elegant-input" placeholder="كلمة المرور على MikroTik" />
+                        <input type="password" class="form-control elegant-input" value="********" disabled autocomplete="off" />
+                        <input type="hidden" asp-for="Password" />
+                        <div class="form-text">ممنوع تغيير كلمة مرور السيرفر. كلمة مرور النظام تُعدَّل من الملف الشخصي للمشترك.</div>
                         <span asp-validation-for="Password" class="text-danger"></span>
                     </div>
 
@@ -1047,6 +1058,7 @@
                         <h6><i class="fas fa-exclamation-triangle"></i> صلاحيات الموظف:</h6>
                         <ul class="mb-0 small">
                             <li>يمكنك تعديل البيانات الإدارية الخاصة بالمشترك</li>
+                            <li class="text-danger">لا يمكنك تغيير: اسم المستخدم أو كلمة المرور على MikroTik</li>
                             <li class="text-danger">لا يمكنك تغيير: البروفايل، الخادم، الحالة</li>
                             <li class="text-danger">لا يمكنك تمديد الاشتراك</li>
                         </ul>

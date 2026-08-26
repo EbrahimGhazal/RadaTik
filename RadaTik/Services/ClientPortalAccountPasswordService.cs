@@ -33,16 +33,48 @@ public static class ClientPortalAccountPasswordService
             return (false, resetResult.Errors.Select(e => e.Description).ToList());
         }
 
-        if (completingRequiredChange)
+        user.MustChangePassword = false;
+        user.PasswordChangedAt = DateTime.UtcNow;
+        user.LastUpdated = DateTime.Now;
+        IdentityResult updateResult = await userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
         {
-            user.MustChangePassword = false;
-            user.PasswordChangedAt = DateTime.UtcNow;
-            user.LastUpdated = DateTime.Now;
-            IdentityResult updateResult = await userManager.UpdateAsync(user);
-            if (!updateResult.Succeeded)
-            {
-                return (false, updateResult.Errors.Select(e => e.Description).ToList());
-            }
+            return (false, updateResult.Errors.Select(e => e.Description).ToList());
+        }
+
+        return (true, Array.Empty<string>());
+    }
+
+    public static async Task<(bool Success, IReadOnlyList<string> Errors)> ChangePortalPasswordAsync(
+        UserManager<ApplicationUser> userManager,
+        ApplicationUser user,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken = default)
+    {
+        if (!user.ClientId.HasValue)
+        {
+            return (false, ["هذا الإجراء مخصص لحسابات المشتركين فقط."]);
+        }
+
+        foreach (string error in ClientPasswordRules.Validate(newPassword))
+        {
+            return (false, [error]);
+        }
+
+        IdentityResult changeResult = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        if (!changeResult.Succeeded)
+        {
+            return (false, changeResult.Errors.Select(e => e.Description).ToList());
+        }
+
+        user.MustChangePassword = false;
+        user.PasswordChangedAt = DateTime.UtcNow;
+        user.LastUpdated = DateTime.Now;
+        IdentityResult updateResult = await userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            return (false, updateResult.Errors.Select(e => e.Description).ToList());
         }
 
         return (true, Array.Empty<string>());

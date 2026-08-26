@@ -732,7 +732,7 @@ namespace RadaTik.Controllers
             return RedirectToAction(nameof(MaintenanceInvoices));
         }
 
-        /// <summary>بروفايل العميل - تعديل الاسم الثلاثي، مكان السكن، رقم الجوال، والموقع على الخريطة</summary>
+        /// <summary>بروفايل العميل — الاسم الكامل، البريد، رقم الجوال. اسم وكلمة مرور MikroTik للقراءة فقط.</summary>
         [HttpGet]
         public async Task<IActionResult> MyProfile()
         {
@@ -742,19 +742,9 @@ namespace RadaTik.Controllers
                 TempData["Error"] = "لم يتم العثور على بيانات حسابك";
                 return RedirectToAction(nameof(Index));
             }
-            ClientProfileViewModel model = new ClientProfileViewModel
-            {
-                ClientId = client.Id,
-                Name = client.Name ?? "",
-                PhoneNumber = client.PhoneNumber ?? "",
-                ResidenceAddress = client.ResidenceAddress,
-                Latitude = client.Latitude,
-                Longitude = client.Longitude,
-                IsVip = client.IsVip,
-                VipNote = client.VipNote,
-                VipSince = client.VipSince
-            };
-            return View(model);
+
+            ApplicationUser? user = await _userManager.GetUserAsync(User);
+            return View(BuildClientProfileViewModel(client, user));
         }
 
         [HttpPost]
@@ -773,29 +763,95 @@ namespace RadaTik.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            if (ModelState.IsValid)
+            ApplicationUser? user = await _userManager.GetUserAsync(User);
+            if (user == null)
             {
-                client = await _context.Clients.FirstOrDefaultAsync(c => c.Id == client.Id);
-                if (client == null)
+                return Challenge();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                RestoreClientProfileReadOnlyFields(model, client, user);
+                return View(model);
+            }
+
+            client = await _context.Clients.FirstOrDefaultAsync(c => c.Id == client.Id);
+            if (client == null)
+            {
+                TempData["Error"] = "لم يتم العثور على الحساب";
+                return RedirectToAction(nameof(Index));
+            }
+
+            string originalUserName = client.UserName ?? "";
+            string? originalPassword = client.Password;
+
+            client.Name = model.Name?.Trim();
+            client.PhoneNumber = model.PhoneNumber?.Trim();
+            client.ResidenceAddress = string.IsNullOrWhiteSpace(model.ResidenceAddress) ? null : model.ResidenceAddress.Trim();
+            client.Latitude = model.Latitude;
+            client.Longitude = model.Longitude;
+            client.UserName = originalUserName;
+            client.Password = originalPassword;
+            client.LastUpdated = DateTime.Now;
+
+            string? requestedEmail = string.IsNullOrWhiteSpace(model.Email) ? null : model.Email.Trim();
+            if (!string.Equals(user.Email, requestedEmail, StringComparison.OrdinalIgnoreCase))
+            {
+                IdentityResult emailResult = await _userManager.SetEmailAsync(user, requestedEmail);
+                if (!emailResult.Succeeded)
                 {
-                    TempData["Error"] = "لم يتم العثور على الحساب";
-                    return RedirectToAction(nameof(Index));
+                    foreach (IdentityError err in emailResult.Errors)
+                    {
+                        ModelState.AddModelError(nameof(model.Email), err.Description);
+                    }
+
+                    RestoreClientProfileReadOnlyFields(model, client, user);
+                    return View(model);
                 }
-                client.Name = model.Name?.Trim();
-                client.PhoneNumber = model.PhoneNumber?.Trim();
-                client.ResidenceAddress = string.IsNullOrWhiteSpace(model.ResidenceAddress) ? null : model.ResidenceAddress.Trim();
-                client.Latitude = model.Latitude;
-                client.Longitude = model.Longitude;
-                client.LastUpdated = DateTime.Now;
-                await _context.SaveChangesAsync();
-                TempData["Success"] = AppMessages.OperationSuccess;
+            }
+
+            user.FullName = client.Name;
+            user.PhoneNumber = client.PhoneNumber;
+            user.LastUpdated = DateTime.Now;
+            IdentityResult userUpdate = await _userManager.UpdateAsync(user);
+            if (!userUpdate.Succeeded)
+            {
+                TempData["Error"] = string.Join(" | ", userUpdate.Errors.Select(e => e.Description));
                 return RedirectToAction(nameof(MyProfile));
             }
 
+            await _context.SaveChangesAsync();
+            TempData["Success"] = AppMessages.OperationSuccess;
+            return RedirectToAction(nameof(MyProfile));
+        }
+
+        private static ClientProfileViewModel BuildClientProfileViewModel(Client client, ApplicationUser? user) =>
+            new()
+            {
+                ClientId = client.Id,
+                Name = client.Name ?? user?.FullName ?? "",
+                Email = user?.Email,
+                PhoneNumber = client.PhoneNumber ?? user?.PhoneNumber ?? "",
+                ResidenceAddress = client.ResidenceAddress,
+                Latitude = client.Latitude,
+                Longitude = client.Longitude,
+                SystemUserName = user?.UserName,
+                MikroTikUserName = client.UserName,
+                IsVip = client.IsVip,
+                VipNote = client.VipNote,
+                VipSince = client.VipSince
+            };
+
+        private static void RestoreClientProfileReadOnlyFields(
+            ClientProfileViewModel model,
+            Client client,
+            ApplicationUser? user)
+        {
+            model.SystemUserName = user?.UserName;
+            model.MikroTikUserName = client.UserName;
             model.IsVip = client.IsVip;
             model.VipNote = client.VipNote;
             model.VipSince = client.VipSince;
-            return View(model);
         }
 
         #endregion

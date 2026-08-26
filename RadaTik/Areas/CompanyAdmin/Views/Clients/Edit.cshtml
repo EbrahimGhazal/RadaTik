@@ -62,11 +62,11 @@
                     {
                         <div class="alert alert-primary mb-3">
                             <i class="fas fa-network-wired"></i>
-                            <strong>بيانات MikroTik:</strong> تعديل هذه الحقول يتطلب موافقة مدير الشركة، ولا يُدفع إلى المايكروتك من حساب الموظف مباشرة.
+                            <strong>بيانات MikroTik:</strong> اسم المستخدم وكلمة المرور على السيرفر للقراءة فقط. لا يمكن للموظف تغييرهما.
                         </div>
                     }
 
-                    <fieldset id="mikroTikEditFields" class="border-0 p-0 m-0" @(isAdmin && !applyMikroTikChanges ? "disabled" : null)>
+                    <fieldset id="mikroTikEditFields" class="border-0 p-0 m-0" @(!isAdmin || !applyMikroTikChanges ? "disabled" : null)>
                     <div class="form-group mb-3">
                         <label asp-for="UserName" class="form-label">اسم المستخدم (MikroTik)</label>
                         <input asp-for="UserName" class="form-control" placeholder="اسم المستخدم على MikroTik" />
@@ -117,6 +117,7 @@
                     }
                     </fieldset>
                     <input type="hidden" name="UserName" value="@Model.UserName" />
+                    <input type="hidden" name="Password" value="@Model.Password" />
                     <input type="hidden" name="ProfileId" value="@Model.ProfileId" />
                     <input type="hidden" name="MikroTikServerId" value="@Model.MikroTikServerId" />
 

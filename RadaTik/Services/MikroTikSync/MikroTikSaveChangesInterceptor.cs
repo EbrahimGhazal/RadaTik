@@ -83,6 +83,11 @@ public sealed class MikroTikSaveChangesInterceptor : SaveChangesInterceptor
                 continue;
             }
 
+            if (entry.State == EntityState.Modified && !HasMikroTikIdentityChange(entry))
+            {
+                continue;
+            }
+
             _pendingClients.Add(new CapturedClientChange(entry.Entity, ToAction(entry.State)));
         }
 
@@ -136,6 +141,24 @@ public sealed class MikroTikSaveChangesInterceptor : SaveChangesInterceptor
         _pendingClients.Clear();
         _pendingProfiles.Clear();
     }
+
+    private static readonly HashSet<string> MikroTikIdentityProperties =
+    [
+        nameof(Client.UserName),
+        nameof(Client.Password),
+        nameof(Client.ProfileId),
+        nameof(Client.ProfileName),
+        nameof(Client.MikroTikServerId),
+        nameof(Client.IsActive),
+        nameof(Client.AccountExpirationDate),
+        nameof(Client.Service),
+        nameof(Client.Address)
+    ];
+
+    private static bool HasMikroTikIdentityChange(
+        Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<Client> entry) =>
+        entry.Properties.Any(property =>
+            property.IsModified && MikroTikIdentityProperties.Contains(property.Metadata.Name));
 
     private static MikroTikSyncAction ToAction(EntityState state) => state switch
     {

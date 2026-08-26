@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RadaTik.Data;
+using RadaTik.Helpers;
 using RadaTik.Models;
 using RadaTik.Security;
 using RadaTik.Services;
@@ -225,6 +226,50 @@ public sealed class ClientProvisioningServiceTests
         Assert.Equal("اسم جديد", saved.Name);
         Assert.Equal("new-pass", saved.Password);
         mikroTik.Verify(m => m.UpdatePPPoEUser(It.Is<Client>(c => c.Id == 5 && c.Password == "new-pass")), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateClientAsync_Employee_CannotChangeMikroTikUsernameOrPassword()
+    {
+        await using ApplicationDbContext db = CreateDb();
+        db.Networks.Add(new Network { Id = 2, Name = "Net" });
+        db.Clients.Add(MinimalClient(5, "u5", 2, 1));
+        await db.SaveChangesAsync();
+
+        string? capturedNotes = null;
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        Mock<IEmployeeServiceApprovalRequestService> approvals = new(MockBehavior.Strict);
+        approvals
+            .Setup(a => a.CreatePendingAsync(2, "emp-1", FeatureKeys.Clients, It.IsAny<string>(), 0m, It.IsAny<CancellationToken>()))
+            .Callback<int, string, string, string, decimal, CancellationToken>((_, _, _, notes, _, _) => capturedNotes = notes)
+            .ReturnsAsync(42);
+
+        ClientProvisioningService sut = CreateSut(db, mikroTik.Object, approvals.Object);
+        ClientEditOutcome outcome = await sut.UpdateClientAsync(new ClientEditRequest
+        {
+            ClientId = 5,
+            SubmittedClient = new Client
+            {
+                Id = 5,
+                Name = "اسم شخصي",
+                UserName = "hacked-mt-user",
+                Password = "hacked-mt-pass",
+                ProfileId = 1,
+                PhoneNumber = "0911111111"
+            },
+            NetworkId = 2,
+            ActorUserId = "emp-1",
+            IsEmployee = true
+        });
+
+        Assert.Equal(ClientEditStatus.EmployeePendingApproval, outcome.Status);
+        Assert.True(EmployeeApprovalRequestHelper.TryParse(capturedNotes, out _, out _, out string? payloadJson));
+        ClientApprovalPayload? payload = EmployeeApprovalRequestHelper.DeserializePayload<ClientApprovalPayload>(payloadJson);
+        Assert.NotNull(payload);
+        Assert.Equal("u5", payload!.UserName);
+        Assert.Null(payload.Password);
+        Assert.Equal("اسم شخصي", payload.Name);
+        mikroTik.VerifyNoOtherCalls();
     }
 
     [Fact]

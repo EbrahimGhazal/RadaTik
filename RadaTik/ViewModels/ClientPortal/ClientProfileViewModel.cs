@@ -2,15 +2,20 @@ using System.ComponentModel.DataAnnotations;
 
 namespace RadaTik.ViewModels.ClientPortal
 {
-    /// <summary>نموذج تعديل بروفايل العميل (الاسم الثلاثي، مكان السكن، الجوال، الموقع على الخريطة)</summary>
+    /// <summary>نموذج تعديل بروفايل العميل (البيانات الشخصية فقط — بدون اسم مستخدم أو كلمة مرور MikroTik).</summary>
     public class ClientProfileViewModel
     {
         public int ClientId { get; set; }
 
-        [Required(ErrorMessage = "الاسم الثلاثي مطلوب")]
-        [Display(Name = "الاسم الثلاثي")]
+        [Required(ErrorMessage = "الاسم الكامل مطلوب")]
+        [Display(Name = "الاسم الكامل")]
         [StringLength(100, ErrorMessage = "الاسم يجب أن لا يتجاوز 100 حرف")]
         public string Name { get; set; } = "";
+
+        [Display(Name = "البريد الإلكتروني")]
+        [EmailAddress(ErrorMessage = "البريد الإلكتروني غير صالح")]
+        [StringLength(256)]
+        public string? Email { get; set; }
 
         [Required(ErrorMessage = "رقم الجوال مطلوب")]
         [Display(Name = "رقم الجوال")]
@@ -27,6 +32,12 @@ namespace RadaTik.ViewModels.ClientPortal
 
         [Display(Name = "خط الطول")]
         public double? Longitude { get; set; }
+
+        [Display(Name = "اسم دخول النظام")]
+        public string? SystemUserName { get; set; }
+
+        [Display(Name = "اسم المستخدم على MikroTik")]
+        public string? MikroTikUserName { get; set; }
 
         /// <summary>عرض فقط: يُحدَّد من شركة الإدارة ولا يُعدَّل من بوابة العميل.</summary>
         public bool IsVip { get; set; }

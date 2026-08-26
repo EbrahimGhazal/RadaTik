@@ -19,7 +19,7 @@
 
 <div class="page-header mb-3">
     <h1 class="page-title"><i class="fas fa-user-cog"></i> @ViewData["Title"]</h1>
-    <p class="text-muted mb-0">تحديث بياناتك الشخصية وكلمة مرور الدخول</p>
+    <p class="text-muted mb-0">يمكنك تعديل اسمك الكامل وبريدك الإلكتروني ورقم الجوال وكلمة مرور النظام في أي وقت. لا يمكن تغيير بيانات MikroTik.</p>
 </div>
 
 <partial name="_TempDataAlerts" />
@@ -54,7 +54,7 @@
                         <div class="col-md-6">
                             <label class="form-label">اسم المستخدم</label>
                             <input class="form-control" value="@Model.UserName" disabled />
-                            <div class="form-text">لا يمكن تغيير اسم المستخدم.</div>
+                            <div class="form-text">اسم دخول النظام ثابت ولا يمكن تغييره.</div>
                         </div>
                         <div class="col-md-6">
                             <label asp-for="FullName" class="form-label">الاسم الكامل</label>
@@ -79,8 +79,9 @@
         </div>
 
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white"><h6 class="mb-0">تغيير كلمة المرور</h6></div>
+            <div class="card-header bg-white"><h6 class="mb-0">كلمة مرور النظام</h6></div>
             <div class="card-body">
+                <p class="text-muted small">تغيّر كلمة دخول التطبيق فقط. لا تُرسل إلى MikroTik.</p>
                 <form asp-action="ChangePassword" method="post">
                     @Html.AntiForgeryToken()
                     <div class="mb-3">
@@ -120,11 +121,11 @@
                         ViewData["SpRulesEmailFieldId"] = "Email";
                         ViewData["SpRulesInteractive"] = true;
                         ViewData["SpRulesPanelId"] = "employeeProfilePasswordRules";
-                        ViewData["SpRulesSubtitle"] = "اتبع المعايير أدناه عند تحديث كلمة مرور الدخول";
+                        ViewData["SpRulesSubtitle"] = "كلمة مرور دخول النظام فقط — ليست كلمة مرور السيرفر";
                     }
                     <partial name="_StrongPasswordRulesPanel" />
                     <button type="submit" class="btn btn-outline-primary mt-3">
-                        <i class="fas fa-key"></i> تحديث كلمة المرور
+                        <i class="fas fa-key"></i> تحديث كلمة مرور النظام
                     </button>
                 </form>
             </div>

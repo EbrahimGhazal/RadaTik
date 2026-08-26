@@ -64,6 +64,8 @@ public sealed partial class ClientProvisioningService
 
     private static void ApplyEmployeeEditRestrictions(Client submitted, Client original)
     {
+        submitted.UserName = original.UserName;
+        submitted.Password = null;
         submitted.ProfileId = original.ProfileId;
         submitted.ProfileName = original.ProfileName;
         submitted.IsActive = original.IsActive;

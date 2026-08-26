@@ -1,4 +1,5 @@
 @model RadaTik.ViewModels.ClientPortal.ClientProfileViewModel
+@using RadaTik.Security
 @{
     ViewData["Title"] = "بروفايل العميل";
     var hasLocation = Model.Latitude.HasValue && Model.Longitude.HasValue;
@@ -15,12 +16,16 @@
     }
 }
 
+@section Styles {
+    <partial name="_StrongPasswordRulesStyles" />
+}
+
 <div class="client-portal-profile-page">
     <partial name="_ProfileHero"
              view-data='new ViewDataDictionary(ViewData)
              {
                  ["HeroTitle"] = "بروفايل العميل",
-                 ["HeroSubtitle"] = "إدارة بيانات حسابك وموقع السكن بنفس هوية صفحات الملف الشخصي.",
+                 ["HeroSubtitle"] = "يمكنك تعديل الاسم الكامل والبريد ورقم الجوال وكلمة مرور النظام في أي وقت. اسم المستخدم وكلمة المرور على MikroTik ثابتان.",
                  ["HeroIconClass"] = "fas fa-user-circle",
                  ["HeroChips"] = heroChips
              }' />
@@ -70,9 +75,24 @@
                             <span asp-validation-for="Name" class="text-danger"></span>
                         </div>
                         <div class="form-group mb-3">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control client-editable" placeholder="email@example.com" readonly />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                        <div class="form-group mb-3">
                             <label asp-for="PhoneNumber" class="form-label"></label>
                             <input asp-for="PhoneNumber" class="form-control client-editable" placeholder="09xxxxxxxx" readonly />
                             <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label asp-for="SystemUserName" class="form-label"></label>
+                            <input asp-for="SystemUserName" class="form-control" readonly disabled />
+                            <div class="form-text">اسم دخول النظام ثابت ولا يمكن تغييره.</div>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label asp-for="MikroTikUserName" class="form-label"></label>
+                            <input asp-for="MikroTikUserName" class="form-control" readonly disabled />
+                            <div class="form-text">ممنوع تغيير اسم المستخدم أو كلمة المرور على سيرفر MikroTik.</div>
                         </div>
                         <div class="form-group mb-0">
                             <label asp-for="ResidenceAddress" class="form-label"></label>
@@ -135,6 +155,60 @@
             <a asp-route="clientPortal-actions" asp-route-action="MyProfile" class="btn btn-outline-secondary btn-lg d-none" id="clientCancelProfileBtn">إلغاء</a>
         </div>
     </form>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-key"></i> كلمة مرور النظام</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small">تغيّر كلمة دخول بوابة المشترك فقط. لن تُغيَّر كلمة مرور الإنترنت (PPPoE) على المايكروتك.</p>
+            <form asp-area="ClientPortal" asp-controller="Account" asp-action="ChangePassword" method="post">
+                @Html.AntiForgeryToken()
+                <div class="mb-3">
+                    <label class="form-label" for="clientCurrentPassword">كلمة المرور الحالية</label>
+                    <div class="sp-password-field-wrap">
+                        <span class="sp-password-field-icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
+                        <input type="password" name="CurrentPassword" id="clientCurrentPassword" class="form-control" autocomplete="current-password" required />
+                        <button type="button" class="sp-password-toggle" data-sp-toggle-password="clientCurrentPassword" aria-label="إظهار كلمة المرور الحالية" aria-pressed="false">
+                            <i class="fas fa-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="clientNewPassword">كلمة مرور النظام الجديدة</label>
+                    <div class="sp-password-field-wrap">
+                        <span class="sp-password-field-icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
+                        <input type="password" name="NewPassword" id="clientNewPassword" class="form-control" autocomplete="new-password" minlength="@ClientPasswordRules.MinimumLength" required />
+                        <button type="button" class="sp-password-toggle" data-sp-toggle-password="clientNewPassword" aria-label="إظهار كلمة المرور الجديدة" aria-pressed="false">
+                            <i class="fas fa-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="clientConfirmPassword">تأكيد كلمة المرور الجديدة</label>
+                    <div class="sp-password-field-wrap">
+                        <span class="sp-password-field-icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
+                        <input type="password" name="ConfirmNewPassword" id="clientConfirmPassword" class="form-control" autocomplete="new-password" minlength="@ClientPasswordRules.MinimumLength" required />
+                        <button type="button" class="sp-password-toggle" data-sp-toggle-password="clientConfirmPassword" aria-label="إظهار تأكيد كلمة المرور" aria-pressed="false">
+                            <i class="fas fa-eye" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                @{
+                    ViewData["SpRulesMinLength"] = ClientPasswordRules.MinimumLength;
+                    ViewData["SpRulesPasswordFieldId"] = "clientNewPassword";
+                    ViewData["SpRulesInteractive"] = true;
+                    ViewData["SpRulesPanelId"] = "clientProfilePasswordRules";
+                    ViewData["SpRulesTitle"] = "كلمة مرور النظام";
+                    ViewData["SpRulesSubtitle"] = "خاصة بدخول التطبيق — لن تُغيّر كلمة PPPoE على المايكروتك";
+                }
+                <partial name="_ClientPasswordRulesPanel" />
+                <button type="submit" class="btn btn-outline-primary mt-3">
+                    <i class="fas fa-key"></i> تحديث كلمة مرور النظام
+                </button>
+            </form>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -153,6 +227,7 @@
 
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <partial name="_StrongPasswordRulesScripts" />
     <partial name="_ProfileEditToggleScript"
              view-data='new ViewDataDictionary(ViewData)
              {
