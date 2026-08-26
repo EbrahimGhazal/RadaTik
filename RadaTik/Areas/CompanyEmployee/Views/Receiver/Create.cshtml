@@ -10,6 +10,12 @@
     var hasReceiverPricing = (bool?)(ViewBag.ReceiverCreateChargeHasPricing) == true;
     var receiverChargeAmount = (decimal?)(ViewBag.ReceiverCreateChargeAmount) ?? 0m;
     var receiverWalletBalance = (decimal?)(ViewBag.ReceiverCreateChargeWalletBalance) ?? 0m;
+    var currentArea = ViewContext.RouteData.Values["area"]?.ToString() ?? "CompanyEmployee";
+    string? wizardReturnUrl = ViewBag.WizardReturnUrl as string;
+    var createSectors = ViewBag.ReceiverCreateSectors as IEnumerable<dynamic>
+        ?? Enumerable.Empty<dynamic>();
+    var filterServers = ViewBag.MikroTikServersForFilter as IEnumerable<dynamic>
+        ?? Enumerable.Empty<dynamic>();
 }
 
 <div class="employee-receiver-page">
@@ -33,6 +39,10 @@
 
         <form asp-action="Create" method="post" class="radtk-form">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            @if (!string.IsNullOrWhiteSpace(wizardReturnUrl))
+            {
+                <input type="hidden" name="returnUrl" value="@wizardReturnUrl" />
+            }
 
             <div class="row g-3">
                 <div class="col-md-6">
@@ -41,22 +51,57 @@
                     <span asp-validation-for="Name" class="text-danger"></span>
                 </div>
                 <div class="col-md-6">
-                    <label asp-for="SectorId" class="form-label">القطاع</label>
-                    <select asp-for="SectorId" class="form-select elegant-input" asp-items="@(ViewData["SectorId"] as SelectList)">
+                    <label class="form-label" for="sectorServerFilterEmp">فلترة حسب خادم MikroTik</label>
+                    <select id="sectorServerFilterEmp" class="form-select elegant-input no-select2">
+                        <option value="">كل الخوادم</option>
+                        @foreach (var server in filterServers)
+                        {
+                            <option value="@server.Id">@server.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-12">
+                    <label asp-for="SectorId" class="form-label">القطاع (المرسل)</label>
+                    <select asp-for="SectorId" class="form-select elegant-input" id="sectorSelectEmp" name="SectorId"
+                            data-placeholder="ابحث عن القطاع...">
                         <option value="">-- اختر قطاع --</option>
+                        @foreach (var sector in createSectors)
+                        {
+                            if (Model.SectorId == (int)sector.Id)
+                            {
+                                <option value="@sector.Id"
+                                        data-server-id="@sector.MikroTikServerId"
+                                        data-network-mask="@(sector.NetworkMask ?? "")"
+                                        selected="selected">@sector.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@sector.Id"
+                                        data-server-id="@sector.MikroTikServerId"
+                                        data-network-mask="@(sector.NetworkMask ?? "")">@sector.Name</option>
+                            }
+                        }
                     </select>
                     <span asp-validation-for="SectorId" class="text-danger"></span>
+                    <small class="text-muted">اكتب للبحث/فلترة القطاع. يُحدَّد IP والقناع تلقائياً عند الاختيار.</small>
                 </div>
 
                 <div class="col-md-6">
                     <label asp-for="IPAddress" class="form-label">IP</label>
-                    <input asp-for="IPAddress" class="form-control elegant-input" value="@ViewBag.NextIP" />
+                    <div class="input-group">
+                        <input asp-for="IPAddress" class="form-control elegant-input" id="ipAddressInputEmp" value="@(Model.IPAddress ?? ViewBag.NextIP)" />
+                        <button type="button" class="btn btn-outline-secondary" id="btnGenerateIPEmp" title="توليد IP">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
                     <span asp-validation-for="IPAddress" class="text-danger"></span>
+                    <small class="text-muted">بحسب آخر واقط على نفس القطاع</small>
                 </div>
                 <div class="col-md-6">
                     <label asp-for="NetworkMask" class="form-label">قناع الشبكة</label>
-                    <input asp-for="NetworkMask" class="form-control elegant-input" value="@ViewBag.DefaultMask" />
+                    <input asp-for="NetworkMask" class="form-control elegant-input" id="networkMaskInputEmp" value="@(Model.NetworkMask ?? ViewBag.DefaultMask)" readonly />
                     <span asp-validation-for="NetworkMask" class="text-danger"></span>
+                    <small class="text-muted">يطابق قناع القطاع</small>
                 </div>
 
                 <div class="col-md-6">
@@ -124,19 +169,111 @@
     }
     <script>
         (function () {
-            var analyzeLosUrl = '@Url.Action("AnalyzeLineOfSight", "Receiver", new { area = "CompanyEmployee" })';
+            var analyzeLosUrl = '@Url.Action("AnalyzeLineOfSight", "Receiver", new { area = currentArea })';
+            var getNextIpUrl = '@Url.Action("GetNextReceiverIP", "Receiver", new { area = currentArea })';
+            var sectorSelect = document.getElementById('sectorSelectEmp');
+            var serverFilter = document.getElementById('sectorServerFilterEmp');
+            var ipInput = document.getElementById('ipAddressInputEmp');
+            var maskInput = document.getElementById('networkMaskInputEmp');
+            var activeServerFilter = '';
+
+            function generateIPForSector(sectorId) {
+                if (!sectorId) return;
+                var btn = document.getElementById('btnGenerateIPEmp');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                }
+                fetch(getNextIpUrl + '?sectorId=' + encodeURIComponent(sectorId), {
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (!data || !data.success) return;
+                        if (ipInput && data.nextIP) ipInput.value = data.nextIP;
+                        if (maskInput && data.networkMask) maskInput.value = data.networkMask;
+                    })
+                    .finally(function () {
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                        }
+                    });
+            }
+
+            function onSectorChosen() {
+                if (!sectorSelect || !sectorSelect.value) return;
+                var opt = sectorSelect.options[sectorSelect.selectedIndex];
+                var mask = opt ? opt.getAttribute('data-network-mask') : '';
+                if (maskInput && mask) maskInput.value = mask;
+                generateIPForSector(sectorSelect.value);
+            }
+
+            if (sectorSelect) {
+                sectorSelect.addEventListener('change', onSectorChosen);
+                if (typeof jQuery !== 'undefined') {
+                    function sectorMatcher(params, data) {
+                        if (data == null || typeof data.text === 'undefined') return null;
+                        if (data.id && activeServerFilter) {
+                            var el = data.element;
+                            var serverId = el ? (el.getAttribute('data-server-id') || '') : '';
+                            if (String(serverId) !== String(activeServerFilter)) return null;
+                        }
+                        if (jQuery.trim(params.term || '') === '') return data;
+                        if (data.text.toUpperCase().indexOf(params.term.toUpperCase()) > -1) return data;
+                        return null;
+                    }
+                    if (jQuery(sectorSelect).hasClass('select2-hidden-accessible')) {
+                        jQuery(sectorSelect).select2('destroy');
+                    }
+                    jQuery(sectorSelect).select2({
+                        theme: 'bootstrap-5',
+                        width: '100%',
+                        placeholder: 'ابحث عن القطاع...',
+                        allowClear: true,
+                        matcher: sectorMatcher
+                    }).on('select2:select', onSectorChosen).on('change', onSectorChosen);
+                }
+            }
+
+            if (serverFilter) {
+                serverFilter.addEventListener('change', function () {
+                    activeServerFilter = serverFilter.value || '';
+                    if (sectorSelect && sectorSelect.value) {
+                        var opt = sectorSelect.options[sectorSelect.selectedIndex];
+                        var sid = opt ? (opt.getAttribute('data-server-id') || '') : '';
+                        if (activeServerFilter && String(sid) !== String(activeServerFilter)) {
+                            sectorSelect.value = '';
+                            if (typeof jQuery !== 'undefined') jQuery(sectorSelect).val(null).trigger('change');
+                        }
+                    }
+                    if (typeof jQuery !== 'undefined') jQuery(sectorSelect).trigger('change.select2');
+                });
+            }
+
+            var btnGen = document.getElementById('btnGenerateIPEmp');
+            if (btnGen) {
+                btnGen.addEventListener('click', function () {
+                    if (!sectorSelect || !sectorSelect.value) {
+                        alert('يرجى اختيار القطاع أولاً');
+                        return;
+                    }
+                    generateIPForSector(sectorSelect.value);
+                });
+            }
+
             function parseOpt(el) {
                 if (!el || el.value === '' || el.value === null) return null;
                 var v = parseFloat(el.value);
                 return isFinite(v) ? v : null;
             }
             function runLos() {
-                var sectorEl = document.querySelector('[name="SectorId"]');
                 var latEl = document.querySelector('[name="Latitude"]');
                 var lngEl = document.querySelector('[name="Longitude"]');
                 var elevEl = document.querySelector('[name="ElevationMeters"]');
                 var aglEl = document.querySelector('[name="AntennaHeightAglMeters"]');
-                var sectorId = sectorEl && sectorEl.value ? parseInt(sectorEl.value, 10) : 0;
+                var sectorId = sectorSelect && sectorSelect.value ? parseInt(sectorSelect.value, 10) : 0;
                 if (!sectorId) {
                     alert('يرجى اختيار القطاع أولاً');
                     return;
@@ -202,6 +339,10 @@
             if (c) c.addEventListener('click', function () {
                 document.getElementById('losResultPanelEmp').classList.add('d-none');
             });
+
+            if (sectorSelect && sectorSelect.value) {
+                onSectorChosen();
+            }
         })();
     </script>
 }

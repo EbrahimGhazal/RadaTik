@@ -4,6 +4,12 @@
     ViewData["Title"] = "إضافة مستقبل جديد";
     var isEmployeeActor = User.IsInRole("CompanyEmployee") || User.IsInRole("Employee") || User.IsInRole("EmployeeLegacy");
     var pendingSectorApprovalsCount = (int?)(ViewBag.PendingSectorApprovalsCount) ?? 0;
+    var currentArea = ViewContext.RouteData.Values["area"]?.ToString() ?? "CompanyAdmin";
+    var createSectors = ViewBag.ReceiverCreateSectors as IEnumerable<dynamic>
+        ?? Enumerable.Empty<dynamic>();
+    var filterServers = ViewBag.MikroTikServersForFilter as IEnumerable<dynamic>
+        ?? Enumerable.Empty<dynamic>();
+    string? wizardReturnUrl = ViewBag.WizardReturnUrl as string;
 }
 
 <!-- Page Header -->
@@ -45,8 +51,12 @@ else if (pendingSectorApprovalsCount > 0)
         </h3>
     </div>
     <div class="card-body">
-        <form asp-action="Create" id="receiverForm">
+        <form asp-action="Create" id="receiverForm" method="post">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            @if (!string.IsNullOrWhiteSpace(wizardReturnUrl))
+            {
+                <input type="hidden" name="returnUrl" value="@wizardReturnUrl" />
+            }
 
             <div class="form-grid">
                 <!-- القسم الأول: المعلومات الأساسية -->
@@ -63,11 +73,45 @@ else if (pendingSectorApprovalsCount > 0)
                         </div>
                         
                         <div class="form-group">
-                            <label asp-for="SectorId" class="form-label required" for="sectorSelect">القطاع التابع له</label>
-                            <select asp-for="SectorId" class="form-control no-select2" asp-items="ViewBag.SectorId" id="sectorSelect" name="SectorId" autocomplete="off">
+                            <label class="form-label" for="sectorServerFilter">فلترة حسب خادم MikroTik</label>
+                            <select id="sectorServerFilter" class="form-control no-select2" autocomplete="off">
+                                <option value="">كل الخوادم</option>
+                                @foreach (var server in filterServers)
+                                {
+                                    <option value="@server.Id">@server.Name</option>
+                                }
+                            </select>
+                            <small class="form-hint">يضيّق قائمة القطاعات ثم يمكنك البحث بالاسم داخل القائمة</small>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label asp-for="SectorId" class="form-label required" for="sectorSelect">القطاع التابع له (المرسل)</label>
+                            <select asp-for="SectorId" class="form-control" id="sectorSelect" name="SectorId" autocomplete="off"
+                                    data-placeholder="ابحث عن القطاع...">
                                 <option value="">-- اختر القطاع --</option>
+                                @foreach (var sector in createSectors)
+                                {
+                                    if (Model.SectorId == (int)sector.Id)
+                                    {
+                                        <option value="@sector.Id"
+                                                data-server-id="@sector.MikroTikServerId"
+                                                data-network-mask="@(sector.NetworkMask ?? "")"
+                                                data-ip="@(sector.IPAddress ?? "")"
+                                                selected="selected">@sector.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@sector.Id"
+                                                data-server-id="@sector.MikroTikServerId"
+                                                data-network-mask="@(sector.NetworkMask ?? "")"
+                                                data-ip="@(sector.IPAddress ?? "")">@sector.Name</option>
+                                    }
+                                }
                             </select>
                             <span asp-validation-for="SectorId" class="text-danger"></span>
+                            <small class="form-hint">اكتب للبحث/فلترة القطاع بالاسم</small>
                         </div>
                     </div>
 
@@ -75,20 +119,20 @@ else if (pendingSectorApprovalsCount > 0)
                         <div class="form-group">
                             <label asp-for="IPAddress" class="form-label required" for="ipAddressInput">عنوان IP</label>
                             <div class="input-with-btn">
-                                <input asp-for="IPAddress" class="form-control" id="ipAddressInput" name="IPAddress" value="@ViewBag.NextIP" placeholder="xxx.xxx.xxx.xxx" autocomplete="off" />
+                                <input asp-for="IPAddress" class="form-control" id="ipAddressInput" name="IPAddress" value="@(Model.IPAddress ?? ViewBag.NextIP)" placeholder="xxx.xxx.xxx.xxx" autocomplete="off" />
                                 <button type="button" class="btn btn-secondary" id="btnGenerateIP" title="توليد IP تلقائي">
                                     <i class="fas fa-sync-alt"></i>
                                 </button>
                             </div>
                             <span asp-validation-for="IPAddress" class="text-danger"></span>
-                            <small class="form-hint">يتم توليده تلقائياً بناءً على القطاع المحدد</small>
+                            <small class="form-hint">يُحدَّد تلقائياً بحسب آخر واقط مُدخل على نفس القطاع</small>
                         </div>
                         
                         <div class="form-group">
                             <label asp-for="NetworkMask" class="form-label" for="networkMaskInput">قناع الشبكة</label>
-                            <input asp-for="NetworkMask" class="form-control" id="networkMaskInput" name="NetworkMask" value="@ViewBag.DefaultMask" placeholder="255.255.255.0" autocomplete="off" />
+                            <input asp-for="NetworkMask" class="form-control" id="networkMaskInput" name="NetworkMask" value="@(Model.NetworkMask ?? ViewBag.DefaultMask)" placeholder="255.255.255.0" autocomplete="off" readonly />
                             <span asp-validation-for="NetworkMask" class="text-danger"></span>
-                            <small class="form-hint">يتم تعبئته تلقائياً من القطاع</small>
+                            <small class="form-hint">يطابق قناع الشبكة للقطاع المحدد (غير قابل للتعديل)</small>
                         </div>
                     </div>
                 </div>
@@ -627,9 +671,11 @@ else if (pendingSectorApprovalsCount > 0)
             var sectors = [];
             try { sectors = JSON.parse(raw); } catch (e) { sectors = []; }
 
-            var getSectorInfoUrl = '@Url.Action("GetSectorInfo", "Receiver", new { area = "CompanyAdmin" })';
-            var analyzeLosUrl = '@Url.Action("AnalyzeLineOfSight", "Receiver", new { area = "CompanyAdmin" })';
-            var getElevationAtUrl = '@Url.Action("GetElevationAtPoint", "Receiver", new { area = "CompanyAdmin" })';
+            var getSectorInfoUrl = '@Url.Action("GetSectorInfo", "Receiver", new { area = currentArea })';
+            var analyzeLosUrl = '@Url.Action("AnalyzeLineOfSight", "Receiver", new { area = currentArea })';
+            var getElevationAtUrl = '@Url.Action("GetElevationAtPoint", "Receiver", new { area = currentArea })';
+            var getNextIpUrl = '@Url.Action("GetNextReceiverIP", "Receiver", new { area = currentArea })';
+            var sectorServerFilter = document.getElementById('sectorServerFilter');
 
             var sectorSelect = document.getElementById('sectorSelect');
             var ipInput = document.getElementById('ipAddressInput');
@@ -835,6 +881,9 @@ else if (pendingSectorApprovalsCount > 0)
                 selectedSector = s;
                 updateSectorInfoPanel(s);
                 drawSelectedSector(s);
+                if (maskInput && s.networkMask) {
+                    maskInput.value = s.networkMask;
+                }
                 if (isFinite(s.latitude) && isFinite(s.longitude)) {
                     latInput.value = Number(s.latitude).toFixed(6);
                     lngInput.value = Number(s.longitude).toFixed(6);
@@ -922,17 +971,89 @@ else if (pendingSectorApprovalsCount > 0)
                 });
             });
 
-            // عند اختيار قطاع — لا نعتمد على Select2 (مُعطَّل لهذا الحقل عبر no-select2)؛ وربط إضافي لأحداث jQuery إن وُجدت
+            // عند اختيار قطاع — Select2 + تعبئة IP/القناع + الخريطة
+            var activeServerFilter = '';
             function onSectorChosen() {
-                loadSectorForMap(sectorSelect.value);
+                var id = sectorSelect.value;
+                if (!id) {
+                    clearSectorInfo();
+                    return;
+                }
+                var opt = sectorSelect.options[sectorSelect.selectedIndex];
+                var maskFromOption = opt ? opt.getAttribute('data-network-mask') : '';
+                if (maskInput && maskFromOption) {
+                    maskInput.value = maskFromOption;
+                }
+                generateIPForSector(id);
+                loadSectorForMap(id);
             }
             sectorSelect.addEventListener('change', onSectorChosen);
             if (typeof jQuery !== 'undefined') {
+                function sectorMatcher(params, data) {
+                    if (data == null || typeof data.text === 'undefined') {
+                        return null;
+                    }
+                    if (data.id && activeServerFilter) {
+                        var el = data.element;
+                        var serverId = el ? (el.getAttribute('data-server-id') || '') : '';
+                        if (String(serverId) !== String(activeServerFilter)) {
+                            return null;
+                        }
+                    }
+                    if (jQuery.trim(params.term || '') === '') {
+                        return data;
+                    }
+                    if (data.text.toUpperCase().indexOf(params.term.toUpperCase()) > -1) {
+                        return data;
+                    }
+                    return null;
+                }
+
                 jQuery(sectorSelect)
                     .off('change.rtMap select2:select.rtMap select2:clear.rtMap')
                     .on('change.rtMap', onSectorChosen)
                     .on('select2:select.rtMap', onSectorChosen)
                     .on('select2:clear.rtMap', function () { clearSectorInfo(); });
+
+                if (jQuery(sectorSelect).hasClass('select2-hidden-accessible')) {
+                    jQuery(sectorSelect).select2('destroy');
+                }
+                jQuery(sectorSelect).select2({
+                    theme: 'bootstrap-5',
+                    width: '100%',
+                    placeholder: sectorSelect.getAttribute('data-placeholder') || 'ابحث عن القطاع...',
+                    allowClear: true,
+                    matcher: sectorMatcher,
+                    language: {
+                        noResults: function () { return 'لا توجد نتائج'; },
+                        searching: function () { return 'جاري البحث...'; }
+                    }
+                });
+            }
+
+            function applySectorServerFilter() {
+                if (!sectorServerFilter) return;
+                activeServerFilter = sectorServerFilter.value || '';
+                var current = sectorSelect.value;
+                if (current) {
+                    var opt = sectorSelect.querySelector('option[value="' + current.replace(/"/g, '\\"') + '"]');
+                    var optServer = opt ? (opt.getAttribute('data-server-id') || '') : '';
+                    if (activeServerFilter && String(optServer) !== String(activeServerFilter)) {
+                        sectorSelect.value = '';
+                        if (typeof jQuery !== 'undefined') {
+                            jQuery(sectorSelect).val(null).trigger('change');
+                        }
+                        clearSectorInfo();
+                        return;
+                    }
+                }
+                if (typeof jQuery !== 'undefined') {
+                    jQuery(sectorSelect).trigger('change.select2');
+                }
+            }
+
+            if (sectorServerFilter) {
+                sectorServerFilter.addEventListener('change', applySectorServerFilter);
             }
 
             // النقر على الخريطة لتغيير موقع المستقبل
@@ -1326,19 +1447,34 @@ else if (pendingSectorApprovalsCount > 0)
 
             function generateIPForSector(sectorId) {
                 var btn = document.getElementById('btnGenerateIP');
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                btn.disabled = true;
-                var url = '@Url.Action("GetNextReceiverIP", "Receiver", new { area = "CompanyAdmin" })' + '?sectorId=' + encodeURIComponent(sectorId);
-                fetch(url)
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    btn.disabled = true;
+                }
+                var url = getNextIpUrl + '?sectorId=' + encodeURIComponent(sectorId);
+                fetch(url, {
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
                     .then(function (response) { return response.json(); })
                     .then(function (data) {
-                        if (data.success && ipInput) {
-                            ipInput.value = data.nextIP;
+                        if (data && data.success) {
+                            if (ipInput && data.nextIP) {
+                                ipInput.value = data.nextIP;
+                            }
+                            if (maskInput && data.networkMask) {
+                                maskInput.value = data.networkMask;
+                            }
                         }
                     })
                     .finally(function () {
-                        btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                        btn.disabled = false;
+                        if (btn) {
+                            btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                            btn.disabled = false;
+                        }
                     });
             }
 
@@ -1394,7 +1530,7 @@ else if (pendingSectorApprovalsCount > 0)
             }
 
             if (sectorSelect.value) {
-                loadSectorForMap(sectorSelect.value);
+                onSectorChosen();
             }
             } /* bootReceiverMap */
 

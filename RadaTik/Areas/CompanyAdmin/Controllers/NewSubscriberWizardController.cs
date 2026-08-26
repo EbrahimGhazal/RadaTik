@@ -181,6 +181,7 @@ public class NewSubscriberWizardController : Controller
                 return RedirectToAction(nameof(Subscriber));
 
             case NewSubscriberWizardPath.PrivateNewReceiver:
+                HttpContext.Session.SetWizardState(state);
                 string returnUrl = Url.Action(nameof(Start), "NewSubscriberWizard", new { area = CurrentArea })!;
                 return RedirectToAction("Create", "Receiver", new { area = GetReceiverArea(), returnUrl });
 
@@ -898,6 +899,22 @@ public class NewSubscriberWizardController : Controller
         ViewBag.WizardPathLabel = GetPathLabel(state.Path);
         ViewBag.RequireMikroTikServer = state.Path == NewSubscriberWizardPath.TowerDirect;
         ViewBag.LockMikroTikServer = state.Path != NewSubscriberWizardPath.TowerDirect && state.MikroTikServerId.HasValue;
+        ViewBag.SelectedSectorName = null;
+        ViewBag.SelectedReceiverName = null;
+
+        if (state.ReceiverId is > 0)
+        {
+            var linkMeta = await _context.Receivers
+                .AsNoTracking()
+                .Where(r => r.Id == state.ReceiverId.Value && r.NetworkId == networkId)
+                .Select(r => new { ReceiverName = r.Name, SectorName = r.Sector.Name })
+                .FirstOrDefaultAsync();
+            if (linkMeta != null)
+            {
+                ViewBag.SelectedReceiverName = linkMeta.ReceiverName;
+                ViewBag.SelectedSectorName = linkMeta.SectorName;
+            }
+        }
 
         if (state.Path != NewSubscriberWizardPath.TowerDirect && state.MikroTikServerId.HasValue)
         {

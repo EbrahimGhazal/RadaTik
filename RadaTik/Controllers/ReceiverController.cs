@@ -183,6 +183,12 @@ namespace RadaTik.Controllers
                     return View(receiver);
                 }
 
+                // قناع الشبكة يطابق قناع القطاع دائماً.
+                if (!string.IsNullOrWhiteSpace(sector.NetworkMask))
+                {
+                    receiver.NetworkMask = sector.NetworkMask.Trim();
+                }
+
                 // اربط المستقبل بنفس شبكة القطاع المختار لتجنب عدم التطابق ضمن نطاق الشركة.
                 receiver.NetworkId = sector.NetworkId;
 
@@ -260,6 +266,17 @@ namespace RadaTik.Controllers
                 .OrderBy(s => s.Name)
                 .ToListAsync();
             ViewData["SectorId"] = new SelectList(sectors, "Id", "Name", selectedSectorId);
+            ViewBag.ReceiverCreateSectors = sectors
+                .Select(s => new ReceiverCreateSectorOption(s.Id, s.Name, s.MikroTikServerId, s.NetworkMask, s.IPAddress))
+                .ToList();
+
+            HashSet<int> serverIds = sectors.Select(s => s.MikroTikServerId).ToHashSet();
+            ViewBag.MikroTikServersForFilter = await _context.MikroTikServers
+                .AsNoTracking()
+                .Where(s => serverIds.Contains(s.Id))
+                .OrderBy(s => s.Name)
+                .Select(s => new ReceiverCreateServerOption(s.Id, s.Name))
+                .ToListAsync();
 
             List<Sector> sectorsForMap = await _context.Sectors
                 .AsNoTracking()
@@ -284,6 +301,7 @@ namespace RadaTik.Controllers
             IEnumerable<ReceiverCreateMapSectorJson> mapDataForCreate = sectorsForMap.Select(s => new ReceiverCreateMapSectorJson(
                 s.Id,
                 s.Name,
+                s.MikroTikServerId,
                 s.Latitude,
                 s.Longitude,
                 s.Direction,
@@ -297,24 +315,63 @@ namespace RadaTik.Controllers
 
             ViewBag.MapDataJson = JsonSerializer.Serialize(mapDataForCreate);
 
-            Receiver? lastReceiver = await _context.Receivers
-                .Where(r => r.NetworkId == networkId)
-                .OrderByDescending(r => r.Id)
-                .FirstOrDefaultAsync();
-
-            if (lastReceiver != null)
-            {
-                ViewBag.NextIP = GenerateNextReceiverIP(lastReceiver.IPAddress);
-            }
-            else
-            {
-                ViewBag.NextIP = "192.168.1.100";
-            }
-
-            ViewBag.DefaultMask = "255.255.255.0";
+            ViewBag.NextIP = await ResolveNextReceiverIpAsync(networkId, selectedSectorId, sectors);
+            ViewBag.DefaultMask = ResolveDefaultMask(selectedSectorId, sectors);
             ViewBag.NetworkId = networkId;
             ViewBag.Networks = await NetworkHelper.GetAvailableNetworksAsync(_context, user, _userManager);
             await LoadReceiverCreatePricingNoteAsync(networkId);
+        }
+
+        private async Task<string> ResolveNextReceiverIpAsync(int networkId, int? selectedSectorId, List<Sector> sectors)
+        {
+            if (selectedSectorId is > 0)
+            {
+                Receiver? lastOnSector = await _context.Receivers
+                    .AsNoTracking()
+                    .Where(r => r.SectorId == selectedSectorId.Value)
+                    .OrderByDescending(r => r.CreatedDate)
+                    .ThenByDescending(r => r.Id)
+                    .FirstOrDefaultAsync();
+                if (lastOnSector != null)
+                {
+                    return GenerateNextReceiverIP(lastOnSector.IPAddress);
+                }
+
+                Sector? sector = sectors.FirstOrDefault(s => s.Id == selectedSectorId.Value);
+                if (sector != null && !string.IsNullOrWhiteSpace(sector.IPAddress))
+                {
+                    string[] parts = sector.IPAddress.Split('.');
+                    if (parts.Length == 4)
+                    {
+                        return $"{parts[0]}.{parts[1]}.{parts[2]}.100";
+                    }
+                }
+            }
+
+            Receiver? lastReceiver = await _context.Receivers
+                .AsNoTracking()
+                .Where(r => r.NetworkId == networkId)
+                .OrderByDescending(r => r.CreatedDate)
+                .ThenByDescending(r => r.Id)
+                .FirstOrDefaultAsync();
+
+            return lastReceiver != null
+                ? GenerateNextReceiverIP(lastReceiver.IPAddress)
+                : "192.168.1.100";
+        }
+
+        private static string ResolveDefaultMask(int? selectedSectorId, List<Sector> sectors)
+        {
+            if (selectedSectorId is > 0)
+            {
+                Sector? sector = sectors.FirstOrDefault(s => s.Id == selectedSectorId.Value);
+                if (sector != null && !string.IsNullOrWhiteSpace(sector.NetworkMask))
+                {
+                    return sector.NetworkMask.Trim();
+                }
+            }
+
+            return "255.255.255.0";
         }
 
         private async Task<IReadOnlyCollection<int>> ResolveReceiverSectorScopeAsync(int selectedNetworkId, bool isCompanyAdmin)
@@ -580,8 +637,18 @@ namespace RadaTik.Controllers
                     return Json(new { success = false, message = "يرجى تحديد شبكة أولاً" });
                 }
 
+                IList<string> userRoles = user != null
+                    ? await _userManager.GetRolesAsync(user)
+                    : Array.Empty<string>();
+                bool isCompanyAdmin = userRoles.Contains(RoleNames.NetworkAdministrator);
+                IReadOnlyCollection<int> sectorScope = await ResolveReceiverSectorScopeAsync(networkId.Value, isCompanyAdmin);
+
                 Sector? sector = await _context.Sectors
-                    .FirstOrDefaultAsync(s => s.Id == sectorId && s.NetworkId == networkId.Value);
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s =>
+                        s.Id == sectorId &&
+                        s.NetworkId.HasValue &&
+                        sectorScope.Contains(s.NetworkId.Value));
 
                 if (sector != null && !string.IsNullOrEmpty(sector.NetworkMask))
                 {
@@ -610,44 +677,57 @@ namespace RadaTik.Controllers
                     return Json(new { success = false, message = "يرجى تحديد شبكة أولاً" });
                 }
 
-                // التحقق من أن القطاع يتبع الشبكة المحددة
+                IList<string> userRoles = user != null
+                    ? await _userManager.GetRolesAsync(user)
+                    : Array.Empty<string>();
+                bool isCompanyAdmin = userRoles.Contains(RoleNames.NetworkAdministrator);
+                IReadOnlyCollection<int> sectorScope = await ResolveReceiverSectorScopeAsync(networkId.Value, isCompanyAdmin);
+
+                // التحقق من أن القطاع ضمن نطاق الشبكة/الشركة
                 Sector? sector = await _context.Sectors
-                    .FirstOrDefaultAsync(s => s.Id == sectorId && s.NetworkId == networkId.Value);
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s =>
+                        s.Id == sectorId &&
+                        s.NetworkId.HasValue &&
+                        sectorScope.Contains(s.NetworkId.Value));
 
                 if (sector == null)
                 {
                     return Json(new { success = false, message = "القطاع غير موجود في هذه الشبكة" });
                 }
 
-                // البحث عن آخر مستقبل لنفس القطاع
+                // آخر مستقبل مُدخل لنفس القطاع (بحسب تاريخ الإدخال ثم المعرف)
                 Receiver? lastReceiver = await _context.Receivers
-                    .Where(r => r.SectorId == sectorId && r.NetworkId == networkId.Value)
-                    .OrderByDescending(r => r.Id)
+                    .AsNoTracking()
+                    .Where(r => r.SectorId == sectorId)
+                    .OrderByDescending(r => r.CreatedDate)
+                    .ThenByDescending(r => r.Id)
                     .FirstOrDefaultAsync();
 
                 string nextIP;
 
                 if (lastReceiver != null)
                 {
-                    // إذا وجد مستقبل، توليد IP جديد بناءً على آخر IP
                     nextIP = GenerateNextReceiverIP(lastReceiver.IPAddress);
+                }
+                else if (!string.IsNullOrEmpty(sector.IPAddress))
+                {
+                    string[] sectorIPParts = sector.IPAddress.Split('.');
+                    nextIP = sectorIPParts.Length == 4
+                        ? $"{sectorIPParts[0]}.{sectorIPParts[1]}.{sectorIPParts[2]}.100"
+                        : "192.168.1.100";
                 }
                 else
                 {
-                    // إذا لم يكن هناك مستقبلات لهذا القطاع، نستخدم IP القطاع
-                    if (sector != null && !string.IsNullOrEmpty(sector.IPAddress))
-                    {
-                        // استخراج الشبكة من IP القطاع
-                        string[] sectorIPParts = sector.IPAddress.Split('.');
-                        nextIP = $"{sectorIPParts[0]}.{sectorIPParts[1]}.{sectorIPParts[2]}.100";
-                    }
-                    else
-                    {
-                        nextIP = "192.168.1.100";
-                    }
+                    nextIP = "192.168.1.100";
                 }
 
-                return Json(new { success = true, nextIP = nextIP });
+                return Json(new
+                {
+                    success = true,
+                    nextIP,
+                    networkMask = sector.NetworkMask
+                });
             }
             catch (Exception ex)
             {
@@ -817,8 +897,14 @@ namespace RadaTik.Controllers
                     return Json(new { success = false, message = "يرجى تحديد شبكة أولاً" });
                 }
 
+                IList<string> userRoles = user != null
+                    ? await _userManager.GetRolesAsync(user)
+                    : Array.Empty<string>();
+                bool isCompanyAdmin = userRoles.Contains(RoleNames.NetworkAdministrator);
+                IReadOnlyCollection<int> sectorScope = await ResolveReceiverSectorScopeAsync(networkId.Value, isCompanyAdmin);
+
                 Sector? sector = await _context.Sectors
-                    .Where(s => s.NetworkId == networkId.Value)
+                    .Where(s => s.NetworkId.HasValue && sectorScope.Contains(s.NetworkId.Value))
                     .Include(s => s.MikroTikServer)
                     .Include(s => s.Receivers)
                     .FirstOrDefaultAsync(s => s.Id == sectorId);
@@ -870,9 +956,19 @@ namespace RadaTik.Controllers
             double coverageRange,
             IEnumerable<ReceiverMapPointJson> receivers);
 
+        private sealed record ReceiverCreateSectorOption(
+            int Id,
+            string? Name,
+            int MikroTikServerId,
+            string? NetworkMask,
+            string? IPAddress);
+
+        private sealed record ReceiverCreateServerOption(int Id, string? Name);
+
         private sealed record ReceiverCreateMapSectorJson(
             int id,
             string? name,
+            int mikrotikServerId,
             double latitude,
             double longitude,
             double direction,

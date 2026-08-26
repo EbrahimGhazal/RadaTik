@@ -9,6 +9,21 @@
     <i class="fas fa-info-circle"></i> المسار: <strong>@ViewBag.WizardPathLabel</strong>
 </div>
 
+@if (!string.IsNullOrWhiteSpace((string?)ViewBag.SelectedSectorName) || !string.IsNullOrWhiteSpace((string?)ViewBag.SelectedReceiverName))
+{
+    <div class="alert alert-success mb-3">
+        <i class="fas fa-link"></i>
+        @if (!string.IsNullOrWhiteSpace((string?)ViewBag.SelectedSectorName))
+        {
+            <span class="me-3">المرسل (القطاع): <strong>@ViewBag.SelectedSectorName</strong></span>
+        }
+        @if (!string.IsNullOrWhiteSpace((string?)ViewBag.SelectedReceiverName))
+        {
+            <span>المستقبل (اللاقط): <strong>@ViewBag.SelectedReceiverName</strong></span>
+        }
+    </div>
+}
+
 @if (TempData["Error"] != null)
 {
     <div class="alert alert-danger">@TempData["Error"]</div>
