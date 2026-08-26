@@ -1,86 +1,17 @@
-/* شعار RADATIK — SVG متجه شفاف يتكيّف مع خلفية الموضع والوضع الداكن */
+/* شعار RADATIK الرسمي — صورة كاملة + أيقونة عند الطي */
 
 .rt-brand-block {
-    /* افتراضي: أسطح فاتحة (بطاقة الدخول، الهيدر الفاتح) */
-    --rt-logo-navy: #0b3a5c;
-    --rt-logo-navy-trace: #5f8fb5;
-    --rt-logo-orange: #e88528;
-    --rt-logo-orange-trace: #f3bf7a;
-    --rt-logo-word: #0b3a5c;
-    --rt-logo-sub: #6b7280;
     display: inline-flex;
     align-items: center;
     gap: 0;
     line-height: 0;
-    background: transparent !important;
-    box-shadow: none !important;
 }
 
-/* الشريط الجانبي الداكن (تدرج الشركة/الموظف/التحصيل) → نسخة فاتحة */
-.sidebar .rt-brand-block,
-.sidebar-pro .rt-brand-block,
-.rt-brand-block--on-dark {
-    --rt-logo-navy: #9fd0f5;
-    --rt-logo-navy-trace: #d7ecfb;
-    --rt-logo-orange: #f0a04a;
-    --rt-logo-orange-trace: #ffd19a;
-    --rt-logo-word: #f8fafc;
-    --rt-logo-sub: #cbd5e1;
-}
-
-/* مدير النظام في الوضع الفاتح: سايدبار أبيض → أعد الألوان الداكنة */
-[data-theme="light"] .admin-dashboard-page .sidebar .rt-brand-block {
-    --rt-logo-navy: #0b3a5c;
-    --rt-logo-navy-trace: #5f8fb5;
-    --rt-logo-orange: #e88528;
-    --rt-logo-orange-trace: #f3bf7a;
-    --rt-logo-word: #0b3a5c;
-    --rt-logo-sub: #6b7280;
-}
-
-/* الوضع الداكن على الأسطح العامة */
-[data-theme="dark"] .rt-brand-block,
-.rt-brand-block[data-theme="dark"],
-.dark .rt-brand-block {
-    --rt-logo-navy: #8ec5ef;
-    --rt-logo-navy-trace: #c5e3f8;
-    --rt-logo-orange: #f0a04a;
-    --rt-logo-orange-trace: #ffd19a;
-    --rt-logo-word: #e8eef5;
-    --rt-logo-sub: #94a3b8;
-}
-
-.rt-logo-svg {
+.rt-logo-img {
     display: block;
     height: auto;
     max-width: 100%;
-    overflow: visible;
-}
-
-.rt-logo-navy {
-    stroke: var(--rt-logo-navy);
-}
-
-.rt-logo-navy-trace {
-    stroke: var(--rt-logo-navy-trace);
-    fill: var(--rt-logo-navy-trace);
-}
-
-.rt-logo-orange {
-    stroke: var(--rt-logo-orange);
-}
-
-.rt-logo-orange-trace {
-    stroke: var(--rt-logo-orange-trace);
-    fill: var(--rt-logo-orange-trace);
-}
-
-.rt-logo-word {
-    fill: var(--rt-logo-word);
-}
-
-.rt-logo-sub {
-    fill: var(--rt-logo-sub);
+    object-fit: contain;
 }
 
 .rt-logo-full {
@@ -91,7 +22,7 @@
 .rt-logo-mark {
     display: none;
     height: 40px;
-    width: auto;
+    width: 40px;
 }
 
 .rt-brand-block--hero .rt-logo-full {
@@ -100,6 +31,7 @@
 
 .rt-brand-block--hero .rt-logo-mark {
     height: 52px;
+    width: 52px;
 }
 
 .rt-brand-block--sidebar .rt-logo-full {
@@ -108,6 +40,7 @@
 
 .rt-brand-block--sidebar .rt-logo-mark {
     height: 36px;
+    width: 36px;
 }
 
 .rt-brand-block--mark-only .rt-logo-full {
@@ -118,7 +51,7 @@
     display: block;
 }
 
-/* تكامل رأس الشريط الجانبي */
+/* تكامل رأس الشريط الجانبي — مدير النظام / البوابات */
 .rt-sysadmin-brand {
     display: flex;
     flex-direction: column;
@@ -130,8 +63,13 @@
 
 .rt-sysadmin-brand .rt-brand-block {
     justify-content: flex-start;
-    background: transparent !important;
-    padding: 0;
+}
+
+[data-theme="dark"] .rt-sysadmin-brand .rt-brand-block,
+[data-theme="dark"] .header-brand-mark .rt-brand-block {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 0.25rem 0.45rem;
 }
 
 .rt-sysadmin-brand .sidebar-brand-sub {
@@ -143,20 +81,27 @@
     line-height: 1.3;
 }
 
+/* بطل الصفحة: خلفية أيقونة مثل بطاقة نظيفة */
 .sys-hero-icon.rt-hero-logo-wrap {
     width: auto;
     height: auto;
-    padding: 0.35rem 0.55rem;
-    background: transparent;
-    border: 0;
-    box-shadow: none;
+    padding: 0.35rem 0.6rem 0.35rem 0.35rem;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(15, 42, 74, 0.14);
+    box-shadow: 0 8px 24px rgba(15, 42, 74, 0.1);
+}
+
+[data-theme="dark"] .sys-hero-icon.rt-hero-logo-wrap {
+    background: rgba(30, 41, 59, 0.95);
+    border-color: rgba(148, 163, 184, 0.35);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .sys-hero-icon.rt-hero-logo-wrap i {
     display: none;
 }
 
-/* عند طي الشريط: أيقونة فقط */
+/* عند طي الشريط: إظهار الأيقونة فقط */
 .sidebar.collapsed .rt-sysadmin-brand .rt-logo-full,
 .sidebar.collapsed .sidebar-logo-brand .rt-logo-full,
 .sidebar.collapsed .rt-sysadmin-brand .sidebar-brand-sub {
@@ -176,6 +121,7 @@
     justify-content: center;
 }
 
+/* توافق خلفي مع الكلاسات القديمة إن بقيت في صفحات مخزّنة */
 .rt-wordmark,
 .rt-logomark {
     display: none !important;

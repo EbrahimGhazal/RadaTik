@@ -1,1 +1,0 @@
-import{n as e,r as t}from"./cn-CO7O-Ahk.js";import{t as n}from"./ManagerMikrotikTrafficPanel-BOgYJVtZ.js";var r=e();function i(){let{t:e}=t();return(0,r.jsx)(n,{title:e(`manager.traffic.pageTitle`)})}export{i as ManagerMikrotikTrafficPage};

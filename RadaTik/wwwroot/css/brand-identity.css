@@ -301,7 +301,6 @@
 .header-brand-mark .rt-brand-block {
     transform: scale(0.88);
     transform-origin: center;
-    background: transparent !important;
 }
 
 .sidebar-logo-brand {
@@ -309,8 +308,6 @@
     height: auto !important;
     padding: 0.2rem 0.35rem;
     border-radius: 14px !important;
-    background: transparent !important;
-    box-shadow: none !important;
 }
 
 .sidebar-logo-brand .rt-brand-block {

@@ -208,53 +208,6 @@
     background: var(--color-rt-border-strong);
     border-radius: 999px;
   }
-
-  /* RADATIK vector logo */
-  .rt-brand-block {
-    --rt-logo-navy: #0b3a5c;
-    --rt-logo-navy-trace: #5f8fb5;
-    --rt-logo-orange: #e88528;
-    --rt-logo-orange-trace: #f3bf7a;
-    --rt-logo-word: #0b3a5c;
-    --rt-logo-sub: #6b7280;
-    background: transparent !important;
-  }
-
-  .dark .rt-brand-block,
-  .rt-brand-block[data-theme='dark'] {
-    --rt-logo-navy: #8ec5ef;
-    --rt-logo-navy-trace: #c5e3f8;
-    --rt-logo-orange: #f0a04a;
-    --rt-logo-orange-trace: #ffd19a;
-    --rt-logo-word: #e8eef5;
-    --rt-logo-sub: #94a3b8;
-  }
-
-  .rt-logo-navy {
-    stroke: var(--rt-logo-navy);
-  }
-
-  .rt-logo-navy-trace {
-    stroke: var(--rt-logo-navy-trace);
-    fill: var(--rt-logo-navy-trace);
-  }
-
-  .rt-logo-orange {
-    stroke: var(--rt-logo-orange);
-  }
-
-  .rt-logo-orange-trace {
-    stroke: var(--rt-logo-orange-trace);
-    fill: var(--rt-logo-orange-trace);
-  }
-
-  .rt-logo-word {
-    fill: var(--rt-logo-word);
-  }
-
-  .rt-logo-sub {
-    fill: var(--rt-logo-sub);
-  }
 }
 
 /* Leaflet z-index below app modals */
