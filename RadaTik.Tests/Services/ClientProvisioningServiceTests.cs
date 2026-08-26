@@ -17,10 +17,33 @@ namespace RadaTik.Tests.Services;
 public sealed class ClientProvisioningServiceTests
 {
     [Fact]
-    public async Task DeleteClientAsync_RemovesClientAndCallsMikroTik()
+    public async Task DeleteClientAsync_WithInstallationInvoice_RemovesInvoiceThenClient()
     {
         await using ApplicationDbContext db = CreateDb();
         db.Clients.Add(MinimalClient(7, "del-me", 2, 9));
+        db.SubscriberInstallationInvoices.Add(new SubscriberInstallationInvoice
+        {
+            Id = 100,
+            ClientId = 7,
+            NetworkId = 2,
+            CompanyName = "Co",
+            ClientName = "del-me",
+            ReceiverMode = SubscriberReceiverMode.Private,
+            Kind = SubscriberInstallationInvoiceKind.InitialSetup,
+            Status = SubscriberInstallationInvoiceStatus.Draft,
+            CreatedByUserId = "u1",
+            TotalAmount = 10,
+            RemainingAmount = 10
+        });
+        db.SubscriberInstallationInvoiceItems.Add(new SubscriberInstallationInvoiceItem
+        {
+            Id = 1,
+            SubscriberInstallationInvoiceId = 100,
+            ItemName = "كابل",
+            Quantity = 1,
+            UnitPrice = 10,
+            LineTotal = 10
+        });
         await db.SaveChangesAsync();
 
         Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
@@ -31,7 +54,26 @@ public sealed class ClientProvisioningServiceTests
 
         Assert.True(outcome.IsSuccess);
         Assert.Empty(await db.Clients.ToListAsync());
-        mikroTik.Verify(m => m.DeletePPPoEUser("del-me", 9), Times.Once);
+        Assert.Empty(await db.SubscriberInstallationInvoices.ToListAsync());
+        Assert.Empty(await db.SubscriberInstallationInvoiceItems.ToListAsync());
+    }
+
+    [Fact]
+    public async Task DeleteClientAsync_RemovesClientAndCallsMikroTik()
+    {
+        await using ApplicationDbContext db = CreateDb();
+        db.Clients.Add(MinimalClient(17, "plain-del", 2, 9));
+        await db.SaveChangesAsync();
+
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        mikroTik.Setup(m => m.DeletePPPoEUser("plain-del", 9)).ReturnsAsync(true);
+
+        ClientProvisioningService sut = CreateSut(db, mikroTik.Object);
+        ClientOperationOutcome outcome = await sut.DeleteClientAsync(17, 2);
+
+        Assert.True(outcome.IsSuccess);
+        Assert.Empty(await db.Clients.ToListAsync());
+        mikroTik.Verify(m => m.DeletePPPoEUser("plain-del", 9), Times.Once);
     }
 
     [Fact]

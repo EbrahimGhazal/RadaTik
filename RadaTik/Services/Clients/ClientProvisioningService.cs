@@ -72,6 +72,8 @@ public sealed partial class ClientProvisioningService(
             int? clientNetworkId = client.NetworkId;
             string? userName = client.UserName;
 
+            await RemoveClientDependentRecordsAsync(deletedId, ct);
+
             Db.Clients.Remove(client);
             await ClientCrossServerDuplicate.RefreshRemainingAsync(
                 Db,
@@ -86,8 +88,78 @@ public sealed partial class ClientProvisioningService(
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to delete client {ClientId}", clientId);
             return ClientOperationOutcome.Fail(
-                MikroTikErrorFormatter.Format("حدث خطأ أثناء حذف العميل من المايكروتك", ex));
+                MikroTikErrorFormatter.Format("حدث خطأ أثناء حذف العميل", ex));
+        }
+    }
+
+    /// <summary>
+    /// يحذف السجلات المرتبطة بـ Restrict قبل حذف المشترك (فواتير التركيب، الصيانة، الشحن...).
+    /// </summary>
+    private async Task RemoveClientDependentRecordsAsync(int clientId, CancellationToken ct)
+    {
+        List<int> installationInvoiceIds = await Db.SubscriberInstallationInvoices
+            .AsNoTracking()
+            .Where(i => i.ClientId == clientId)
+            .Select(i => i.Id)
+            .ToListAsync(ct);
+
+        if (installationInvoiceIds.Count > 0)
+        {
+            List<SubscriberInstallationInvoicePayment> payments = await Db.SubscriberInstallationInvoicePayments
+                .Where(p => installationInvoiceIds.Contains(p.SubscriberInstallationInvoiceId))
+                .ToListAsync(ct);
+            if (payments.Count > 0)
+            {
+                Db.SubscriberInstallationInvoicePayments.RemoveRange(payments);
+            }
+
+            List<SubscriberInstallationInvoiceItem> items = await Db.SubscriberInstallationInvoiceItems
+                .Where(i => installationInvoiceIds.Contains(i.SubscriberInstallationInvoiceId))
+                .ToListAsync(ct);
+            if (items.Count > 0)
+            {
+                Db.SubscriberInstallationInvoiceItems.RemoveRange(items);
+            }
+
+            List<SubscriberInstallationInvoice> invoices = await Db.SubscriberInstallationInvoices
+                .Where(i => i.ClientId == clientId)
+                .ToListAsync(ct);
+            Db.SubscriberInstallationInvoices.RemoveRange(invoices);
+        }
+
+        // قبل Cascade على طلبات الصيانة: فواتير الصيانة Restrict على العميل والطلب.
+        List<MaintenanceInvoice> maintenanceInvoices = await Db.MaintenanceInvoices
+            .Where(m => m.ClientId == clientId)
+            .ToListAsync(ct);
+        if (maintenanceInvoices.Count > 0)
+        {
+            Db.MaintenanceInvoices.RemoveRange(maintenanceInvoices);
+        }
+
+        List<ClientWalletTopUpRequest> walletTopUps = await Db.ClientWalletTopUpRequests
+            .Where(r => r.ClientId == clientId)
+            .ToListAsync(ct);
+        if (walletTopUps.Count > 0)
+        {
+            Db.ClientWalletTopUpRequests.RemoveRange(walletTopUps);
+        }
+
+        List<ClientTopUpTransaction> topUps = await Db.ClientTopUpTransactions
+            .Where(t => t.ClientId == clientId)
+            .ToListAsync(ct);
+        if (topUps.Count > 0)
+        {
+            Db.ClientTopUpTransactions.RemoveRange(topUps);
+        }
+
+        List<CollectionPointRenewalRequest> renewalRequests = await Db.CollectionPointRenewalRequests
+            .Where(r => r.ClientId == clientId)
+            .ToListAsync(ct);
+        if (renewalRequests.Count > 0)
+        {
+            Db.CollectionPointRenewalRequests.RemoveRange(renewalRequests);
         }
     }
 }
