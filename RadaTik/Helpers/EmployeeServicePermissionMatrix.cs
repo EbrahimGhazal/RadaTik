@@ -35,9 +35,11 @@ public static class EmployeeServicePermissionMatrix
         new(FeatureKeys.Clients, "العملاء", 30,
         [
             new SlotDef("عرض", ["Clients.View"]),
-            new SlotDef("إضافة", ["Clients.Create", "Clients.ImportFromServer"],
-                "يشمل إنشاء العميل/الاستيراد، ويُنفّذ بعد موافقة مدير الشركة."),
+            new SlotDef("إضافة", ["Clients.Create"],
+                "إنشاء مشترك جديد، ويُنفّذ بعد موافقة مدير الشركة عند الحاجة."),
             new SlotDef("تعديل", ["Clients.Edit"], "تعديل بيانات/بروفايل العميل يحتاج موافقة مدير الشركة."),
+            new SlotDef("استيراد من السيرفر", ["Clients.ImportFromServer"],
+                "عند التفعيل يظهر زر استيراد المشتركين من MikroTik لموظف الشركة."),
         ]),
         new(FeatureKeys.Requests, "الطلبات", 50,
         [
