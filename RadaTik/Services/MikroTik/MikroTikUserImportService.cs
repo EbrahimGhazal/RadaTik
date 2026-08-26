@@ -185,6 +185,7 @@ public sealed class MikroTikUserImportService(
                             : mtUser.ConnectionStatus,
                         MikroTikServerId = serverId,
                         IsCrossServerDuplicate = isCrossServerDuplicate,
+                        IsImportedFromServer = true,
                         CreatedDate = DateTime.Now,
                         LastUpdated = DateTime.Now,
                         AccountExpirationDate = mtUser.AccountExpirationDate ?? DateTime.Now.AddMonths(1),
