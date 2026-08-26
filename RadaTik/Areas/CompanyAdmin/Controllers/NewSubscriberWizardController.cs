@@ -28,6 +28,17 @@ public class NewSubscriberWizardController : Controller
 
     private string CurrentArea => RouteData.Values["area"]?.ToString() ?? "CompanyAdmin";
 
+    /// <summary>
+    /// Views live under CompanyAdmin; CompanyEmployee inherits this controller and must use the same paths
+    /// (otherwise Razor looks only under Areas/CompanyEmployee/Views and fails with "view Start was not found").
+    /// </summary>
+    private const string WizardViewsRoot = "~/Areas/CompanyAdmin/Views/NewSubscriberWizard/";
+
+    private ViewResult WizardView(string viewName, object? model = null)
+        => model is null
+            ? View(WizardViewsRoot + viewName + ".cshtml")
+            : View(WizardViewsRoot + viewName + ".cshtml", model);
+
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly NewSubscriberWizardOrchestrator _orchestrator;
@@ -99,7 +110,7 @@ public class NewSubscriberWizardController : Controller
             Receivers = await LoadReceiverOptionsAsync(networkId.Value)
         };
         ViewData["Title"] = "إضافة مشترك جديد";
-        return View("Start", vm);
+        return WizardView("Start", vm);
     }
 
     [HttpGet]
@@ -229,7 +240,7 @@ public class NewSubscriberWizardController : Controller
 
         NewSubscriberWizardSharedReceiverViewModel vm = await BuildSharedReceiverViewModelAsync(networkId.Value, state.MikroTikServerId, state.SectorId);
         ViewData["Title"] = "تحديد لاقط مشترك";
-        return View(vm);
+        return WizardView("SharedReceiver", vm);
     }
 
     [HttpPost]
@@ -298,7 +309,7 @@ public class NewSubscriberWizardController : Controller
         };
         await LoadSubscriberViewDataAsync(networkId.Value, state, model.MikroTikServerId);
         ViewData["Title"] = "بيانات المشترك الجديد";
-        return View(model);
+        return WizardView("Subscriber", model);
     }
 
     [HttpPost]
@@ -360,7 +371,7 @@ public class NewSubscriberWizardController : Controller
         {
             await LoadSubscriberViewDataAsync(networkId.Value, state, model.MikroTikServerId);
             ViewData["Title"] = "بيانات المشترك الجديد";
-            return View(model);
+            return WizardView("Subscriber", model);
         }
 
         Client client = new()
@@ -396,7 +407,7 @@ public class NewSubscriberWizardController : Controller
             TempData["Error"] = result.ErrorMessage;
             await LoadSubscriberViewDataAsync(networkId.Value, state, model.MikroTikServerId);
             ViewData["Title"] = "بيانات المشترك الجديد";
-            return View(model);
+            return WizardView("Subscriber", model);
         }
 
         state.ClientId = result.ClientId;
@@ -495,7 +506,7 @@ public class NewSubscriberWizardController : Controller
         };
 
         ViewData["Title"] = "فاتورة تجهيز المشترك";
-        return View(vm);
+        return WizardView("Invoice", vm);
     }
 
     [HttpPost]
@@ -611,7 +622,7 @@ public class NewSubscriberWizardController : Controller
             ClientWalletBalance = client.Balance
         };
         ViewData["Title"] = "تحصيل فاتورة التجهيز";
-        return View(vm);
+        return WizardView("CollectPayment", vm);
     }
 
     [HttpPost]
@@ -679,7 +690,7 @@ public class NewSubscriberWizardController : Controller
             PaymentRecorded = paymentRecorded || invoice.Status == SubscriberInstallationInvoiceStatus.Paid
         };
         ViewData["Title"] = "اكتمال إضافة المشترك";
-        return View(vm);
+        return WizardView("Complete", vm);
     }
 
     [HttpGet]
