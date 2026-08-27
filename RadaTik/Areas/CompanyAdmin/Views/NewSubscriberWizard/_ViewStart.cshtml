@@ -1,0 +1,6 @@
+@{
+    var area = ViewContext.RouteData.Values["area"]?.ToString() ?? "CompanyAdmin";
+    Layout = string.Equals(area, "CompanyEmployee", StringComparison.OrdinalIgnoreCase)
+        ? "~/Areas/CompanyEmployee/Views/Shared/_Layout.cshtml"
+        : "~/Areas/CompanyAdmin/Views/Shared/_Layout.cshtml";
+}

@@ -2,7 +2,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-user-plus text-success"></i> @ViewData["Title"]</h2>
-    <a asp-action="Start" class="btn btn-outline-secondary"><i class="fas fa-arrow-right"></i> رجوع</a>
+    <a asp-route="@ViewData["WizardRoute"]" asp-route-action="Start" class="btn btn-outline-secondary"><i class="fas fa-arrow-right"></i> رجوع</a>
 </div>
 
 <div class="alert alert-secondary mb-3">
@@ -32,7 +32,7 @@
 <div class="card">
     <div class="card-header bg-success text-white">الخطوة 2 — بيانات المشترك</div>
     <div class="card-body">
-        <form asp-action="Subscriber" method="post">
+        <form asp-route="@ViewData["WizardRoute"]" asp-route-action="Subscriber" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="Path" />
             <input type="hidden" asp-for="ReceiverId" />
@@ -180,7 +180,7 @@
             const $refresh = $('#btnRefreshProfiles');
             const $create = $('#linkCreateProfile');
             const $hint = $('#profileLoadHint');
-            const profilesUrl = '@Url.Action("GetProfilesByServer", "NewSubscriberWizard", new { area = ViewContext.RouteData.Values["area"] })';
+            const profilesUrl = '@Url.RouteUrl((string)ViewData["WizardRoute"]!, new { action = "GetProfilesByServer" })';
             const profileCreateBase = '@Url.Action("Create", "Profile")';
 
             if (!$server.length || !$profile.length) {

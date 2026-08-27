@@ -44,7 +44,7 @@ public sealed class AreaIsolationMiddleware(RequestDelegate _next, ILogger<AreaI
             path.StartsWith("/CompanyEmployee", StringComparison.OrdinalIgnoreCase) &&
             TryMapCompanyAdminPathToEmployee(path, context.Request.QueryString.Value, out var legacyEmployeePath))
         {
-            context.Response.Redirect(legacyEmployeePath);
+            RedirectToEmployeePath(context, legacyEmployeePath);
             return;
         }
 
@@ -79,7 +79,7 @@ public sealed class AreaIsolationMiddleware(RequestDelegate _next, ILogger<AreaI
                     context.User.Identity?.Name ?? "unknown",
                     path + (context.Request.QueryString.Value ?? string.Empty),
                     employeePath);
-                context.Response.Redirect(employeePath);
+                RedirectToEmployeePath(context, employeePath);
                 return;
             }
 
@@ -129,6 +129,21 @@ public sealed class AreaIsolationMiddleware(RequestDelegate _next, ILogger<AreaI
         if (p.StartsWith("/collectionPoint", StringComparison.OrdinalIgnoreCase)) return "CollectionPoint";
 
         return null;
+    }
+
+    /// <summary>
+    /// GET stays 302. POST/PUT keep method and body (307) so wizard forms are not dropped to Start.
+    /// </summary>
+    private static void RedirectToEmployeePath(HttpContext context, string location)
+    {
+        if (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method))
+        {
+            context.Response.Redirect(location);
+            return;
+        }
+
+        context.Response.StatusCode = StatusCodes.Status307TemporaryRedirect;
+        context.Response.Headers.Location = location;
     }
 
     private static bool TryMapCompanyAdminPathToEmployee(string path, string? queryString, out string mappedPath)

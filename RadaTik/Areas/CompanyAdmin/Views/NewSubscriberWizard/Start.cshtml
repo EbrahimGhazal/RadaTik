@@ -20,7 +20,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="h4 mb-0"><i class="fas fa-route text-primary"></i> @ViewData["Title"]</h2>
-    <a asp-action="Cancel" class="btn btn-secondary"><i class="fas fa-times"></i> إلغاء</a>
+    <a asp-route="@ViewData["WizardRoute"]" asp-route-action="Cancel" class="btn btn-secondary"><i class="fas fa-times"></i> إلغاء</a>
 </div>
 
 @if (TempData["Error"] != null)
@@ -31,7 +31,7 @@
 <div class="card mb-3">
     <div class="card-header bg-primary text-white">الخطوة 1 — نوع الاتصال</div>
     <div class="card-body">
-        <form asp-action="Start" method="post" id="wizardStartForm">
+        <form asp-route="@ViewData["WizardRoute"]" asp-route-action="Start" method="post" id="wizardStartForm">
             @Html.AntiForgeryToken()
 
             <div class="row g-3">

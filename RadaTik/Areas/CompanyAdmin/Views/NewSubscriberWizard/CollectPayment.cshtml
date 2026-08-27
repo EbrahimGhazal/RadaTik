@@ -27,7 +27,7 @@
 <div class="card">
     <div class="card-header">الخطوة 4 — تحصيل المبلغ</div>
     <div class="card-body">
-        <form asp-action="CollectPayment" method="post">
+        <form asp-route="@ViewData["WizardRoute"]" asp-route-action="CollectPayment" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" name="invoiceId" value="@Model.InvoiceId" />
             <div class="row g-3 align-items-end">
@@ -57,7 +57,7 @@
 </div>
 
 <div class="mt-3">
-    <a asp-action="Complete" asp-route-invoiceId="@Model.InvoiceId" asp-route-paymentRecorded="false" class="btn btn-outline-secondary">
+    <a asp-route="@ViewData["WizardRoute"]" asp-route-action="Complete" asp-route-invoiceId="@Model.InvoiceId" asp-route-paymentRecorded="false" class="btn btn-outline-secondary">
         تخطي التحصيل الآن
     </a>
 </div>

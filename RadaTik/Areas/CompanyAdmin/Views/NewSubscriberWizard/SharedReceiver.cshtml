@@ -2,7 +2,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-users text-info"></i> @ViewData["Title"]</h2>
-    <a asp-action="Start" class="btn btn-outline-secondary"><i class="fas fa-arrow-right"></i> رجوع</a>
+    <a asp-route="@ViewData["WizardRoute"]" asp-route-action="Start" class="btn btn-outline-secondary"><i class="fas fa-arrow-right"></i> رجوع</a>
 </div>
 
 @if (TempData["Error"] != null)
@@ -13,7 +13,7 @@
 <div class="card">
     <div class="card-header bg-info text-white">تحديد اللاقط المشترك (سيرفر → مرسل → لاقط)</div>
     <div class="card-body">
-        <form asp-action="SharedReceiver" method="post">
+        <form asp-route="@ViewData["WizardRoute"]" asp-route-action="SharedReceiver" method="post">
             @Html.AntiForgeryToken()
             <div class="row g-3">
                 <div class="col-md-4">
@@ -51,14 +51,14 @@ $('#serverSelect').on('change', function () {
     $('#sectorSelect').html('<option value="">— الكل —</option>');
     $('#receiverSelect').html('<option value="">— اختر —</option>');
     if (!serverId) return;
-    $.get('@Url.Action("GetSectorsByServer")', { serverId }, function (data) {
+    $.get('@Url.RouteUrl((string)ViewData["WizardRoute"]!, new { action = "GetSectorsByServer" })', { serverId }, function (data) {
         data.forEach(s => $('#sectorSelect').append(`<option value="${s.id}">${s.name}</option>`));
     });
     loadReceivers();
 });
 $('#sectorSelect').on('change', loadReceivers);
 function loadReceivers() {
-    $.get('@Url.Action("SearchSharedReceivers")', {
+    $.get('@Url.RouteUrl((string)ViewData["WizardRoute"]!, new { action = "SearchSharedReceivers" })', {
         serverId: $('#serverSelect').val() || null,
         sectorId: $('#sectorSelect').val() || null
     }, function (data) {

@@ -86,7 +86,7 @@ else if (Model.WarehousePricingReady)
 
 
 
-<form asp-action="Invoice" method="post">
+<form asp-route="@ViewData["WizardRoute"]" asp-route-action="Invoice" method="post">
 
     @Html.AntiForgeryToken()
 
@@ -296,7 +296,7 @@ else if (Model.WarehousePricingReady)
 
         {
 
-            <a asp-action="Complete" asp-route-invoiceId="@Model.InvoiceId" class="btn btn-success">
+            <a asp-route="@ViewData["WizardRoute"]" asp-route-action="Complete" asp-route-invoiceId="@Model.InvoiceId" class="btn btn-success">
 
                 <i class="fas fa-check"></i> إنهاء (بانتظار موافقة المدير)
 

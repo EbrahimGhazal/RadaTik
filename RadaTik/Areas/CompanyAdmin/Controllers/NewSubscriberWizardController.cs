@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using RadaTik.Areas.CompanyAdmin.ViewModels;
 using global::RadaTik.Constants;
@@ -28,6 +29,12 @@ public class NewSubscriberWizardController : Controller
 
     private string CurrentArea => RouteData.Values["area"]?.ToString() ?? "CompanyAdmin";
 
+    private bool IsEmployeeArea =>
+        string.Equals(CurrentArea, "CompanyEmployee", StringComparison.OrdinalIgnoreCase);
+
+    private string WizardRouteName =>
+        IsEmployeeArea ? "employee-new-subscriber-wizard" : "networkManager-new-subscriber-wizard";
+
     /// <summary>
     /// Views live under CompanyAdmin; CompanyEmployee inherits this controller and must use the same paths
     /// (otherwise Razor looks only under Areas/CompanyEmployee/Views and fails with "view Start was not found").
@@ -35,9 +42,22 @@ public class NewSubscriberWizardController : Controller
     private const string WizardViewsRoot = "~/Areas/CompanyAdmin/Views/NewSubscriberWizard/";
 
     private ViewResult WizardView(string viewName, object? model = null)
-        => model is null
+    {
+        ViewData["WizardRoute"] = WizardRouteName;
+        ViewData["WizardArea"] = CurrentArea;
+        return model is null
             ? View(WizardViewsRoot + viewName + ".cshtml")
             : View(WizardViewsRoot + viewName + ".cshtml", model);
+    }
+
+    private RedirectToRouteResult WizardRedirect(string action, object? routeValues = null)
+    {
+        RouteValueDictionary values = routeValues is null
+            ? new RouteValueDictionary()
+            : new RouteValueDictionary(routeValues);
+        values["action"] = action;
+        return RedirectToRoute(WizardRouteName, values);
+    }
 
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
@@ -87,7 +107,7 @@ public class NewSubscriberWizardController : Controller
             if (receiverMeta == null)
             {
                 TempData["Error"] = "اللاقط غير موجود في هذه الشبكة.";
-                return RedirectToAction(nameof(Index));
+                return WizardRedirect(nameof(Index));
             }
 
             if (!receiverMeta.IsActive)
@@ -102,7 +122,7 @@ public class NewSubscriberWizardController : Controller
                 SectorId = receiverMeta.SectorId,
                 MikroTikServerId = receiverMeta.ServerId
             });
-            return RedirectToAction(nameof(Subscriber));
+            return WizardRedirect(nameof(Subscriber));
         }
 
         NewSubscriberWizardStartViewModel vm = new()
@@ -121,7 +141,7 @@ public class NewSubscriberWizardController : Controller
         if (!networkId.HasValue)
         {
             TempData["Error"] = AppMessages.SelectNetworkFirst;
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         Client? client = await _context.Clients
@@ -153,22 +173,22 @@ public class NewSubscriberWizardController : Controller
         if (invoice == null)
         {
             TempData["Info"] = "لا توجد فاتورة تركيب — أكمل بيانات المشترك أولاً.";
-            return RedirectToAction(nameof(Subscriber));
+            return WizardRedirect(nameof(Subscriber));
         }
 
         if (invoice.Status == SubscriberInstallationInvoiceStatus.Draft)
         {
-            return RedirectToAction(nameof(Invoice));
+            return WizardRedirect(nameof(Invoice));
         }
 
         if (invoice.Status is SubscriberInstallationInvoiceStatus.Finalized
             or SubscriberInstallationInvoiceStatus.PartiallyPaid
             or SubscriberInstallationInvoiceStatus.PendingWalletPayment)
         {
-            return RedirectToAction(nameof(CollectPayment), new { id = invoice.Id });
+            return WizardRedirect(nameof(CollectPayment), new { id = invoice.Id });
         }
 
-        return RedirectToAction(nameof(Complete), new { invoiceId = invoice.Id });
+        return WizardRedirect(nameof(Complete), new { invoiceId = invoice.Id });
     }
 
     [HttpPost]
@@ -189,7 +209,7 @@ public class NewSubscriberWizardController : Controller
         {
             case NewSubscriberWizardPath.TowerDirect:
                 HttpContext.Session.SetWizardState(state);
-                return RedirectToAction(nameof(Subscriber));
+                return WizardRedirect(nameof(Subscriber));
 
             case NewSubscriberWizardPath.PrivateNewReceiver:
                 HttpContext.Session.SetWizardState(state);
@@ -198,13 +218,13 @@ public class NewSubscriberWizardController : Controller
 
             case NewSubscriberWizardPath.SharedSelectReceiver:
                 HttpContext.Session.SetWizardState(state);
-                return RedirectToAction(nameof(SharedReceiver));
+                return WizardRedirect(nameof(SharedReceiver));
 
             case NewSubscriberWizardPath.ExistingReceiverFromList:
                 if (!existingReceiverId.HasValue || existingReceiverId.Value <= 0)
                 {
                     TempData["Error"] = "اختر اللاقط من القائمة.";
-                    return RedirectToAction(nameof(Start));
+                    return WizardRedirect(nameof(Start));
                 }
 
                 state.ReceiverId = existingReceiverId.Value;
@@ -214,11 +234,11 @@ public class NewSubscriberWizardController : Controller
                     .Select(r => r.Sector.MikroTikServerId)
                     .FirstOrDefaultAsync();
                 HttpContext.Session.SetWizardState(state);
-                return RedirectToAction(nameof(Subscriber));
+                return WizardRedirect(nameof(Subscriber));
 
             default:
                 TempData["Error"] = "اختر نوع الاتصال.";
-                return RedirectToAction(nameof(Start));
+                return WizardRedirect(nameof(Start));
         }
     }
 
@@ -228,7 +248,7 @@ public class NewSubscriberWizardController : Controller
         NewSubscriberWizardState? state = HttpContext.Session.GetWizardState();
         if (state?.Path != NewSubscriberWizardPath.SharedSelectReceiver)
         {
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         ApplicationUser? user = await _userManager.GetUserAsync(User);
@@ -250,20 +270,20 @@ public class NewSubscriberWizardController : Controller
         NewSubscriberWizardState? state = HttpContext.Session.GetWizardState();
         if (state?.Path != NewSubscriberWizardPath.SharedSelectReceiver)
         {
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         if (receiverId <= 0)
         {
             TempData["Error"] = "اختر اللاقط المشترك.";
-            return RedirectToAction(nameof(SharedReceiver));
+            return WizardRedirect(nameof(SharedReceiver));
         }
 
         ApplicationUser? user = await _userManager.GetUserAsync(User);
         int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
         if (!networkId.HasValue)
         {
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         bool isShared = await _context.Clients
@@ -272,14 +292,14 @@ public class NewSubscriberWizardController : Controller
         if (!isShared)
         {
             TempData["Error"] = "اللاقط المحدد ليس مشتركاً (لا يوجد مشترك آخر عليه).";
-            return RedirectToAction(nameof(SharedReceiver));
+            return WizardRedirect(nameof(SharedReceiver));
         }
 
         state.ReceiverId = receiverId;
         state.MikroTikServerId = mikroTikServerId;
         state.SectorId = sectorId;
         HttpContext.Session.SetWizardState(state);
-        return RedirectToAction(nameof(Subscriber));
+        return WizardRedirect(nameof(Subscriber));
     }
 
     [HttpGet]
@@ -288,14 +308,14 @@ public class NewSubscriberWizardController : Controller
         NewSubscriberWizardState? state = HttpContext.Session.GetWizardState();
         if (state == null)
         {
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         ApplicationUser? user = await _userManager.GetUserAsync(User);
         int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
         if (!networkId.HasValue)
         {
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         NewSubscriberWizardSubscriberFormModel model = new()
@@ -319,7 +339,7 @@ public class NewSubscriberWizardController : Controller
         NewSubscriberWizardState? state = HttpContext.Session.GetWizardState();
         if (state == null)
         {
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         ApplicationUser? user = await _userManager.GetUserAsync(User);
@@ -331,7 +351,7 @@ public class NewSubscriberWizardController : Controller
         int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
         if (!networkId.HasValue)
         {
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         model.Path = state.Path;
@@ -430,7 +450,7 @@ public class NewSubscriberWizardController : Controller
                 : "تم إنشاء المشترك. حدّد كميات المواد لإصدار الفاتورة.";
         }
 
-        return RedirectToAction(nameof(Invoice));
+        return WizardRedirect(nameof(Invoice));
     }
 
     [HttpGet]
@@ -439,14 +459,14 @@ public class NewSubscriberWizardController : Controller
         NewSubscriberWizardState? state = HttpContext.Session.GetWizardState();
         if (state?.InvoiceId == null)
         {
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         ApplicationUser? user = await _userManager.GetUserAsync(User);
         int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
         if (!networkId.HasValue)
         {
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         SubscriberInstallationInvoice? invoice = await _context.SubscriberInstallationInvoices
@@ -517,7 +537,7 @@ public class NewSubscriberWizardController : Controller
         int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
         if (!networkId.HasValue || user == null)
         {
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         IReadOnlyList<DraftInvoiceLineUpdate> updates = lines
@@ -534,7 +554,7 @@ public class NewSubscriberWizardController : Controller
         if (!updateResult.Success)
         {
             TempData["Error"] = updateResult.ErrorMessage;
-            return RedirectToAction(nameof(Invoice));
+            return WizardRedirect(nameof(Invoice));
         }
 
         if (finalize)
@@ -543,7 +563,7 @@ public class NewSubscriberWizardController : Controller
             if (!readinessCheck.IsReadyForWarehouseFinalize)
             {
                 TempData["Error"] = "أكمل ربط مواد التركيب بأصناف المستودع من صفحة تسعير التركيب قبل الإصدار.";
-                return RedirectToAction(nameof(Invoice));
+                return WizardRedirect(nameof(Invoice));
             }
 
             NewSubscriberWizardState? state = HttpContext.Session.GetWizardState();
@@ -553,7 +573,7 @@ public class NewSubscriberWizardController : Controller
             if (requiresApproval)
             {
                 TempData["Error"] = "لا يمكن إصدار الفاتورة وخصم المستودع قبل موافقة المدير على المشترك.";
-                return RedirectToAction(nameof(Invoice));
+                return WizardRedirect(nameof(Invoice));
             }
 
             FinalizeInvoiceResult finalizeResult = await _invoiceService.FinalizeInvoiceAsync(
@@ -561,7 +581,7 @@ public class NewSubscriberWizardController : Controller
             if (!finalizeResult.Success)
             {
                 TempData["Error"] = finalizeResult.ErrorMessage;
-                return RedirectToAction(nameof(Invoice));
+                return WizardRedirect(nameof(Invoice));
             }
 
             if (state != null)
@@ -570,11 +590,11 @@ public class NewSubscriberWizardController : Controller
                 HttpContext.Session.SetWizardState(state);
             }
 
-            return RedirectToAction(nameof(CollectPayment), new { id = invoiceId });
+            return WizardRedirect(nameof(CollectPayment), new { id = invoiceId });
         }
 
         TempData["Success"] = "تم حفظ الكميات.";
-        return RedirectToAction(nameof(Invoice));
+        return WizardRedirect(nameof(Invoice));
     }
 
     [HttpGet]
@@ -584,7 +604,7 @@ public class NewSubscriberWizardController : Controller
         int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
         if (!networkId.HasValue)
         {
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         SubscriberInstallationInvoice? invoice = await _context.SubscriberInstallationInvoices
@@ -593,7 +613,7 @@ public class NewSubscriberWizardController : Controller
         if (invoice == null || invoice.Status != SubscriberInstallationInvoiceStatus.Finalized)
         {
             TempData["Error"] = "الفاتورة غير جاهزة للتحصيل.";
-            return RedirectToAction(nameof(Invoice));
+            return WizardRedirect(nameof(Invoice));
         }
 
         Client? client = await _context.Clients.AsNoTracking().FirstOrDefaultAsync(c => c.Id == invoice.ClientId);
@@ -604,12 +624,12 @@ public class NewSubscriberWizardController : Controller
 
         if (client.ConnectionStatus == "معلق بانتظار موافقة مدير الشركة")
         {
-            return RedirectToAction(nameof(Complete), new { invoiceId = id, paymentRecorded = false });
+            return WizardRedirect(nameof(Complete), new { invoiceId = id, paymentRecorded = false });
         }
 
         if (invoice.RemainingAmount <= 0m)
         {
-            return RedirectToAction(nameof(Complete), new { invoiceId = id, paymentRecorded = true });
+            return WizardRedirect(nameof(Complete), new { invoiceId = id, paymentRecorded = true });
         }
 
         NewSubscriberWizardCollectPaymentViewModel vm = new()
@@ -637,7 +657,7 @@ public class NewSubscriberWizardController : Controller
         int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
         if (!networkId.HasValue || user == null)
         {
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         RegisterInstallationPaymentResult result = await _invoiceService.RegisterPaymentAsync(
@@ -645,13 +665,13 @@ public class NewSubscriberWizardController : Controller
         if (!result.Success)
         {
             TempData["Error"] = result.ErrorMessage;
-            return RedirectToAction(nameof(CollectPayment), new { id = invoiceId });
+            return WizardRedirect(nameof(CollectPayment), new { id = invoiceId });
         }
 
         TempData["Success"] = result.NewStatus == SubscriberInstallationInvoiceStatus.Paid
             ? "تم تسديد الفاتورة بالكامل."
             : "تم تسجيل الدفعة.";
-        return RedirectToAction(nameof(Complete), new { invoiceId, paymentRecorded = true });
+        return WizardRedirect(nameof(Complete), new { invoiceId, paymentRecorded = true });
     }
 
     [HttpGet]
@@ -661,7 +681,7 @@ public class NewSubscriberWizardController : Controller
         int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
         if (!networkId.HasValue)
         {
-            return RedirectToAction(nameof(Start));
+            return WizardRedirect(nameof(Start));
         }
 
         SubscriberInstallationInvoice? invoice = await _context.SubscriberInstallationInvoices
