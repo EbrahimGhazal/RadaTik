@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using RadaTik.Helpers;
 using RadaTik.Models;
 
 namespace RadaTik.Services.MikroTikSync;
@@ -84,6 +85,11 @@ public sealed class MikroTikSaveChangesInterceptor : SaveChangesInterceptor
             }
 
             if (entry.State == EntityState.Modified && !HasMikroTikIdentityChange(entry))
+            {
+                continue;
+            }
+
+            if (entry.State != EntityState.Deleted && EmployeeApprovalStates.IsPendingClientCreate(entry.Entity))
             {
                 continue;
             }

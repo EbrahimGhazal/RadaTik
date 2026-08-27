@@ -446,7 +446,7 @@ public class NewSubscriberWizardController : Controller
         else
         {
             TempData[result.RequiresManagerApproval ? "Info" : "Success"] = result.RequiresManagerApproval
-                ? "تم تسجيل المشترك كطلب موافقة. أكمل فاتورة المواد ثم انتظر اعتماد المدير."
+                ? "تم تسجيل المشترك كطلب موافقة لمدير الشركة. بعد الاعتماد يُنشأ الحساب على سيرفر MikroTik مباشرة."
                 : "تم إنشاء المشترك. حدّد كميات المواد لإصدار الفاتورة.";
         }
 
@@ -479,7 +479,7 @@ public class NewSubscriberWizardController : Controller
 
         bool requiresApproval = state.ClientId.HasValue && await _context.Clients
             .AsNoTracking()
-            .AnyAsync(c => c.Id == state.ClientId && c.ConnectionStatus == "معلق بانتظار موافقة مدير الشركة");
+            .AnyAsync(c => c.Id == state.ClientId && c.ConnectionStatus == EmployeeApprovalStates.PendingClientConnectionStatus);
 
         PricingWarehouseReadiness warehouseReadiness = await _warehouseLinkService.GetReadinessAsync(networkId.Value);
 
@@ -569,7 +569,7 @@ public class NewSubscriberWizardController : Controller
             NewSubscriberWizardState? state = HttpContext.Session.GetWizardState();
             bool requiresApproval = state?.ClientId is int clientId && await _context.Clients
                 .AsNoTracking()
-                .AnyAsync(c => c.Id == clientId && c.ConnectionStatus == "معلق بانتظار موافقة مدير الشركة");
+                .AnyAsync(c => c.Id == clientId && c.ConnectionStatus == EmployeeApprovalStates.PendingClientConnectionStatus);
             if (requiresApproval)
             {
                 TempData["Error"] = "لا يمكن إصدار الفاتورة وخصم المستودع قبل موافقة المدير على المشترك.";
@@ -622,7 +622,7 @@ public class NewSubscriberWizardController : Controller
             return NotFound();
         }
 
-        if (client.ConnectionStatus == "معلق بانتظار موافقة مدير الشركة")
+        if (client.ConnectionStatus == EmployeeApprovalStates.PendingClientConnectionStatus)
         {
             return WizardRedirect(nameof(Complete), new { invoiceId = id, paymentRecorded = false });
         }
@@ -694,7 +694,7 @@ public class NewSubscriberWizardController : Controller
 
         bool requiresApproval = await _context.Clients
             .AsNoTracking()
-            .AnyAsync(c => c.Id == invoice.ClientId && c.ConnectionStatus == "معلق بانتظار موافقة مدير الشركة");
+            .AnyAsync(c => c.Id == invoice.ClientId && c.ConnectionStatus == EmployeeApprovalStates.PendingClientConnectionStatus);
 
         HttpContext.Session.ClearWizardState();
 

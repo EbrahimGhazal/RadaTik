@@ -344,6 +344,63 @@ public sealed class ClientProvisioningServiceTests
     }
 
     [Fact]
+    public async Task CreateClientAsync_Employee_CreatesPendingRequestWithoutMikroTik()
+    {
+        await using ApplicationDbContext db = CreateDb();
+        db.Networks.Add(new Network { Id = 2, Name = "Net" });
+        db.Profiles.Add(new Profile
+        {
+            Id = 1,
+            Name = "10M",
+            NetworkId = 2,
+            MikroTikServerId = 9,
+            IsActive = true,
+            Type = ProfileType.Internet,
+            BillingCycle = BillingCycle.Monthly,
+            Price = 0,
+            DownloadSpeed = 10
+        });
+        await db.SaveChangesAsync();
+
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        Mock<IEmployeeServiceApprovalRequestService> approvals = new(MockBehavior.Strict);
+        string? capturedNotes = null;
+        approvals
+            .Setup(a => a.CreatePendingAsync(2, "emp-1", FeatureKeys.Clients, It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
+            .Callback<int, string, string, string, decimal, CancellationToken>((_, _, _, notes, _, _) => capturedNotes = notes)
+            .ReturnsAsync(42);
+
+        ClientProvisioningService sut = CreateSut(db, mikroTik.Object, approvals.Object);
+        ClientCreateOutcome outcome = await sut.CreateClientAsync(new ClientCreateRequest
+        {
+            Client = new Client
+            {
+                Name = "مشترك موظف",
+                SID = "1234567890",
+                UserName = "emp-create",
+                Password = "secret1",
+                ProfileId = 1,
+                PhoneNumber = "0999999999",
+                MikroTikServerId = 9
+            },
+            NetworkId = 2,
+            ActorUserId = "emp-1",
+            IsEmployee = true
+        });
+
+        Assert.Equal(ClientCreateStatus.EmployeePendingApproval, outcome.Status);
+        Client saved = await db.Clients.SingleAsync(c => c.UserName == "emp-create");
+        Assert.False(saved.IsActive);
+        Assert.Equal(EmployeeApprovalStates.PendingClientConnectionStatus, saved.ConnectionStatus);
+        Assert.True(EmployeeApprovalRequestHelper.TryParse(capturedNotes, out EmployeeApprovalRequestKind kind, out int entityId, out string? payloadJson));
+        Assert.Equal(EmployeeApprovalRequestKind.ClientCreate, kind);
+        Assert.Equal(saved.Id, entityId);
+        Assert.True(string.IsNullOrWhiteSpace(payloadJson));
+        mikroTik.VerifyNoOtherCalls();
+        approvals.VerifyAll();
+    }
+
+    [Fact]
     public async Task ValidateForCreate_MissingRequiredFields_ReturnsErrors()
     {
         await using ApplicationDbContext db = CreateDb();

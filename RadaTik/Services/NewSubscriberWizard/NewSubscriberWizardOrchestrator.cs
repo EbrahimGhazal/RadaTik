@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using RadaTik.Constants;
 using RadaTik.Data;
 using RadaTik.Helpers;
 using RadaTik.Models;
 using RadaTik.Security;
+using RadaTik.Services;
+using RadaTik.Services.Approvals;
 using RadaTik.Services.Clients;
 using RadaTik.Services.MikroTik;
 
@@ -18,6 +19,7 @@ public sealed class NewSubscriberWizardOrchestrator
     private readonly IMikroTikPppoeUserService _mikroTikService;
     private readonly ISubscriberInstallationInvoiceService _invoiceService;
     private readonly IUsageBasedSubscriptionChargeService _usageChargeService;
+    private readonly IEmployeeServiceApprovalRequestService _approvalRequests;
     private readonly ILogger<NewSubscriberWizardOrchestrator> _logger;
 
     public NewSubscriberWizardOrchestrator(
@@ -26,6 +28,7 @@ public sealed class NewSubscriberWizardOrchestrator
         IMikroTikPppoeUserService mikroTikService,
         ISubscriberInstallationInvoiceService invoiceService,
         IUsageBasedSubscriptionChargeService usageChargeService,
+        IEmployeeServiceApprovalRequestService approvalRequests,
         ILogger<NewSubscriberWizardOrchestrator> logger)
     {
         _context = context;
@@ -33,6 +36,7 @@ public sealed class NewSubscriberWizardOrchestrator
         _mikroTikService = mikroTikService;
         _invoiceService = invoiceService;
         _usageChargeService = usageChargeService;
+        _approvalRequests = approvalRequests;
         _logger = logger;
     }
 
@@ -154,7 +158,7 @@ public sealed class NewSubscriberWizardOrchestrator
         }
 
         client.IsActive = false;
-        client.ConnectionStatus = "معلق بانتظار موافقة مدير الشركة";
+        client.ConnectionStatus = EmployeeApprovalStates.PendingClientConnectionStatus;
         client.AccountExpirationDate ??= DateTime.Now.AddMonths(1);
         client.ServiceStartDate ??= DateTime.Now.Date;
         client.LastRenewalDate = DateTime.Now.Date;
@@ -162,17 +166,15 @@ public sealed class NewSubscriberWizardOrchestrator
         _context.Clients.Add(client);
         await _context.SaveChangesAsync(cancellationToken);
 
-        ClientApprovalPayload payload = BuildApprovalPayload(client, dbUserName, dbPassword);
-        string? requestNotes = EmployeeApprovalRequestHelper.BuildClientCreate(client.Id, payload);
-        if (string.IsNullOrWhiteSpace(requestNotes))
-        {
-            _context.Clients.Remove(client);
-            await _context.SaveChangesAsync(cancellationToken);
-            return new CreateSubscriberResult { Success = false, ErrorMessage = "تعذر إنشاء طلب الموافقة." };
-        }
-
+        string requestNotes = EmployeeApprovalRequestHelper.BuildClientCreate(client.Id, dbUserName, dbPassword);
         decimal expectedCharge = await ResolveExpectedClientCreateChargeAsync(networkId);
-        await CreateEmployeeApprovalRequestAsync(networkId, actor.Id, requestNotes, expectedCharge, cancellationToken);
+        await _approvalRequests.CreatePendingAsync(
+            networkId,
+            actor.Id,
+            FeatureKeys.Clients,
+            requestNotes,
+            expectedCharge,
+            cancellationToken);
 
         int invoiceId = await _invoiceService.CreateDraftInitialSetupInvoiceAsync(client, path, actor.Id, cancellationToken);
 
@@ -397,34 +399,6 @@ public sealed class NewSubscriberWizardOrchestrator
             : serverName;
     }
 
-    private static ClientApprovalPayload BuildApprovalPayload(Client client, string? dbUserName, string? dbPassword) =>
-        new ClientApprovalPayload
-        {
-            Name = client.Name,
-            SID = client.SID,
-            UserName = client.UserName,
-            Password = client.Password,
-            ProfileId = client.ProfileId,
-            ProfileName = client.ProfileName,
-            PhoneNumber = client.PhoneNumber,
-            ResidenceAddress = client.ResidenceAddress,
-            Occupation = client.Occupation,
-            Workplace = client.Workplace,
-            Latitude = client.Latitude,
-            Longitude = client.Longitude,
-            PowerSource = client.PowerSource,
-            Building = client.Building,
-            Floor = client.Floor,
-            ReceiverId = client.ReceiverId,
-            MikroTikServerId = client.MikroTikServerId,
-            ServiceStartDate = client.ServiceStartDate,
-            AccountExpirationDate = client.AccountExpirationDate,
-            IsVip = client.IsVip,
-            VipNote = client.VipNote,
-            DbUserName = dbUserName,
-            DbPassword = dbPassword
-        };
-
     private async Task<decimal> ResolveExpectedClientCreateChargeAsync(int networkId)
     {
         Network? network = await _context.Networks.AsNoTracking().FirstOrDefaultAsync(n => n.Id == networkId);
@@ -434,34 +408,5 @@ public sealed class NewSubscriberWizardOrchestrator
             PricingChargeUnit.PerSubscriber,
             1);
         return estimate.RequiredAmountSyp;
-    }
-
-    private async Task CreateEmployeeApprovalRequestAsync(
-        int networkId,
-        string employeeUserId,
-        string requestNotes,
-        decimal expectedCharge,
-        CancellationToken cancellationToken)
-    {
-        Network? selectedNetwork = await _context.Networks
-            .AsNoTracking()
-            .FirstOrDefaultAsync(n => n.Id == networkId, cancellationToken);
-        int companyNetworkId = selectedNetwork?.ParentNetworkId ?? networkId;
-
-        NetworkServiceRequest request = new NetworkServiceRequest
-        {
-            NetworkId = companyNetworkId,
-            FeatureKey = FeatureKeys.Clients,
-            BillingPeriod = PricingBillingPeriod.OneTime,
-            AmountSYP = Math.Max(0m, WalletMath.CeilSyp(expectedCharge)),
-            AmountUSD = 0m,
-            Currency = PricingCurrency.SYP_New,
-            Status = NetworkServiceRequestStatus.Pending,
-            RequestedByUserId = employeeUserId,
-            RequestedAt = DateTime.Now,
-            Notes = requestNotes
-        };
-        _context.NetworkServiceRequests.Add(request);
-        await _context.SaveChangesAsync(cancellationToken);
     }
 }

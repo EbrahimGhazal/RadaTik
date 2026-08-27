@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RadaTik.Data;
+using RadaTik.Helpers;
 using RadaTik.Models;
 using RadaTik.Services.MikroTik;
 
@@ -107,6 +108,14 @@ public sealed class MikroTikSyncBackgroundService : BackgroundService
         if (client.MikroTikServerId == null)
         {
             _logger.LogDebug("⏭️ تجاهل Client {Id} - غير مرتبط بسيرفر MikroTik", job.EntityId);
+            return;
+        }
+
+        if (EmployeeApprovalStates.IsPendingClientCreate(client))
+        {
+            _logger.LogInformation(
+                "⏭️ تجاهل Client {Id} - بانتظار موافقة مدير الشركة قبل الإنشاء على MikroTik",
+                job.EntityId);
             return;
         }
 

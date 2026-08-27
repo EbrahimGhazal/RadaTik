@@ -80,7 +80,7 @@ public sealed class EmployeeServiceApprovalRequestService(ApplicationDbContext c
             return;
         }
 
-        string actionLabel = featureKey == FeatureKeys.Clients ? "العميل" : "الخدمة";
+        string actionLabel = featureKey == FeatureKeys.Clients ? "المشترك" : "الخدمة";
         DateTime now = DateTime.Now;
         IEnumerable<UserNotification> rows = recipients.Select(uid => new UserNotification
         {

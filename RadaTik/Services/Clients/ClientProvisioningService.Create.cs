@@ -104,14 +104,12 @@ public sealed partial class ClientProvisioningService
             client.ReceiverId = null;
         }
 
-        ClientApprovalPayload payload = BuildApprovalPayload(client, profile.Name, request.DbUserName, request.DbPassword);
-
         client.ProfileName = profile.Name;
         client.NetworkId = request.NetworkId;
         client.CreatedDate = DateTime.Now;
         client.LastUpdated = DateTime.Now;
         client.IsActive = false;
-        client.ConnectionStatus = "معلق بانتظار موافقة مدير الشركة";
+        client.ConnectionStatus = EmployeeApprovalStates.PendingClientConnectionStatus;
         client.AccountExpirationDate ??= DateTime.Now.AddMonths(1);
         client.ServiceStartDate ??= DateTime.Now.Date;
         client.LastRenewalDate = DateTime.Now.Date;
@@ -120,14 +118,10 @@ public sealed partial class ClientProvisioningService
         Db.Clients.Add(client);
         await Db.SaveChangesAsync(ct);
 
-        string? requestNotes = EmployeeApprovalRequestHelper.BuildClientCreate(client.Id, payload);
-        if (string.IsNullOrWhiteSpace(requestNotes))
-        {
-            Db.Clients.Remove(client);
-            await Db.SaveChangesAsync(ct);
-            return ClientCreateOutcome.Failed("تعذر إنشاء طلب الموافقة: حجم البيانات كبير جداً.");
-        }
-
+        string requestNotes = EmployeeApprovalRequestHelper.BuildClientCreate(
+            client.Id,
+            request.DbUserName,
+            request.DbPassword);
         decimal expectedCharge = await ResolveExpectedClientCreateChargeAsync(request.NetworkId, ct);
         await _approvalRequests.CreatePendingAsync(
             request.NetworkId,
@@ -138,7 +132,7 @@ public sealed partial class ClientProvisioningService
             ct);
 
         return ClientCreateOutcome.EmployeePending(
-            "تم تسجيل إضافة العميل كطلب موافقة. سيتم إنشاؤه على النظام والمايكروتك بعد اعتماد مدير الشركة.");
+            "تم تسجيل إضافة المشترك كطلب موافقة. يُنشأ الحساب على النظام وسيرفر MikroTik بعد اعتماد مدير الشركة.");
     }
 
     private async Task<ClientCreateOutcome> CreateAsAdministratorAsync(ClientCreateRequest request, CancellationToken ct)
@@ -328,36 +322,4 @@ public sealed partial class ClientProvisioningService
             return 0m;
         }
     }
-
-    private static ClientApprovalPayload BuildApprovalPayload(
-        Client client,
-        string profileName,
-        string? dbUserName,
-        string? dbPassword) =>
-        new()
-        {
-            Name = client.Name,
-            SID = client.SID,
-            UserName = client.UserName,
-            Password = client.Password,
-            ProfileId = client.ProfileId,
-            ProfileName = profileName,
-            PhoneNumber = client.PhoneNumber,
-            ResidenceAddress = client.ResidenceAddress,
-            Occupation = client.Occupation,
-            Workplace = client.Workplace,
-            Latitude = client.Latitude,
-            Longitude = client.Longitude,
-            PowerSource = client.PowerSource,
-            Building = client.Building,
-            Floor = client.Floor,
-            ReceiverId = client.ReceiverId,
-            MikroTikServerId = client.MikroTikServerId,
-            ServiceStartDate = client.ServiceStartDate,
-            AccountExpirationDate = client.AccountExpirationDate,
-            IsVip = client.IsVip,
-            VipNote = client.VipNote,
-            DbUserName = dbUserName,
-            DbPassword = dbPassword
-        };
 }

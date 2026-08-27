@@ -49,10 +49,7 @@ public sealed class ClientOperationsHubService(ApplicationDbContext context)
             return null;
         }
 
-        bool isPending = string.Equals(
-            client.ConnectionStatus,
-            "معلق بانتظار موافقة مدير الشركة",
-            StringComparison.Ordinal);
+        bool isPending = EmployeeApprovalStates.IsPendingClientCreate(client);
 
         int? approvalRequestId = null;
         if (isPending)

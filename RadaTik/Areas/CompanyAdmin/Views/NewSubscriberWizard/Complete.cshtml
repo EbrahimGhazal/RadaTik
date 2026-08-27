@@ -12,7 +12,7 @@
     @if (Model.RequiresManagerApproval)
     {
         <div class="alert alert-warning mx-auto" style="max-width: 560px;">
-            المشترك والفاتورة بانتظار <strong>موافقة مدير الشركة</strong>. بعد الاعتماد: أصدر الفاتورة من فواتير التجهيز ثم حصّل المبلغ.
+            المشترك بانتظار <strong>موافقة مدير الشركة</strong>. بعد الاعتماد يُنشأ الحساب على سيرفر MikroTik مباشرة، ثم أصدر فاتورة التجهيز وحصّل المبلغ.
         </div>
     }
     else if (Model.InvoiceFinalized && Model.PaymentRecorded)

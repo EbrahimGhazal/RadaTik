@@ -381,8 +381,7 @@ public class EmployeeServiceApprovalsController : Controller
 
     private async Task ApproveClientCreateAsync(int clientId, IReadOnlyCollection<int> companyScope, string? payloadJson, string managerUserId)
     {
-        ClientApprovalPayload payload = EmployeeApprovalRequestHelper.DeserializePayload<ClientApprovalPayload>(payloadJson)
-            ?? throw new InvalidOperationException("بيانات إنشاء العميل غير صالحة.");
+        ClientApprovalPayload? payload = EmployeeApprovalRequestHelper.DeserializePayload<ClientApprovalPayload>(payloadJson);
 
         Client? client = await _context.Clients
             .FirstOrDefaultAsync(c =>
@@ -391,25 +390,41 @@ public class EmployeeServiceApprovalsController : Controller
                 companyScope.Contains(c.NetworkId.Value));
         if (client == null)
         {
-            throw new InvalidOperationException("تعذر العثور على العميل المطلوب.");
+            throw new InvalidOperationException("تعذر العثور على المشترك المطلوب.");
         }
 
-        if (client.MikroTikServerId.HasValue)
+        if (!client.MikroTikServerId.HasValue)
         {
-            await _mikroTikService.AddPPPoEUser(client);
+            throw new InvalidOperationException("لا يمكن اعتماد المشترك دون خادم MikroTik.");
         }
 
-        string? dbUserName = string.IsNullOrWhiteSpace(payload.DbUserName) ? client.UserName : payload.DbUserName.Trim();
-        string? dbPassword = string.IsNullOrWhiteSpace(payload.DbPassword) ? client.Password : payload.DbPassword.Trim();
+        string? dbUserName = string.IsNullOrWhiteSpace(payload?.DbUserName) ? client.UserName : payload.DbUserName.Trim();
+        string? dbPassword = string.IsNullOrWhiteSpace(payload?.DbPassword) ? client.Password : payload.DbPassword.Trim();
         if (string.IsNullOrWhiteSpace(dbUserName) || string.IsNullOrWhiteSpace(dbPassword))
         {
-            throw new InvalidOperationException("بيانات حساب النظام غير مكتملة لإنشاء العميل.");
+            throw new InvalidOperationException("بيانات حساب النظام غير مكتملة لإنشاء المشترك.");
         }
 
         ApplicationUser? existingIdentityUser = await _userManager.FindByNameAsync(dbUserName);
         if (existingIdentityUser != null && existingIdentityUser.ClientId != client.Id)
         {
             throw new InvalidOperationException("اسم مستخدم حساب النظام مستخدم مسبقاً.");
+        }
+
+        client.IsActive = true;
+        client.ConnectionStatus = "مفعل";
+        client.LastUpdated = DateTime.Now;
+
+        try
+        {
+            await _mikroTikService.AddPPPoEUser(client);
+        }
+        catch (Exception ex) when (MikroTikApiSupport.IsAlreadyExistsMessage(ex))
+        {
+            _logger.LogInformation(
+                "PPPoE user {UserName} already exists on MikroTik during employee client-create approval for client {ClientId}.",
+                client.UserName,
+                client.Id);
         }
 
         if (existingIdentityUser == null)
@@ -440,13 +455,9 @@ public class EmployeeServiceApprovalsController : Controller
             await _userManager.AddToRoleAsync(newUser, RoleNames.Client);
         }
 
-        client.IsActive = true;
-        client.ConnectionStatus = "مفعل";
-        client.LastUpdated = DateTime.Now;
-
         if (!client.NetworkId.HasValue)
         {
-            throw new InvalidOperationException("العميل غير مرتبط بشبكة.");
+            throw new InvalidOperationException("المشترك غير مرتبط بشبكة.");
         }
 
         int companyNetworkId = await ResolveCompanyNetworkIdAsync(client.NetworkId.Value);
@@ -464,7 +475,7 @@ public class EmployeeServiceApprovalsController : Controller
         if (draftInvoice != null)
         {
             TempData["Info"] =
-                "تم اعتماد المشترك وتفعيل MikroTik. أكمل إصدار فاتورة التركيب من ملف العميل.";
+                "تم اعتماد المشترك وإنشاء الحساب على سيرفر MikroTik. أكمل إصدار فاتورة التركيب من ملف المشترك.";
         }
     }
 

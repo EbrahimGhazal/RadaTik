@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RadaTik.Data;
+using RadaTik.Helpers;
 using RadaTik.Models;
 using RadaTik.Services.MikroTikSync;
 using Xunit;
@@ -103,6 +104,71 @@ public sealed class MikroTikSaveChangesInterceptorTests
         MikroTikSyncJob job = Assert.Single(queue.Jobs);
         Assert.Equal(MikroTikSyncAction.Update, job.Action);
         Assert.Equal("mt-user", job.UserName);
+    }
+
+    [Fact]
+    public async Task SavedChanges_PendingManagerApproval_DoesNotEnqueueClientAdd()
+    {
+        RecordingQueue queue = new();
+        MikroTikSaveChangesInterceptor interceptor = new(queue);
+        DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase($"interceptor-{Guid.NewGuid():N}")
+            .AddInterceptors(interceptor)
+            .Options;
+
+        await using ApplicationDbContext db = new(options);
+        db.Clients.Add(new Client
+        {
+            Name = "Pending",
+            SID = "1",
+            UserName = "pending-user",
+            Password = "secret",
+            ProfileId = 1,
+            PhoneNumber = "099",
+            MikroTikServerId = 8,
+            IsActive = false,
+            ConnectionStatus = EmployeeApprovalStates.PendingClientConnectionStatus
+        });
+
+        await db.SaveChangesAsync();
+
+        Assert.Empty(queue.Jobs);
+    }
+
+    [Fact]
+    public async Task SavedChanges_AfterPendingApprovalActivated_EnqueuesClientUpdate()
+    {
+        RecordingQueue queue = new();
+        MikroTikSaveChangesInterceptor interceptor = new(queue);
+        DbContextOptions<ApplicationDbContext> options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase($"interceptor-{Guid.NewGuid():N}")
+            .AddInterceptors(interceptor)
+            .Options;
+
+        await using ApplicationDbContext db = new(options);
+        Client client = new()
+        {
+            Name = "Pending",
+            SID = "1",
+            UserName = "pending-user",
+            Password = "secret",
+            ProfileId = 1,
+            PhoneNumber = "099",
+            MikroTikServerId = 8,
+            IsActive = false,
+            ConnectionStatus = EmployeeApprovalStates.PendingClientConnectionStatus
+        };
+        db.Clients.Add(client);
+        await db.SaveChangesAsync();
+        queue.Jobs.Clear();
+
+        client.IsActive = true;
+        client.ConnectionStatus = "مفعل";
+        await db.SaveChangesAsync();
+
+        MikroTikSyncJob job = Assert.Single(queue.Jobs);
+        Assert.Equal(MikroTikSyncAction.Update, job.Action);
+        Assert.Equal("pending-user", job.UserName);
     }
 
     private sealed class RecordingQueue : IMikroTikSyncQueue

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using RadaTik.Models;
 
 namespace RadaTik.Helpers;
 
@@ -51,6 +52,15 @@ public sealed class ClientApprovalPayload
     public string? DbPassword { get; set; }
 }
 
+public static class EmployeeApprovalStates
+{
+    public const string PendingClientConnectionStatus = "معلق بانتظار موافقة مدير الشركة";
+
+    public static bool IsPendingClientCreate(Client? client) =>
+        client is not null
+        && string.Equals(client.ConnectionStatus, PendingClientConnectionStatus, StringComparison.OrdinalIgnoreCase);
+}
+
 public static class EmployeeApprovalRequestHelper
 {
     private const string Prefix = "EMP_REQ:";
@@ -58,6 +68,22 @@ public static class EmployeeApprovalRequestHelper
 
     public static string BuildReceiverCreate(int receiverId) =>
         $"{Prefix}RECEIVER_CREATE:{receiverId}";
+
+    public static string BuildClientCreate(int clientId, string? dbUserName = null, string? dbPassword = null)
+    {
+        if (string.IsNullOrWhiteSpace(dbUserName) && string.IsNullOrWhiteSpace(dbPassword))
+        {
+            return $"{Prefix}CLIENT_CREATE:{clientId}";
+        }
+
+        ClientApprovalPayload payload = new()
+        {
+            DbUserName = dbUserName,
+            DbPassword = dbPassword
+        };
+
+        return BuildWithPayload("CLIENT_CREATE", clientId, payload) ?? $"{Prefix}CLIENT_CREATE:{clientId}";
+    }
 
     public static string? BuildReceiverEdit(int receiverId, ReceiverEditApprovalPayload payload) =>
         BuildWithPayload("RECEIVER_EDIT", receiverId, payload);

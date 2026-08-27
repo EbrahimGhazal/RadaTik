@@ -4,9 +4,11 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RadaTik.Data;
+using RadaTik.Helpers;
 using RadaTik.Models;
 using RadaTik.Security;
 using RadaTik.Services;
+using RadaTik.Services.Approvals;
 using RadaTik.Services.MikroTik;
 using RadaTik.Services.NewSubscriberWizard;
 using Xunit;
@@ -222,6 +224,62 @@ public class NewSubscriberWizardOrchestratorIntegrationTests
     }
 
     [Fact]
+    public async Task CreateSubscriberAsync_WhenEmployee_CreatesPendingRequestWithoutMikroTik()
+    {
+        await using ApplicationDbContext db = CreateDbContext();
+        SeedCompanyScope(db);
+        await db.SaveChangesAsync();
+
+        Mock<UserManager<ApplicationUser>> userManager = BuildUserManagerMock();
+        userManager.Setup(m => m.GetRolesAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync([RoleNames.CompanyEmployee]);
+        userManager.Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+            .ReturnsAsync((ApplicationUser?)null);
+
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        Mock<IEmployeeServiceApprovalRequestService> approvals = new(MockBehavior.Strict);
+        string? capturedNotes = null;
+        approvals
+            .Setup(a => a.CreatePendingAsync(
+                2,
+                "emp-1",
+                FeatureKeys.Clients,
+                It.IsAny<string>(),
+                It.IsAny<decimal>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<int, string, string, string, decimal, CancellationToken>((_, _, _, notes, _, _) => capturedNotes = notes)
+            .ReturnsAsync(7);
+
+        NewSubscriberWizardOrchestrator orchestrator = BuildOrchestrator(
+            db,
+            userManager,
+            mikroTik,
+            BuildInvoiceMock(),
+            BuildUsageChargeMock(),
+            approvals.Object);
+
+        NewSubscriberWizardOrchestrator.CreateSubscriberResult result = await orchestrator.CreateSubscriberAsync(
+            BuildClient("emp-user", serverId: 50),
+            new ApplicationUser { Id = "emp-1", UserName = "emp" },
+            networkId: 2,
+            path: NewSubscriberWizardPath.TowerDirect,
+            dbUserName: null,
+            dbPassword: null);
+
+        Assert.True(result.Success, result.ErrorMessage);
+        Assert.True(result.RequiresManagerApproval);
+        Client saved = await db.Clients.SingleAsync(c => c.UserName == "emp-user");
+        Assert.False(saved.IsActive);
+        Assert.Equal(EmployeeApprovalStates.PendingClientConnectionStatus, saved.ConnectionStatus);
+        Assert.True(EmployeeApprovalRequestHelper.TryParse(capturedNotes, out EmployeeApprovalRequestKind kind, out int entityId, out string? payloadJson));
+        Assert.Equal(EmployeeApprovalRequestKind.ClientCreate, kind);
+        Assert.Equal(saved.Id, entityId);
+        Assert.True(string.IsNullOrWhiteSpace(payloadJson));
+        mikroTik.VerifyNoOtherCalls();
+        approvals.VerifyAll();
+    }
+
+    [Fact]
     public async Task CreateSubscriberAsync_WhenProfileBelongsToAnotherServer_ReturnsError()
     {
         await using ApplicationDbContext db = CreateDbContext();
@@ -298,7 +356,8 @@ public class NewSubscriberWizardOrchestratorIntegrationTests
         Mock<UserManager<ApplicationUser>> userManager,
         Mock<IMikroTikPppoeUserService> mikroTik,
         Mock<ISubscriberInstallationInvoiceService> invoice,
-        Mock<IUsageBasedSubscriptionChargeService> usage)
+        Mock<IUsageBasedSubscriptionChargeService> usage,
+        IEmployeeServiceApprovalRequestService? approvals = null)
     {
         return new NewSubscriberWizardOrchestrator(
             db,
@@ -306,6 +365,7 @@ public class NewSubscriberWizardOrchestratorIntegrationTests
             mikroTik.Object,
             invoice.Object,
             usage.Object,
+            approvals ?? Mock.Of<IEmployeeServiceApprovalRequestService>(),
             NullLogger<NewSubscriberWizardOrchestrator>.Instance);
     }
 

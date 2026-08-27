@@ -61,9 +61,6 @@ public sealed class ClientPendingApprovalQueryService(ApplicationDbContext conte
             return true;
         }
 
-        return string.Equals(
-            client.ConnectionStatus,
-            "معلق بانتظار موافقة مدير الشركة",
-            StringComparison.OrdinalIgnoreCase);
+        return EmployeeApprovalStates.IsPendingClientCreate(client);
     }
 }

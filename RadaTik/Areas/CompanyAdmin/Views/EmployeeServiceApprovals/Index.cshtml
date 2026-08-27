@@ -62,8 +62,8 @@
                             {
                                 EmployeeApprovalRequestKind.ReceiverCreate => "إضافة مستقبل",
                                 EmployeeApprovalRequestKind.ReceiverEdit => "تعديل مستقبل",
-                                EmployeeApprovalRequestKind.ClientCreate => "إضافة عميل",
-                                EmployeeApprovalRequestKind.ClientEdit => "تعديل عميل",
+                                EmployeeApprovalRequestKind.ClientCreate => "إضافة مشترك",
+                                EmployeeApprovalRequestKind.ClientEdit => "تعديل مشترك",
                                 _ when string.Equals(item.FeatureKey, FeatureKeys.Sectors, StringComparison.OrdinalIgnoreCase) => "إضافة مرسل",
                                 _ => item.FeatureKey
                             };
