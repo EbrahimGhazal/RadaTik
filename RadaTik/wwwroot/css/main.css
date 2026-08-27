@@ -11,10 +11,10 @@
 @import url('sidebar-nav.css');
 @import url('utilities.css');
 @import url('radatik-spa-logo.css');
-@import url('radatik-responsive-spa.css?v=20260825-main-minwidth');
-@import url('radtk-ui-kit.css?v=20260825-card-minwidth');
+@import url('radatik-responsive-spa.css?v=20260827-receiver-map');
+@import url('radtk-ui-kit.css?v=20260827-receiver-map');
 @import url('radtk-password-resets.css');
-@import url('radtk-embedded-pages.css?v=20260825-clients-search');
+@import url('radtk-embedded-pages.css?v=20260827-receiver-map');
 
 /* Additional global styles can be added here */
 

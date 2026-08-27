@@ -429,6 +429,14 @@ iframe {
     max-width: 100%;
 }
 
+.leaflet-container img,
+.leaflet-pane img,
+.leaflet-tile,
+.leaflet-marker-icon {
+    max-width: none !important;
+    max-height: none !important;
+}
+
 .page-content pre,
 .page-content code {
     max-width: 100%;

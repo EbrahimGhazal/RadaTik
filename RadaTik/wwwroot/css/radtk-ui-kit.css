@@ -998,6 +998,21 @@
     z-index: 1;
 }
 
+.radtk-surface .receiver-create-page {
+    --rtk-map-height: var(--receiver-map-height, 420px);
+}
+
+.radtk-surface .receiver-create-page .map-container-form,
+.radtk-surface .receiver-create-page .receiver-map-wrap {
+    height: auto;
+}
+
+.radtk-surface .receiver-create-page .map-container-form #map,
+.radtk-surface .receiver-create-page .receiver-map {
+    height: var(--receiver-map-height, 420px);
+    min-height: 280px;
+}
+
 .radtk-surface .radtk-map .leaflet-container,
 .radtk-surface .sector-create-map .leaflet-container,
 .radtk-surface .map-container-form .leaflet-container {
@@ -1067,6 +1082,16 @@
 @media (max-width: 991.98px) {
     .radtk-surface {
         --rtk-map-height: var(--rtk-map-height-md);
+    }
+
+    .radtk-surface .receiver-create-page {
+        --rtk-map-height: var(--receiver-map-height, min(62dvh, 480px));
+    }
+
+    .radtk-surface .receiver-create-page .map-container-form #map,
+    .radtk-surface .receiver-create-page .receiver-map {
+        height: var(--receiver-map-height, min(62dvh, 480px));
+        min-height: 300px;
     }
 }
 

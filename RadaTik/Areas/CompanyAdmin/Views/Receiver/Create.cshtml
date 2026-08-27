@@ -13,6 +13,7 @@
     string? wizardReturnUrl = ViewBag.WizardReturnUrl as string;
 }
 
+<div class="receiver-create-page radtk-page--companyadmin-views-receiver-create">
 <!-- Page Header -->
 <div class="page-header">
     <div class="page-header-content">
@@ -144,29 +145,38 @@ else if (pendingSectorApprovalsCount > 0)
                         <i class="fas fa-map-marked-alt"></i> موقع المستقبل
                     </h4>
                     
-                    <div class="map-container-form">
-                        <div id="map"></div>
-                        <div class="map-controls-overlay">
-                            <div class="map-type-controls">
+                    <div class="receiver-map-block">
+                        <div class="map-container-form receiver-map-wrap" id="receiverMapWrap">
+                            <div id="map" class="receiver-map" role="application" aria-label="خريطة موقع المستقبل"></div>
+                            <p class="receiver-map-tap-hint" id="mapTapHint">
+                                <i class="fas fa-hand-pointer"></i>
+                                انقر على الخريطة لتحديد موقع المستقبل
+                            </p>
+                        </div>
+                        <div class="receiver-map-toolbar" aria-label="أدوات الخريطة">
+                            <div class="map-type-controls receiver-map-type-group" role="group">
                                 <button type="button" class="map-type-btn active" data-map-type="streets">شوارع</button>
-                                <button type="button" class="map-type-btn" data-map-type="satellite">قمر صناعي</button>
+                                <button type="button" class="map-type-btn" data-map-type="satellite">قمر</button>
                                 <button type="button" class="map-type-btn" data-map-type="terrain">تضاريس</button>
                             </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary receiver-map-locate" id="btnUseMyLocation" title="تعيين موقع المستقبل حسب جهازك">
+                                <i class="fas fa-location-crosshairs"></i>
+                                <span>موقعي</span>
+                            </button>
                         </div>
-                        <div class="map-info-overlay" id="sectorInfoOverlay">
+                        <div class="receiver-map-info" id="sectorInfoOverlay">
                             <div class="info-box" id="sectorInfoPlaceholder">
                                 <small><i class="fas fa-info-circle"></i> اختر القطاع أولاً لعرضه على الخريطة (الزاوية، المدى، الاتجاه)</small>
                             </div>
                             <div id="sectorInfo" class="d-none">
                                 <small><strong>القطاع:</strong> <span id="selectedSectorName"></span></small>
-                                <small><strong>الاتجاه (درجات):</strong> <span id="sectorDirection"></span></small>
-                                <small><strong>زاوية الانتشار (درجات):</strong> <span id="sectorAngle"></span></small>
+                                <small><strong>الاتجاه:</strong> <span id="sectorDirection"></span></small>
+                                <small><strong>زاوية الانتشار:</strong> <span id="sectorAngle"></span></small>
                                 <small><strong>مدى الانتشار:</strong> <span id="coverageRange"></span> كم</small>
-                                <small class="text-muted"><i class="fas fa-map-marker-alt"></i> الشكل على الخريطة يمثل نطاق التغطية</small>
                             </div>
                         </div>
+                        <p class="form-hint receiver-map-hint">انقر على الخريطة لتحديد موقع المستقبل فقط. الحقول أدناه لموقع <strong>المستقبل</strong> وليست لموقع القطاع. بعد التحديد تُستخرج قيم الارتفاع والهوائي تلقائياً (يمكنك تعديلها).</p>
                     </div>
-                    <small class="form-hint">انقر على الخريطة لتحديد موقع المستقبل فقط. الحقول أدناه لموقع <strong>المستقبل</strong> وليست لموقع القطاع. بعد التحديد تُستخرج قيم الارتفاع والهوائي تلقائياً (يمكنك تعديلها).</small>
 
                     <div class="form-row form-row-3">
                         <div class="form-group">
@@ -216,15 +226,15 @@ else if (pendingSectorApprovalsCount > 0)
                         </div>
                     </div>
 
-                    <div class="los-static-notes" id="losStaticNotes">
-                        <h5 class="los-notes-title"><i class="fas fa-info-circle"></i> ملاحظات مهمة — اقرأ قبل الاعتماد على التحليل</h5>
+                    <details class="los-static-notes" id="losStaticNotes">
+                        <summary class="los-notes-title"><i class="fas fa-info-circle"></i> ملاحظات مهمة — اقرأ قبل الاعتماد على التحليل</summary>
                         <ul class="los-notes-list">
                             <li><strong>ما الذي يُحسب؟</strong> مسار تقريبي مستقيم في المستوى بين موقع القطاع (المرسل) وموقع المستقبل، مع مقارنة ارتفاع خط الرؤية بين الهوائيات مع: ارتفاع التضاريس (نموذج خارجي)، ثم المبانٍ المسجّلة في خريطة الشارع المفتوحة إن وُجدت.</li>
                             <li><strong>دقة النتيجة:</strong> النتيجة <strong>تقديرية</strong> وليست مسحاً ميدانياً. التضاريس من خدمة ارتفاعات عامة؛ المبانٍ قد تكون ناقصة أو بارتفاع غير دقيق؛ لا يُغني عن المعاينة أو قياسات مهنية عند الحاجة.</li>
                             <li><strong>عند فشل جلب المبانٍ:</strong> يُعرض تحذير في النتيجة، والتحليل يبقى مفيداً لتضاريس المسار فقط.</li>
                             <li><strong>الخريطة بعد الضغط على «تحليل خط الرؤية»:</strong> خط برتقالي = مسار التحليل؛ دوائر حمراء = مبانٍ يُرجّح أنها أعلى من خط الرؤية عند ذلك الموضع؛ دائرة صفراء = أضيق نقطة تضاريس على المسار (يظهر فقط إذا كان الهامش أقل من حدّ معيّن).</li>
                         </ul>
-                    </div>
+                    </details>
 
                     <div id="losResultPanel" class="los-result-panel d-none" role="region" aria-live="polite">
                         <div class="los-result-header">
@@ -261,7 +271,7 @@ else if (pendingSectorApprovalsCount > 0)
                 </div>
             </div>
 
-            <div class="form-actions">
+            <div class="form-actions receiver-create-actions">
                 <button type="submit" class="btn btn-success">
                     <i class="fas fa-save"></i> حفظ المستقبل
                 </button>
@@ -277,6 +287,7 @@ else if (pendingSectorApprovalsCount > 0)
             </div>
         </form>
     </div>
+</div>
 </div>
 
 <style>
@@ -398,37 +409,88 @@ else if (pendingSectorApprovalsCount > 0)
         color: var(--text-muted);
     }
 
-    .map-container-form {
-        position: relative;
-        height: 350px;
-        border-radius: var(--radius);
-        overflow: hidden;
+    .receiver-create-page {
+        --receiver-map-height: 420px;
+    }
+
+    .receiver-map-block {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
         margin-bottom: var(--spacing-md);
     }
 
-    .map-container-form #map {
+    .map-container-form,
+    .receiver-map-wrap {
+        position: relative;
+        height: auto;
+        border-radius: var(--radius) var(--radius) 0 0;
+        overflow: hidden;
+        margin-bottom: 0;
+        border: 1px solid var(--border-light);
+        background: #dbe4ee;
+    }
+
+    .map-container-form #map,
+    .receiver-create-page .receiver-map {
+        width: 100%;
+        height: var(--receiver-map-height);
+        min-height: 280px;
+        display: block;
+    }
+
+    .receiver-create-page .map-container-form .leaflet-container {
         width: 100%;
         height: 100%;
+        font-family: inherit;
     }
 
-    .map-controls-overlay {
+    .receiver-map-tap-hint {
         position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 1000;
+        left: 50%;
+        bottom: 12px;
+        transform: translateX(-50%);
+        z-index: 500;
+        margin: 0;
+        max-width: calc(100% - 24px);
+        padding: 0.4rem 0.75rem;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.78);
+        color: #fff;
+        font-size: 12px;
+        line-height: 1.4;
+        text-align: center;
+        pointer-events: none;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.28);
     }
 
+    .receiver-map-tap-hint.is-hidden {
+        display: none;
+    }
+
+    .receiver-map-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.5rem 0.65rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-top: 0;
+    }
+
+    .receiver-map-type-group,
     .map-type-controls {
         display: flex;
         gap: 2px;
-        background: var(--bg-card);
+        background: var(--bg-hover);
         border-radius: var(--radius-sm);
         padding: 2px;
-        box-shadow: var(--shadow-md);
     }
 
     .map-type-btn {
-        padding: 4px 10px;
+        padding: 6px 10px;
         border: none;
         background: transparent;
         border-radius: var(--radius-sm);
@@ -436,10 +498,11 @@ else if (pendingSectorApprovalsCount > 0)
         cursor: pointer;
         transition: all 0.2s;
         color: var(--text-secondary);
+        min-height: 36px;
     }
 
     .map-type-btn:hover {
-        background: var(--bg-hover);
+        background: var(--bg-card);
     }
 
     .map-type-btn.active {
@@ -447,21 +510,29 @@ else if (pendingSectorApprovalsCount > 0)
         color: white;
     }
 
-    .map-info-overlay {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
+    .receiver-map-locate {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        min-height: 36px;
+    }
+
+    .receiver-map-info {
         background: var(--bg-card);
-        padding: var(--spacing-sm);
-        border-radius: var(--radius-sm);
-        box-shadow: var(--shadow-md);
-        z-index: 1000;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--border-light);
+        border-top: 0;
+        border-radius: 0 0 var(--radius) var(--radius);
         font-size: var(--font-xs);
     }
 
-    .map-info-overlay small {
+    .receiver-map-info small {
         display: block;
         margin-bottom: 2px;
+    }
+
+    .receiver-map-hint {
+        margin: 0.55rem 0 0;
     }
 
     .info-grid {
@@ -586,6 +657,12 @@ else if (pendingSectorApprovalsCount > 0)
         font-size: var(--font-md);
         font-weight: 700;
         color: var(--text-primary);
+        cursor: pointer;
+        list-style: none;
+    }
+
+    .los-static-notes .los-notes-title::-webkit-details-marker {
+        display: none;
     }
 
     .los-notes-list {
@@ -641,15 +718,122 @@ else if (pendingSectorApprovalsCount > 0)
         margin: 0;
     }
 
-    @@media (max-width: 768px) {
+    @@media (max-width: 991.98px) {
+        .receiver-create-page {
+            --receiver-map-height: min(62dvh, 480px);
+            padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        .page-header-content {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.65rem;
+        }
+
+        .page-title {
+            font-size: 1.15rem;
+        }
+
+        .page-actions .btn {
+            width: 100%;
+        }
+
+        .card-body {
+            padding: 0.85rem 0.75rem;
+        }
+
+        .form-section {
+            padding: 0.85rem 0.7rem;
+        }
+
+        .form-section-title {
+            font-size: 1rem;
+            margin-bottom: 0.85rem;
+        }
+
         .form-row,
         .form-row-3,
         .info-grid {
             grid-template-columns: 1fr;
+            gap: 0.75rem;
         }
 
-        .map-container-form {
-            height: 250px;
+        .map-container-form,
+        .receiver-map-wrap {
+            height: auto;
+        }
+
+        .map-container-form #map,
+        .receiver-create-page .receiver-map {
+            height: var(--receiver-map-height);
+            min-height: 300px;
+        }
+
+        .receiver-create-actions {
+            position: sticky;
+            bottom: 0;
+            z-index: 40;
+            margin: 1rem -0.75rem -0.85rem;
+            padding: 0.65rem 0.75rem calc(0.65rem + env(safe-area-inset-bottom, 0px));
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-light);
+            box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .receiver-create-actions .btn {
+            flex: 1 1 calc(50% - 0.35rem);
+            min-height: 44px;
+            justify-content: center;
+        }
+
+        .receiver-create-actions .btn-success {
+            flex: 1 1 100%;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .receiver-create-page {
+            --receiver-map-height: min(58dvh, 420px);
+        }
+
+        .receiver-create-page .form-control,
+        .receiver-create-page .form-select,
+        .receiver-create-page .select2-container .select2-selection--single {
+            font-size: 16px;
+            min-height: 44px;
+        }
+
+        .receiver-map-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .receiver-map-type-group,
+        .map-type-controls {
+            width: 100%;
+        }
+
+        .map-type-btn {
+            flex: 1;
+        }
+
+        .receiver-map-locate {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .receiver-create-page .leaflet-control-zoom a {
+            width: 36px;
+            height: 36px;
+            line-height: 36px;
+        }
+
+        .receiver-create-page .leaflet-control-attribution {
+            font-size: 9px;
+            max-width: 55%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     }
 </style>
@@ -703,11 +887,19 @@ else if (pendingSectorApprovalsCount > 0)
             // إنشاء الخريطة بدون أي قطاع مبدئيًا
             var defaultLat = 35.5200;
             var defaultLng = 35.7800;
-            var map = L.map('map').setView([defaultLat, defaultLng], 10);
+            var mapEl = document.getElementById('map');
+            var map = L.map(mapEl || 'map', {
+                zoomControl: true,
+                attributionControl: true
+            }).setView([defaultLat, defaultLng], 10);
+            if (map.zoomControl) {
+                map.zoomControl.setPosition('topleft');
+            }
 
             var streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap', maxZoom: 19
             }).addTo(map);
+            streetLayer.on('load', refreshMapLayout);
 
             var satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
                 maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
@@ -727,13 +919,34 @@ else if (pendingSectorApprovalsCount > 0)
                 sectorsById[String(s.id)] = s;
             });
 
+            function isNarrowMap() {
+                return window.matchMedia('(max-width: 991.98px)').matches;
+            }
+
             function refreshMapLayout() {
                 requestAnimationFrame(function () {
-                    map.invalidateSize(false);
-                    setTimeout(function () { map.invalidateSize(false); }, 50);
-                    setTimeout(function () { map.invalidateSize(false); }, 280);
+                    try { map.invalidateSize({ animate: false, pan: false }); } catch (e) { /* ignore */ }
+                    setTimeout(function () { try { map.invalidateSize({ animate: false, pan: false }); } catch (e2) { /* ignore */ } }, 80);
+                    setTimeout(function () { try { map.invalidateSize({ animate: false, pan: false }); } catch (e3) { /* ignore */ } }, 320);
                 });
             }
+
+            if (typeof ResizeObserver !== 'undefined' && mapEl) {
+                var mapSizeObserver = new ResizeObserver(function () { refreshMapLayout(); });
+                mapSizeObserver.observe(mapEl);
+                var wrapEl = document.getElementById('receiverMapWrap');
+                if (wrapEl) {
+                    mapSizeObserver.observe(wrapEl);
+                }
+            }
+            window.addEventListener('resize', refreshMapLayout);
+            window.addEventListener('orientationchange', function () {
+                setTimeout(refreshMapLayout, 250);
+            });
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', refreshMapLayout);
+            }
+            map.whenReady(refreshMapLayout);
 
             function clearLosAnalysisOverlay() {
                 if (losAnalysisLayerGroup) {
@@ -969,6 +1182,7 @@ else if (pendingSectorApprovalsCount > 0)
                         case 'terrain': terrainLayer.addTo(map); break;
                         default: streetLayer.addTo(map);
                     }
+                    refreshMapLayout();
                 });
             });
 
@@ -1058,7 +1272,14 @@ else if (pendingSectorApprovalsCount > 0)
             }
 
             // النقر على الخريطة لتغيير موقع المستقبل
+            var mapTapHint = document.getElementById('mapTapHint');
+            function hideMapTapHint() {
+                if (mapTapHint) {
+                    mapTapHint.classList.add('is-hidden');
+                }
+            }
             map.on('click', function (e) {
+                hideMapTapHint();
                 clearLosAnalysisOverlay();
                 latInput.value = e.latlng.lat.toFixed(6);
                 lngInput.value = e.latlng.lng.toFixed(6);
@@ -1066,6 +1287,38 @@ else if (pendingSectorApprovalsCount > 0)
                 updateDistanceFromSector();
                 refreshReceiverTerrainFromMap(e.latlng.lat, e.latlng.lng);
             });
+
+            var btnUseMyLocation = document.getElementById('btnUseMyLocation');
+            if (btnUseMyLocation) {
+                btnUseMyLocation.addEventListener('click', function () {
+                    if (!navigator.geolocation) {
+                        showAlert('المتصفح لا يدعم تحديد الموقع', 'warning');
+                        return;
+                    }
+                    var prevHtml = btnUseMyLocation.innerHTML;
+                    btnUseMyLocation.disabled = true;
+                    btnUseMyLocation.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديد...';
+                    navigator.geolocation.getCurrentPosition(function (pos) {
+                        var lat = pos.coords.latitude;
+                        var lng = pos.coords.longitude;
+                        hideMapTapHint();
+                        clearLosAnalysisOverlay();
+                        latInput.value = lat.toFixed(6);
+                        lngInput.value = lng.toFixed(6);
+                        updateReceiverMarker(lat, lng);
+                        updateDistanceFromSector();
+                        refreshReceiverTerrainFromMap(lat, lng);
+                        map.setView([lat, lng], Math.max(map.getZoom() || 0, 17));
+                        refreshMapLayout();
+                        btnUseMyLocation.disabled = false;
+                        btnUseMyLocation.innerHTML = prevHtml;
+                    }, function () {
+                        showAlert('تعذر الحصول على موقعك. اسمح بالوصول للموقع ثم أعد المحاولة.', 'warning');
+                        btnUseMyLocation.disabled = false;
+                        btnUseMyLocation.innerHTML = prevHtml;
+                    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 8000 });
+                });
+            }
 
             document.getElementById('btnGenerateIP').addEventListener('click', function () {
                 var sectorId = sectorSelect.value;
@@ -1316,10 +1569,14 @@ else if (pendingSectorApprovalsCount > 0)
                 }
 
                 if (bounds.length > 0) {
-                    map.fitBounds(bounds, { padding: [30, 30] });
+                    map.fitBounds(bounds, {
+                        padding: isNarrowMap() ? [18, 18] : [30, 30],
+                        maxZoom: isNarrowMap() ? 16 : 18
+                    });
                 } else {
                     map.setView([s.latitude, s.longitude], 15);
                 }
+                refreshMapLayout();
             }
 
             function drawCoverageSector(s) {
@@ -1533,6 +1790,7 @@ else if (pendingSectorApprovalsCount > 0)
             if (sectorSelect.value) {
                 onSectorChosen();
             }
+            refreshMapLayout();
             } /* bootReceiverMap */
 
             if (document.readyState === 'loading') {

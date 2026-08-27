@@ -9181,14 +9181,15 @@ html body :is(.radtk-page-clients-index, .radtk-page-emp-clients-index) #clients
     }
 .radtk-surface .radtk-page--companyadmin-views-receiver-create .map-container-form {
         position: relative;
-        height: 350px;
+        height: auto;
         border-radius: var(--radius);
         overflow: hidden;
         margin-bottom: var(--spacing-md);
     }
 .radtk-surface .radtk-page--companyadmin-views-receiver-create .map-container-form #map {
         width: 100%;
-        height: 100%;
+        height: var(--receiver-map-height, 420px);
+        min-height: 280px;
     }
 .radtk-surface .radtk-page--companyadmin-views-receiver-create .map-controls-overlay {
         position: absolute;
@@ -9386,14 +9387,22 @@ html body :is(.radtk-page-clients-index, .radtk-page-emp-clients-index) #clients
     }
 @media (max-width: 768px) {
 
-        .form-row,
-        .form-row-3,
-        .info-grid {
+        .radtk-surface .radtk-page--companyadmin-views-receiver-create .form-row,
+        .radtk-surface .radtk-page--companyadmin-views-receiver-create .form-row-3,
+        .radtk-surface .radtk-page--companyadmin-views-receiver-create .info-grid {
             grid-template-columns: 1fr;
         }
 
-        .map-container-form {
-            height: 250px;
+        .radtk-surface .radtk-page--companyadmin-views-receiver-create .map-container-form,
+        .radtk-surface .receiver-create-page .map-container-form {
+            height: auto;
+        }
+
+        .radtk-surface .radtk-page--companyadmin-views-receiver-create .map-container-form #map,
+        .radtk-surface .receiver-create-page .map-container-form #map,
+        .radtk-surface .receiver-create-page .receiver-map {
+            height: var(--receiver-map-height, min(62dvh, 480px));
+            min-height: 300px;
         }
     }
 
