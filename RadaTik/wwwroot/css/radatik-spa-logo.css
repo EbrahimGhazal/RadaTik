@@ -1,30 +1,10 @@
-/* شعار RADATIK الرسمي — صورة كاملة + أيقونة عند الطي (فاتح / داكن) */
+/* شعار RADATIK الرسمي — صورة كاملة + أيقونة عند الطي */
 
 .rt-brand-block {
     display: inline-flex;
     align-items: center;
     gap: 0;
     line-height: 0;
-}
-
-.rt-logo-theme {
-    display: inline-flex;
-    align-items: center;
-    line-height: 0;
-}
-
-.rt-logo-theme--dark {
-    display: none;
-}
-
-html.dark .rt-logo-theme--light,
-[data-theme="dark"] .rt-logo-theme--light {
-    display: none;
-}
-
-html.dark .rt-logo-theme--dark,
-[data-theme="dark"] .rt-logo-theme--dark {
-    display: inline-flex;
 }
 
 .rt-logo-img {
@@ -83,6 +63,13 @@ html.dark .rt-logo-theme--dark,
 
 .rt-sysadmin-brand .rt-brand-block {
     justify-content: flex-start;
+}
+
+[data-theme="dark"] .rt-sysadmin-brand .rt-brand-block,
+[data-theme="dark"] .header-brand-mark .rt-brand-block {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 0.25rem 0.45rem;
 }
 
 .rt-sysadmin-brand .sidebar-brand-sub {
