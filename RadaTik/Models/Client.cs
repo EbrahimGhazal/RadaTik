@@ -118,6 +118,13 @@ namespace RadaTik.Models
         [Display(Name = "تاريخ التعليم كـ VIP")]
         public DateTime? VipSince { get; set; }
 
+        [Display(Name = "ميزة المميز")]
+        public ClientVipBenefitKind VipBenefitKind { get; set; }
+
+        [Display(Name = "نسبة الحسم (%)")]
+        [Range(0, 100, ErrorMessage = "نسبة الحسم يجب أن تكون بين 0 و 100")]
+        public decimal VipDiscountPercent { get; set; }
+
         [Display(Name = "آخر تحديث")]
         public DateTime LastUpdated { get; set; } = DateTime.Now;
 

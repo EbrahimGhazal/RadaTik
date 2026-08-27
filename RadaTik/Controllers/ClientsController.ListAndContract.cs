@@ -265,6 +265,63 @@ namespace RadaTik.Controllers
             }
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = $"{RoleNames.SystemAdministrator},{RoleNames.NetworkAdministrator}")]
+        public async Task<IActionResult> GiftVipBalance(int id, decimal amount, string? notes)
+        {
+            ApplicationUser? user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            Client? client = await _context.Clients.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
+            if (client == null)
+            {
+                return NotFound();
+            }
+
+            if (!client.IsVip)
+            {
+                TempData["Error"] = "الهدية المالية متاحة للمشتركين المميزين فقط. فعّل VIP أولاً.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            bool isSystemAdmin = User.IsInRole(RoleNames.SystemAdministrator);
+            ClientTopUpSource sourceType = isSystemAdmin
+                ? ClientTopUpSource.SystemAdmin
+                : ClientTopUpSource.NetworkManager;
+            int? actorNetworkId = isSystemAdmin
+                ? null
+                : NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+
+            string giftNotes = string.IsNullOrWhiteSpace(notes)
+                ? "هدية VIP"
+                : $"هدية VIP: {notes.Trim()}";
+
+            try
+            {
+                ClientWalletTopUpOutcome outcome = await _app.WalletTopUp.TopUpAsync(new ClientWalletTopUpCommand
+                {
+                    ClientId = id,
+                    Amount = amount,
+                    ActorUserId = user.Id,
+                    SourceType = sourceType,
+                    ActorNetworkId = actorNetworkId,
+                    Notes = giftNotes,
+                    ActorDisplayName = user.FullName ?? user.UserName
+                });
+                return ApplyWalletTopUpOutcome(outcome, id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "خطأ في هدية VIP للعميل {ClientId}", id);
+                TempData["Error"] = "حدث خطأ أثناء منح هدية VIP.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+        }
+
         /// <summary>تجديد الاشتراك ذاتياً من قبل المشترك: حسم سعر الباقة من رصيد محفظته وتمديد شهر</summary>
         [HttpPost]
         [ValidateAntiForgeryToken]

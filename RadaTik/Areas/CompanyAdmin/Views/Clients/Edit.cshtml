@@ -260,17 +260,7 @@
                         <input type="hidden" asp-for="IsActive" />
                     }
 
-                    <div class="border rounded p-3 mb-3">
-                        <div class="form-check form-switch radtk-switch-left-label mb-2" dir="ltr">
-                            <label class="form-check-label" asp-for="IsVip">مشترك مميز (VIP)</label>
-                            <input class="form-check-input" asp-for="IsVip" />
-                        </div>
-                        <div class="form-group mb-0">
-                            <label asp-for="VipNote" class="form-label"></label>
-                            <input asp-for="VipNote" class="form-control" placeholder="شريك، موظف، عائلة..." maxlength="200" />
-                            <span asp-validation-for="VipNote" class="text-danger"></span>
-                        </div>
-                    </div>
+                    <partial name="~/Views/Shared/_ClientVipFields.cshtml" />
 
                     <!-- أزرار الحفظ والإلغاء -->
                     <div class="form-group">

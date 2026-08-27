@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.EntityFrameworkCore;
 using RadaTik.Helpers;
-
+using RadaTik.Models;
 using RadaTik.Services.Clients;
-
 using RadaTik.Services.MikroTik;
 
 
@@ -215,6 +214,18 @@ namespace RadaTik.Controllers
 
                 : RedirectToAction(redirectAction, routeValues);
 
+        }
+
+        private async Task SetVipBenefitViewBagAsync(int networkId, bool canEditBenefits)
+        {
+            ViewBag.CanEditVipBenefits = canEditBenefits;
+            Network? selected = await _context.Networks.AsNoTracking().FirstOrDefaultAsync(n => n.Id == networkId);
+            int companyId = selected?.ParentNetworkId ?? networkId;
+            decimal percent = await _context.Networks.AsNoTracking()
+                .Where(n => n.Id == companyId)
+                .Select(n => n.VipDiscountPercent)
+                .FirstOrDefaultAsync();
+            ViewBag.CompanyVipDefaultPercent = percent;
         }
 
     }

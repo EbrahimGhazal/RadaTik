@@ -37,6 +37,101 @@ public sealed class ClientVipPolicyServiceTests
     }
 
     [Fact]
+    public void ApplyPackageDiscount_ClientPercentOverridesCompanyPolicy()
+    {
+        decimal result = ClientVipPricing.ApplyPackageDiscount(
+            1000m,
+            isVip: true,
+            new CompanyVipPolicy(10m, 0, false),
+            ClientVipBenefitKind.Discount,
+            25m);
+
+        Assert.Equal(750m, result);
+    }
+
+    [Fact]
+    public void ApplyPackageDiscount_PermanentlyFree_ReturnsZero()
+    {
+        decimal result = ClientVipPricing.ApplyPackageDiscount(
+            1000m,
+            isVip: true,
+            new CompanyVipPolicy(10m, 0, false),
+            ClientVipBenefitKind.PermanentlyFree,
+            25m);
+
+        Assert.Equal(0m, result);
+    }
+
+    [Fact]
+    public void IsProtectedFromAutoDisable_PermanentlyFree_AlwaysProtects()
+    {
+        bool protectedVip = ClientVipPricing.IsProtectedFromAutoDisable(
+            true,
+            DateTime.Now.AddDays(-30),
+            new CompanyVipPolicy(0m, 0, SkipAutoDisable: false),
+            DateTime.Now,
+            ClientVipBenefitKind.PermanentlyFree);
+
+        Assert.True(protectedVip);
+    }
+
+    [Fact]
+    public void Apply_ClearsBenefitWhenVipRemoved()
+    {
+        Client client = new()
+        {
+            IsVip = true,
+            VipNote = "شريك",
+            VipBenefitKind = ClientVipBenefitKind.Discount,
+            VipDiscountPercent = 40m,
+            VipSince = DateTime.Now.AddDays(-1)
+        };
+
+        ClientVipAssignment.Apply(client, false, "شريك", DateTime.Now);
+
+        Assert.False(client.IsVip);
+        Assert.Equal(ClientVipBenefitKind.None, client.VipBenefitKind);
+        Assert.Equal(0m, client.VipDiscountPercent);
+        Assert.Null(client.VipNote);
+        Assert.Null(client.VipSince);
+    }
+
+    [Fact]
+    public void Apply_ManagerSetsCustomDiscountPercent()
+    {
+        Client client = new();
+        ClientVipAssignment.Apply(
+            client,
+            true,
+            "موظف",
+            DateTime.Now,
+            ClientVipBenefitKind.Discount,
+            35m);
+
+        Assert.True(client.IsVip);
+        Assert.Equal(ClientVipBenefitKind.Discount, client.VipBenefitKind);
+        Assert.Equal(35m, client.VipDiscountPercent);
+    }
+
+    [Fact]
+    public void BadgeText_ShowsPercentWhenSet()
+    {
+        Client client = new()
+        {
+            IsVip = true,
+            VipBenefitKind = ClientVipBenefitKind.Discount,
+            VipDiscountPercent = 20m
+        };
+
+        Assert.Equal("VIP · حسم 20%", ClientVipBenefitDisplay.BadgeText(client));
+        Assert.Equal("VIP · مجاني", ClientVipBenefitDisplay.BadgeText(new Client
+        {
+            IsVip = true,
+            VipBenefitKind = ClientVipBenefitKind.PermanentlyFree
+        }));
+    }
+
+    [Fact]
     public void IsProtectedFromAutoDisable_SkipAutoDisable_AlwaysProtectsVip()
     {
         bool protectedVip = ClientVipPricing.IsProtectedFromAutoDisable(

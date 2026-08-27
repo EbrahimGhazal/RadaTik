@@ -71,7 +71,7 @@ namespace RadaTik.Models
         [Display(Name = "عملة فواتير المواد")]
         public PricingCurrency DefaultMaterialInvoiceCurrency { get; set; } = PricingCurrency.SYP_New;
 
-        [Display(Name = "خصم باقات المميزين (%)")]
+        [Display(Name = "خصم باقات المميزين الافتراضي (%)")]
         [Column(TypeName = "decimal(5,2)")]
         [Range(0, 100, ErrorMessage = "نسبة الخصم يجب أن تكون بين 0 و 100")]
         public decimal VipDiscountPercent { get; set; }

@@ -1,4 +1,5 @@
 @model RadaTik.Models.Client
+@using RadaTik.Services.Clients
 <div class="radtk-page--companyemployee-views-clients-details">
 
 @{
@@ -132,7 +133,7 @@
                         @if (Model.IsVip)
                         {
                             <span class="badge clients-vip-badge">
-                                <i class="fas fa-crown"></i> VIP
+                                <i class="fas fa-crown"></i> @ClientVipBenefitDisplay.BadgeText(Model)
                             </span>
                             @if (!string.IsNullOrWhiteSpace(Model.VipNote))
                             {
@@ -439,7 +440,7 @@
                         @if (Model.IsVip)
                         {
                             <span class="badge clients-vip-badge">
-                                <i class="fas fa-crown"></i> VIP
+                                <i class="fas fa-crown"></i> @ClientVipBenefitDisplay.BadgeText(Model)
                             </span>
                             @if (!string.IsNullOrWhiteSpace(Model.VipNote))
                             {

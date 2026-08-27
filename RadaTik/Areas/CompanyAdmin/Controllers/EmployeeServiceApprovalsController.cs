@@ -520,7 +520,13 @@ public class EmployeeServiceApprovalsController : Controller
         client.Building = payload.Building;
         client.Floor = payload.Floor;
         client.ReceiverId = payload.ReceiverId;
-        ClientVipAssignment.Apply(client, payload.IsVip, payload.VipNote, DateTime.Now);
+        ClientVipAssignment.Apply(
+            client,
+            payload.IsVip,
+            payload.VipNote,
+            DateTime.Now,
+            payload.VipBenefitKind,
+            payload.VipDiscountPercent);
         if (!string.IsNullOrWhiteSpace(payload.Password))
         {
             client.Password = payload.Password;

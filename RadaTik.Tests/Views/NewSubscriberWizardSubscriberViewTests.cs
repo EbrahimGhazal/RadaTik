@@ -12,7 +12,11 @@ public sealed class NewSubscriberWizardSubscriberViewTests
         Assert.Contains("asp-for=\"Workplace\"", text);
         Assert.Contains("asp-for=\"IsVip\"", text);
         Assert.Contains("asp-for=\"VipNote\"", text);
+        Assert.Contains("VipDiscountPercent", text);
+        Assert.Contains("مجاني دائم", text);
         Assert.Contains("مشترك مميز (VIP)", text);
+        Assert.Contains("VipDiscountPercent", text);
+        Assert.Contains("مجاني دائم", text);
         Assert.Contains("asp-route=\"@ViewData[\"WizardRoute\"]\"", text);
         Assert.Contains("asp-route-action=\"Subscriber\"", text);
     }

@@ -35,6 +35,14 @@ public static class SchemaColumnRepair
         await EnsureColumnAsync(db, "Clients", "Workplace", """
             ALTER TABLE [dbo].[Clients] ADD [Workplace] nvarchar(200) NULL;
             """, logger, ct);
+        await EnsureColumnAsync(db, "Clients", "VipBenefitKind", """
+            ALTER TABLE [dbo].[Clients] ADD [VipBenefitKind] int NOT NULL
+                CONSTRAINT [DF_Clients_VipBenefitKind] DEFAULT (0);
+            """, logger, ct);
+        await EnsureColumnAsync(db, "Clients", "VipDiscountPercent", """
+            ALTER TABLE [dbo].[Clients] ADD [VipDiscountPercent] decimal(5,2) NOT NULL
+                CONSTRAINT [DF_Clients_VipDiscountPercent] DEFAULT (0);
+            """, logger, ct);
 
         await EnsureColumnAsync(db, "Networks", "VipDiscountPercent", """
             ALTER TABLE [dbo].[Networks] ADD [VipDiscountPercent] decimal(5,2) NOT NULL

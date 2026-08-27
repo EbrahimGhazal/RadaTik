@@ -1,6 +1,7 @@
 <div class="radtk-page-emp-clients-index">
 <div class="radtk-page-emp-clients-index">
 @model IEnumerable<RadaTik.Models.Client>
+@using RadaTik.Services.Clients
 
 @{
     ViewData["Title"] = "قائمة العملاء";
@@ -417,8 +418,8 @@
                                             @item.Name
                                             @if (item.IsVip)
                                             {
-                                                <span class="badge clients-vip-badge" title="@(string.IsNullOrWhiteSpace(item.VipNote) ? "مشترك مميز" : item.VipNote)">
-                                                    <i class="fas fa-crown"></i> VIP
+                                                <span class="badge clients-vip-badge" title="@(string.IsNullOrWhiteSpace(item.VipNote) ? ClientVipBenefitDisplay.DetailsText(item, 0m) : item.VipNote)">
+                                                    <i class="fas fa-crown"></i> @ClientVipBenefitDisplay.BadgeText(item)
                                                 </span>
                                             }
                                         </div>

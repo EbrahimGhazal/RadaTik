@@ -31,7 +31,12 @@ public sealed class ClientVipPolicyService(ApplicationDbContext db) : IClientVip
     public async Task<decimal> ApplyPackageDiscountAsync(decimal basePrice, Client client, CancellationToken ct = default)
     {
         CompanyVipPolicy policy = await GetCompanyPolicyAsync(client.NetworkId, ct);
-        return ClientVipPricing.ApplyPackageDiscount(basePrice, client.IsVip, policy);
+        return ClientVipPricing.ApplyPackageDiscount(
+            basePrice,
+            client.IsVip,
+            policy,
+            client.VipBenefitKind,
+            client.VipDiscountPercent);
     }
 
     public async Task<(decimal BasePrice, decimal VatAmount, decimal Total)> ApplyMonthlyPriceAsync(
@@ -41,7 +46,13 @@ public sealed class ClientVipPolicyService(ApplicationDbContext db) : IClientVip
         CompanyVipPolicy policy = await GetCompanyPolicyAsync(client.NetworkId, ct);
         decimal profilePrice = client.Profile?.Price ?? 0m;
         decimal vatPercent = client.Profile?.VATPercentage ?? 0m;
-        return ClientVipPricing.ApplyMonthlyPrice(profilePrice, vatPercent, client.IsVip, policy);
+        return ClientVipPricing.ApplyMonthlyPrice(
+            profilePrice,
+            vatPercent,
+            client.IsVip,
+            policy,
+            client.VipBenefitKind,
+            client.VipDiscountPercent);
     }
 
     public async Task<bool> IsProtectedFromAutoDisableAsync(Client client, DateTime now, CancellationToken ct = default)
@@ -56,6 +67,7 @@ public sealed class ClientVipPolicyService(ApplicationDbContext db) : IClientVip
             client.IsVip,
             client.AccountExpirationDate,
             policy,
-            now);
+            now,
+            client.VipBenefitKind);
     }
 }

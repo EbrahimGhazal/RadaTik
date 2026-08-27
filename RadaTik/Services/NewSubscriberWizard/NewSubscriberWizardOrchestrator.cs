@@ -126,6 +126,12 @@ public sealed class NewSubscriberWizardOrchestrator
         client.LastUpdated = DateTime.Now;
         client.Occupation = string.IsNullOrWhiteSpace(client.Occupation) ? null : client.Occupation.Trim();
         client.Workplace = string.IsNullOrWhiteSpace(client.Workplace) ? null : client.Workplace.Trim();
+        if (isEmployee)
+        {
+            client.VipBenefitKind = ClientVipBenefitKind.None;
+            client.VipDiscountPercent = 0m;
+        }
+
         ClientVipAssignment.NormalizeNew(client, DateTime.Now);
 
         if (isEmployee)

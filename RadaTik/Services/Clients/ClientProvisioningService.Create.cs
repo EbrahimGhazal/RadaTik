@@ -113,6 +113,8 @@ public sealed partial class ClientProvisioningService
         client.AccountExpirationDate ??= DateTime.Now.AddMonths(1);
         client.ServiceStartDate ??= DateTime.Now.Date;
         client.LastRenewalDate = DateTime.Now.Date;
+        client.VipBenefitKind = ClientVipBenefitKind.None;
+        client.VipDiscountPercent = 0m;
         ClientVipAssignment.NormalizeNew(client, DateTime.Now);
 
         Db.Clients.Add(client);

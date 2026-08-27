@@ -64,7 +64,7 @@ public class ClientsController : global::RadaTik.Controllers.ClientsController
 
     public new Task<IActionResult> Create(
 
-        [Bind("Id,Name,SID,UserName,Password,ProfileId,PhoneNumber,ResidenceAddress,Occupation,Workplace,Latitude,Longitude,PowerSource,Building,Floor,IsActive,ReceiverId,Service,Address,MikroTikServerId,ServiceStartDate,AccountExpirationDate,IsVip,VipNote")]
+        [Bind("Id,Name,SID,UserName,Password,ProfileId,PhoneNumber,ResidenceAddress,Occupation,Workplace,Latitude,Longitude,PowerSource,Building,Floor,IsActive,ReceiverId,Service,Address,MikroTikServerId,ServiceStartDate,AccountExpirationDate,IsVip,VipNote,VipBenefitKind,VipDiscountPercent")]
 
         Client client,
 

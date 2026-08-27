@@ -80,6 +80,8 @@ public sealed partial class ClientProvisioningService
         submitted.ServiceStartDate = original.ServiceStartDate;
         submitted.ServiceEndDate = original.ServiceEndDate;
         submitted.NextBillingDate = original.NextBillingDate;
+        submitted.VipBenefitKind = original.VipBenefitKind;
+        submitted.VipDiscountPercent = original.VipDiscountPercent;
     }
 
     private static void PreserveMikroTikIdentity(Client submitted, Client original)
@@ -172,7 +174,13 @@ public sealed partial class ClientProvisioningService
         existingClient.Building = submitted.Building;
         existingClient.Floor = submitted.Floor;
         existingClient.ServiceStartDate = submitted.ServiceStartDate;
-        ClientVipAssignment.Apply(existingClient, submitted.IsVip, submitted.VipNote, DateTime.Now);
+        ClientVipAssignment.Apply(
+            existingClient,
+            submitted.IsVip,
+            submitted.VipNote,
+            DateTime.Now,
+            submitted.VipBenefitKind,
+            submitted.VipDiscountPercent);
         existingClient.LastUpdated = DateTime.Now;
         existingClient.NetworkId = request.NetworkId;
 

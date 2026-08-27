@@ -41,6 +41,12 @@ namespace RadaTik.Controllers
                 AccountExpirationDate = DateTime.Now.Date.AddMonths(1)
             };
             ApplyCreateFormViewData(await _app.FormViewData.BuildCreateFormDataAsync(networkId.Value, client));
+            IList<string> createRoles = user != null
+                ? await _userManager.GetRolesAsync(user)
+                : Array.Empty<string>();
+            bool canEditVipOnCreate = createRoles.Contains(RoleNames.NetworkAdministrator)
+                || createRoles.Contains(RoleNames.SystemAdministrator);
+            await SetVipBenefitViewBagAsync(networkId.Value, canEditVipOnCreate);
 
             return View(client);
         }
@@ -50,7 +56,7 @@ namespace RadaTik.Controllers
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "NetworkAdministrator,CompanyEmployee,Employee")]
         [RequirePermission("Clients.Create")]
-        public async Task<IActionResult> Create([Bind("Id,Name,SID,UserName,Password,ProfileId,PhoneNumber,ResidenceAddress,Occupation,Workplace,Latitude,Longitude,PowerSource,Building,Floor,IsActive,ReceiverId,Service,Address,MikroTikServerId,ServiceStartDate,AccountExpirationDate,IsVip,VipNote")] Client client, string? dbUserName, string? dbPassword)
+        public async Task<IActionResult> Create([Bind("Id,Name,SID,UserName,Password,ProfileId,PhoneNumber,ResidenceAddress,Occupation,Workplace,Latitude,Longitude,PowerSource,Building,Floor,IsActive,ReceiverId,Service,Address,MikroTikServerId,ServiceStartDate,AccountExpirationDate,IsVip,VipNote,VipBenefitKind,VipDiscountPercent")] Client client, string? dbUserName, string? dbPassword)
         {
             var user = await _userManager.GetUserAsync(User);
             var networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
@@ -64,6 +70,13 @@ namespace RadaTik.Controllers
             if (!ModelState.IsValid)
             {
                 ApplyCreateFormViewData(await _app.FormViewData.BuildCreateFormDataAsync(networkId.Value, client));
+                IList<string> invalidRoles = user != null
+                    ? await _userManager.GetRolesAsync(user)
+                    : Array.Empty<string>();
+                await SetVipBenefitViewBagAsync(
+                    networkId.Value,
+                    invalidRoles.Contains(RoleNames.NetworkAdministrator)
+                    || invalidRoles.Contains(RoleNames.SystemAdministrator));
                 return View(client);
             }
 
@@ -76,6 +89,7 @@ namespace RadaTik.Controllers
             if (user == null)
             {
                 ApplyCreateFormViewData(await _app.FormViewData.BuildCreateFormDataAsync(networkId.Value, client));
+                await SetVipBenefitViewBagAsync(networkId.Value, false);
                 return View(client);
             }
 
@@ -112,6 +126,7 @@ namespace RadaTik.Controllers
             }
 
             ApplyCreateFormViewData(await _app.FormViewData.BuildCreateFormDataAsync(networkId.Value, client));
+            await SetVipBenefitViewBagAsync(networkId.Value, !isEmployee);
             return View(client);
         }
 
@@ -156,6 +171,7 @@ namespace RadaTik.Controllers
             ViewBag.DbUserName = linkedUser?.UserName ?? client.UserName;
             ViewBag.IsEmployee = isEmployee;
             ViewBag.ApplyMikroTikChanges = false;
+            await SetVipBenefitViewBagAsync(networkId.Value, !isEmployee);
             return View(client);
         }
 
@@ -166,7 +182,7 @@ namespace RadaTik.Controllers
         [RequirePermission("Clients.Edit")]
         public async Task<IActionResult> Edit(
             int id,
-            [Bind("Id,Name,SID,UserName,Password,ProfileId,PhoneNumber,ResidenceAddress,Occupation,Workplace,Latitude,Longitude,PowerSource,Building,Floor,ServiceStartDate,CreatedDate,IsActive,ReceiverId,Service,Address,Uptime,ConnectionStatus,MacAddress,MikroTikServerId,AccountExpirationDate,IsVip,VipNote")] Client client,
+            [Bind("Id,Name,SID,UserName,Password,ProfileId,PhoneNumber,ResidenceAddress,Occupation,Workplace,Latitude,Longitude,PowerSource,Building,Floor,ServiceStartDate,CreatedDate,IsActive,ReceiverId,Service,Address,Uptime,ConnectionStatus,MacAddress,MikroTikServerId,AccountExpirationDate,IsVip,VipNote,VipBenefitKind,VipDiscountPercent")] Client client,
             string? dbUserName,
             string? dbPassword,
             bool applyMikroTikChanges = false)
@@ -195,6 +211,7 @@ namespace RadaTik.Controllers
                 ViewBag.DbUserName = string.IsNullOrWhiteSpace(dbUserName) ? client.UserName : dbUserName;
                 ViewBag.IsEmployee = isEmployee;
                 ViewBag.ApplyMikroTikChanges = applyMikroTikChanges && !isEmployee;
+                await SetVipBenefitViewBagAsync(networkId.Value, !isEmployee);
                 return View(client);
             }
 
@@ -229,6 +246,7 @@ namespace RadaTik.Controllers
             ViewBag.DbUserName = string.IsNullOrWhiteSpace(dbUserName) ? client.UserName : dbUserName;
             ViewBag.IsEmployee = isEmployee;
             ViewBag.ApplyMikroTikChanges = applyMikroTikChanges && !isEmployee;
+            await SetVipBenefitViewBagAsync(networkId.Value, !isEmployee);
             return View(client);
         }
 

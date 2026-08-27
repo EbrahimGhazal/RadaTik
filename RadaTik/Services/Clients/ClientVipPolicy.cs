@@ -17,14 +17,44 @@ public sealed record CompanyVipPolicy(
 
 public static class ClientVipPricing
 {
-    public static decimal ApplyPackageDiscount(decimal basePrice, bool isVip, CompanyVipPolicy policy)
+    public static decimal ResolveDiscountPercent(
+        bool isVip,
+        ClientVipBenefitKind benefitKind,
+        decimal clientDiscountPercent,
+        CompanyVipPolicy policy)
     {
-        if (!isVip || basePrice <= 0m || policy.DiscountPercent <= 0m)
+        if (!isVip)
+        {
+            return 0m;
+        }
+
+        if (benefitKind == ClientVipBenefitKind.PermanentlyFree)
+        {
+            return 100m;
+        }
+
+        decimal percent = clientDiscountPercent > 0m ? clientDiscountPercent : policy.DiscountPercent;
+        return Math.Clamp(percent, 0m, 100m);
+    }
+
+    public static decimal ApplyPackageDiscount(
+        decimal basePrice,
+        bool isVip,
+        CompanyVipPolicy policy,
+        ClientVipBenefitKind benefitKind = ClientVipBenefitKind.None,
+        decimal clientDiscountPercent = 0m)
+    {
+        if (!isVip || basePrice <= 0m)
         {
             return basePrice;
         }
 
-        decimal percent = Math.Clamp(policy.DiscountPercent, 0m, 100m);
+        decimal percent = ResolveDiscountPercent(isVip, benefitKind, clientDiscountPercent, policy);
+        if (percent <= 0m)
+        {
+            return basePrice;
+        }
+
         return Math.Round(basePrice * (1m - percent / 100m), 2, MidpointRounding.AwayFromZero);
     }
 
@@ -32,9 +62,11 @@ public static class ClientVipPricing
         decimal profilePrice,
         decimal vatPercent,
         bool isVip,
-        CompanyVipPolicy policy)
+        CompanyVipPolicy policy,
+        ClientVipBenefitKind benefitKind = ClientVipBenefitKind.None,
+        decimal clientDiscountPercent = 0m)
     {
-        decimal basePrice = ApplyPackageDiscount(profilePrice, isVip, policy);
+        decimal basePrice = ApplyPackageDiscount(profilePrice, isVip, policy, benefitKind, clientDiscountPercent);
         decimal vatAmount = Math.Round(basePrice * (vatPercent / 100m), 2, MidpointRounding.AwayFromZero);
         return (basePrice, vatAmount, basePrice + vatAmount);
     }
@@ -43,14 +75,15 @@ public static class ClientVipPricing
         bool isVip,
         DateTime? expiration,
         CompanyVipPolicy policy,
-        DateTime now)
+        DateTime now,
+        ClientVipBenefitKind benefitKind = ClientVipBenefitKind.None)
     {
         if (!isVip)
         {
             return false;
         }
 
-        if (policy.SkipAutoDisable)
+        if (benefitKind == ClientVipBenefitKind.PermanentlyFree || policy.SkipAutoDisable)
         {
             return true;
         }
@@ -66,33 +99,109 @@ public static class ClientVipPricing
 
 public static class ClientVipAssignment
 {
-    public static void Apply(Client target, bool isVip, string? note, DateTime now)
+    public static void Apply(
+        Client target,
+        bool isVip,
+        string? note,
+        DateTime now,
+        ClientVipBenefitKind? benefitKind = null,
+        decimal? discountPercent = null)
     {
         string? trimmed = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
-        if (isVip)
+        if (!isVip)
         {
-            if (!target.IsVip)
-            {
-                target.VipSince = now;
-            }
-
-            target.IsVip = true;
-            target.VipNote = trimmed;
+            target.IsVip = false;
+            target.VipNote = null;
+            target.VipSince = null;
+            target.VipBenefitKind = ClientVipBenefitKind.None;
+            target.VipDiscountPercent = 0m;
             return;
         }
 
-        target.IsVip = false;
-        target.VipNote = null;
-        target.VipSince = null;
+        if (!target.IsVip)
+        {
+            target.VipSince = now;
+        }
+
+        target.IsVip = true;
+        target.VipNote = trimmed;
+
+        if (benefitKind.HasValue)
+        {
+            target.VipBenefitKind = benefitKind.Value == ClientVipBenefitKind.None
+                ? ClientVipBenefitKind.Discount
+                : benefitKind.Value;
+        }
+        else if (target.VipBenefitKind == ClientVipBenefitKind.None)
+        {
+            target.VipBenefitKind = ClientVipBenefitKind.Discount;
+        }
+
+        if (discountPercent.HasValue)
+        {
+            target.VipDiscountPercent = Math.Clamp(discountPercent.Value, 0m, 100m);
+        }
+
+        if (target.VipBenefitKind == ClientVipBenefitKind.PermanentlyFree)
+        {
+            target.VipDiscountPercent = 0m;
+        }
     }
 
     public static void NormalizeNew(Client client, DateTime now)
     {
-        Apply(client, client.IsVip, client.VipNote, now);
+        Apply(
+            client,
+            client.IsVip,
+            client.VipNote,
+            now,
+            client.VipBenefitKind,
+            client.VipDiscountPercent);
         if (client.IsVip)
         {
             client.VipSince ??= now;
         }
+    }
+}
+
+public static class ClientVipBenefitDisplay
+{
+    public static string BadgeText(Client client)
+    {
+        if (!client.IsVip)
+        {
+            return string.Empty;
+        }
+
+        if (client.VipBenefitKind == ClientVipBenefitKind.PermanentlyFree)
+        {
+            return "VIP · مجاني";
+        }
+
+        if (client.VipDiscountPercent > 0m)
+        {
+            return $"VIP · حسم {client.VipDiscountPercent:0.##}%";
+        }
+
+        return "VIP";
+    }
+
+    public static string DetailsText(Client client, decimal companyDefaultPercent)
+    {
+        if (!client.IsVip)
+        {
+            return "عادي";
+        }
+
+        if (client.VipBenefitKind == ClientVipBenefitKind.PermanentlyFree)
+        {
+            return "مجاني دائم";
+        }
+
+        decimal percent = client.VipDiscountPercent > 0m ? client.VipDiscountPercent : companyDefaultPercent;
+        return percent > 0m
+            ? $"حسم {percent:0.##}%"
+            : "حسم (حسب سياسة الشركة)";
     }
 }
 

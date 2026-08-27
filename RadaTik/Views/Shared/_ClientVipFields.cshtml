@@ -1,0 +1,76 @@
+@model RadaTik.Models.Client
+@using RadaTik.Models
+@{
+    bool canEditBenefits = (bool?)ViewBag.CanEditVipBenefits
+        ?? (User.IsInRole("NetworkAdministrator") || User.IsInRole("SystemAdministrator"));
+    decimal defaultPercent = (decimal?)ViewBag.CompanyVipDefaultPercent ?? 0m;
+    ClientVipBenefitKind benefitKind = Model.VipBenefitKind == ClientVipBenefitKind.None
+        ? ClientVipBenefitKind.Discount
+        : Model.VipBenefitKind;
+}
+
+<div class="border rounded p-3 mb-3 js-vip-fields">
+    <div class="form-check form-switch radtk-switch-left-label mb-2" dir="ltr">
+        <label class="form-check-label" asp-for="IsVip">مشترك مميز (VIP)</label>
+        <input class="form-check-input js-vip-enabled" asp-for="IsVip" />
+    </div>
+    <div class="form-group mb-0">
+        <label asp-for="VipNote" class="form-label"></label>
+        <input asp-for="VipNote" class="form-control" placeholder="شريك، موظف، عائلة..." maxlength="200" />
+        <span asp-validation-for="VipNote" class="text-danger"></span>
+    </div>
+    @if (canEditBenefits)
+    {
+        <div class="js-vip-benefits mt-3">
+            <div class="small text-muted mb-2">ميزة الفوترة يحددها مدير الشركة حسب أهمية المشترك:</div>
+            <div class="form-check">
+                <input class="form-check-input js-vip-kind" type="radio" name="VipBenefitKind" id="vipKindDiscount"
+                       value="@((int)ClientVipBenefitKind.Discount)"
+                       @(benefitKind != ClientVipBenefitKind.PermanentlyFree ? "checked" : null) />
+                <label class="form-check-label" for="vipKindDiscount">حسم بنسبة يحددها المدير</label>
+            </div>
+            <div class="form-group js-vip-percent-wrap mt-2 mb-2 @(benefitKind == ClientVipBenefitKind.PermanentlyFree ? "d-none" : null)">
+                <label asp-for="VipDiscountPercent" class="form-label"></label>
+                <div class="input-group">
+                    <input asp-for="VipDiscountPercent" class="form-control js-vip-percent" type="number" step="0.01" min="0" max="100" />
+                    <span class="input-group-text">%</span>
+                </div>
+                <span asp-validation-for="VipDiscountPercent" class="text-danger"></span>
+                <small class="form-text text-muted">
+                    اترك 0 لاستخدام النسبة الافتراضية للشركة@(defaultPercent > 0m ? $" ({defaultPercent:0.##}%)" : "").
+                </small>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input js-vip-kind" type="radio" name="VipBenefitKind" id="vipKindFree"
+                       value="@((int)ClientVipBenefitKind.PermanentlyFree)"
+                       @(benefitKind == ClientVipBenefitKind.PermanentlyFree ? "checked" : null) />
+                <label class="form-check-label" for="vipKindFree">مجاني دائم</label>
+            </div>
+            <p class="small text-muted mb-0 mt-2">الهدية المالية تُمنح من ملف المشترك بعد الحفظ، من محفظة الشركة.</p>
+        </div>
+    }
+    else
+    {
+        <p class="small text-muted mb-0 mt-2">بعد الاعتماد يحدد مدير الشركة نسبة الحسم أو المجانية أو الهدية.</p>
+    }
+</div>
+<script>
+    (function () {
+        function syncVipFields(root) {
+            var enabled = root.querySelector('.js-vip-enabled');
+            var benefits = root.querySelector('.js-vip-benefits');
+            if (benefits) {
+                benefits.classList.toggle('d-none', !(enabled && enabled.checked));
+            }
+            var free = root.querySelector('.js-vip-kind[value="@((int)ClientVipBenefitKind.PermanentlyFree)"]');
+            var percentWrap = root.querySelector('.js-vip-percent-wrap');
+            if (percentWrap) {
+                percentWrap.classList.toggle('d-none', !!(free && free.checked));
+            }
+        }
+        document.querySelectorAll('.js-vip-fields').forEach(function (root) {
+            syncVipFields(root);
+            root.addEventListener('change', function () { syncVipFields(root); });
+        });
+    })();
+</script>

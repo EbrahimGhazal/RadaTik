@@ -37,6 +37,8 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         entity.Property(e => e.IsCrossServerDuplicate).HasDefaultValue(false);
         entity.Property(e => e.IsVip).HasDefaultValue(false);
         entity.Property(e => e.VipNote).HasMaxLength(200).IsRequired(false);
+        entity.Property(e => e.VipBenefitKind).HasConversion<int>().HasDefaultValue(ClientVipBenefitKind.None);
+        entity.Property(e => e.VipDiscountPercent).HasColumnType("decimal(5,2)").HasDefaultValue(0m);
         entity.Property(e => e.ReceiverId).IsRequired(false);
         entity.Property(e => e.Balance).HasColumnType("decimal(18,2)").HasDefaultValue(0);
         entity.Property(e => e.AccountCurrency).HasConversion<int>().HasDefaultValue(PricingCurrency.SYP_New);

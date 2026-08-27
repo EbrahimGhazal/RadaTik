@@ -129,4 +129,11 @@ public sealed class NewSubscriberWizardSubscriberFormModel
     [Display(Name = "ملاحظة التمييز")]
     [StringLength(200, ErrorMessage = "ملاحظة التمييز يجب أن لا تتجاوز 200 حرف")]
     public string? VipNote { get; set; }
+
+    [Display(Name = "ميزة المميز")]
+    public ClientVipBenefitKind VipBenefitKind { get; set; } = ClientVipBenefitKind.Discount;
+
+    [Display(Name = "نسبة الحسم (%)")]
+    [Range(0, 100, ErrorMessage = "نسبة الحسم يجب أن تكون بين 0 و 100")]
+    public decimal VipDiscountPercent { get; set; }
 }

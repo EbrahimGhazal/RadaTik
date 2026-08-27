@@ -1,4 +1,5 @@
 @model RadaTik.Models.Client
+@using RadaTik.Services.Clients
 @{
     ViewData["Title"] = ViewBag.IsClientOnly == true ? "بيانات حسابي" : "تفاصيل العميل";
     var isClientOnly = ViewBag.IsClientOnly == true;
@@ -165,12 +166,13 @@
                         @if (Model.IsVip)
                         {
                             <span class="badge clients-vip-badge">
-                                <i class="fas fa-crown"></i> VIP
+                                <i class="fas fa-crown"></i> @ClientVipBenefitDisplay.BadgeText(Model)
                             </span>
                             @if (!string.IsNullOrWhiteSpace(Model.VipNote))
                             {
                                 <span class="text-muted ms-2">@Model.VipNote</span>
                             }
+                            <div class="small text-muted mt-1">@ClientVipBenefitDisplay.DetailsText(Model, 0m)</div>
                             @if (Model.VipSince.HasValue)
                             {
                                 <div class="small text-muted mt-1">منذ @Model.VipSince.Value.ToString("yyyy/MM/dd")</div>
@@ -274,6 +276,30 @@
                             </button>
                         </div>
                     </form>
+                    @if (Model.IsVip)
+                    {
+                        <form asp-action="GiftVipBalance" method="post" class="row g-2 align-items-end mb-4 p-3 border rounded bg-light">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <div class="col-12">
+                                <div class="fw-semibold mb-1"><i class="fas fa-gift text-warning"></i> هدية مالية للمشترك المميز</div>
+                                <div class="small text-muted mb-2">يُحوَّل المبلغ من محفظة الشركة إلى محفظة المشترك.</div>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">المبلغ (ل.س)</label>
+                                <input type="number" name="amount" class="form-control" min="0.01" step="0.01" required placeholder="0" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">ملاحظة (اختياري)</label>
+                                <input type="text" name="notes" class="form-control" placeholder="مناسبة الهدية" />
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-warning w-100" onclick="return confirm('تأكيد منح هدية VIP من محفظة الشركة؟');">
+                                    <i class="fas fa-gift"></i> منح هدية
+                                </button>
+                            </div>
+                        </form>
+                    }
                     @if (recentTopUps.Any())
                     {
                         <h6 class="mb-2">آخر عمليات التغذية</h6>

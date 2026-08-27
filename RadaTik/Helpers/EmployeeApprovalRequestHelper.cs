@@ -48,6 +48,8 @@ public sealed class ClientApprovalPayload
     public DateTime? AccountExpirationDate { get; set; }
     public bool IsVip { get; set; }
     public string? VipNote { get; set; }
+    public ClientVipBenefitKind? VipBenefitKind { get; set; }
+    public decimal? VipDiscountPercent { get; set; }
     public string? DbUserName { get; set; }
     public string? DbPassword { get; set; }
 }

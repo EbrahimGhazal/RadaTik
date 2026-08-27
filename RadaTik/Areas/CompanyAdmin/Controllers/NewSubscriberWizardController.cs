@@ -410,6 +410,10 @@ public class NewSubscriberWizardController : Controller
             IsActive = model.IsActive,
             IsVip = model.IsVip,
             VipNote = model.VipNote,
+            VipBenefitKind = model.IsVip ? model.VipBenefitKind : ClientVipBenefitKind.None,
+            VipDiscountPercent = model.IsVip && model.VipBenefitKind == ClientVipBenefitKind.Discount
+                ? model.VipDiscountPercent
+                : 0m,
             ServiceStartDate = model.ServiceStartDate,
             AccountExpirationDate = model.AccountExpirationDate
         };
@@ -932,6 +936,13 @@ public class NewSubscriberWizardController : Controller
         ViewBag.LockMikroTikServer = state.Path != NewSubscriberWizardPath.TowerDirect && state.MikroTikServerId.HasValue;
         ViewBag.SelectedSectorName = null;
         ViewBag.SelectedReceiverName = null;
+        ViewBag.CanEditVipBenefits = !IsEmployeeArea;
+        Network? selectedNetwork = await _context.Networks.AsNoTracking().FirstOrDefaultAsync(n => n.Id == networkId);
+        int companyId = selectedNetwork?.ParentNetworkId ?? networkId;
+        ViewBag.CompanyVipDefaultPercent = await _context.Networks.AsNoTracking()
+            .Where(n => n.Id == companyId)
+            .Select(n => n.VipDiscountPercent)
+            .FirstOrDefaultAsync();
 
         if (state.ReceiverId is > 0)
         {
