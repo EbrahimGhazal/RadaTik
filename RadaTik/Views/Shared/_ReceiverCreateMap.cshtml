@@ -1,0 +1,32 @@
+<div class="receiver-map-block">
+    <div class="map-container-form receiver-map-wrap" id="receiverMapWrap">
+        <div id="map" class="receiver-map" role="application" aria-label="خريطة موقع المستقبل"></div>
+        <p class="receiver-map-tap-hint" id="mapTapHint">
+            <i class="fas fa-hand-pointer"></i>
+            انقر على الخريطة لتحديد موقع المستقبل
+        </p>
+    </div>
+    <div class="receiver-map-toolbar" aria-label="أدوات الخريطة">
+        <div class="map-type-controls receiver-map-type-group" role="group">
+            <button type="button" class="map-type-btn active" data-map-type="streets">شوارع</button>
+            <button type="button" class="map-type-btn" data-map-type="satellite">قمر</button>
+            <button type="button" class="map-type-btn" data-map-type="terrain">تضاريس</button>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary receiver-map-locate" id="btnUseMyLocation" title="تعيين موقع المستقبل حسب جهازك">
+            <i class="fas fa-location-crosshairs"></i>
+            <span>موقعي</span>
+        </button>
+    </div>
+    <div class="receiver-map-info" id="sectorInfoOverlay">
+        <div class="info-box" id="sectorInfoPlaceholder">
+            <small><i class="fas fa-info-circle"></i> اختر القطاع أولاً لعرضه على الخريطة (الزاوية، المدى، الاتجاه)</small>
+        </div>
+        <div id="sectorInfo" class="d-none">
+            <small><strong>القطاع:</strong> <span id="selectedSectorName"></span></small>
+            <small><strong>الاتجاه:</strong> <span id="sectorDirection"></span></small>
+            <small><strong>زاوية الانتشار:</strong> <span id="sectorAngle"></span></small>
+            <small><strong>مدى الانتشار:</strong> <span id="coverageRange"></span> كم</small>
+        </div>
+    </div>
+    <p class="form-hint receiver-map-hint mb-0 mt-2">انقر على الخريطة لتحديد موقع المستقبل فقط. الحقول أدناه لموقع <strong>المستقبل</strong> وليست لموقع القطاع. بعد التحديد تُستخرج قيم الارتفاع والهوائي تلقائياً (يمكنك تعديلها).</p>
+</div>

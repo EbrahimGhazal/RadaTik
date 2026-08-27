@@ -1,7 +1,5 @@
 @model RadaTik.Models.Receiver
 @using RadaTik.ViewModels
-<div class="radtk-page--companyemployee-views-receiver-create">
-<div class="radtk-page--companyemployee-views-receiver-create">
 
 @{
     ViewData["Title"] = "إضافة مستقبل";
@@ -11,7 +9,6 @@
     var hasReceiverPricing = (bool?)(ViewBag.ReceiverCreateChargeHasPricing) == true;
     var receiverChargeAmount = (decimal?)(ViewBag.ReceiverCreateChargeAmount) ?? 0m;
     var receiverWalletBalance = (decimal?)(ViewBag.ReceiverCreateChargeWalletBalance) ?? 0m;
-    var currentArea = ViewContext.RouteData.Values["area"]?.ToString() ?? "CompanyEmployee";
     string? wizardReturnUrl = ViewBag.WizardReturnUrl as string;
     var createSectors = ViewBag.ReceiverCreateSectors as IList<ReceiverCreateSectorOption>
         ?? Array.Empty<ReceiverCreateSectorOption>();
@@ -19,7 +16,7 @@
         ?? Array.Empty<ReceiverCreateServerOption>();
 }
 
-<div class="employee-receiver-page">
+<div class="receiver-create-page employee-receiver-page radtk-page--companyemployee-views-receiver-create">
 <partial name="_CrudPageHero" />
 
 <div class="card radtk-section-card border-0 shadow-sm">
@@ -38,7 +35,7 @@
             <span class="d-block mt-1">لن يتم أي حسم الآن، وإنما بعد اعتماد مدير الشركة فقط.</span>
         </div>
 
-        <form asp-action="Create" method="post" class="radtk-form">
+        <form asp-action="Create" method="post" class="radtk-form" id="receiverForm">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             @if (!string.IsNullOrWhiteSpace(wizardReturnUrl))
             {
@@ -52,8 +49,8 @@
                     <span asp-validation-for="Name" class="text-danger"></span>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="sectorServerFilterEmp">فلترة حسب خادم MikroTik</label>
-                    <select id="sectorServerFilterEmp" class="form-select elegant-input no-select2">
+                    <label class="form-label" for="sectorServerFilter">فلترة حسب خادم MikroTik</label>
+                    <select id="sectorServerFilter" class="form-select elegant-input no-select2">
                         <option value="">كل الخوادم</option>
                         @foreach (var server in filterServers)
                         {
@@ -63,7 +60,7 @@
                 </div>
                 <div class="col-md-12">
                     <label asp-for="SectorId" class="form-label">القطاع (المرسل)</label>
-                    <select asp-for="SectorId" class="form-select elegant-input" id="sectorSelectEmp" name="SectorId"
+                    <select asp-for="SectorId" class="form-select elegant-input" id="sectorSelect" name="SectorId"
                             data-placeholder="ابحث عن القطاع...">
                         <option value="">-- اختر قطاع --</option>
                         @foreach (var sector in createSectors)
@@ -73,13 +70,15 @@
                                 <option value="@sector.Id"
                                         data-server-id="@sector.MikroTikServerId"
                                         data-network-mask="@(sector.NetworkMask ?? "")"
+                                        data-ip="@(sector.IPAddress ?? "")"
                                         selected="selected">@sector.Name</option>
                             }
                             else
                             {
                                 <option value="@sector.Id"
                                         data-server-id="@sector.MikroTikServerId"
-                                        data-network-mask="@(sector.NetworkMask ?? "")">@sector.Name</option>
+                                        data-network-mask="@(sector.NetworkMask ?? "")"
+                                        data-ip="@(sector.IPAddress ?? "")">@sector.Name</option>
                             }
                         }
                     </select>
@@ -90,8 +89,8 @@
                 <div class="col-md-6">
                     <label asp-for="IPAddress" class="form-label">IP</label>
                     <div class="input-group">
-                        <input asp-for="IPAddress" class="form-control elegant-input" id="ipAddressInputEmp" value="@(Model.IPAddress ?? ViewBag.NextIP)" />
-                        <button type="button" class="btn btn-outline-secondary" id="btnGenerateIPEmp" title="توليد IP">
+                        <input asp-for="IPAddress" class="form-control elegant-input" id="ipAddressInput" value="@(Model.IPAddress ?? ViewBag.NextIP)" />
+                        <button type="button" class="btn btn-outline-secondary" id="btnGenerateIP" title="توليد IP">
                             <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
@@ -100,30 +99,44 @@
                 </div>
                 <div class="col-md-6">
                     <label asp-for="NetworkMask" class="form-label">قناع الشبكة</label>
-                    <input asp-for="NetworkMask" class="form-control elegant-input" id="networkMaskInputEmp" value="@(Model.NetworkMask ?? ViewBag.DefaultMask)" readonly />
+                    <input asp-for="NetworkMask" class="form-control elegant-input" id="networkMaskInput" value="@(Model.NetworkMask ?? ViewBag.DefaultMask)" readonly />
                     <span asp-validation-for="NetworkMask" class="text-danger"></span>
                     <small class="text-muted">يطابق قناع القطاع</small>
                 </div>
 
-                <div class="col-md-6">
-                    <label asp-for="Latitude" class="form-label">Latitude</label>
-                    <input asp-for="Latitude" class="form-control elegant-input" type="number" step="0.000001" />
+                <div class="col-12">
+                    <h6 class="mb-2"><i class="fas fa-map-marked-alt me-1"></i> موقع المستقبل</h6>
+                    <partial name="_ReceiverCreateMap" />
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Latitude" class="form-label">خط العرض</label>
+                    <input asp-for="Latitude" class="form-control elegant-input" id="latitudeInput" type="number" step="0.000001" readonly />
                     <span asp-validation-for="Latitude" class="text-danger"></span>
                 </div>
-                <div class="col-md-6">
-                    <label asp-for="Longitude" class="form-label">Longitude</label>
-                    <input asp-for="Longitude" class="form-control elegant-input" type="number" step="0.000001" />
+                <div class="col-md-4">
+                    <label asp-for="Longitude" class="form-label">خط الطول</label>
+                    <input asp-for="Longitude" class="form-control elegant-input" id="longitudeInput" type="number" step="0.000001" readonly />
                     <span asp-validation-for="Longitude" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="distanceFromSector">المسافة من القطاع</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control elegant-input" id="distanceFromSector" readonly value="غير محدد" />
+                        <span class="input-group-text">كم</span>
+                    </div>
+                    <small class="text-muted" id="distanceStatus"></small>
                 </div>
 
                 <div class="col-md-6">
                     <label asp-for="ElevationMeters" class="form-label">الارتفاع عن سطح البحر (م)</label>
-                    <input asp-for="ElevationMeters" class="form-control elegant-input" type="number" step="0.1" placeholder="اختياري" />
+                    <input asp-for="ElevationMeters" class="form-control elegant-input" id="receiverElevationInput" type="number" step="0.1" placeholder="يُملأ عند النقر على الخريطة" />
                     <span asp-validation-for="ElevationMeters" class="text-danger"></span>
+                    <small class="text-muted" id="receiverElevationHint">يُحدَّد تلقائياً عند اختيار موقع المستقبل على الخريطة (قابل للتعديل).</small>
                 </div>
                 <div class="col-md-6">
                     <label asp-for="AntennaHeightAglMeters" class="form-label">ارتفاع الهوائي عن الأرض (م)</label>
-                    <input asp-for="AntennaHeightAglMeters" class="form-control elegant-input" type="number" step="0.1" placeholder="6" />
+                    <input asp-for="AntennaHeightAglMeters" class="form-control elegant-input" id="receiverAntennaAglInput" type="number" step="0.1" placeholder="6" />
                     <span asp-validation-for="AntennaHeightAglMeters" class="text-danger"></span>
                 </div>
                 <div class="col-12">
@@ -140,211 +153,48 @@
                     </div>
                 </div>
 
+                <div class="col-12">
+                    <div class="quick-info-box border rounded p-3">
+                        <h6 class="mb-2"><i class="fas fa-chart-bar"></i> معلومات القطاع</h6>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>عدد المستقبلات:</span>
+                            <strong id="receiversCount">0</strong>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                            <span>نطاق IP:</span>
+                            <strong id="sectorIPRange">غير محدد</strong>
+                        </div>
+                    </div>
+                </div>
+
                 <input asp-for="IsActive" type="hidden" value="false" />
             </div>
 
-            <div class="mt-4 d-flex flex-wrap gap-2 align-items-start">
+            <div class="mt-4 d-flex flex-wrap gap-2 align-items-start receiver-create-actions">
                 <button type="submit" class="btn btn-success action-btn">
                     <i class="fas fa-save"></i> حفظ
                 </button>
-                <button type="button" class="btn btn-outline-primary action-btn" id="btnAnalyzeLosEmp" title="تحليل خط الرؤية (تضاريس + مبانٍ تقريبية)">
+                <button type="button" class="btn btn-outline-primary action-btn" id="btnAnalyzeLos" title="تحليل خط الرؤية (تضاريس + مبانٍ تقريبية)">
                     <i class="fas fa-mountain"></i> تحليل خط الرؤية
                 </button>
                 <a asp-action="Index" class="btn btn-outline-secondary action-btn">إلغاء</a>
             </div>
 
-            <div id="losResultPanelEmp" class="mt-3 p-3 border rounded bg-light d-none" role="region" aria-live="polite" style="border-color:#dbe4f0!important;">
+            <div id="losResultPanel" class="mt-3 p-3 border rounded bg-light d-none" role="region" aria-live="polite" style="border-color:#dbe4f0!important;">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <strong><i class="fas fa-mountain"></i> نتيجة تحليل خط الرؤية</strong>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnLosResultCloseEmp">×</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnLosResultClose">×</button>
                 </div>
-                <div id="losResultContentEmp" class="small"></div>
+                <div id="losResultContent" class="small"></div>
             </div>
         </form>
     </div>
+</div>
 </div>
 
 @section Scripts {
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-    <script>
-        (function () {
-            var analyzeLosUrl = '@Url.Action("AnalyzeLineOfSight", "Receiver", new { area = currentArea })';
-            var getNextIpUrl = '@Url.Action("GetNextReceiverIP", "Receiver", new { area = currentArea })';
-            var sectorSelect = document.getElementById('sectorSelectEmp');
-            var serverFilter = document.getElementById('sectorServerFilterEmp');
-            var ipInput = document.getElementById('ipAddressInputEmp');
-            var maskInput = document.getElementById('networkMaskInputEmp');
-            var activeServerFilter = '';
-
-            function generateIPForSector(sectorId) {
-                if (!sectorId) return;
-                var btn = document.getElementById('btnGenerateIPEmp');
-                if (btn) {
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                }
-                fetch(getNextIpUrl + '?sectorId=' + encodeURIComponent(sectorId), {
-                    credentials: 'same-origin',
-                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                    .then(function (r) { return r.json(); })
-                    .then(function (data) {
-                        if (!data || !data.success) return;
-                        if (ipInput && data.nextIP) ipInput.value = data.nextIP;
-                        if (maskInput && data.networkMask) maskInput.value = data.networkMask;
-                    })
-                    .finally(function () {
-                        if (btn) {
-                            btn.disabled = false;
-                            btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                        }
-                    });
-            }
-
-            function onSectorChosen() {
-                if (!sectorSelect || !sectorSelect.value) return;
-                var opt = sectorSelect.options[sectorSelect.selectedIndex];
-                var mask = opt ? opt.getAttribute('data-network-mask') : '';
-                if (maskInput && mask) maskInput.value = mask;
-                generateIPForSector(sectorSelect.value);
-            }
-
-            if (sectorSelect) {
-                sectorSelect.addEventListener('change', onSectorChosen);
-                if (typeof jQuery !== 'undefined') {
-                    function sectorMatcher(params, data) {
-                        if (data == null || typeof data.text === 'undefined') return null;
-                        if (data.id && activeServerFilter) {
-                            var el = data.element;
-                            var serverId = el ? (el.getAttribute('data-server-id') || '') : '';
-                            if (String(serverId) !== String(activeServerFilter)) return null;
-                        }
-                        if (jQuery.trim(params.term || '') === '') return data;
-                        if (data.text.toUpperCase().indexOf(params.term.toUpperCase()) > -1) return data;
-                        return null;
-                    }
-                    if (jQuery(sectorSelect).hasClass('select2-hidden-accessible')) {
-                        jQuery(sectorSelect).select2('destroy');
-                    }
-                    jQuery(sectorSelect).select2({
-                        theme: 'bootstrap-5',
-                        width: '100%',
-                        placeholder: 'ابحث عن القطاع...',
-                        allowClear: true,
-                        matcher: sectorMatcher
-                    }).on('select2:select', onSectorChosen).on('change', onSectorChosen);
-                }
-            }
-
-            if (serverFilter) {
-                serverFilter.addEventListener('change', function () {
-                    activeServerFilter = serverFilter.value || '';
-                    if (sectorSelect && sectorSelect.value) {
-                        var opt = sectorSelect.options[sectorSelect.selectedIndex];
-                        var sid = opt ? (opt.getAttribute('data-server-id') || '') : '';
-                        if (activeServerFilter && String(sid) !== String(activeServerFilter)) {
-                            sectorSelect.value = '';
-                            if (typeof jQuery !== 'undefined') jQuery(sectorSelect).val(null).trigger('change');
-                        }
-                    }
-                    if (typeof jQuery !== 'undefined') jQuery(sectorSelect).trigger('change.select2');
-                });
-            }
-
-            var btnGen = document.getElementById('btnGenerateIPEmp');
-            if (btnGen) {
-                btnGen.addEventListener('click', function () {
-                    if (!sectorSelect || !sectorSelect.value) {
-                        alert('يرجى اختيار القطاع أولاً');
-                        return;
-                    }
-                    generateIPForSector(sectorSelect.value);
-                });
-            }
-
-            function parseOpt(el) {
-                if (!el || el.value === '' || el.value === null) return null;
-                var v = parseFloat(el.value);
-                return isFinite(v) ? v : null;
-            }
-            function runLos() {
-                var latEl = document.querySelector('[name="Latitude"]');
-                var lngEl = document.querySelector('[name="Longitude"]');
-                var elevEl = document.querySelector('[name="ElevationMeters"]');
-                var aglEl = document.querySelector('[name="AntennaHeightAglMeters"]');
-                var sectorId = sectorSelect && sectorSelect.value ? parseInt(sectorSelect.value, 10) : 0;
-                if (!sectorId) {
-                    alert('يرجى اختيار القطاع أولاً');
-                    return;
-                }
-                var lat = latEl ? parseFloat(latEl.value) : NaN;
-                var lng = lngEl ? parseFloat(lngEl.value) : NaN;
-                if (!isFinite(lat) || !isFinite(lng)) {
-                    alert('يرجى إدخال خطي العرض والطول');
-                    return;
-                }
-                var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
-                var token = tokenInput ? tokenInput.value : '';
-                var panel = document.getElementById('losResultPanelEmp');
-                var content = document.getElementById('losResultContentEmp');
-                var btn = document.getElementById('btnAnalyzeLosEmp');
-                var prev = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                panel.classList.remove('d-none');
-                content.textContent = 'جارٍ التحليل...';
-
-                fetch(analyzeLosUrl, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': token,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({
-                        sectorId: sectorId,
-                        receiverLatitude: lat,
-                        receiverLongitude: lng,
-                        receiverElevationMeters: parseOpt(elevEl),
-                        receiverAntennaHeightAglMeters: parseOpt(aglEl)
-                    })
-                })
-                    .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
-                    .then(function (data) {
-                        if (!data || !data.success) {
-                            content.innerHTML = '<span class="text-danger">' + (data && data.message ? data.message : 'فشل التحليل') + '</span>';
-                            return;
-                        }
-                        var a = data.analysis;
-                        var terrain = a.terrainClear ? 'مرجّح مقبول' : 'قد يوجد حجب';
-                        content.innerHTML =
-                            '<div>المسافة: ' + a.distanceMeters + ' م</div>' +
-                            '<div>النتيجة: ' + terrain + '</div>' +
-                            '<div class="text-muted mt-1">' + (a.terrainNote || '') + '</div>';
-                    })
-                    .catch(function () {
-                        content.innerHTML = '<span class="text-danger">تعذر إكمال التحليل.</span>';
-                    })
-                    .finally(function () {
-                        btn.disabled = false;
-                        btn.innerHTML = prev;
-                    });
-            }
-            var b = document.getElementById('btnAnalyzeLosEmp');
-            if (b) b.addEventListener('click', runLos);
-            var c = document.getElementById('btnLosResultCloseEmp');
-            if (c) c.addEventListener('click', function () {
-                document.getElementById('losResultPanelEmp').classList.add('d-none');
-            });
-
-            if (sectorSelect && sectorSelect.value) {
-                onSectorChosen();
-            }
-        })();
-    </script>
+    <partial name="_ReceiverCreateMapScripts" />
 }
-
