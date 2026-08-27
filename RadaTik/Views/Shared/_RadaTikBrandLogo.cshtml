@@ -1,4 +1,4 @@
-@* شعار RADATIK الرسمي (صورة كاملة + أيقونة للطّي) *@
+@* شعار RADATIK الرسمي — نسخة فاتحة وداكنة + أيقونة للطّي *@
 @{
     var variant = (ViewData["RtBrandVariant"] as string ?? "default").ToLowerInvariant();
     var forceMark = string.Equals(ViewData["RtBrandMarkOnly"] as string, "true", StringComparison.OrdinalIgnoreCase)
@@ -8,17 +8,35 @@
         : $"rt-brand-block rt-brand-block--{variant}";
 }
 <div class="@blockClass" dir="ltr" translate="no">
-    <img class="rt-logo-img rt-logo-full"
-         src="~/images/brand/radatik-logo.png"
-         asp-append-version="true"
-         alt="RADATIK technology L.L.C"
-         width="220"
-         height="61" />
-    <img class="rt-logo-img rt-logo-mark"
-         src="~/images/brand/radatik-mark.png"
-         asp-append-version="true"
-         alt=""
-         aria-hidden="true"
-         width="40"
-         height="40" />
+    <span class="rt-logo-theme rt-logo-theme--light">
+        <img class="rt-logo-img rt-logo-full"
+             src="~/images/brand/radatik-logo-light.png"
+             asp-append-version="true"
+             alt="RADATIK technology L.L.C"
+             width="325"
+             height="79" />
+        <img class="rt-logo-img rt-logo-mark"
+             src="~/images/brand/radatik-mark-light.png"
+             asp-append-version="true"
+             alt=""
+             aria-hidden="true"
+             width="99"
+             height="99" />
+    </span>
+    <span class="rt-logo-theme rt-logo-theme--dark">
+        <img class="rt-logo-img rt-logo-full"
+             src="~/images/brand/radatik-logo-dark.png"
+             asp-append-version="true"
+             alt=""
+             aria-hidden="true"
+             width="320"
+             height="81" />
+        <img class="rt-logo-img rt-logo-mark"
+             src="~/images/brand/radatik-mark-dark.png"
+             asp-append-version="true"
+             alt=""
+             aria-hidden="true"
+             width="98"
+             height="98" />
+    </span>
 </div>
