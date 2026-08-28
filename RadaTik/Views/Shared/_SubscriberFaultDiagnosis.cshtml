@@ -1,0 +1,165 @@
+@model RadaTik.Models.Client
+@if (ViewBag.IsClientOnly == true)
+{
+    return;
+}
+@{
+    string diagnoseUrl = Url.Action("DiagnoseFaultJson", new { id = Model.Id })
+        ?? Url.RouteUrl("networkManager-clients", new { action = "DiagnoseFaultJson", id = Model.Id })
+        ?? string.Empty;
+}
+
+<div class="row" id="subscriber-fault-diagnosis">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-stethoscope"></i>
+                    تشخيص سبب العطل
+                </h5>
+                <button type="button"
+                        class="btn btn-sm btn-light"
+                        id="subscriber-fault-run"
+                        data-diagnose-url="@diagnoseUrl"
+                        @(string.IsNullOrEmpty(diagnoseUrl) ? "disabled" : null)>
+                    <i class="fas fa-play"></i>
+                    فحص الآن
+                </button>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    يعزل العطل بمقارنة هذا المشترك بجيرانه على اللاقط والمرسل والسيرفر، ثم يفحص الوصول عبر Ping عند توفر MikroTik.
+                </p>
+                <div id="subscriber-fault-idle" class="text-muted">
+                    اضغط «فحص الآن» عندما يبلغ المشترك عن انقطاع.
+                </div>
+                <div id="subscriber-fault-loading" class="d-none">
+                    <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                    جاري الفحص…
+                </div>
+                <div id="subscriber-fault-error" class="alert alert-danger d-none mb-0"></div>
+                <div id="subscriber-fault-result" class="d-none">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <span id="subscriber-fault-cause" class="badge"></span>
+                        <span id="subscriber-fault-confidence" class="badge bg-secondary"></span>
+                    </div>
+                    <p id="subscriber-fault-summary" class="mb-2"></p>
+                    <p id="subscriber-fault-action" class="small text-muted mb-3"></p>
+                    <div id="subscriber-fault-maintenance" class="alert alert-info py-2 d-none mb-3"></div>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>الفحص</th>
+                                    <th>النتيجة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subscriber-fault-evidence"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var runBtn = document.getElementById('subscriber-fault-run');
+        if (!runBtn) {
+            return;
+        }
+
+        var idle = document.getElementById('subscriber-fault-idle');
+        var loading = document.getElementById('subscriber-fault-loading');
+        var errorBox = document.getElementById('subscriber-fault-error');
+        var resultBox = document.getElementById('subscriber-fault-result');
+        var causeEl = document.getElementById('subscriber-fault-cause');
+        var confidenceEl = document.getElementById('subscriber-fault-confidence');
+        var summaryEl = document.getElementById('subscriber-fault-summary');
+        var actionEl = document.getElementById('subscriber-fault-action');
+        var maintenanceEl = document.getElementById('subscriber-fault-maintenance');
+        var evidenceEl = document.getElementById('subscriber-fault-evidence');
+
+        function causeClass(cause) {
+            if (cause === 'Server' || cause === 'Sector' || cause === 'Receiver') {
+                return 'bg-danger';
+            }
+            if (cause === 'Account' || cause === 'CableOrSwitch' || cause === 'LastMile') {
+                return 'bg-warning text-dark';
+            }
+            if (cause === 'Router') {
+                return 'bg-info text-dark';
+            }
+            return 'bg-secondary';
+        }
+
+        function show(el) { el.classList.remove('d-none'); }
+        function hide(el) { el.classList.add('d-none'); }
+
+        runBtn.addEventListener('click', function () {
+            var url = runBtn.getAttribute('data-diagnose-url');
+            if (!url) {
+                return;
+            }
+
+            runBtn.disabled = true;
+            hide(idle);
+            hide(errorBox);
+            hide(resultBox);
+            show(loading);
+
+            fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } })
+                .then(function (response) {
+                    return response.json().then(function (body) {
+                        return { ok: response.ok, body: body };
+                    });
+                })
+                .then(function (payload) {
+                    hide(loading);
+                    runBtn.disabled = false;
+                    var body = payload.body || {};
+                    if (!payload.ok || !body.success) {
+                        errorBox.textContent = body.message || 'تعذر إكمال التشخيص.';
+                        show(errorBox);
+                        return;
+                    }
+
+                    causeEl.className = 'badge ' + causeClass(body.cause);
+                    causeEl.textContent = body.causeLabel || body.cause || '';
+                    confidenceEl.textContent = 'الثقة: ' + (body.confidenceLabel || '');
+                    summaryEl.textContent = body.summary || '';
+                    actionEl.textContent = body.suggestedAction || '';
+                    if (body.suggestedMaintenanceLabel) {
+                        maintenanceEl.textContent = 'اقتراح الصيانة: ' + body.suggestedMaintenanceLabel;
+                        show(maintenanceEl);
+                    } else {
+                        hide(maintenanceEl);
+                    }
+
+                    evidenceEl.innerHTML = '';
+                    (body.evidence || []).forEach(function (item) {
+                        var tr = document.createElement('tr');
+                        if (item.isAlert) {
+                            tr.className = 'table-warning';
+                        }
+                        var tdLabel = document.createElement('td');
+                        tdLabel.textContent = item.label || '';
+                        var tdValue = document.createElement('td');
+                        tdValue.textContent = item.value || '';
+                        tr.appendChild(tdLabel);
+                        tr.appendChild(tdValue);
+                        evidenceEl.appendChild(tr);
+                    });
+
+                    show(resultBox);
+                })
+                .catch(function () {
+                    hide(loading);
+                    runBtn.disabled = false;
+                    errorBox.textContent = 'تعذر الاتصال بخدمة التشخيص.';
+                    show(errorBox);
+                });
+        });
+    })();
+</script>

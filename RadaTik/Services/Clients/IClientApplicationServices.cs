@@ -29,4 +29,5 @@ public interface IClientApplicationServices
     IClientExpirationQueryService Expiration { get; }
     IClientFormLookupService FormLookup { get; }
     IClientInfoFileImportService InfoFileImport { get; }
+    ISubscriberFaultDiagnosisService FaultDiagnosis { get; }
 }

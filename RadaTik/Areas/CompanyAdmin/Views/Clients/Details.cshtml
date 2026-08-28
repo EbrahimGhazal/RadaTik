@@ -246,6 +246,11 @@
     </div>
 </div>
 
+@if (ViewBag.IsClientOnly != true)
+{
+    <partial name="_SubscriberFaultDiagnosis" model="Model" />
+}
+
 @if (User.IsInRole("SystemAdministrator") || User.IsInRole("NetworkAdministrator"))
 {
     var recentTopUps = ViewBag.RecentTopUps as IEnumerable<RadaTik.Models.ClientTopUpTransaction> ?? Enumerable.Empty<RadaTik.Models.ClientTopUpTransaction>();

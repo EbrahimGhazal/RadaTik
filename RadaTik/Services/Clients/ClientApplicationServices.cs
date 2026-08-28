@@ -26,7 +26,8 @@ public sealed class ClientApplicationServices(
     IClientSelfRenewalService selfRenewal,
     IClientExpirationQueryService expiration,
     IClientFormLookupService formLookup,
-    IClientInfoFileImportService infoFileImport) : IClientApplicationServices
+    IClientInfoFileImportService infoFileImport,
+    ISubscriberFaultDiagnosisService faultDiagnosis) : IClientApplicationServices
 {
     public IMikroTikPppoeUserService MikroTikPppoe { get; } = mikroTikPppoe;
     public IMikroTikUserImportService MikroTikImport { get; } = mikroTikImport;
@@ -50,4 +51,5 @@ public sealed class ClientApplicationServices(
     public IClientExpirationQueryService Expiration { get; } = expiration;
     public IClientFormLookupService FormLookup { get; } = formLookup;
     public IClientInfoFileImportService InfoFileImport { get; } = infoFileImport;
+    public ISubscriberFaultDiagnosisService FaultDiagnosis { get; } = faultDiagnosis;
 }

@@ -16,6 +16,7 @@ public sealed class ClientDetailsViewDiTests
 
         Assert.DoesNotContain("@inject RadaTik.Services.PermissionService", text);
         Assert.Contains("ViewBag.CanEditClient", text);
+        Assert.Contains("_SubscriberFaultDiagnosis", text);
         Assert.DoesNotContain("model.Password", text);
         Assert.DoesNotContain("MikroTikInfo.Password", text);
     }
@@ -27,6 +28,7 @@ public sealed class ClientDetailsViewDiTests
         string text = File.ReadAllText(viewPath).TrimStart();
 
         Assert.StartsWith("@model RadaTik.Models.Client", text);
+        Assert.Contains("_SubscriberFaultDiagnosis", text);
         Assert.DoesNotContain("@inject RadaTik.Services.PermissionService", text);
         Assert.DoesNotContain("model.Password", text);
         Assert.DoesNotContain("كلمة المرور", text);

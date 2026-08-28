@@ -8,6 +8,7 @@ public static class MikroTikServiceCollectionExtensions
     public static IServiceCollection AddMikroTikServices(this IServiceCollection services)
     {
         services.AddScoped<MikroTikConnectionSupport>();
+        services.AddScoped<IMikroTikProbeService, MikroTikProbeService>();
         services.AddScoped<MikroTikService>();
         services.AddScoped<MikroTikUserService>();
         services.AddScoped<MikroTikUserImportService>();

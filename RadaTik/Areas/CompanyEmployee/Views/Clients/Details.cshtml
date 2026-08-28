@@ -208,6 +208,11 @@
     </div>
 </div>
 
+@if (ViewBag.IsClientOnly != true)
+{
+    <partial name="_SubscriberFaultDiagnosis" model="Model" />
+}
+
 @if (!isClientOnly && canEdit)
 {
     var installationDate = Model.CreatedDate;
