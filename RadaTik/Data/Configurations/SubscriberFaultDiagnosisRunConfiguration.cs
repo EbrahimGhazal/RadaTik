@@ -32,6 +32,6 @@ public sealed class SubscriberFaultDiagnosisRunConfiguration : IEntityTypeConfig
         entity.HasOne(e => e.MaintenanceRequest)
             .WithMany()
             .HasForeignKey(e => e.MaintenanceRequestId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

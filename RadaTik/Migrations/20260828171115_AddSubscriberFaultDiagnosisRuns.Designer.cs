@@ -6861,7 +6861,7 @@ namespace RadaTik.Migrations
                     b.HasOne("RadaTik.Models.MaintenanceRequest", "MaintenanceRequest")
                         .WithMany()
                         .HasForeignKey("MaintenanceRequestId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("RadaTik.Models.Network", "Network")
                         .WithMany()

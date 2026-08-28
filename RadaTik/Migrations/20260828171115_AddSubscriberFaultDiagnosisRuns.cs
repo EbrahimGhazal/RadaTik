@@ -74,8 +74,7 @@ namespace RadaTik.Migrations
                         name: "FK_SubscriberFaultDiagnosisRuns_MaintenanceRequests_MaintenanceRequestId",
                         column: x => x.MaintenanceRequestId,
                         principalTable: "MaintenanceRequests",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_SubscriberFaultDiagnosisRuns_Networks_NetworkId",
                         column: x => x.NetworkId,
