@@ -899,6 +899,16 @@
                 .finally(() => { connectionStatusLoading = false; });
         }
 
+        function applyInlineColumnDisplay(key, visible) {
+            document.querySelectorAll('#clientsTable [data-col="' + CSS.escape(key) + '"]').forEach(function (el) {
+                if (visible) {
+                    el.style.removeProperty('display');
+                } else {
+                    el.style.display = 'none';
+                }
+            });
+        }
+
         function setColumnVisible(key, visible, options) {
             if (!key) return;
             const skipDraw = !!(options && options.skipDraw);
@@ -906,13 +916,7 @@
             if (table) {
                 table.classList.toggle('hide-col-' + key, !visible);
             }
-            document.querySelectorAll('#clientsTable [data-col="' + key + '"]').forEach(function (el) {
-                if (visible) {
-                    el.style.removeProperty('display');
-                } else {
-                    el.style.display = 'none';
-                }
-            });
+            applyInlineColumnDisplay(key, visible);
             if (typeof $.fn.DataTable === 'undefined' || !$.fn.DataTable.isDataTable('#clientsTable')) {
                 return;
             }
@@ -928,8 +932,10 @@
             if (colIdx >= 0 && api.column(colIdx).visible() !== visible) {
                 api.column(colIdx).visible(visible, false);
             }
+            applyInlineColumnDisplay(key, visible);
             if (!skipDraw) {
-                api.columns.adjust();
+                api.columns.adjust().draw(false);
+                applyInlineColumnDisplay(key, visible);
             }
         }
 
@@ -942,7 +948,7 @@
                 setColumnVisible(key, visible, { skipDraw: true });
             });
             if (typeof $.fn.DataTable !== 'undefined' && $.fn.DataTable.isDataTable('#clientsTable')) {
-                $('#clientsTable').DataTable().columns.adjust();
+                $('#clientsTable').DataTable().columns.adjust().draw(false);
             }
         }
 

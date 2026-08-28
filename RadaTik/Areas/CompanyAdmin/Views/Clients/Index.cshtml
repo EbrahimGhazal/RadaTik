@@ -1283,6 +1283,20 @@
             return found;
         }
 
+        function applyInlineColumnDisplay(key, visible) {
+            // CSS hide-col-* يستخدم !important ويتفوّق على تخطيط البطاقات.
+            // على سطح المكتب نضبط display فوراً. بعد إظهار العمود في DataTables تُعاد الخلايا
+            // التي أُرفقت سابقاً مع style.display=none، لذلك نعيد المسح بعد كل مزامنة.
+            const useInlineHide = !isClientsMobileViewport();
+            document.querySelectorAll('#clientsTable [data-col="' + CSS.escape(key) + '"]').forEach(function (el) {
+                if (!useInlineHide || visible) {
+                    el.style.removeProperty('display');
+                    return;
+                }
+                el.style.display = 'none';
+            });
+        }
+
         function setColumnVisible(key, visible, options) {
             if (!key) {
                 return;
@@ -1293,20 +1307,7 @@
                 table.classList.toggle('hide-col-' + key, !visible);
             }
 
-            // CSS hide-col-* يستخدم !important ويتفوّق على تخطيط البطاقات.
-            // على سطح المكتب نضبط أيضاً display فوراً قبل مزامنة DataTables.
-            const useInlineHide = !isClientsMobileViewport();
-            document.querySelectorAll('#clientsTable [data-col="' + key + '"]').forEach(function (el) {
-                if (!useInlineHide) {
-                    el.style.removeProperty('display');
-                    return;
-                }
-                if (visible) {
-                    el.style.removeProperty('display');
-                } else {
-                    el.style.display = 'none';
-                }
-            });
+            applyInlineColumnDisplay(key, visible);
 
             if (typeof $.fn.DataTable === 'undefined' || !$.fn.DataTable.isDataTable('#clientsTable')) {
                 return;
@@ -1316,8 +1317,10 @@
             if (colIdx >= 0 && api.column(colIdx).visible() !== visible) {
                 api.column(colIdx).visible(visible, false);
             }
+            applyInlineColumnDisplay(key, visible);
             if (!skipDraw) {
-                api.columns.adjust();
+                api.columns.adjust().draw(false);
+                applyInlineColumnDisplay(key, visible);
             }
         }
 
@@ -1340,7 +1343,7 @@
             });
 
             if (typeof $.fn.DataTable !== 'undefined' && $.fn.DataTable.isDataTable('#clientsTable')) {
-                $('#clientsTable').DataTable().columns.adjust();
+                $('#clientsTable').DataTable().columns.adjust().draw(false);
             }
         }
 
