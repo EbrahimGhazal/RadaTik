@@ -61,6 +61,56 @@ public sealed class SubscriberFaultDiagnosisServiceTests
         Assert.True(dto.Success);
         Assert.Equal("Receiver", dto.Cause);
         Assert.Equal("High", dto.Confidence);
+        Assert.True(dto.DiagnosisId.HasValue);
+        Assert.True(dto.CanCreateMaintenance);
+        Assert.Contains(dto.Hops, h => h.Name == "اللاقط" && h.Status == "لا يرد");
+        Assert.Equal(1, db.SubscriberFaultDiagnosisRuns.Count());
+    }
+
+    [Fact]
+    public async Task ConfirmFromMaintenance_RecordsMatchAgainstSuggestion()
+    {
+        await using ApplicationDbContext db = CreateDb();
+        SeedTopology(db, clientNetworkId: 1, extraReceiverClients: 2);
+        Mock<IMikroTikPppoeUserService> pppoe = new();
+        pppoe.Setup(s => s.GetActivePPPoEUsers(10)).ReturnsAsync(
+        [
+            new Client { UserName = "user-2" },
+            new Client { UserName = "healthy-peer" }
+        ]);
+        Mock<IMikroTikProbeService> probe = new();
+        probe.Setup(s => s.PingManyAsync(10, It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, MikroTikPingHopResult>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["10.0.0.2"] = new() { Address = "10.0.0.2", Attempted = true, Reached = true },
+                ["10.0.0.10"] = new() { Address = "10.0.0.10", Attempted = true, Reached = true }
+            });
+
+        SubscriberFaultDiagnosisService sut = CreateSut(db, pppoe, probe);
+        SubscriberFaultDiagnosisDto diagnosis = await sut.DiagnoseAsync(clientId: 1, selectedNetworkId: 1);
+        Assert.Equal("CableOrSwitch", diagnosis.Cause);
+        Assert.True(diagnosis.DiagnosisId.HasValue);
+
+        db.MaintenanceRequests.Add(new MaintenanceRequest
+        {
+            Id = 40,
+            ClientId = 1,
+            Type = MaintenanceType.NoInternet,
+            Description = "انقطاع",
+            Status = MaintenanceRequestStatus.Completed,
+            RequestDate = DateTime.Now
+        });
+        await db.SaveChangesAsync();
+
+        await sut.LinkToMaintenanceRequestAsync(diagnosis.DiagnosisId.Value, 40);
+        await sut.ConfirmFromMaintenanceAsync(40, [MaintenanceType.CableIssue], "tech-1");
+
+        SubscriberFaultDiagnosisDto? loaded = await sut.GetForMaintenanceRequestAsync(40);
+        Assert.NotNull(loaded);
+        Assert.Equal("Cable", loaded.ConfirmedCause);
+        Assert.True(loaded.SuggestionMatched);
+        Assert.Equal(40, loaded.MaintenanceRequestId);
+        Assert.False(loaded.CanCreateMaintenance);
     }
 
     [Fact]

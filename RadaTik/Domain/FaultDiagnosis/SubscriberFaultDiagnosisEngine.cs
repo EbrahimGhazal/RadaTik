@@ -3,8 +3,7 @@ using RadaTik.Models;
 namespace RadaTik.Domain.FaultDiagnosis;
 
 /// <summary>
-/// يعزل سبب العطل من نطاق الانقطاع ثم من سلسلة الفحص.
-/// لا يعتمد على نموذج لغوي: القرار قواعد صريحة قابلة للتدقيق.
+/// يعزل سبب العطل من نطاق الانقطاع ثم من سلسلة الفحص وأسئلة LED والسجل المؤكد.
 /// </summary>
 public static class SubscriberFaultDiagnosisEngine
 {
@@ -13,7 +12,14 @@ public static class SubscriberFaultDiagnosisEngine
         ArgumentNullException.ThrowIfNull(facts);
 
         List<SubscriberFaultEvidence> evidence = BuildEvidence(facts);
+        SubscriberFaultDiagnosisResult core = DiagnoseCore(facts, evidence);
+        return RefineWithLedAndHistory(facts, core);
+    }
 
+    private static SubscriberFaultDiagnosisResult DiagnoseCore(
+        SubscriberFaultFacts facts,
+        List<SubscriberFaultEvidence> evidence)
+    {
         if (!facts.IsAccountActive)
         {
             return Result(
@@ -196,6 +202,194 @@ public static class SubscriberFaultDiagnosisEngine
             evidence);
     }
 
+    private static SubscriberFaultDiagnosisResult RefineWithLedAndHistory(
+        SubscriberFaultFacts facts,
+        SubscriberFaultDiagnosisResult core)
+    {
+        if (IsInfrastructureCause(core.Cause))
+        {
+            return core;
+        }
+
+        SubscriberFaultDiagnosisResult? fromLed = ApplyLed(facts, core);
+        if (fromLed != null)
+        {
+            return fromLed;
+        }
+
+        return ApplyHistory(facts, core);
+    }
+
+    private static bool IsInfrastructureCause(SubscriberFaultComponent cause) =>
+        cause is SubscriberFaultComponent.Account
+            or SubscriberFaultComponent.Server
+            or SubscriberFaultComponent.Sector
+            or SubscriberFaultComponent.Receiver;
+
+    private static SubscriberFaultDiagnosisResult? ApplyLed(
+        SubscriberFaultFacts facts,
+        SubscriberFaultDiagnosisResult core)
+    {
+        SubscriberFaultLedAnswers led = facts.Led;
+        if (!led.HasAny)
+        {
+            return null;
+        }
+
+        IReadOnlyList<SubscriberFaultEvidence> evidence = core.Evidence;
+
+        if (facts.HasPppSession)
+        {
+            if (led.RouterPowerOn == false)
+            {
+                return Result(
+                    SubscriberFaultComponent.Router,
+                    SubscriberFaultConfidence.High,
+                    "جلسة PPPoE كانت قائمة لكن الراوتر لا يعمل الآن. أعد الفحص بعد تشغيل الراوتر.",
+                    "شغّل الراوتر أو استبدله.",
+                    MaintenanceType.RouterNotWorking,
+                    evidence);
+            }
+
+            if (led.RouterPowerOn == true && led.WanLedOn == true && led.InternetLedOn == false)
+            {
+                return Result(
+                    SubscriberFaultComponent.Router,
+                    SubscriberFaultConfidence.High,
+                    "المسار حتى السيرفر سليم وليد الإنترنت مطفأ. المشكلة في الراوتر أو أجهزته.",
+                    "راجع إعدادات الراوتر ومصابيحه.",
+                    MaintenanceType.RouterInternetLedOff,
+                    evidence);
+            }
+
+            return null;
+        }
+
+        if (led.NeighborsOnSwitchDown == true)
+        {
+            return Result(
+                SubscriberFaultComponent.Switch,
+                SubscriberFaultConfidence.High,
+                "عدة أجهزة خلف نفس السويتش متوقفة واللاقط/المسار العلوي ليسا السبب الأرجح. العطل في السويتش.",
+                "افحص السويتش ومغذّيه واستبدله إن لزم.",
+                MaintenanceType.SwitchReplacement,
+                evidence);
+        }
+
+        if (led.RouterPowerOn == false)
+        {
+            return Result(
+                SubscriberFaultComponent.Router,
+                SubscriberFaultConfidence.High,
+                "الراوتر لا يعمل (بدون طاقة أو لا يقلع). هذا عطل في راوتر المشترك.",
+                "اطلب إعادة التشغيل أو تغيير الراوتر.",
+                MaintenanceType.RouterNotWorking,
+                evidence);
+        }
+
+        if (led.RouterPowerOn == true && led.WanLedOn == false)
+        {
+            return Result(
+                SubscriberFaultComponent.Cable,
+                SubscriberFaultConfidence.High,
+                "الراوتر يعمل وليد WAN مطفأ: لا تصل إشارة من الكبل/السويتش إلى منفذ WAN.",
+                "افحص كبل WAN والموصلات حتى السويتش أو اللاقط.",
+                MaintenanceType.CableIssue,
+                evidence);
+        }
+
+        if (led.RouterPowerOn == true && led.WanLedOn == true && led.InternetLedOn == false)
+        {
+            return Result(
+                SubscriberFaultComponent.Router,
+                SubscriberFaultConfidence.High,
+                "الراوتر يعمل وليد WAN مضاء لكن ليد الإنترنت مطفأ. الإعدادات أو المصادقة على الراوتر.",
+                "راجع إعدادات PPPoE/WAN على الراوتر أو غيّرها.",
+                MaintenanceType.RouterInternetLedOff,
+                evidence);
+        }
+
+        if (led.RouterPowerOn == true && led.WanLedOn == true && led.InternetLedOn == true && !facts.HasPppSession)
+        {
+            return Result(
+                SubscriberFaultComponent.Router,
+                SubscriberFaultConfidence.Medium,
+                "مصابيح الراوتر تبدو سليمة لكن لا توجد جلسة PPPoE. غالباً إعدادات الراوتر أو كلمة السر.",
+                "راجع اسم المستخدم وكلمة سر PPPoE على الراوتر.",
+                MaintenanceType.RouterSettingsChange,
+                evidence);
+        }
+
+        return null;
+    }
+
+    private static SubscriberFaultDiagnosisResult ApplyHistory(
+        SubscriberFaultFacts facts,
+        SubscriberFaultDiagnosisResult core)
+    {
+        if (core.Cause is not (SubscriberFaultComponent.CableOrSwitch or SubscriberFaultComponent.LastMile))
+        {
+            return core;
+        }
+
+        SubscriberFaultLastMileStats? stats = facts.LastMileHistory;
+        if (stats == null || stats.SampleCount < 5 || stats.TotalLastMile < 5)
+        {
+            return core;
+        }
+
+        int cable = stats.CableCount;
+        int sw = stats.SwitchCount;
+        int router = stats.RouterCount;
+        int receiver = stats.ReceiverCount;
+        int max = Math.Max(Math.Max(cable, sw), Math.Max(router, receiver));
+        if (max * 2 < stats.TotalLastMile)
+        {
+            return core;
+        }
+
+        if (max == sw)
+        {
+            return Result(
+                SubscriberFaultComponent.Switch,
+                SubscriberFaultConfidence.Medium,
+                core.Summary + " السجل المؤكد يرجّح السويتش في حالات آخر الميل المشابهة.",
+                "افحص السويتش أولاً بناءً على نتائج الزيارات السابقة.",
+                MaintenanceType.SwitchReplacement,
+                core.Evidence);
+        }
+
+        if (max == cable)
+        {
+            return Result(
+                SubscriberFaultComponent.Cable,
+                SubscriberFaultConfidence.Medium,
+                core.Summary + " السجل المؤكد يرجّح الكبل في حالات آخر الميل المشابهة.",
+                "افحص الكبل والموصلات أولاً بناءً على نتائج الزيارات السابقة.",
+                MaintenanceType.CableIssue,
+                core.Evidence);
+        }
+
+        if (max == router)
+        {
+            return Result(
+                SubscriberFaultComponent.Router,
+                SubscriberFaultConfidence.Medium,
+                core.Summary + " السجل المؤكد يرجّح الراوتر في حالات آخر الميل المشابهة.",
+                "افحص الراوتر أولاً بناءً على نتائج الزيارات السابقة.",
+                MaintenanceType.RouterReplacement,
+                core.Evidence);
+        }
+
+        return Result(
+            SubscriberFaultComponent.Receiver,
+            SubscriberFaultConfidence.Medium,
+            core.Summary + " السجل المؤكد يرجّح اللاقط في حالات آخر الميل المشابهة.",
+            "افحص اللاقط وPOE أولاً بناءً على نتائج الزيارات السابقة.",
+            MaintenanceType.PoeChange,
+            core.Evidence);
+    }
+
     private static bool IsExpired(SubscriberFaultFacts facts) =>
         facts.AccountExpirationDate.HasValue && facts.AccountExpirationDate.Value < facts.Now;
 
@@ -238,20 +432,9 @@ public static class SubscriberFaultDiagnosisEngine
                 facts.ReceiverClientCount >= 2 && facts.ReceiverConnectedCount == 0)
         ];
 
-        if (facts.SectorPingOk.HasValue)
-        {
-            evidence.Add(Item("sector-ping", "Ping المرسل", facts.SectorPingOk.Value ? "يرد" : "لا يرد", !facts.SectorPingOk.Value));
-        }
-
-        if (facts.ReceiverPingOk.HasValue)
-        {
-            evidence.Add(Item("receiver-ping", "Ping اللاقط", facts.ReceiverPingOk.Value ? "يرد" : "لا يرد", !facts.ReceiverPingOk.Value));
-        }
-
-        if (facts.ClientPingOk.HasValue)
-        {
-            evidence.Add(Item("client-ping", "Ping عنوان المشترك", facts.ClientPingOk.Value ? "يرد" : "لا يرد", !facts.ClientPingOk.Value));
-        }
+        evidence.Add(HopItem("sector-ping", "Ping المرسل", facts.SectorIp, facts.SectorPingOk, facts.SectorPingMessage));
+        evidence.Add(HopItem("receiver-ping", "Ping اللاقط", facts.ReceiverIp, facts.ReceiverPingOk, facts.ReceiverPingMessage));
+        evidence.Add(HopItem("client-ping", "Ping عنوان المشترك", facts.ClientIp, facts.ClientPingOk, facts.ClientPingMessage));
 
         if (facts.SectorNoiseFloorDbm.HasValue || facts.SectorSnrDb.HasValue || facts.SectorCcqPercent.HasValue)
         {
@@ -260,8 +443,37 @@ public static class SubscriberFaultDiagnosisEngine
             evidence.Add(Item("radio", "راديو المرسل", radio, facts.SectorRadioDegraded));
         }
 
+        SubscriberFaultLedAnswers led = facts.Led;
+        if (led.HasAny)
+        {
+            evidence.Add(Item("led-power", "الراوتر يعمل", Tri(led.RouterPowerOn), led.RouterPowerOn == false));
+            evidence.Add(Item("led-wan", "ليد WAN", Tri(led.WanLedOn), led.WanLedOn == false));
+            evidence.Add(Item("led-internet", "ليد الإنترنت", Tri(led.InternetLedOn), led.InternetLedOn == false));
+            evidence.Add(Item("led-switch", "أجهزة أخرى على السويتش متوقفة", Tri(led.NeighborsOnSwitchDown), led.NeighborsOnSwitchDown == true));
+        }
+
         return evidence;
     }
+
+    private static SubscriberFaultEvidence HopItem(string code, string label, string? ip, bool? ok, string? message)
+    {
+        string address = string.IsNullOrWhiteSpace(ip) ? "بدون عنوان" : ip.Trim();
+        string status = ok switch
+        {
+            true => "يرد",
+            false => "لا يرد",
+            _ => "لم يُفحص"
+        };
+        string value = string.IsNullOrWhiteSpace(message) ? $"{address} — {status}" : $"{address} — {status} ({message})";
+        return Item(code, label, value, ok == false);
+    }
+
+    private static string Tri(bool? value) => value switch
+    {
+        true => "نعم",
+        false => "لا",
+        _ => "غير محدد"
+    };
 
     private static string Format(int? value) => value.HasValue ? value.Value.ToString() : "—";
 
@@ -305,6 +517,8 @@ public static class SubscriberFaultDiagnosisEngine
         SubscriberFaultComponent.Sector => "المرسل",
         SubscriberFaultComponent.Receiver => "اللاقط",
         SubscriberFaultComponent.CableOrSwitch => "الكبل أو السويتش",
+        SubscriberFaultComponent.Cable => "الكبل",
+        SubscriberFaultComponent.Switch => "السويتش",
         SubscriberFaultComponent.Router => "الراوتر",
         SubscriberFaultComponent.LastMile => "اللاقط أو الكبل أو الراوتر",
         _ => "غير محدد"

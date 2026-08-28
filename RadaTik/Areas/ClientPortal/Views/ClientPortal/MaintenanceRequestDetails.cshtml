@@ -49,6 +49,8 @@
             <div class="request-box">@Model.Description</div>
         </div>
 
+        <partial name="_SubscriberFaultDiagnosisReport" model="@(ViewBag.FaultDiagnosis as RadaTik.Services.Clients.SubscriberFaultDiagnosisDto)" />
+
         @if (!string.IsNullOrWhiteSpace(Model.TechnicianNotes))
         {
             <div class="mb-3">

@@ -22,8 +22,9 @@ namespace RadaTik.Areas.CompanyEmployee.Controllers
             global::RadaTik.Services.IMaintenanceBillingService maintenanceBillingService,
             global::RadaTik.Services.MaintenancePricing.IMaintenancePricingService maintenancePricingService,
             global::RadaTik.Services.IMaintenanceEmployeeTaskService maintenanceEmployeeTasks,
-            ILogger<global::RadaTik.Controllers.RequestsManagementController> logger)
-            : base(context, userManager, mikroTikService, permissionService, maintenanceBillingService, maintenancePricingService, maintenanceEmployeeTasks, logger)
+            ILogger<global::RadaTik.Controllers.RequestsManagementController> logger,
+            global::RadaTik.Services.Clients.ISubscriberFaultDiagnosisService faultDiagnosis)
+            : base(context, userManager, mikroTikService, permissionService, maintenanceBillingService, maintenancePricingService, maintenanceEmployeeTasks, logger, faultDiagnosis)
         {
         }
     }

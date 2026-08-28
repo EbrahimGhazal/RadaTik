@@ -117,6 +117,8 @@
                 <p class="description-text">@Model.Description</p>
             </div>
 
+            <partial name="_SubscriberFaultDiagnosisReport" model="@(ViewBag.FaultDiagnosis as RadaTik.Services.Clients.SubscriberFaultDiagnosisDto)" />
+
             @if (!string.IsNullOrEmpty(Model.ContactPhone) || !string.IsNullOrEmpty(Model.PreferredContactTime) || !string.IsNullOrEmpty(Model.Address))
             {
                 <div class="contact-section">

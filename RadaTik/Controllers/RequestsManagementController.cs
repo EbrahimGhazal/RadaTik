@@ -4,12 +4,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RadaTik.Constants;
 using RadaTik.Data;
+using RadaTik.Helpers;
 using RadaTik.Models;
+using RadaTik.Security;
 using RadaTik.Services;
+using RadaTik.Services.Clients;
 using RadaTik.Services.MaintenancePricing;
 using RadaTik.Services.MikroTik;
-using RadaTik.Security;
-using RadaTik.Helpers;
 using RadaTik.ViewModels.Maintenance;
 
 namespace RadaTik.Controllers
@@ -31,6 +32,7 @@ namespace RadaTik.Controllers
         private readonly IMaintenancePricingService _maintenancePricingService;
         private readonly IMaintenanceEmployeeTaskService _maintenanceEmployeeTasks;
         private readonly ILogger<RequestsManagementController> _logger;
+        private readonly ISubscriberFaultDiagnosisService _faultDiagnosis;
 
         private sealed record NetworkIdParentSnapshot(int Id, int? ParentNetworkId);
 
@@ -42,7 +44,8 @@ namespace RadaTik.Controllers
             IMaintenanceBillingService maintenanceBillingService,
             IMaintenancePricingService maintenancePricingService,
             IMaintenanceEmployeeTaskService maintenanceEmployeeTasks,
-            ILogger<RequestsManagementController> logger)
+            ILogger<RequestsManagementController> logger,
+            ISubscriberFaultDiagnosisService faultDiagnosis)
         {
             _context = context;
             _userManager = userManager;
@@ -52,6 +55,7 @@ namespace RadaTik.Controllers
             _maintenancePricingService = maintenancePricingService;
             _maintenanceEmployeeTasks = maintenanceEmployeeTasks;
             _logger = logger;
+            _faultDiagnosis = faultDiagnosis;
         }
 
         /// <summary>
@@ -218,6 +222,7 @@ namespace RadaTik.Controllers
             MaintenanceCommissionPreview commissionPreview = await LoadMaintenanceCommissionPreviewAsync(request);
             ViewBag.MaintenanceCommissionMode = commissionPreview.Mode;
             ViewBag.MaintenanceCommissionValue = commissionPreview.Value;
+            ViewBag.FaultDiagnosis = await _faultDiagnosis.GetForMaintenanceRequestAsync(request.Id);
 
             return View(request);
         }
@@ -383,6 +388,15 @@ namespace RadaTik.Controllers
             request.ProcessedById = currentUser?.Id;
 
             await _context.SaveChangesAsync();
+
+            try
+            {
+                await _faultDiagnosis.ConfirmFromMaintenanceAsync(id, selectedTypes, currentUser?.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "تعذر حفظ تأكيد سبب العطل لطلب الصيانة {RequestId}", id);
+            }
 
             MaintenanceInvoiceIssueResult invoiceResult = await _maintenanceBillingService.IssueInvoiceForCompletedRequestAsync(
                 request.Id,

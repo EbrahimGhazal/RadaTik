@@ -1,0 +1,40 @@
+@{
+    string prefix = ViewData["LedFieldPrefix"] as string ?? string.Empty;
+}
+<div class="border rounded p-3 mb-3 bg-light" id="@(prefix)subscriber-fault-led">
+    <p class="small fw-semibold mb-2">أسئلة المصابيح والأجهزة (اختياري — تزيد دقة التشخيص)</p>
+    <div class="row g-2">
+        <div class="col-md-6">
+            <label class="form-label small mb-1" for="@(prefix)routerPowerOn">هل الراوتر يعمل (فيه كهرباء ويضيء)؟</label>
+            <select class="form-select form-select-sm" id="@(prefix)routerPowerOn" name="routerPowerOn">
+                <option value="">غير محدد</option>
+                <option value="true">نعم</option>
+                <option value="false">لا</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label small mb-1" for="@(prefix)wanLedOn">ليد WAN مضاء؟</label>
+            <select class="form-select form-select-sm" id="@(prefix)wanLedOn" name="wanLedOn">
+                <option value="">غير محدد</option>
+                <option value="true">نعم</option>
+                <option value="false">لا</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label small mb-1" for="@(prefix)internetLedOn">ليد الإنترنت مضاء؟</label>
+            <select class="form-select form-select-sm" id="@(prefix)internetLedOn" name="internetLedOn">
+                <option value="">غير محدد</option>
+                <option value="true">نعم</option>
+                <option value="false">لا</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label small mb-1" for="@(prefix)neighborsOnSwitchDown">هل أجهزة أخرى على نفس السويتش متوقفة؟</label>
+            <select class="form-select form-select-sm" id="@(prefix)neighborsOnSwitchDown" name="neighborsOnSwitchDown">
+                <option value="">غير محدد</option>
+                <option value="true">نعم</option>
+                <option value="false">لا</option>
+            </select>
+        </div>
+    </div>
+</div>

@@ -62,6 +62,10 @@
                         <small class="form-text text-muted">كلما كان الوصف دقيقاً، كان الحل أسرع</small>
                     </div>
 
+                    <div id="subscriber-fault-led-wrap" class="d-none">
+                        <partial name="_SubscriberFaultLedQuestions" />
+                    </div>
+
                     <!-- الأولوية -->
                     <div class="form-group mb-4">
                         <label asp-for="Priority" class="form-label">درجة الأولوية</label>
@@ -128,4 +132,36 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        (function () {
+            var wrap = document.getElementById('subscriber-fault-led-wrap');
+            if (!wrap) {
+                return;
+            }
+
+            var outageTypes = new Set([@string.Join(", ", new[] {
+                (int)MaintenanceType.NoInternet,
+                (int)MaintenanceType.ServiceOutage,
+                (int)MaintenanceType.SlowConnection,
+                (int)MaintenanceType.RouterNotWorking,
+                (int)MaintenanceType.RouterInternetLedOff,
+                (int)MaintenanceType.RouterInternetAndWanLedsOff
+            })]);
+
+            function syncLed() {
+                var selected = document.querySelector('input[name="Type"]:checked');
+                var value = selected ? parseInt(selected.value, 10) : NaN;
+                if (outageTypes.has(value)) {
+                    wrap.classList.remove('d-none');
+                } else {
+                    wrap.classList.add('d-none');
+                }
+            }
+
+            document.querySelectorAll('input[name="Type"]').forEach(function (input) {
+                input.addEventListener('change', syncLed);
+            });
+            syncLed();
+        })();
+    </script>
 }

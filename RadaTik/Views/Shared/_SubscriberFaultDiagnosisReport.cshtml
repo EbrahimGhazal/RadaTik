@@ -1,0 +1,83 @@
+@model RadaTik.Services.Clients.SubscriberFaultDiagnosisDto?
+@if (Model == null || !Model.Success)
+{
+    return;
+}
+
+<div class="card mb-3" id="subscriber-fault-diagnosis-report">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-stethoscope"></i>
+            تشخيص سبب العطل
+        </h5>
+        <span class="badge bg-secondary">الثقة: @Model.ConfidenceLabel</span>
+    </div>
+    <div class="card-body">
+        <p class="mb-2">
+            <span class="badge bg-dark">@Model.CauseLabel</span>
+            @if (!string.IsNullOrWhiteSpace(Model.SuggestedMaintenanceLabel))
+            {
+                <span class="badge bg-info text-dark">اقتراح: @Model.SuggestedMaintenanceLabel</span>
+            }
+        </p>
+        <p class="mb-2">@Model.Summary</p>
+        <p class="small text-muted mb-3">@Model.SuggestedAction</p>
+
+        @if (Model.SuggestionMatched == true)
+        {
+            <div class="alert alert-success py-2 mb-3">تأكيد الفني يطابق التشخيص المقترح@(string.IsNullOrWhiteSpace(Model.ConfirmedCauseLabel) ? "" : $" ({Model.ConfirmedCauseLabel})").</div>
+        }
+        else if (Model.SuggestionMatched == false)
+        {
+            <div class="alert alert-warning py-2 mb-3">تأكيد الفني يختلف عن التشخيص: المقترح @Model.CauseLabel@(string.IsNullOrWhiteSpace(Model.ConfirmedCauseLabel) ? "" : $"، والنتيجة {Model.ConfirmedCauseLabel}").</div>
+        }
+
+        @if (Model.Hops.Count > 0)
+        {
+            <div class="table-responsive mb-3">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>النقطة</th>
+                            <th>العنوان</th>
+                            <th>Ping</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var hop in Model.Hops)
+                    {
+                        <tr>
+                            <td>@hop.Name</td>
+                            <td>@(string.IsNullOrWhiteSpace(hop.Address) ? "—" : hop.Address)</td>
+                            <td>@hop.Status</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (Model.Evidence.Count > 0)
+        {
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>الفحص</th>
+                            <th>النتيجة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model.Evidence)
+                    {
+                        <tr class="@(item.IsAlert ? "table-warning" : null)">
+                            <td>@item.Label</td>
+                            <td>@item.Value</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

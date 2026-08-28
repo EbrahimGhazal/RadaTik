@@ -7,6 +7,9 @@
     string diagnoseUrl = Url.Action("DiagnoseFaultJson", new { id = Model.Id })
         ?? Url.RouteUrl("networkManager-clients", new { action = "DiagnoseFaultJson", id = Model.Id })
         ?? string.Empty;
+    string createUrl = Url.Action("CreateMaintenanceFromDiagnosis", new { id = Model.Id })
+        ?? Url.RouteUrl("networkManager-clients", new { action = "CreateMaintenanceFromDiagnosis", id = Model.Id })
+        ?? string.Empty;
 }
 
 <div class="row" id="subscriber-fault-diagnosis">
@@ -28,8 +31,9 @@
             </div>
             <div class="card-body">
                 <p class="text-muted small mb-3">
-                    يعزل العطل بمقارنة هذا المشترك بجيرانه على اللاقط والمرسل والسيرفر، ثم يفحص الوصول عبر Ping عند توفر MikroTik.
+                    يعزل العطل بمقارنة هذا المشترك بجيرانه على اللاقط والمرسل والسيرفر، ثم يفحص الوصول عبر Ping عند توفر MikroTik. أسئلة المصابيح اختيارية وتفرّق بين الراوتر والكبل والسويتش.
                 </p>
+                <partial name="_SubscriberFaultLedQuestions" />
                 <div id="subscriber-fault-idle" class="text-muted">
                     اضغط «فحص الآن» عندما يبلغ المشترك عن انقطاع.
                 </div>
@@ -46,6 +50,18 @@
                     <p id="subscriber-fault-summary" class="mb-2"></p>
                     <p id="subscriber-fault-action" class="small text-muted mb-3"></p>
                     <div id="subscriber-fault-maintenance" class="alert alert-info py-2 d-none mb-3"></div>
+                    <div id="subscriber-fault-hops" class="table-responsive mb-3 d-none">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th>النقطة</th>
+                                    <th>العنوان</th>
+                                    <th>Ping</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subscriber-fault-hops-body"></tbody>
+                        </table>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-sm mb-0">
                             <thead>
@@ -57,6 +73,19 @@
                             <tbody id="subscriber-fault-evidence"></tbody>
                         </table>
                     </div>
+                    <form id="subscriber-fault-create-form"
+                          method="post"
+                          action="@createUrl"
+                          class="d-none mt-3"
+                          data-create-url="@createUrl">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="diagnosisId" id="subscriber-fault-diagnosis-id" value="" />
+                        <button type="submit" class="btn btn-primary btn-sm" id="subscriber-fault-create">
+                            <i class="fas fa-tools"></i>
+                            إنشاء طلب صيانة من التشخيص
+                        </button>
+                        <a id="subscriber-fault-ticket-link" class="btn btn-outline-secondary btn-sm d-none ms-1" href="#">فتح طلب الصيانة</a>
+                    </form>
                 </div>
             </div>
         </div>
@@ -80,12 +109,17 @@
         var actionEl = document.getElementById('subscriber-fault-action');
         var maintenanceEl = document.getElementById('subscriber-fault-maintenance');
         var evidenceEl = document.getElementById('subscriber-fault-evidence');
+        var hopsBox = document.getElementById('subscriber-fault-hops');
+        var hopsBody = document.getElementById('subscriber-fault-hops-body');
+        var createForm = document.getElementById('subscriber-fault-create-form');
+        var diagnosisIdInput = document.getElementById('subscriber-fault-diagnosis-id');
+        var ticketLink = document.getElementById('subscriber-fault-ticket-link');
 
         function causeClass(cause) {
             if (cause === 'Server' || cause === 'Sector' || cause === 'Receiver') {
                 return 'bg-danger';
             }
-            if (cause === 'Account' || cause === 'CableOrSwitch' || cause === 'LastMile') {
+            if (cause === 'Account' || cause === 'CableOrSwitch' || cause === 'LastMile' || cause === 'Cable' || cause === 'Switch') {
                 return 'bg-warning text-dark';
             }
             if (cause === 'Router') {
@@ -94,8 +128,28 @@
             return 'bg-secondary';
         }
 
-        function show(el) { el.classList.remove('d-none'); }
-        function hide(el) { el.classList.add('d-none'); }
+        function show(el) { if (el) { el.classList.remove('d-none'); } }
+        function hide(el) { if (el) { el.classList.add('d-none'); } }
+
+        function selectedValue(id) {
+            var el = document.getElementById(id);
+            return el && el.value ? el.value : '';
+        }
+
+        function withLedQuery(url) {
+            var params = [];
+            [['routerPowerOn', 'routerPowerOn'], ['internetLedOn', 'internetLedOn'], ['wanLedOn', 'wanLedOn'], ['neighborsOnSwitchDown', 'neighborsOnSwitchDown']]
+                .forEach(function (pair) {
+                    var value = selectedValue(pair[1]);
+                    if (value) {
+                        params.push(encodeURIComponent(pair[0]) + '=' + encodeURIComponent(value));
+                    }
+                });
+            if (!params.length) {
+                return url;
+            }
+            return url + (url.indexOf('?') >= 0 ? '&' : '?') + params.join('&');
+        }
 
         runBtn.addEventListener('click', function () {
             var url = runBtn.getAttribute('data-diagnose-url');
@@ -107,9 +161,10 @@
             hide(idle);
             hide(errorBox);
             hide(resultBox);
+            hide(ticketLink);
             show(loading);
 
-            fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } })
+            fetch(withLedQuery(url), { method: 'GET', headers: { 'Accept': 'application/json' } })
                 .then(function (response) {
                     return response.json().then(function (body) {
                         return { ok: response.ok, body: body };
@@ -137,6 +192,27 @@
                         hide(maintenanceEl);
                     }
 
+                    hopsBody.innerHTML = '';
+                    var hops = body.hops || [];
+                    if (hops.length) {
+                        hops.forEach(function (hop) {
+                            var tr = document.createElement('tr');
+                            var tdName = document.createElement('td');
+                            tdName.textContent = hop.name || '';
+                            var tdAddress = document.createElement('td');
+                            tdAddress.textContent = hop.address || '—';
+                            var tdStatus = document.createElement('td');
+                            tdStatus.textContent = hop.status || '';
+                            tr.appendChild(tdName);
+                            tr.appendChild(tdAddress);
+                            tr.appendChild(tdStatus);
+                            hopsBody.appendChild(tr);
+                        });
+                        show(hopsBox);
+                    } else {
+                        hide(hopsBox);
+                    }
+
                     evidenceEl.innerHTML = '';
                     (body.evidence || []).forEach(function (item) {
                         var tr = document.createElement('tr');
@@ -152,6 +228,13 @@
                         evidenceEl.appendChild(tr);
                     });
 
+                    if (body.canCreateMaintenance && body.diagnosisId && createForm && createForm.getAttribute('data-create-url')) {
+                        diagnosisIdInput.value = body.diagnosisId;
+                        show(createForm);
+                    } else {
+                        hide(createForm);
+                    }
+
                     show(resultBox);
                 })
                 .catch(function () {
@@ -161,5 +244,56 @@
                     show(errorBox);
                 });
         });
+
+        if (createForm) {
+            createForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                var url = createForm.getAttribute('data-create-url') || createForm.getAttribute('action');
+                if (!url || !diagnosisIdInput.value) {
+                    return;
+                }
+
+                var submitBtn = document.getElementById('subscriber-fault-create');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                }
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' },
+                    body: new FormData(createForm)
+                })
+                    .then(function (response) {
+                        return response.json().then(function (body) {
+                            return { ok: response.ok, body: body };
+                        });
+                    })
+                    .then(function (payload) {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                        }
+                        var body = payload.body || {};
+                        if (!payload.ok || !body.success) {
+                            errorBox.textContent = body.message || 'تعذر إنشاء طلب الصيانة.';
+                            show(errorBox);
+                            return;
+                        }
+
+                        hide(createForm);
+                        if (ticketLink && body.detailsUrl) {
+                            ticketLink.setAttribute('href', body.detailsUrl);
+                            ticketLink.textContent = 'فتح طلب الصيانة #' + (body.maintenanceRequestId || '');
+                            show(ticketLink);
+                        }
+                    })
+                    .catch(function () {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                        }
+                        errorBox.textContent = 'تعذر إنشاء طلب الصيانة.';
+                        show(errorBox);
+                    });
+            });
+        }
     })();
 </script>

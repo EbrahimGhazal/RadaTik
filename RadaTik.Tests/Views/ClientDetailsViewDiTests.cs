@@ -19,6 +19,8 @@ public sealed class ClientDetailsViewDiTests
         Assert.Contains("_SubscriberFaultDiagnosis", text);
         Assert.DoesNotContain("model.Password", text);
         Assert.DoesNotContain("MikroTikInfo.Password", text);
+        Assert.Contains("CreateMaintenanceFromDiagnosis", File.ReadAllText(FindView("Views", "Shared", "_SubscriberFaultDiagnosis.cshtml")));
+        Assert.Contains("_SubscriberFaultLedQuestions", File.ReadAllText(FindView("Views", "Shared", "_SubscriberFaultDiagnosis.cshtml")));
     }
 
     [Fact]

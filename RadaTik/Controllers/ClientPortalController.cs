@@ -10,6 +10,7 @@ using RadaTik.Data;
 using RadaTik.Helpers;
 using RadaTik.Models;
 using RadaTik.Services;
+using RadaTik.Domain.FaultDiagnosis;
 using RadaTik.Services.Clients;
 using RadaTik.Services.MikroTik;
 using RadaTik.ViewModels.ClientPortal;
@@ -34,6 +35,7 @@ namespace RadaTik.Controllers
         private readonly IWebHostEnvironment _environment;
         private readonly IMaintenanceEmployeeTaskService _maintenanceEmployeeTasks;
         private readonly IClientVipPolicyService _vipPolicy;
+        private readonly ISubscriberFaultDiagnosisService _faultDiagnosis;
 
         public ClientPortalController(
             ApplicationDbContext context,
@@ -47,6 +49,7 @@ namespace RadaTik.Controllers
             IWebHostEnvironment environment,
             IMaintenanceEmployeeTaskService maintenanceEmployeeTasks,
             IClientVipPolicyService vipPolicy,
+            ISubscriberFaultDiagnosisService faultDiagnosis,
             IMikroTikPppoeUserService? mikroTikService = null)
         {
             _context = context;
@@ -60,6 +63,7 @@ namespace RadaTik.Controllers
             _environment = environment;
             _maintenanceEmployeeTasks = maintenanceEmployeeTasks;
             _vipPolicy = vipPolicy;
+            _faultDiagnosis = faultDiagnosis;
             _mikroTikService = mikroTikService;
         }
 
@@ -907,7 +911,12 @@ namespace RadaTik.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateMaintenanceRequest(MaintenanceRequest model)
+        public async Task<IActionResult> CreateMaintenanceRequest(
+            MaintenanceRequest model,
+            string? routerPowerOn,
+            string? internetLedOn,
+            string? wanLedOn,
+            string? neighborsOnSwitchDown)
         {
             Client? client = await GetCurrentClientAsync();
             if (client == null)
@@ -944,8 +953,43 @@ namespace RadaTik.Controllers
             {
                 try
                 {
+                    SubscriberFaultDiagnosisDto? diagnosis = null;
+                    if (SubscriberFaultProblemTypes.IsOutage(model.Type) && client.NetworkId.HasValue)
+                    {
+                        try
+                        {
+                            ApplicationUser? user = await _userManager.GetUserAsync(User);
+                            SubscriberFaultLedAnswers led = SubscriberFaultLedAnswersParser.From(
+                                routerPowerOn,
+                                internetLedOn,
+                                wanLedOn,
+                                neighborsOnSwitchDown);
+                            diagnosis = await _faultDiagnosis.DiagnoseAsync(
+                                client.Id,
+                                client.NetworkId.Value,
+                                led,
+                                user?.Id);
+                            if (diagnosis.Success)
+                            {
+                                model.Description = SubscriberFaultDiagnosisText.AppendToDescription(
+                                    model.Description,
+                                    diagnosis.CauseLabel,
+                                    diagnosis.Summary);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "تعذر تشخيص العطل تلقائياً عند إنشاء طلب صيانة للعميل {ClientId}", client.Id);
+                        }
+                    }
+
                     _context.MaintenanceRequests.Add(model);
                     await _context.SaveChangesAsync();
+
+                    if (diagnosis is { Success: true, DiagnosisId: not null })
+                    {
+                        await _faultDiagnosis.LinkToMaintenanceRequestAsync(diagnosis.DiagnosisId.Value, model.Id);
+                    }
 
                     await _maintenanceEmployeeTasks.EnsureTaskForAssignedMaintenanceAsync(model, assignedByUserId: null);
 
@@ -993,6 +1037,7 @@ namespace RadaTik.Controllers
                 return RedirectToAction(nameof(MaintenanceRequests));
             }
 
+            ViewBag.FaultDiagnosis = await _faultDiagnosis.GetForMaintenanceRequestAsync(request.Id);
             return View(request);
         }
 

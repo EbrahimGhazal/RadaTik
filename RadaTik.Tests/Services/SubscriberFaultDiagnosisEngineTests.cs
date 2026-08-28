@@ -168,6 +168,57 @@ public sealed class SubscriberFaultDiagnosisEngineTests
     }
 
     [Fact]
+    public void WanLedOff_RefinesToCable()
+    {
+        SubscriberFaultDiagnosisResult result = SubscriberFaultDiagnosisEngine.Diagnose(BaseDisconnected() with
+        {
+            ServerConnectedCount = 12,
+            SectorConnectedCount = 5,
+            ReceiverClientCount = 4,
+            ReceiverConnectedCount = 3,
+            ReceiverPingOk = true,
+            Led = new SubscriberFaultLedAnswers(RouterPowerOn: true, InternetLedOn: false, WanLedOn: false)
+        });
+
+        Assert.Equal(SubscriberFaultComponent.Cable, result.Cause);
+        Assert.Equal(MaintenanceType.CableIssue, result.SuggestedMaintenanceType);
+        Assert.Equal(SubscriberFaultConfidence.High, result.Confidence);
+    }
+
+    [Fact]
+    public void NeighborsOnSwitchDown_RefinesToSwitch()
+    {
+        SubscriberFaultDiagnosisResult result = SubscriberFaultDiagnosisEngine.Diagnose(BaseDisconnected() with
+        {
+            ServerConnectedCount = 12,
+            SectorConnectedCount = 5,
+            ReceiverClientCount = 4,
+            ReceiverConnectedCount = 3,
+            Led = new SubscriberFaultLedAnswers(NeighborsOnSwitchDown: true)
+        });
+
+        Assert.Equal(SubscriberFaultComponent.Switch, result.Cause);
+        Assert.Equal(MaintenanceType.SwitchReplacement, result.SuggestedMaintenanceType);
+    }
+
+    [Fact]
+    public void HistoryPrefersCable_OnLastMile()
+    {
+        SubscriberFaultDiagnosisResult result = SubscriberFaultDiagnosisEngine.Diagnose(BaseDisconnected() with
+        {
+            ServerConnectedCount = 12,
+            SectorClientCount = 8,
+            SectorConnectedCount = 7,
+            ReceiverClientCount = 1,
+            ReceiverConnectedCount = 0,
+            LastMileHistory = new SubscriberFaultLastMileStats(10, 1, 1, 0, 12)
+        });
+
+        Assert.Equal(SubscriberFaultComponent.Cable, result.Cause);
+        Assert.Contains("السجل المؤكد", result.Summary);
+    }
+
+    [Fact]
     public void UniqueOnReceiver_SectorHealthy_IsLastMile()
     {
         SubscriberFaultDiagnosisResult result = SubscriberFaultDiagnosisEngine.Diagnose(BaseDisconnected() with
