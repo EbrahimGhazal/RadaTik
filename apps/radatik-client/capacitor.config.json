@@ -21,13 +21,13 @@
   "android": {
     "allowMixedContent": false,
     "captureInput": true,
-    "appendUserAgent": "RadaTikNative/client"
+    "appendUserAgent": "RadaTikNative/client/2"
   },
   "ios": {
     "contentInset": "automatic",
     "preferredContentMode": "mobile",
     "scheme": "radatik-client",
-    "appendUserAgent": "RadaTikNative/client"
+    "appendUserAgent": "RadaTikNative/client/2"
   },
   "plugins": {
     "SplashScreen": {
@@ -39,6 +39,10 @@
     "StatusBar": {
       "style": "DARK",
       "backgroundColor": "#0f766e"
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_notification",
+      "iconColor": "#0f766e"
     }
   }
 }

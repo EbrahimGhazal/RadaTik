@@ -7,6 +7,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+import sys
+
 ROOT = Path(__file__).resolve().parents[1]
 APPS = Path(__file__).resolve().parent
 MARK = ROOT / "RadaTik" / "wwwroot" / "images" / "brand" / "radatik-mark.png"
@@ -65,50 +67,37 @@ def replace_in_file(path: Path, replacements: list[tuple[str, str]]) -> None:
 
 
 def write_icons(dest_app: Path, bg: tuple[int, int, int, int], accent: tuple[int, int, int, int]) -> None:
-    src = Image.open(MARK).convert("RGBA")
+    sys.path.insert(0, str(APPS))
+    from _write_app_icons import fit_logo, recolor_orange_t
+
+    src = recolor_orange_t(Image.open(MARK).convert("RGBA"), accent[:3])
     android = dest_app / "android" / "app" / "src" / "main" / "res"
     ios_icon = dest_app / "ios" / "App" / "App" / "Assets.xcassets" / "AppIcon.appiconset" / "AppIcon-512@2x.png"
-
-    def fit_logo(size: int, pad_ratio: float) -> Image.Image:
-        canvas = Image.new("RGBA", (size, size), bg)
-        inner = max(1, int(size * (1 - 2 * pad_ratio)))
-        logo = src.copy()
-        logo.thumbnail((inner, inner), Image.Resampling.LANCZOS)
-        x = (size - logo.width) // 2
-        y = (size - logo.height) // 2
-        canvas.alpha_composite(logo, (x, y))
-        bar = max(3, size // 14)
-        draw = ImageDraw.Draw(canvas)
-        draw.rectangle((0, size - bar, size, size), fill=accent)
-        return canvas
-
-    sizes = {
+    for folder, size in {
         "mipmap-mdpi": 48,
         "mipmap-hdpi": 72,
         "mipmap-xhdpi": 96,
         "mipmap-xxhdpi": 144,
         "mipmap-xxxhdpi": 192,
-    }
-    fg_sizes = {
+    }.items():
+        dest = android / folder
+        dest.mkdir(parents=True, exist_ok=True)
+        icon = fit_logo(src, size, 0.06)
+        icon.save(dest / "ic_launcher.png")
+        icon.save(dest / "ic_launcher_round.png")
+    for folder, size in {
         "mipmap-mdpi": 108,
         "mipmap-hdpi": 162,
         "mipmap-xhdpi": 216,
         "mipmap-xxhdpi": 324,
         "mipmap-xxxhdpi": 432,
-    }
-    for folder, size in sizes.items():
+    }.items():
         dest = android / folder
         dest.mkdir(parents=True, exist_ok=True)
-        icon = fit_logo(size, 0.12)
-        icon.save(dest / "ic_launcher.png")
-        icon.save(dest / "ic_launcher_round.png")
-    for folder, size in fg_sizes.items():
-        dest = android / folder
-        dest.mkdir(parents=True, exist_ok=True)
-        fit_logo(size, 0.22).save(dest / "ic_launcher_foreground.png")
+        fit_logo(src, size, 0.15).save(dest / "ic_launcher_foreground.png")
     if ios_icon.parent.exists():
-        fit_logo(1024, 0.12).save(ios_icon)
-    fit_logo(512, 0.10).save(dest_app / "www" / "icon.png")
+        fit_logo(src, 1024, 0.06).save(ios_icon)
+    fit_logo(src, 512, 0.05).save(dest_app / "www" / "icon.png")
 
 
 def clone_role(role: dict) -> Path:

@@ -11,6 +11,8 @@ public static class NativeAppContext
     public const string Collection = "collection";
     public const string Employee = "employee";
     public const string UserAgentMarker = "RadaTikNative/";
+    public const int CurrentVersion = 2;
+    public const int MinimumSupportedVersion = 2;
 
     public static string? Normalize(string? value)
     {
@@ -47,16 +49,10 @@ public static class NativeAppContext
         }
 
         string userAgent = request.Headers.UserAgent.ToString();
-        int marker = userAgent.IndexOf(UserAgentMarker, StringComparison.OrdinalIgnoreCase);
-        if (marker >= 0)
+        string? fromAgent = ReadRoleFromUserAgent(userAgent);
+        if (fromAgent != null)
         {
-            string after = userAgent[(marker + UserAgentMarker.Length)..];
-            string token = after.Split(' ', '/', ';')[0];
-            string? fromAgent = Normalize(token);
-            if (fromAgent != null)
-            {
-                return fromAgent;
-            }
+            return fromAgent;
         }
 
         if (!LooksLikeNativeShell(userAgent))
@@ -165,6 +161,75 @@ public static class NativeAppContext
         Collection => "هذا التطبيق مخصص لنقاط التحصيل فقط. سجّل الدخول بحساب نقطة التحصيل، أو استخدم تطبيق دورك.",
         Employee => "هذا التطبيق مخصص للموظفين فقط. سجّل الدخول بحساب الموظف، أو استخدم تطبيق دورك.",
         _ => "هذا الحساب لا يملك صلاحية الدخول إلى هذا التطبيق.",
+    };
+
+    public static string? ReadRoleFromUserAgent(string? userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent))
+        {
+            return null;
+        }
+
+        int marker = userAgent.IndexOf(UserAgentMarker, StringComparison.OrdinalIgnoreCase);
+        if (marker < 0)
+        {
+            return null;
+        }
+
+        string after = userAgent[(marker + UserAgentMarker.Length)..];
+        string token = after.Split(' ', '/', ';')[0];
+        return Normalize(token);
+    }
+
+    public static int ReadVersion(string? userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent))
+        {
+            return 0;
+        }
+
+        int marker = userAgent.IndexOf(UserAgentMarker, StringComparison.OrdinalIgnoreCase);
+        if (marker < 0)
+        {
+            return 0;
+        }
+
+        string after = userAgent[(marker + UserAgentMarker.Length)..];
+        string[] parts = after.Split([' ', '/', ';'], StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2 && int.TryParse(parts[1], out int version) && version > 0)
+        {
+            return version;
+        }
+
+        return 0;
+    }
+
+    public static bool IsNativeAppOutdated(string? userAgent)
+    {
+        if (!LooksLikeNativeShell(userAgent))
+        {
+            return false;
+        }
+
+        return ReadVersion(userAgent) < MinimumSupportedVersion;
+    }
+
+    public static bool IsVersionGateExempt(PathString path)
+    {
+        string value = path.Value ?? string.Empty;
+        return value.StartsWith("/Account/AppUpdateRequired", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("/Account/logout", StringComparison.OrdinalIgnoreCase) ||
+               value.StartsWith("/RadaTik/Apps", StringComparison.OrdinalIgnoreCase) ||
+               value.StartsWith("/RadaTik/Download", StringComparison.OrdinalIgnoreCase) ||
+               value.StartsWith("/downloads/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static string DownloadPath(string? app) => Normalize(app) switch
+    {
+        Client => "/RadaTik/DownloadAndroid",
+        Collection => "/RadaTik/DownloadCollection",
+        Employee => "/RadaTik/DownloadEmployee",
+        _ => "/RadaTik/Apps",
     };
 
     public static void ApplyCookie(HttpResponse response, CookieOptions options, string? app)

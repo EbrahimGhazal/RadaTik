@@ -22,6 +22,21 @@ public sealed class NativeAppRoleMiddleware(RequestDelegate next)
             context.Items[NativeAppContext.QueryKey] = app;
         }
 
+        string userAgent = context.Request.Headers.UserAgent.ToString();
+        if (NativeAppContext.IsNativeAppOutdated(userAgent) &&
+            !NativeAppContext.IsVersionGateExempt(context.Request.Path))
+        {
+            string? role = app ?? NativeAppContext.ReadRoleFromUserAgent(userAgent);
+            string target = "/Account/AppUpdateRequired";
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                target += $"?{NativeAppContext.QueryKey}={Uri.EscapeDataString(role)}";
+            }
+
+            context.Response.Redirect(target);
+            return;
+        }
+
         if (app != null &&
             context.User?.Identity?.IsAuthenticated == true &&
             !NativeAppContext.IsRoleAllowed(app, context))

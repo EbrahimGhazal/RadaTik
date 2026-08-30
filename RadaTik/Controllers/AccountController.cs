@@ -44,6 +44,16 @@ namespace RadaTik.Controllers
 
         [HttpGet]
         [AllowAnonymous]
+        public IActionResult AppUpdateRequired(string? app = null)
+        {
+            string? nativeApp = BindNativeApp(app, null);
+            ViewData["Title"] = "تحديث التطبيق";
+            ViewData["NativeAppDownload"] = NativeAppContext.DownloadPath(nativeApp);
+            return View();
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
         public IActionResult Login(string? returnUrl = null, string? app = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
@@ -108,10 +118,11 @@ namespace RadaTik.Controllers
                 return View(model);
             }
 
+            bool persistSession = model.RememberMe || nativeApp != null;
             Microsoft.AspNetCore.Identity.SignInResult result = await _signInManager.PasswordSignInAsync(
                 user.UserName!,
                 model.Password,
-                model.RememberMe,
+                persistSession,
                 lockoutOnFailure: true);
 
             if (result.Succeeded)

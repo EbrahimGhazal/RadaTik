@@ -20,6 +20,11 @@ public static partial class RouteMappingExtensions
             defaults: new { controller = "Account", action = "AccessDenied" });
 
         app.MapControllerRoute(
+            name: "reglog-app-update-required",
+            pattern: "Account/AppUpdateRequired",
+            defaults: new { controller = "Account", action = "AppUpdateRequired" });
+
+        app.MapControllerRoute(
             name: "reglog-forgotpassword",
             pattern: "Account/forgotPassword",
             defaults: new { controller = "Account", action = "ForgotPassword" });

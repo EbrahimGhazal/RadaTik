@@ -31,6 +31,22 @@ public sealed class NewSubscriberWizardSubscriberViewTests
     }
 
     [Fact]
+    public void SharedReceiverStep_ReloadsReceiversAfterSenderChange()
+    {
+        string view = File.ReadAllText(FindFile("RadaTik", "Areas", "CompanyAdmin", "Views", "NewSubscriberWizard", "SharedReceiver.cshtml"));
+        Assert.Contains("data-receivers-url", view);
+        Assert.Contains("data-sectors-url", view);
+        Assert.Contains("loadReceivers", view);
+        Assert.Contains("change.select2", view);
+        Assert.Contains("لا يوجد لاقط مشترك على هذا المرسل", view);
+
+        string controller = File.ReadAllText(FindFile("RadaTik", "Areas", "CompanyAdmin", "Controllers", "NewSubscriberWizardController.cs"));
+        Assert.Contains("GetSectorsByServer(int? serverId)", controller);
+        Assert.Contains("SharedReceiverQuery", controller);
+        Assert.Contains("SharedSectorQuery", controller);
+    }
+
+    [Fact]
     public void WizardController_UsesNamedRouteRedirects()
     {
         string text = File.ReadAllText(FindFile("RadaTik", "Areas", "CompanyAdmin", "Controllers", "NewSubscriberWizardController.cs"));

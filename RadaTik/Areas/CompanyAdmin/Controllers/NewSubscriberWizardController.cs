@@ -734,28 +734,15 @@ public class NewSubscriberWizardController : Controller
             return Json(Array.Empty<object>());
         }
 
-        IQueryable<Receiver> query = _context.Receivers
-            .AsNoTracking()
-            .Where(r => r.NetworkId == networkId.Value && r.IsActive)
-            .Where(r => _context.Clients.Any(c => c.ReceiverId == r.Id));
-
-        if (serverId.HasValue)
-        {
-            query = query.Where(r => r.Sector.MikroTikServerId == serverId.Value);
-        }
-
-        if (sectorId.HasValue)
-        {
-            query = query.Where(r => r.SectorId == sectorId.Value);
-        }
+        IQueryable<Receiver> query = SharedReceiverQuery(networkId.Value, serverId, sectorId);
 
         List<WizardSharedReceiverOptionJson> rows = await query
             .OrderBy(r => r.Name)
             .Select(r => new WizardSharedReceiverOptionJson(
                 r.Id,
-                r.Name,
-                r.Sector.Name,
-                r.Sector.MikroTikServer!.Name))
+                r.Name ?? ("#" + r.Id),
+                r.Sector.Name ?? "—",
+                r.Sector.MikroTikServer != null ? r.Sector.MikroTikServer.Name : "—"))
             .Take(200)
             .ToListAsync();
 
@@ -763,7 +750,7 @@ public class NewSubscriberWizardController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetSectorsByServer(int serverId)
+    public async Task<IActionResult> GetSectorsByServer(int? serverId)
     {
         ApplicationUser? user = await _userManager.GetUserAsync(User);
         int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
@@ -772,9 +759,9 @@ public class NewSubscriberWizardController : Controller
             return Json(Array.Empty<object>());
         }
 
-        List<WizardSectorOptionJson> sectors = await _context.Sectors
-            .AsNoTracking()
-            .Where(s => s.NetworkId == networkId && s.IsActive && s.MikroTikServerId == serverId)
+        IQueryable<Sector> query = SharedSectorQuery(networkId.Value, serverId);
+
+        List<WizardSectorOptionJson> sectors = await query
             .OrderBy(s => s.Name)
             .Select(s => new WizardSectorOptionJson(s.Id, s.Name))
             .ToListAsync();
@@ -859,6 +846,45 @@ public class NewSubscriberWizardController : Controller
         }).ToList();
     }
 
+    private IQueryable<Sector> SharedSectorQuery(int networkId, int? serverId)
+    {
+        IQueryable<Sector> query = _context.Sectors
+            .AsNoTracking()
+            .Where(s => s.NetworkId == networkId && s.IsActive)
+            .Where(s => _context.Receivers.Any(r =>
+                r.SectorId == s.Id &&
+                r.NetworkId == networkId &&
+                r.IsActive &&
+                _context.Clients.Any(c => c.ReceiverId == r.Id)));
+
+        if (serverId is > 0)
+        {
+            query = query.Where(s => s.MikroTikServerId == serverId.Value);
+        }
+
+        return query;
+    }
+
+    private IQueryable<Receiver> SharedReceiverQuery(int networkId, int? serverId, int? sectorId)
+    {
+        IQueryable<Receiver> query = _context.Receivers
+            .AsNoTracking()
+            .Where(r => r.NetworkId == networkId && r.IsActive)
+            .Where(r => _context.Clients.Any(c => c.ReceiverId == r.Id));
+
+        if (serverId is > 0)
+        {
+            query = query.Where(r => r.Sector.MikroTikServerId == serverId.Value);
+        }
+
+        if (sectorId is > 0)
+        {
+            query = query.Where(r => r.SectorId == sectorId.Value);
+        }
+
+        return query;
+    }
+
     private async Task<NewSubscriberWizardSharedReceiverViewModel> BuildSharedReceiverViewModelAsync(
         int networkId,
         int? serverId,
@@ -871,31 +897,12 @@ public class NewSubscriberWizardController : Controller
             .Select(s => new SelectListItem(s.Name, s.Id.ToString()))
             .ToListAsync();
 
-        List<SelectListItem> sectors = [];
-        if (serverId.HasValue)
-        {
-            sectors = await _context.Sectors
-                .AsNoTracking()
-                .Where(s => s.NetworkId == networkId && s.IsActive && s.MikroTikServerId == serverId)
-                .OrderBy(s => s.Name)
-                .Select(s => new SelectListItem(s.Name, s.Id.ToString()))
-                .ToListAsync();
-        }
+        List<SelectListItem> sectors = await SharedSectorQuery(networkId, serverId)
+            .OrderBy(s => s.Name)
+            .Select(s => new SelectListItem(s.Name, s.Id.ToString()))
+            .ToListAsync();
 
-        IQueryable<Receiver> receiverQuery = _context.Receivers
-            .AsNoTracking()
-            .Where(r => r.NetworkId == networkId && r.IsActive)
-            .Where(r => _context.Clients.Any(c => c.ReceiverId == r.Id));
-
-        if (serverId.HasValue)
-        {
-            receiverQuery = receiverQuery.Where(r => r.Sector.MikroTikServerId == serverId);
-        }
-
-        if (sectorId.HasValue)
-        {
-            receiverQuery = receiverQuery.Where(r => r.SectorId == sectorId);
-        }
+        IQueryable<Receiver> receiverQuery = SharedReceiverQuery(networkId, serverId, sectorId);
 
         List<ReceiverPickOption> receivers = await receiverQuery
             .OrderBy(r => r.Name)

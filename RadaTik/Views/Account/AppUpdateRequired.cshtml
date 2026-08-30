@@ -1,0 +1,40 @@
+@{
+    ViewData["Title"] = "تحديث التطبيق";
+    ViewData["BodyClass"] = "login-page login-page--radatik-spa-identity";
+    Layout = "~/Views/Shared/_AuthLayout.cshtml";
+    var nativeAppTitle = ViewData["NativeAppTitle"] as string ?? "RadaTik";
+    var downloadPath = ViewData["NativeAppDownload"] as string ?? "/RadaTik/Apps";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+}
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-brand" dir="ltr">
+                <div class="login-brand-inner">
+                    @{
+                        ViewData["RtBrandVariant"] = "hero";
+                    }
+                    <partial name="_RadaTikBrandLogo" />
+                </div>
+            </div>
+            <p class="login-subtitle login-app-lock">@nativeAppTitle — هذا الإصدار لم يعد مدعوماً</p>
+        </div>
+        <div class="login-body">
+            <div class="alert alert-warning rt-alert">
+                <i class="fas fa-mobile-alt"></i>
+                ألغينا تفعيل الإصدارات السابقة. ثبّت النسخة الحالية من المتجر الداخلي ثم افتح التطبيق من جديد.
+            </div>
+            <a class="btn btn-primary w-100" href="@downloadPath">
+                <i class="fas fa-download"></i>
+                تحميل التحديث
+            </a>
+            <a class="btn btn-outline-secondary w-100 mt-2" href="/RadaTik/Apps">
+                كل التطبيقات
+            </a>
+        </div>
+    </div>
+</div>
