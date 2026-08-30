@@ -12,6 +12,7 @@ using RadaTik.Services.SectorRadio;
 using RadaTik.Services.SystemAdminPricing;
 using RadaTik.Helpers;
 using RadaTik.Services.Traffic;
+using RadaTik.Services.PublicStats;
 
 namespace RadaTik;
 
@@ -147,6 +148,7 @@ internal static class ServiceRegistrationExtensions
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentNetworkScope, CurrentNetworkScope>();
         services.AddScoped<INetworkScopeResolver, NetworkScopeResolver>();
+        services.AddScoped<IPublicStatsService, PublicStatsService>();
         services.AddScoped<IFeatureAccessService, FeatureAccessService>();
         services.AddSingleton<IAuthorizationPolicyProvider, FeaturePolicyProvider>();
         services.AddScoped<IAuthorizationHandler, FeatureAuthorizationHandler>();

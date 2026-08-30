@@ -1,0 +1,28 @@
+{
+  "id": "/clientPortal",
+  "name": "RadaTik للمشترك",
+  "short_name": "RadaTik",
+  "description": "بوابة المشترك: تجديد الاشتراك، الرصيد، الباقات، وطلبات الصيانة",
+  "start_url": "/clientPortal/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#0f766e",
+  "theme_color": "#0f766e",
+  "icons": [
+    {
+      "src": "/images/brand/radatik-mark.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/brand/radatik-mark.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

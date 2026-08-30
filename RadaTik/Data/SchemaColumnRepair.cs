@@ -56,6 +56,15 @@ public static class SchemaColumnRepair
             ALTER TABLE [dbo].[Networks] ADD [VipSkipAutoDisable] bit NOT NULL
                 CONSTRAINT [DF_Networks_VipSkipAutoDisable] DEFAULT (0);
             """, logger, ct);
+
+        await EnsureTableAsync(db, "PublicSiteCounters", """
+            CREATE TABLE [dbo].[PublicSiteCounters] (
+                [Key] nvarchar(64) NOT NULL,
+                [Count] bigint NOT NULL CONSTRAINT [DF_PublicSiteCounters_Count] DEFAULT (0),
+                [UpdatedUtc] datetime2 NOT NULL CONSTRAINT [DF_PublicSiteCounters_UpdatedUtc] DEFAULT (SYSUTCDATETIME()),
+                CONSTRAINT [PK_PublicSiteCounters] PRIMARY KEY ([Key])
+            );
+            """, logger, ct);
     }
 
     private static async Task EnsureColumnAsync(
@@ -78,6 +87,42 @@ public static class SchemaColumnRepair
             tableName);
 
         await db.Database.ExecuteSqlRawAsync(addColumnSql, ct);
+    }
+
+    private static async Task EnsureTableAsync(
+        ApplicationDbContext db,
+        string tableName,
+        string createTableSql,
+        ILogger? logger,
+        CancellationToken ct)
+    {
+        bool exists = await TableExistsAsync(db, tableName, ct);
+        if (exists)
+        {
+            return;
+        }
+
+        logger?.LogWarning("إصلاح Schema: إنشاء الجدول {Table} لأنه مفقود في قاعدة البيانات.", tableName);
+        await db.Database.ExecuteSqlRawAsync(createTableSql, ct);
+    }
+
+    private static async Task<bool> TableExistsAsync(
+        ApplicationDbContext db,
+        string tableName,
+        CancellationToken ct)
+    {
+        int count = await db.Database
+            .SqlQueryRaw<int>(
+                """
+                SELECT COUNT(1) AS [Value]
+                FROM sys.tables t
+                INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                WHERE s.name = N'dbo' AND t.name = {0}
+                """,
+                tableName)
+            .SingleAsync(ct);
+
+        return count > 0;
     }
 
     private static async Task<bool> ColumnExistsAsync(

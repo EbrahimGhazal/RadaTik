@@ -92,6 +92,7 @@ namespace RadaTik.Data
         public DbSet<NetworkClientRenewalReminderSettings> NetworkClientRenewalReminderSettings { get; set; }
         public DbSet<ClientRenewalReminderSendLog> ClientRenewalReminderSendLogs { get; set; }
         public DbSet<SubscriberFaultDiagnosisRun> SubscriberFaultDiagnosisRuns { get; set; }
+        public DbSet<PublicSiteCounter> PublicSiteCounters { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

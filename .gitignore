@@ -22,3 +22,11 @@ tools/dotnet-hosting-*.exe
 
 # TLS private keys must stay local
 Keys/Private Key.txt
+
+# Native role apps
+apps/radatik-*/node_modules/
+apps/radatik-*/android/app/build/
+apps/radatik-*/android/build/
+apps/radatik-*/android/.gradle/
+apps/radatik-*/ios/App/Pods/
+apps/radatik-*/ios/App/build/

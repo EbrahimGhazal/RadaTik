@@ -1,0 +1,268 @@
+@using System.Globalization
+@{
+    ViewData["Title"] = "تطبيقات RadaTik";
+
+    bool ApkReady(string key) => ViewData[$"{key}ApkAvailable"] as bool? ?? false;
+    int ApkSize(string key) => ViewData[$"{key}ApkSizeMb"] as int? ?? 0;
+    DateTime? ApkDate(string key) => ViewData[$"{key}ApkUpdatedAt"] as DateTime?;
+    string DownloadCount(string key)
+    {
+        long count = ViewData[$"{key}DownloadCount"] as long? ?? 0;
+        return count.ToString("N0", CultureInfo.GetCultureInfo("en-US"));
+    }
+}
+
+@section Styles {
+<style>
+    .rt-page-hero {
+        background: var(--rt-gradient);
+        padding: 140px 0 80px;
+        text-align: center;
+        color: #fff;
+    }
+
+    .rt-page-hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); margin-bottom: 12px; }
+    .rt-page-hero p { color: rgba(255,255,255,0.82); font-size: 1.1rem; max-width: 720px; margin: 0 auto; }
+
+    .rt-apps {
+        padding: 56px 0 20px;
+    }
+
+    .rt-apps-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 24px;
+        display: grid;
+        gap: 18px;
+    }
+
+    .rt-apps-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .rt-app-card {
+        background: #fff;
+        border: 1px solid var(--rt-border);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+
+    .rt-app-card h2 {
+        font-size: 1.2rem;
+        margin: 0 0 8px;
+    }
+
+    .rt-app-card p { color: var(--rt-muted); margin-bottom: 16px; }
+
+    .rt-download-count {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 0 0 16px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .rt-download-count strong {
+        font-size: 1.8rem;
+        line-height: 1;
+        color: #0f172a;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .rt-download-count span { color: #475569; font-weight: 700; }
+
+    .rt-app-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .rt-app-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #334155;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .rt-download-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 3rem;
+        padding: 12px 18px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #047857, #0d9488);
+        color: #fff;
+        text-decoration: none;
+        font-weight: 800;
+        box-shadow: 0 10px 22px rgba(4, 120, 87, 0.22);
+    }
+
+    .rt-app-card--collection .rt-download-btn { background: linear-gradient(135deg, #047857, #0f766e); }
+    .rt-app-card--employee .rt-download-btn { background: linear-gradient(135deg, #1d4ed8, #2563eb); }
+    .rt-app-card--client .rt-download-btn { background: linear-gradient(135deg, #0f766e, #14b8a6); }
+
+    .rt-download-btn.is-disabled {
+        pointer-events: none;
+        background: #94a3b8;
+        box-shadow: none;
+    }
+
+    .rt-steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 4px;
+    }
+
+    .rt-step {
+        padding: 14px;
+        border-radius: 14px;
+        background: #f8fafc;
+    }
+
+    .rt-step strong { display: block; margin-bottom: 4px; }
+
+    .rt-note {
+        margin-top: 16px;
+        color: var(--rt-muted);
+        font-size: 0.92rem;
+    }
+
+    @@media (max-width: 991.98px) {
+        .rt-apps-grid { grid-template-columns: 1fr; }
+        .rt-page-hero { padding: 120px 16px 48px; }
+        .rt-app-card { padding: 20px 16px; }
+        .rt-steps { grid-template-columns: 1fr; }
+    }
+</style>
+}
+
+<section class="rt-page-hero">
+    <h1>تطبيقات RadaTik</h1>
+    <p>حمّل تطبيق دورك مباشرة إلى هاتفك، دون الحاجة إلى Google Play. كل تطبيق باسم وأيقونة مختلفة قليلاً.</p>
+</section>
+
+<section class="rt-apps">
+    <div class="rt-apps-inner">
+        <div class="rt-apps-grid">
+            <article class="rt-app-card rt-app-card--client">
+                <h2>RadaTik المشترك</h2>
+                <p>بوابة العميل: تجديد الاشتراك، الرصيد، الباقات، وطلبات الصيانة.</p>
+                <div class="rt-download-count">
+                    <strong>@DownloadCount("Client")</strong>
+                    <span>عدد التحميلات</span>
+                </div>
+                <div class="rt-app-meta">
+                    <span>أندرويد</span>
+                    @if (ApkReady("Client"))
+                    {
+                        <span>@ApkSize("Client") ميغابايت</span>
+                        @if (ApkDate("Client") is DateTime clientDate)
+                        {
+                            <span>@clientDate.ToString("yyyy/MM/dd")</span>
+                        }
+                    }
+                </div>
+                @if (ApkReady("Client"))
+                {
+                    <a class="rt-download-btn" href="/RadaTik/DownloadAndroid">تحميل تطبيق المشترك</a>
+                }
+                else
+                {
+                    <span class="rt-download-btn is-disabled">التحميل غير متاح حالياً</span>
+                }
+            </article>
+
+            <article class="rt-app-card rt-app-card--collection">
+                <h2>RadaTik التحصيل</h2>
+                <p>بوابة نقطة التحصيل: البحث عن المشتركين، القبض، الصندوق، وتغذية الرصيد.</p>
+                <div class="rt-download-count">
+                    <strong>@DownloadCount("Collection")</strong>
+                    <span>عدد التحميلات</span>
+                </div>
+                <div class="rt-app-meta">
+                    <span>أندرويد</span>
+                    @if (ApkReady("Collection"))
+                    {
+                        <span>@ApkSize("Collection") ميغابايت</span>
+                        @if (ApkDate("Collection") is DateTime collectionDate)
+                        {
+                            <span>@collectionDate.ToString("yyyy/MM/dd")</span>
+                        }
+                    }
+                </div>
+                @if (ApkReady("Collection"))
+                {
+                    <a class="rt-download-btn" href="/RadaTik/DownloadCollection">تحميل تطبيق التحصيل</a>
+                }
+                else
+                {
+                    <span class="rt-download-btn is-disabled">التحميل غير متاح حالياً</span>
+                }
+            </article>
+
+            <article class="rt-app-card rt-app-card--employee">
+                <h2>RadaTik الموظف</h2>
+                <p>بوابة الموظف: المشتركين، القطاعات، الريسيفر، والمهام الميدانية.</p>
+                <div class="rt-download-count">
+                    <strong>@DownloadCount("Employee")</strong>
+                    <span>عدد التحميلات</span>
+                </div>
+                <div class="rt-app-meta">
+                    <span>أندرويد</span>
+                    @if (ApkReady("Employee"))
+                    {
+                        <span>@ApkSize("Employee") ميغابايت</span>
+                        @if (ApkDate("Employee") is DateTime employeeDate)
+                        {
+                            <span>@employeeDate.ToString("yyyy/MM/dd")</span>
+                        }
+                    }
+                </div>
+                @if (ApkReady("Employee"))
+                {
+                    <a class="rt-download-btn" href="/RadaTik/DownloadEmployee">تحميل تطبيق الموظف</a>
+                }
+                else
+                {
+                    <span class="rt-download-btn is-disabled">التحميل غير متاح حالياً</span>
+                }
+            </article>
+        </div>
+
+        <article class="rt-app-card">
+            <h2>طريقة التثبيت</h2>
+            <div class="rt-steps">
+                <div class="rt-step">
+                    <strong>1. حمّل الملف</strong>
+                    اختر تطبيق دورك واحفظ ملف APK على هاتفك.
+                </div>
+                <div class="rt-step">
+                    <strong>2. اسمح بالتثبيت</strong>
+                    إذا طلب النظام السماح بمصادر غير معروفة، وافق لهذه المرة فقط.
+                </div>
+                <div class="rt-step">
+                    <strong>3. افتح التطبيق</strong>
+                    ثبّت الملف ثم سجّل الدخول بحساب نفس الدور.
+                </div>
+            </div>
+            <p class="rt-note">الملفات من موقع radatik.com الرسمي. لا تحتاج Google Play لتثبيتها. آيفون: أضف الصفحة إلى الشاشة الرئيسية إلى حين توفر App Store.</p>
+        </article>
+    </div>
+</section>

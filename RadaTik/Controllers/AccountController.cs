@@ -44,10 +44,11 @@ namespace RadaTik.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult Login(string? returnUrl = null)
+        public IActionResult Login(string? returnUrl = null, string? app = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
-            return View();
+            BindNativeApp(app, returnUrl);
+            return View(new LoginViewModel { AppRole = ViewData["NativeApp"] as string });
         }
 
         [HttpPost]
@@ -56,6 +57,8 @@ namespace RadaTik.Controllers
         public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
+            string? nativeApp = BindNativeApp(model.AppRole, returnUrl);
+            model.AppRole = nativeApp;
 
             if (!ModelState.IsValid)
             {
@@ -115,6 +118,13 @@ namespace RadaTik.Controllers
             {
                 _logger.LogInformation($"المستخدم {user.UserName} سجل دخول بنجاح");
                 IList<string> roles = await _userManager.GetRolesAsync(user);
+                if (!NativeAppContext.IsRoleAllowed(nativeApp, roles))
+                {
+                    await _signInManager.SignOutAsync();
+                    HttpContext.Session.Remove(AreaIsolationMiddleware.SessionKeyActiveArea);
+                    ModelState.AddModelError(string.Empty, NativeAppContext.DeniedMessage(nativeApp));
+                    return View(model);
+                }
 
                 HttpContext.Session.Remove(AreaIsolationMiddleware.SessionKeyActiveArea);
 
@@ -854,6 +864,19 @@ namespace RadaTik.Controllers
         public IActionResult ForgotPasswordConfirmation()
         {
             return View();
+        }
+
+        private string? BindNativeApp(string? app, string? returnUrl)
+        {
+            string? detected = NativeAppContext.Normalize(app) ?? NativeAppContext.Detect(Request, returnUrl);
+            if (detected != null)
+            {
+                NativeAppContext.ApplyCookie(Response, NativeAppContext.CreateCookieOptions(Request), detected);
+            }
+
+            ViewData["NativeApp"] = detected;
+            ViewData["NativeAppTitle"] = NativeAppContext.DisplayName(detected);
+            return detected;
         }
 
         private IActionResult RedirectToLocal(string? returnUrl)

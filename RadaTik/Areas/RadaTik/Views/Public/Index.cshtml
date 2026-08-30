@@ -1,5 +1,10 @@
+@using System.Globalization
+@using RadaTik.Services.PublicStats
+@inject IPublicStatsService PublicStats
 @{
     ViewData["Title"] = "الصفحة الرئيسية";
+    long visitorCount = await PublicStats.GetAsync(PublicStatsKeys.SiteVisitors);
+    string visitorText = visitorCount.ToString("N0", CultureInfo.GetCultureInfo("en-US"));
 }
 
 @section Styles {
@@ -123,6 +128,19 @@
 
     .rt-stat span { font-size: 0.9rem; color: rgba(255,255,255,0.75); }
 
+    .rt-stat--visitors {
+        grid-column: 1 / -1;
+        text-align: center;
+        background: rgba(6, 182, 212, 0.18);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .rt-stat--visitors strong {
+        font-size: clamp(2.2rem, 6vw, 3.4rem);
+        letter-spacing: 0.04em;
+        font-variant-numeric: tabular-nums;
+    }
+
     .rt-section {
         padding: 90px 0;
     }
@@ -237,9 +255,12 @@
         </div>
         <div class="rt-hero-panel">
             <div class="rt-stat-grid">
+                <div class="rt-stat rt-stat--visitors">
+                    <strong>@visitorText</strong>
+                    <span>عدد زوار الموقع</span>
+                </div>
                 <div class="rt-stat"><strong>360°</strong><span>إدارة تشغيلية</span></div>
                 <div class="rt-stat"><strong>MikroTik</strong><span>مزامنة وتفعيل</span></div>
-                <div class="rt-stat"><strong>Multi</strong><span>شبكات فرعية</span></div>
                 <div class="rt-stat"><strong>24/7</strong><span>بوابة للعملاء</span></div>
             </div>
         </div>

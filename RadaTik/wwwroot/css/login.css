@@ -229,6 +229,12 @@ body.login-page.login-page--radatik-spa-identity {
     margin-top: 0.25rem;
 }
 
+.login-app-lock {
+    margin-top: 0.45rem;
+    color: #0f766e;
+    font-weight: 800;
+}
+
 /* Login Body */
 .login-body {
     padding: 1.5rem 2rem 2rem;

@@ -4229,6 +4229,25 @@ namespace RadaTik.Migrations
                     b.ToTable("ProfilePriceHistories");
                 });
 
+            modelBuilder.Entity("RadaTik.Models.PublicSiteCounter", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<long>("Count")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("PublicSiteCounters", (string)null);
+                });
+
             modelBuilder.Entity("RadaTik.Models.Receiver", b =>
                 {
                     b.Property<int>("Id")

@@ -20,7 +20,18 @@
                     <partial name="_RadaTikBrandLogo" />
                 </div>
             </div>
-            <p class="login-subtitle login-subtitle--muted">نظام إدارة مزود خدمة الإنترنت</p>
+            @{
+                var nativeApp = ViewData["NativeApp"] as string;
+                var nativeAppTitle = ViewData["NativeAppTitle"] as string;
+            }
+            @if (!string.IsNullOrWhiteSpace(nativeApp))
+            {
+                <p class="login-subtitle login-app-lock">@nativeAppTitle — الدخول مسموح لهذا الدور فقط</p>
+            }
+            else
+            {
+                <p class="login-subtitle login-subtitle--muted">نظام إدارة مزود خدمة الإنترنت</p>
+            }
         </div>
 
         <div class="login-body">
@@ -49,6 +60,11 @@
             }
 
             <form id="loginForm" asp-route="reglog-login" method="post" novalidate>
+                <input type="hidden" asp-for="AppRole" />
+                @if (!string.IsNullOrWhiteSpace(ViewData["ReturnUrl"] as string))
+                {
+                    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                }
                 <div asp-validation-summary="ModelOnly" class="validation-error"></div>
 
                 <div class="form-group">
@@ -105,16 +121,19 @@
                     <i class="fas fa-arrow-right"></i>
                     العودة للصفحة الرئيسية
                 </a>
-                <span class="login-footer-sep">|</span>
-                <a asp-action="RegisterNetworkAdmin" asp-controller="Account" asp-area="" class="back-link back-link--emphasis">
-                    <i class="fas fa-user-shield"></i>
-                    إنشاء حساب مدير شبكة
-                </a>
-                <span class="login-footer-sep">|</span>
-                <a asp-action="RegisterCollectionPoint" asp-controller="Account" asp-area="" class="back-link back-link--emphasis">
-                    <i class="fas fa-paper-plane"></i>
-                    طلب إنشاء نقطة تحصيل
-                </a>
+                @if (string.IsNullOrWhiteSpace(ViewData["NativeApp"] as string))
+                {
+                    <span class="login-footer-sep">|</span>
+                    <a asp-action="RegisterNetworkAdmin" asp-controller="Account" asp-area="" class="back-link back-link--emphasis">
+                        <i class="fas fa-user-shield"></i>
+                        إنشاء حساب مدير شبكة
+                    </a>
+                    <span class="login-footer-sep">|</span>
+                    <a asp-action="RegisterCollectionPoint" asp-controller="Account" asp-area="" class="back-link back-link--emphasis">
+                        <i class="fas fa-paper-plane"></i>
+                        طلب إنشاء نقطة تحصيل
+                    </a>
+                }
             </div>
         </div>
     </div>

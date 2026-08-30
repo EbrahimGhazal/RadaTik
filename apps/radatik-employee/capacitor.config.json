@@ -1,0 +1,44 @@
+{
+  "appId": "com.radatik.employee",
+  "appName": "RadaTik الموظف",
+  "webDir": "www",
+  "server": {
+    "url": "https://radatik.com/employee/dashboard?app=employee",
+    "androidScheme": "https",
+    "hostname": "radatik.com",
+    "allowNavigation": [
+      "radatik.com",
+      "www.radatik.com",
+      "cdn.jsdelivr.net",
+      "cdnjs.cloudflare.com",
+      "unpkg.com",
+      "code.jquery.com",
+      "cdn.datatables.net",
+      "fonts.googleapis.com",
+      "fonts.gstatic.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "appendUserAgent": "RadaTikNative/employee"
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "preferredContentMode": "mobile",
+    "scheme": "radatik-employee",
+    "appendUserAgent": "RadaTikNative/employee"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 900,
+      "launchAutoHide": true,
+      "backgroundColor": "#1d4ed8",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#1d4ed8"
+    }
+  }
+}

@@ -20,6 +20,26 @@ public static partial class RouteMappingExtensions
             pattern: "RadaTik",
             defaults: new { area = "RadaTik", controller = "Public", action = "Index" });
 
+        app.MapControllerRoute(
+            name: "radatik-apps-android",
+            pattern: "RadaTik/Apps/android",
+            defaults: new { area = "RadaTik", controller = "Public", action = "DownloadAndroid" });
+
+        app.MapControllerRoute(
+            name: "radatik-download-android",
+            pattern: "RadaTik/DownloadAndroid",
+            defaults: new { area = "RadaTik", controller = "Public", action = "DownloadAndroid" });
+
+        app.MapControllerRoute(
+            name: "radatik-download-collection",
+            pattern: "RadaTik/DownloadCollection",
+            defaults: new { area = "RadaTik", controller = "Public", action = "DownloadCollection" });
+
+        app.MapControllerRoute(
+            name: "radatik-download-employee",
+            pattern: "RadaTik/DownloadEmployee",
+            defaults: new { area = "RadaTik", controller = "Public", action = "DownloadEmployee" });
+
         app.MapAreaControllerRoute(
             name: "radatik-area",
             areaName: "RadaTik",

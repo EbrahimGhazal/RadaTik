@@ -18,6 +18,8 @@ namespace RadaTik.ViewModels.Account
 
         [Display(Name = "تذكرني")]
         public bool RememberMe { get; set; }
+
+        public string? AppRole { get; set; }
     }
 
     public class RegisterViewModel

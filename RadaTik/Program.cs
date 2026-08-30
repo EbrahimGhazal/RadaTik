@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation;
 using Microsoft.Extensions.Logging;
@@ -96,6 +97,7 @@ namespace RadaTik
             builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
             {
                 options.UseSqlServer(builder.Configuration.GetConnectionString("MyDBConnection"));
+                options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
                 options.AddInterceptors(sp.GetRequiredService<MikroTikSaveChangesInterceptor>());
             });
 
@@ -184,7 +186,12 @@ namespace RadaTik
             {
                 app.UseHttpsRedirection();
             }
-            app.UseStaticFiles();
+            var staticContentTypes = new FileExtensionContentTypeProvider();
+            staticContentTypes.Mappings[".apk"] = "application/vnd.android.package-archive";
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                ContentTypeProvider = staticContentTypes
+            });
 
             // واجهة React (radatik-web): الملفات تحت wwwroot/app، المسار العام /app/...
             // يجب تقديم index.html لمسارات الـ SPA قبل MVC حتى لا يُفسَّر /app/login كـ {controller}/{action}.
@@ -210,6 +217,8 @@ namespace RadaTik
             app.UseRouting();
             app.UseSession(); // إضافة Session middleware
             app.UseAuthentication();
+            app.UseMiddleware<NativeAppRoleMiddleware>();
+            app.UseMiddleware<PublicVisitorCounterMiddleware>();
             app.UseMiddleware<NetworkTenantMiddleware>();
             app.UseMiddleware<LegacyRootControllerRedirectMiddleware>();
             app.UseMiddleware<AreaIsolationMiddleware>();

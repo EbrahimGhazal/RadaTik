@@ -1,6 +1,11 @@
+@using System.Globalization
+@using RadaTik.Services.PublicStats
+@inject IPublicStatsService PublicStats
 @{
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
     var areaRoute = new { area = "RadaTik" };
+    long siteVisitors = await PublicStats.GetAsync(PublicStatsKeys.SiteVisitors);
+    string siteVisitorsText = siteVisitors.ToString("N0", CultureInfo.GetCultureInfo("en-US"));
 }
 
 <!DOCTYPE html>
@@ -211,6 +216,16 @@
             color: rgba(255,255,255,0.65);
         }
 
+        .rt-visitor-count {
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .rt-visitor-count strong {
+            font-size: 1.15rem;
+            font-variant-numeric: tabular-nums;
+        }
+
         @@media (max-width: 900px) {
             .rt-nav-toggle { display: inline-flex; align-items: center; justify-content: center; }
             .rt-nav-links {
@@ -246,6 +261,7 @@
                 <li><a href="@Url.Action("Index", "Public", areaRoute)" class="rt-nav-link @(currentAction == "Index" ? "active" : "")">الرئيسية</a></li>
                 <li><a href="@Url.Action("About", "Public", areaRoute)" class="rt-nav-link @(currentAction == "About" ? "active" : "")">من نحن</a></li>
                 <li><a href="@Url.Action("Services", "Public", areaRoute)" class="rt-nav-link @(currentAction == "Services" ? "active" : "")">خدماتنا</a></li>
+                <li><a href="@Url.Action("Apps", "Public", areaRoute)" class="rt-nav-link @(currentAction == "Apps" ? "active" : "")">التطبيقات</a></li>
                 <li><a href="@Url.Action("Contact", "Public", areaRoute)" class="rt-nav-link @(currentAction == "Contact" ? "active" : "")">اتصل بنا</a></li>
                 <li><a href="/Account/login?returnUrl=%2FRadaTik" class="rt-nav-link rt-nav-link--cta">تسجيل الدخول</a></li>
             </ul>
@@ -287,6 +303,7 @@
                         <li><a href="@Url.Action("Index", "Public", areaRoute)">الرئيسية</a></li>
                         <li><a href="@Url.Action("About", "Public", areaRoute)">من نحن</a></li>
                         <li><a href="@Url.Action("Services", "Public", areaRoute)">خدماتنا</a></li>
+                        <li><a href="@Url.Action("Apps", "Public", areaRoute)">التطبيقات</a></li>
                         <li><a href="@Url.Action("Contact", "Public", areaRoute)">اتصل بنا</a></li>
                     </ul>
                 </div>
@@ -301,7 +318,7 @@
             </div>
             <div class="rt-footer-bottom">
                 <span>© @DateTime.Now.Year RadaTik. جميع الحقوق محفوظة.</span>
-                <span>منصة B2B لإدارة شبكات ISP</span>
+                <span class="rt-visitor-count">عدد زوار الموقع: <strong>@siteVisitorsText</strong></span>
             </div>
         </div>
     </footer>

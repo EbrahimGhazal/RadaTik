@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RadaTik المشترك</string>
+    <string name="title_activity_main">RadaTik المشترك</string>
+    <string name="package_name">com.radatik.client</string>
+    <string name="custom_url_scheme">com.radatik.client</string>
+</resources>
