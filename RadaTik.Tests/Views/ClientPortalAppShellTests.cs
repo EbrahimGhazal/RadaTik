@@ -30,6 +30,7 @@ public sealed class ClientPortalAppShellTests
         Assert.Contains("LocalNotifications", js);
         Assert.Contains("UnreadNotificationsCount", js);
         Assert.Contains("employee/notifications/UnreadCount", js);
+        Assert.Contains("networkManager/notifications/UnreadCount", js);
         Assert.Contains("ic_notification", js);
 
         string shell = File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_Shell.cshtml"));
@@ -47,6 +48,18 @@ public sealed class ClientPortalAppShellTests
         Assert.Contains("https://radatik.com/clientPortal/dashboard", config);
         Assert.Contains("RadaTikNative/client/2", config);
         Assert.Contains("radatik.com", config);
+        Assert.Contains("\"captureInput\": false", config);
+    }
+
+    [Fact]
+    public void CapacitorCompanyApp_TargetsCompanyAdmin()
+    {
+        string config = File.ReadAllText(FindFile("apps", "radatik-company", "capacitor.config.json"));
+        Assert.Contains("com.radatik.company", config);
+        Assert.Contains("https://radatik.com/networkManager/dashboard", config);
+        Assert.Contains("app=company", config);
+        Assert.Contains("RadaTikNative/company/2", config);
+        Assert.Contains("\"captureInput\": false", config);
     }
 
     private static string FindFile(params string[] relativeParts)

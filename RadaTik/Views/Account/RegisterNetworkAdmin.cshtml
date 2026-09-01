@@ -60,7 +60,15 @@
                 <div class="form-group">
                     <label asp-for="UserName" class="form-label">اسم المستخدم <span class="text-danger">*</span></label>
                     <div class="input-wrapper">
-                        <input asp-for="UserName" class="form-control rt-input" placeholder="أدخل اسم المستخدم" autocomplete="username" />
+                        <input asp-for="UserName"
+                               class="form-control rt-input"
+                               placeholder="أدخل اسم المستخدم"
+                               autocomplete="username"
+                               autocapitalize="none"
+                               autocorrect="on"
+                               spellcheck="true"
+                               inputmode="text"
+                               dir="ltr" />
                         <i class="fas fa-user"></i>
                     </div>
                     <span asp-validation-for="UserName" class="validation-error"></span>

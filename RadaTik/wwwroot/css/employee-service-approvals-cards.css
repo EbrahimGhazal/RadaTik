@@ -1,0 +1,368 @@
+/* طلبات موافقات الموظفين — بطاقات واضحة على سطح المكتب والموبايل */
+.radtk-page-emp-approvals,
+.employee-approvals-page {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+.employee-approvals-page .sys-hero,
+.employee-approvals-page .alert,
+.employee-approvals-page .emp-approvals-list,
+.employee-approvals-page .emp-approval-card,
+.employee-approvals-page .emp-approvals-empty {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.employee-approvals-page .emp-approvals-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.9rem;
+}
+
+.employee-approvals-page .emp-approval-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1rem 1.05rem 1.05rem;
+    border: 1px solid var(--border-light, #e5e7eb);
+    border-radius: 16px;
+    background:
+        linear-gradient(180deg, rgba(255, 251, 235, 0.55) 0%, var(--bg-card, #fff) 38%);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
+}
+
+.employee-approvals-page .emp-approval-card::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 5px;
+    background: linear-gradient(180deg, #f59e0b, #d97706);
+}
+
+.employee-approvals-page .emp-approval-card--client-create::before,
+.employee-approvals-page .emp-approval-card--client-edit::before {
+    background: linear-gradient(180deg, #2563eb, #0ea5e9);
+}
+
+.employee-approvals-page .emp-approval-card--receiver-create::before,
+.employee-approvals-page .emp-approval-card--receiver-edit::before {
+    background: linear-gradient(180deg, #0d9488, #059669);
+}
+
+.employee-approvals-page .emp-approval-card--sector::before {
+    background: linear-gradient(180deg, #7c3aed, #6366f1);
+}
+
+.employee-approvals-page .emp-approval-card--focused,
+.employee-approvals-page .emp-approval-card.table-warning {
+    border-color: rgba(217, 119, 6, 0.45);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.22), 0 12px 28px rgba(15, 23, 42, 0.1);
+    background: linear-gradient(180deg, #fff7ed 0%, var(--bg-card, #fff) 46%);
+}
+
+.employee-approvals-page .emp-approval-card__head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.employee-approvals-page .emp-approval-card__icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: 14px;
+    background: rgba(245, 158, 11, 0.14);
+    color: #b45309;
+    font-size: 1.05rem;
+}
+
+.employee-approvals-page .emp-approval-card--client-create .emp-approval-card__icon,
+.employee-approvals-page .emp-approval-card--client-edit .emp-approval-card__icon {
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d4ed8;
+}
+
+.employee-approvals-page .emp-approval-card--receiver-create .emp-approval-card__icon,
+.employee-approvals-page .emp-approval-card--receiver-edit .emp-approval-card__icon {
+    background: rgba(13, 148, 136, 0.12);
+    color: #0f766e;
+}
+
+.employee-approvals-page .emp-approval-card--sector .emp-approval-card__icon {
+    background: rgba(124, 58, 237, 0.12);
+    color: #6d28d9;
+}
+
+.employee-approvals-page .emp-approval-card__title-wrap {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.employee-approvals-page .emp-approval-card__title {
+    margin: 0 0 0.2rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1.35;
+    color: var(--text-primary, #0f172a);
+    overflow-wrap: anywhere;
+}
+
+.employee-approvals-page .emp-approval-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.85rem;
+    margin: 0;
+    color: var(--text-muted, #64748b);
+    font-size: 0.82rem;
+}
+
+.employee-approvals-page .emp-approval-card__meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.employee-approvals-page .emp-approval-card__status {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.7rem;
+    padding: 0.15rem 0.65rem;
+    border-radius: 999px;
+    background: #fff7ed;
+    color: #9a3412;
+    border: 1px solid rgba(251, 146, 60, 0.45);
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+
+.employee-approvals-page .emp-approval-card__facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.55rem;
+}
+
+.employee-approvals-page .emp-approval-fact {
+    min-width: 0;
+    padding: 0.55rem 0.7rem;
+    border-radius: 12px;
+    background: var(--bg-hover, rgba(148, 163, 184, 0.1));
+}
+
+.employee-approvals-page .emp-approval-fact__label {
+    display: block;
+    margin-bottom: 0.2rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted, #64748b);
+}
+
+.employee-approvals-page .emp-approval-fact__value {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 700;
+    color: var(--text-primary, #0f172a);
+    overflow-wrap: anywhere;
+}
+
+.employee-approvals-page .emp-approval-fact__name {
+    font-weight: 800;
+}
+
+.employee-approvals-page .emp-approval-charge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 1.7rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.employee-approvals-page .emp-approval-charge--yes {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.employee-approvals-page .emp-approval-charge--no {
+    background: #f8fafc;
+    color: #64748b;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.employee-approvals-page .emp-approval-file-btn {
+    min-height: 2.05rem;
+    border-radius: 999px;
+}
+
+.employee-approvals-page .emp-approval-card__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    padding-top: 0.15rem;
+}
+
+.employee-approvals-page .emp-approval-form {
+    display: flex;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.employee-approvals-page .emp-approval-form .form-control {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.employee-approvals-page .emp-approval-form .btn {
+    flex: 0 0 auto;
+    min-height: 2.35rem;
+    min-width: 5.4rem;
+    justify-content: center;
+    font-weight: 800;
+}
+
+.employee-approvals-page .emp-approvals-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 2.4rem 1.1rem;
+    border: 1px dashed var(--border-light, #e5e7eb);
+    border-radius: 16px;
+    background: var(--bg-card, #fff);
+    text-align: center;
+}
+
+.employee-approvals-page .emp-approvals-empty__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.4rem;
+    height: 3.4rem;
+    border-radius: 999px;
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+    font-size: 1.35rem;
+}
+
+.employee-approvals-page .emp-approvals-empty__title {
+    margin: 0.35rem 0 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.employee-approvals-page .emp-approvals-empty__text {
+    margin: 0;
+    max-width: 28rem;
+    color: var(--text-muted, #64748b);
+}
+
+@media (max-width: 1199.98px) {
+    html body .radtk-page-emp-approvals,
+    html body .employee-approvals-page {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    html body .employee-approvals-page .sys-hero,
+    html body .employee-approvals-page .sys-hero.operational-sys-hero {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.7rem;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    html body .employee-approvals-page .sys-hero-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    html body .employee-approvals-page .emp-approval-card__head {
+        flex-wrap: wrap;
+    }
+
+    html body .employee-approvals-page .emp-approval-card__status {
+        margin-inline-start: auto;
+    }
+
+    html body .employee-approvals-page .emp-approval-card__facts,
+    html body .employee-approvals-page .emp-approval-card__actions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    html body .employee-approvals-page .emp-approval-form {
+        flex-direction: column;
+    }
+
+    html body .employee-approvals-page .emp-approval-form .btn {
+        width: 100%;
+        min-height: 2.55rem;
+    }
+
+    html body .employee-approvals-page .emp-approval-file-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 575.98px) {
+    html body .employee-approvals-page .emp-approval-card {
+        padding: 0.85rem 0.8rem 0.9rem;
+    }
+
+    html body .employee-approvals-page .emp-approval-card__title {
+        font-size: 0.98rem;
+    }
+}
+
+[data-theme="dark"] .employee-approvals-page .emp-approval-card {
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.1) 0%, var(--bg-card, #172235) 42%);
+}
+
+[data-theme="dark"] .employee-approvals-page .emp-approval-card--focused,
+[data-theme="dark"] .employee-approvals-page .emp-approval-card.table-warning {
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.18) 0%, var(--bg-card, #172235) 50%);
+}
+
+[data-theme="dark"] .employee-approvals-page .emp-approval-card__status {
+    background: rgba(245, 158, 11, 0.16);
+    color: #fdba74;
+}
+
+[data-theme="dark"] .employee-approvals-page .emp-approval-charge--yes {
+    background: rgba(16, 185, 129, 0.16);
+    color: #6ee7b7;
+}
+
+[data-theme="dark"] .employee-approvals-page .emp-approval-charge--no {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .employee-approvals-page .emp-approvals-empty {
+    background: var(--bg-card, #172235);
+}

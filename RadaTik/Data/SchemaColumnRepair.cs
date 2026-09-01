@@ -35,6 +35,12 @@ public static class SchemaColumnRepair
         await EnsureColumnAsync(db, "Clients", "Workplace", """
             ALTER TABLE [dbo].[Clients] ADD [Workplace] nvarchar(200) NULL;
             """, logger, ct);
+        await EnsureColumnAsync(db, "Clients", "NationalIdFrontPath", """
+            ALTER TABLE [dbo].[Clients] ADD [NationalIdFrontPath] nvarchar(260) NULL;
+            """, logger, ct);
+        await EnsureColumnAsync(db, "Clients", "NationalIdBackPath", """
+            ALTER TABLE [dbo].[Clients] ADD [NationalIdBackPath] nvarchar(260) NULL;
+            """, logger, ct);
         await EnsureColumnAsync(db, "Clients", "VipBenefitKind", """
             ALTER TABLE [dbo].[Clients] ADD [VipBenefitKind] int NOT NULL
                 CONSTRAINT [DF_Clients_VipBenefitKind] DEFAULT (0);
@@ -64,6 +70,41 @@ public static class SchemaColumnRepair
                 [UpdatedUtc] datetime2 NOT NULL CONSTRAINT [DF_PublicSiteCounters_UpdatedUtc] DEFAULT (SYSUTCDATETIME()),
                 CONSTRAINT [PK_PublicSiteCounters] PRIMARY KEY ([Key])
             );
+            """, logger, ct);
+
+        await EnsureTableAsync(db, "CompanySocialLinks", """
+            CREATE TABLE [dbo].[CompanySocialLinks] (
+                [Id] int NOT NULL IDENTITY(1,1),
+                [CompanyNetworkId] int NOT NULL,
+                [Platform] int NOT NULL,
+                [DisplayName] nvarchar(80) NOT NULL,
+                [Url] nvarchar(500) NOT NULL,
+                [IsVisibleToClients] bit NOT NULL CONSTRAINT [DF_CompanySocialLinks_IsVisibleToClients] DEFAULT (1),
+                [SortOrder] int NOT NULL CONSTRAINT [DF_CompanySocialLinks_SortOrder] DEFAULT (0),
+                [UpdatedAtUtc] datetime2 NOT NULL CONSTRAINT [DF_CompanySocialLinks_UpdatedAtUtc] DEFAULT (SYSUTCDATETIME()),
+                CONSTRAINT [PK_CompanySocialLinks] PRIMARY KEY ([Id]),
+                CONSTRAINT [FK_CompanySocialLinks_Networks_CompanyNetworkId]
+                    FOREIGN KEY ([CompanyNetworkId]) REFERENCES [dbo].[Networks] ([Id]) ON DELETE CASCADE
+            );
+            CREATE INDEX [IX_CompanySocialLinks_CompanyNetworkId_SortOrder]
+                ON [dbo].[CompanySocialLinks] ([CompanyNetworkId], [SortOrder]);
+            """, logger, ct);
+
+        await EnsureTableAsync(db, "CompanyComplaintContacts", """
+            CREATE TABLE [dbo].[CompanyComplaintContacts] (
+                [Id] int NOT NULL IDENTITY(1,1),
+                [CompanyNetworkId] int NOT NULL,
+                [Label] nvarchar(80) NOT NULL,
+                [PhoneNumber] nvarchar(40) NOT NULL,
+                [IsVisibleToClients] bit NOT NULL CONSTRAINT [DF_CompanyComplaintContacts_IsVisibleToClients] DEFAULT (1),
+                [SortOrder] int NOT NULL CONSTRAINT [DF_CompanyComplaintContacts_SortOrder] DEFAULT (0),
+                [UpdatedAtUtc] datetime2 NOT NULL CONSTRAINT [DF_CompanyComplaintContacts_UpdatedAtUtc] DEFAULT (SYSUTCDATETIME()),
+                CONSTRAINT [PK_CompanyComplaintContacts] PRIMARY KEY ([Id]),
+                CONSTRAINT [FK_CompanyComplaintContacts_Networks_CompanyNetworkId]
+                    FOREIGN KEY ([CompanyNetworkId]) REFERENCES [dbo].[Networks] ([Id]) ON DELETE CASCADE
+            );
+            CREATE INDEX [IX_CompanyComplaintContacts_CompanyNetworkId_SortOrder]
+                ON [dbo].[CompanyComplaintContacts] ([CompanyNetworkId], [SortOrder]);
             """, logger, ct);
     }
 

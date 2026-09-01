@@ -206,7 +206,7 @@
                         @if (exchanges.Any())
                         {
                             <div class="table-responsive">
-                                <table class="table table-hover mb-0 financial-table radtk-data-table radtk-data-table--cards">
+                                <table class="table table-hover mb-0 financial-table cashbox-log-table radtk-data-table radtk-data-table--cards" id="cashboxExchangesTable">
                                     <thead>
                                         <tr>
                                             <th>التاريخ</th>
@@ -223,18 +223,18 @@
                                         var fromC = CashBoxHelper.NormalizeOperatingCurrency(ex.FromCurrency);
                                         var toC = CashBoxHelper.NormalizeOperatingCurrency(ex.ToCurrency);
                                         <tr class="financial-row @ExchangeRowClass(fromC, toC)">
-                                            <td class="small">@ex.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
-                                            <td class="text-danger">
+                                            <td class="small cashbox-cell-date" data-label="التاريخ">@ex.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                            <td class="text-danger" data-label="من">
                                                 <span class="cashbox-currency-chip cashbox-currency-chip--@((int)fromC)">@CurrencyHelper.GetSymbol(fromC)</span>
                                                 @CurrencyHelper.FormatAmount(ex.SourceAmount, fromC)
                                             </td>
-                                            <td class="text-success">
+                                            <td class="text-success" data-label="إلى">
                                                 <span class="cashbox-currency-chip cashbox-currency-chip--@((int)toC)">@CurrencyHelper.GetSymbol(toC)</span>
                                                 @CurrencyHelper.FormatAmount(ex.TargetAmount, toC)
                                             </td>
-                                            <td class="small">@ex.ExchangeRate.ToString("N0")</td>
-                                            <td class="small">@(ex.CreatedByUser?.FullName ?? ex.CreatedByUser?.UserName ?? "—")</td>
-                                            <td class="text-muted small">@(ex.Notes ?? "—")</td>
+                                            <td class="small" data-label="السعر">@ex.ExchangeRate.ToString("N0")</td>
+                                            <td class="small" data-label="بواسطة">@(ex.CreatedByUser?.FullName ?? ex.CreatedByUser?.UserName ?? "—")</td>
+                                            <td class="text-muted small" data-label="ملاحظات">@(ex.Notes ?? "—")</td>
                                         </tr>
                                     }
                                     </tbody>
@@ -255,7 +255,7 @@
                         @if (deposits.Any())
                         {
                             <div class="table-responsive">
-                                <table class="table table-hover mb-0 financial-table radtk-data-table radtk-data-table--cards">
+                                <table class="table table-hover mb-0 financial-table cashbox-log-table radtk-data-table radtk-data-table--cards" id="cashboxDepositsTable">
                                     <thead>
                                         <tr><th>التاريخ</th><th>العملة</th><th>المبلغ</th><th>قبل</th><th>بعد</th><th>بواسطة</th><th>ملاحظات</th></tr>
                                     </thead>
@@ -264,13 +264,13 @@
                                     {
                                         var cur = CashBoxHelper.NormalizeOperatingCurrency(d.Currency);
                                         <tr class="financial-row @CashRowClass(cur)">
-                                            <td class="small">@d.DepositedAt.ToString("yyyy/MM/dd HH:mm")</td>
-                                            <td><span class="cashbox-currency-chip cashbox-currency-chip--@((int)cur)">@CurrencyHelper.GetSymbol(cur)</span></td>
-                                            <td class="text-success">+@CurrencyHelper.FormatAmount(d.Amount, cur)</td>
-                                            <td>@CurrencyHelper.FormatAmount(d.BalanceBefore, cur)</td>
-                                            <td>@CurrencyHelper.FormatAmount(d.BalanceAfter, cur)</td>
-                                            <td class="small">@(d.DepositedByUser?.FullName ?? d.DepositedByUser?.UserName ?? "—")</td>
-                                            <td class="text-muted small">@(d.Notes ?? "—")</td>
+                                            <td class="small cashbox-cell-date" data-label="التاريخ">@d.DepositedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                            <td data-label="العملة"><span class="cashbox-currency-chip cashbox-currency-chip--@((int)cur)">@CurrencyHelper.GetSymbol(cur)</span></td>
+                                            <td class="text-success cashbox-cell-amount" data-label="المبلغ">+@CurrencyHelper.FormatAmount(d.Amount, cur)</td>
+                                            <td data-label="قبل">@CurrencyHelper.FormatAmount(d.BalanceBefore, cur)</td>
+                                            <td data-label="بعد">@CurrencyHelper.FormatAmount(d.BalanceAfter, cur)</td>
+                                            <td class="small" data-label="بواسطة">@(d.DepositedByUser?.FullName ?? d.DepositedByUser?.UserName ?? "—")</td>
+                                            <td class="text-muted small" data-label="ملاحظات">@(d.Notes ?? "—")</td>
                                         </tr>
                                     }
                                     </tbody>
@@ -288,7 +288,7 @@
                         @if (withdrawals.Any())
                         {
                             <div class="table-responsive">
-                                <table class="table table-hover mb-0 financial-table radtk-data-table radtk-data-table--cards">
+                                <table class="table table-hover mb-0 financial-table cashbox-log-table radtk-data-table radtk-data-table--cards" id="cashboxWithdrawalsTable">
                                     <thead>
                                         <tr><th>التاريخ</th><th>العملة</th><th>المبلغ</th><th>قبل</th><th>بعد</th><th>بواسطة</th><th>ملاحظات</th></tr>
                                     </thead>
@@ -297,13 +297,13 @@
                                     {
                                         var cur = CashBoxHelper.NormalizeOperatingCurrency(w.Currency);
                                         <tr class="financial-row @CashRowClass(cur)">
-                                            <td class="small">@w.WithdrawnAt.ToString("yyyy/MM/dd HH:mm")</td>
-                                            <td><span class="cashbox-currency-chip cashbox-currency-chip--@((int)cur)">@CurrencyHelper.GetSymbol(cur)</span></td>
-                                            <td class="text-danger">-@CurrencyHelper.FormatAmount(w.Amount, cur)</td>
-                                            <td>@CurrencyHelper.FormatAmount(w.BalanceBefore, cur)</td>
-                                            <td>@CurrencyHelper.FormatAmount(w.BalanceAfter, cur)</td>
-                                            <td class="small">@(w.WithdrawnByUser?.FullName ?? w.WithdrawnByUser?.UserName ?? "—")</td>
-                                            <td class="text-muted small">@(w.Notes ?? "—")</td>
+                                            <td class="small cashbox-cell-date" data-label="التاريخ">@w.WithdrawnAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                            <td data-label="العملة"><span class="cashbox-currency-chip cashbox-currency-chip--@((int)cur)">@CurrencyHelper.GetSymbol(cur)</span></td>
+                                            <td class="text-danger cashbox-cell-amount" data-label="المبلغ">-@CurrencyHelper.FormatAmount(w.Amount, cur)</td>
+                                            <td data-label="قبل">@CurrencyHelper.FormatAmount(w.BalanceBefore, cur)</td>
+                                            <td data-label="بعد">@CurrencyHelper.FormatAmount(w.BalanceAfter, cur)</td>
+                                            <td class="small" data-label="بواسطة">@(w.WithdrawnByUser?.FullName ?? w.WithdrawnByUser?.UserName ?? "—")</td>
+                                            <td class="text-muted small" data-label="ملاحظات">@(w.Notes ?? "—")</td>
                                         </tr>
                                     }
                                     </tbody>
@@ -319,6 +319,7 @@
 </div>
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/cashbox-cards.css" asp-append-version="true" />
 }
 
 

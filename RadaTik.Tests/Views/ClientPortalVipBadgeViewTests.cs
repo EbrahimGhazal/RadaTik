@@ -41,6 +41,10 @@ public sealed class ClientPortalVipBadgeViewTests
         Assert.Contains("clients-vip-badge", text);
         Assert.Contains("client-vip-profile-banner", text);
         Assert.DoesNotContain("asp-for=\"IsVip\"", text);
+        Assert.Contains("_ClientNationalIdCard", text);
+        Assert.Contains("NationalIdFrontPath", text);
+        Assert.Contains("الوجه الأمامي", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_ClientNationalIdCard.cshtml")));
+        Assert.Contains("الوجه الخلفي", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_ClientNationalIdCard.cshtml")));
     }
 
     [Fact]

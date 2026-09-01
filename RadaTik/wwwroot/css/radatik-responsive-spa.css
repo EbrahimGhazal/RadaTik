@@ -85,6 +85,8 @@
 html {
     font-size: 16px;
     -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+    max-width: 100%;
 }
 
 @media (max-width: 360px) {
@@ -166,7 +168,7 @@ body {
 /* --- حاويات عامة --- */
 .app-container {
     max-width: 100%;
-    overflow-x: clip;
+    overflow-x: hidden;
 }
 
 .page-content {
@@ -184,17 +186,24 @@ body {
     body.admin-dashboard-page,
     body.company-dashboard-page,
     body.role-company-admin,
-    body.role-company-employee {
-        overflow-x: clip;
+    body.role-company-employee,
+    body.role-client-portal,
+    body.role-collection-point,
+    body.login-page {
+        overflow-x: hidden;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        max-width: 100%;
     }
 
     body.admin-dashboard-page .main-content,
     body.company-dashboard-page .main-content,
-    body.role-company-admin .main-content {
+    body.role-company-admin .main-content,
+    body.role-company-employee .main-content,
+    body.role-client-portal .main-content,
+    body.role-collection-point .main-content {
         /* Flex default min-width:auto expands past the viewport (e.g. Leaflet). */
-        overflow-x: clip;
+        overflow-x: hidden;
         overflow-y: visible;
         min-height: 0;
         min-width: 0;
@@ -212,16 +221,18 @@ body {
 
     body.admin-dashboard-page .page-content,
     body.company-dashboard-page .page-content,
-    body.role-company-admin .page-content {
+    body.role-company-admin .page-content,
+    body.role-company-employee .page-content,
+    body.role-client-portal .page-content,
+    body.role-collection-point .page-content {
         padding-top: 1rem !important;
-        overflow-x: clip;
+        overflow-x: hidden;
         min-height: 0;
         min-width: 0;
         max-width: 100%;
     }
 
-    .leaflet-container,
-    .leaflet-container .leaflet-pane svg {
+    .leaflet-container {
         max-width: 100% !important;
     }
 }
@@ -273,6 +284,28 @@ div.dataTables_wrapper {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
     scrollbar-color: rgba(37, 99, 235, 0.45) rgba(148, 163, 184, 0.15);
+}
+
+@media (max-width: 1199.98px) {
+    html body .page-content,
+    html body .radtk-surface,
+    html body .main-content {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    html body .page-content .card,
+    html body .page-content .table-card,
+    html body .page-content .sys-hero,
+    html body .page-content .table-responsive,
+    html body .page-content table {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    html body .page-content .table-responsive:has(.radtk-data-table--cards) {
+        overflow-x: hidden;
+    }
 }
 
 [data-theme="dark"] .table-responsive,
@@ -399,14 +432,14 @@ div.dataTables_wrapper {
 .leaflet-popup-content {
     font-family: "Cairo", "Tajawal", "Poppins", sans-serif;
     font-size: 0.875rem;
-    max-width: min(280px, 85vw);
+    max-width: min(280px, 85%);
 }
 
 /* --- نوافذ منبثقة --- */
 @media (max-width: 575.98px) {
     .modal-dialog {
         margin: 0.5rem auto;
-        max-width: calc(100vw - 1rem);
+        max-width: calc(100% - 1rem);
     }
 
     .modal-content {
@@ -432,7 +465,11 @@ iframe {
 .leaflet-container img,
 .leaflet-pane img,
 .leaflet-tile,
-.leaflet-marker-icon {
+.leaflet-marker-icon,
+.leaflet-container svg,
+.leaflet-overlay-pane svg,
+.leaflet-pane svg,
+.leaflet-zoom-animated {
     max-width: none !important;
     max-height: none !important;
 }

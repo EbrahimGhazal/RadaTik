@@ -18,13 +18,14 @@
     var sectorImportUnitPrice = (decimal?)(ViewBag.SectorImportUnitPrice) ?? 0m;
 }
 
+<div class="radtk-page-emp-sector-index employee-sector-page">
 <div class="page-header employee-sector-hero card border-0 shadow-sm">
     <div class="page-header-content">
         <h1 class="page-title">
             <i class="fas fa-broadcast-tower"></i>
             @ViewData["Title"]
         </h1>
-        <div class="page-actions">
+        <div class="page-actions employee-sector-hero__actions">
             <a asp-action="ExportToExcel" class="btn btn-outline-success btn-sm sector-action-btn" title="تصدير بيانات المرسلات إلى Excel">
                 <i class="fas fa-file-export"></i> تصدير إلى Excel
             </a>
@@ -32,9 +33,9 @@
             {
                 @if (importServers.Any())
                 {
-                    <form asp-action="ImportFromMikroTik" method="post" class="d-inline-flex align-items-center gap-1">
+                    <form asp-action="ImportFromMikroTik" method="post" class="d-inline-flex align-items-center gap-1 employee-sector-import-form">
                         @Html.AntiForgeryToken()
-                        <select class="form-select form-select-sm sector-select" name="mikroTikServerId" id="employeeSectorImportServerSelect" style="min-width: 170px;">
+                        <select class="form-select form-select-sm sector-select" name="mikroTikServerId" id="employeeSectorImportServerSelect">
                             @foreach (var srv in importServers)
                             {
                                 RadaTik.Services.ImportSectorsPreviewResult p;
@@ -147,21 +148,30 @@
 {
     <div class="card border-0 shadow-sm mb-3 border-start border-4 border-success sector-import-preview" id="employeeSectorImportPreviewCard">
         <div class="card-body py-2">
-            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 employee-sector-import-preview-body">
                 <div>
                     <div class="fw-semibold" id="esipServerName">—</div>
-                    <div class="small text-muted mt-1">
-                        إجمالي الواجهات: <strong id="esipTotal">0</strong> |
-                        قابل للاستيراد: <strong id="esipImportable">0</strong> |
-                        موجود مسبقاً: <strong id="esipExisting">0</strong> |
-                        بدون IP: <strong id="esipMissingIp">0</strong>
+                    <div class="small text-muted mt-1 employee-sector-import-stats">
+                        <div class="employee-sector-import-stat"><span>إجمالي الواجهات</span> <strong id="esipTotal">0</strong></div>
+                        <div class="employee-sector-import-stat"><span>قابل للاستيراد</span> <strong id="esipImportable">0</strong></div>
+                        <div class="employee-sector-import-stat"><span>موجود مسبقاً</span> <strong id="esipExisting">0</strong></div>
+                        <div class="employee-sector-import-stat"><span>بدون IP</span> <strong id="esipMissingIp">0</strong></div>
                     </div>
                 </div>
-                <div class="text-end">
-                    <div class="small text-muted">سعر الوحدة / الإجمالي / الرصيد</div>
-                    <div class="fw-bold text-success">
-                        <span id="esipUnitPrice">0.00</span> / <span id="esipTotalCharge">0.00</span> / <span id="esipWallet">0.00</span> ل.س.ج
+                <div class="text-end employee-sector-import-money">
+                    <div class="employee-sector-import-money-row">
+                        <span>سعر الوحدة</span>
+                        <strong id="esipUnitPrice">0.00</strong>
                     </div>
+                    <div class="employee-sector-import-money-row">
+                        <span>الإجمالي</span>
+                        <strong id="esipTotalCharge">0.00</strong>
+                    </div>
+                    <div class="employee-sector-import-money-row">
+                        <span>الرصيد</span>
+                        <strong id="esipWallet">0.00</strong>
+                    </div>
+                    <div class="small text-muted">ل.س.ج</div>
                     <div class="small text-danger mt-1 d-none" id="esipWarningText">
                         <span id="esipWarningMessage"></span>
                         <a href="#" class="ms-1" onclick="return showEmployeeSectorImportHelpModal();">تفاصيل الحل</a>
@@ -247,7 +257,7 @@
     </div>
 }
 
-<div class="row g-2 mb-3">
+<div class="row g-2 mb-3 employee-sector-stats">
     <div class="col-md-3 col-6">
         <div class="card sector-stat-card total h-100">
             <div class="card-body">
@@ -360,7 +370,6 @@
     .sector-table td, .sector-table th {
         padding: 0.68rem 0.8rem;
         vertical-align: middle;
-        white-space: nowrap;
     }
 
     .sector-table tbody tr:hover {
@@ -566,7 +575,7 @@
 <div class="card border-0 shadow-sm sector-table-card">
     <div class="card-body">
         <div class="table-responsive sector-table-wrap">
-            <table class="table table-hover align-middle sector-table">
+            <table class="table table-hover align-middle sector-table radtk-data-table radtk-data-table--cards" id="employeeSectorsTable">
                 <thead>
                     <tr>
                         <th>القطاع</th>
@@ -575,19 +584,19 @@
                         <th>المستقبلات</th>
                         <th>المستخدمين</th>
                         <th>الحالة</th>
-                        <th style="width:220px;">إجراءات</th>
+                        <th>إجراءات</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var item in Model)
                     {
-                        <tr>
-                            <td>
+                        <tr class="@(item.IsActive ? null : "employee-sector-row--inactive")">
+                            <td data-label="القطاع" class="employee-sector-cell--lead">
                                 <strong>@item.Name</strong>
                                 <div class="text-muted small">@item.NetworkMask</div>
                             </td>
-                            <td><code>@item.IPAddress</code></td>
-                            <td>
+                            <td data-label="IP"><code>@item.IPAddress</code></td>
+                            <td data-label="الخادم">
                                 @if (item.MikroTikServer != null)
                                 {
                                     <span class="badge bg-secondary">@item.MikroTikServer.Host</span>
@@ -597,17 +606,17 @@
                                     <span class="text-muted">-</span>
                                 }
                             </td>
-                            <td>
+                            <td data-label="المستقبلات">
                                 <a asp-action="Receivers" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info">
                                     <i class="fas fa-satellite-dish"></i> @item.ReceiverCount
                                 </a>
                             </td>
-                            <td>
+                            <td data-label="المستخدمين">
                                 <a asp-action="Users" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-users"></i> @(userCountBySectorId.TryGetValue(item.Id, out var usersCount) ? usersCount : item.UserCount)
                                 </a>
                             </td>
-                            <td>
+                            <td data-label="الحالة">
                                 @if (item.IsActive)
                                 {
                                     <span class="badge bg-success">نشط</span>
@@ -617,22 +626,24 @@
                                     <span class="badge bg-secondary">متوقف</span>
                                 }
                             </td>
-                            <td>
-                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fas fa-eye"></i> تفاصيل
-                                </a>
-                                @if (canEdit)
-                                {
-                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">
-                                        <i class="fas fa-edit"></i> تعديل
+                            <td data-label="إجراءات" class="radtk-col-actions employee-sector-action-cell">
+                                <div class="employee-sector-actions">
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-eye"></i> <span class="employee-sector-actions__label">تفاصيل</span>
                                     </a>
-                                }
-                                @if (canDelete)
-                                {
-                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">
-                                        <i class="fas fa-trash"></i> حذف
-                                    </a>
-                                }
+                                    @if (canEdit)
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i> <span class="employee-sector-actions__label">تعديل</span>
+                                        </a>
+                                    }
+                                    @if (canDelete)
+                                    {
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i> <span class="employee-sector-actions__label">حذف</span>
+                                        </a>
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }
@@ -641,4 +652,9 @@
         </div>
     </div>
 </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/employee-sector-cards.css" asp-append-version="true" />
+}
 

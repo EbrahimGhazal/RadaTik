@@ -35,13 +35,13 @@ namespace RadaTik.Controllers
         {
             if (User.Identity?.IsAuthenticated != true)
             {
-                return Redirect("/radatik");
+                return RedirectPermanent("/RadaTik");
             }
 
             ApplicationUser? user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return Redirect("/radatik");
+                return RedirectPermanent("/RadaTik");
             }
 
             IList<string> userRoles = await _userManager.GetRolesAsync(user);

@@ -213,7 +213,8 @@ namespace RadaTik.Controllers
             await _signInManager.SignOutAsync();
             HttpContext.Session.Remove(AreaIsolationMiddleware.SessionKeyActiveArea);
             _logger.LogInformation("تم تسجيل الخروج");
-            return RedirectToAction(nameof(Login));
+            string? app = NativeAppContext.Detect(Request);
+            return RedirectToAction(nameof(Login), new { app });
         }
 
         [HttpGet]
@@ -303,6 +304,17 @@ namespace RadaTik.Controllers
         [AllowAnonymous]
         public IActionResult RegisterNetworkAdmin()
         {
+            string? nativeApp = BindNativeApp(null, null);
+            if (nativeApp == NativeAppContext.Collection)
+            {
+                return RedirectToAction(nameof(RegisterCollectionPoint));
+            }
+
+            if (nativeApp is NativeAppContext.Client or NativeAppContext.Employee)
+            {
+                return RedirectToAction(nameof(Login), new { app = nativeApp });
+            }
+
             return View();
         }
 
@@ -311,6 +323,17 @@ namespace RadaTik.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RegisterNetworkAdmin(RegisterViewModel model)
         {
+            string? nativeApp = BindNativeApp(null, null);
+            if (nativeApp == NativeAppContext.Collection)
+            {
+                return RedirectToAction(nameof(RegisterCollectionPoint));
+            }
+
+            if (nativeApp is NativeAppContext.Client or NativeAppContext.Employee)
+            {
+                return RedirectToAction(nameof(Login), new { app = nativeApp });
+            }
+
             if (!ModelState.IsValid)
             {
                 return View(model);
@@ -454,13 +477,24 @@ namespace RadaTik.Controllers
 
             _logger.LogInformation($"تم إنشاء طلب انضمام لمدير شبكة جديد: {model.Email}");
             TempData["Success"] = AppMessages.OperationSuccess;
-            return RedirectToAction("Login", "Account");
+            return RedirectToAction(nameof(Login), new { app = nativeApp });
         }
 
         [HttpGet]
         [AllowAnonymous]
         public IActionResult RegisterCollectionPoint()
         {
+            string? nativeApp = BindNativeApp(null, null);
+            if (nativeApp == NativeAppContext.Company)
+            {
+                return RedirectToAction(nameof(RegisterNetworkAdmin));
+            }
+
+            if (nativeApp is NativeAppContext.Client or NativeAppContext.Employee)
+            {
+                return RedirectToAction(nameof(Login), new { app = nativeApp });
+            }
+
             return View(new CreateCollectionPointViewModel());
         }
 
@@ -469,6 +503,17 @@ namespace RadaTik.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RegisterCollectionPoint(CreateCollectionPointViewModel model)
         {
+            string? nativeApp = BindNativeApp(null, null);
+            if (nativeApp == NativeAppContext.Company)
+            {
+                return RedirectToAction(nameof(RegisterNetworkAdmin));
+            }
+
+            if (nativeApp is NativeAppContext.Client or NativeAppContext.Employee)
+            {
+                return RedirectToAction(nameof(Login), new { app = nativeApp });
+            }
+
             if (!ModelState.IsValid)
             {
                 return View(model);
@@ -614,7 +659,7 @@ namespace RadaTik.Controllers
             await _requestNotificationService.NotifyJoinRequestSubmittedAsync(request);
 
             TempData["Success"] = AppMessages.OperationSuccess;
-            return RedirectToAction(nameof(Login));
+            return RedirectToAction(nameof(Login), new { app = nativeApp });
         }
 
         [HttpGet]

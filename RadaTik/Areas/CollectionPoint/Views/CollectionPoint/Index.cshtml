@@ -81,37 +81,19 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
             </div>
             <div class="modal-body">
-                <div class="row mb-3">
-                    <div class="col-md-8">
-                        <div class="input-group input-group-lg">
-                            <input type="text" id="searchQuery" class="form-control" placeholder="اسم المستخدم، الاسم، رقم المشترك أو الجوال" autofocus />
-                            <button type="button" id="btnSearch" class="btn btn-primary">
-                                <i class="fas fa-search"></i> بحث
-                            </button>
-                        </div>
+                <div class="collect-search-bar mb-3">
+                    <div class="input-group input-group-lg">
+                        <input type="text" id="searchQuery" class="form-control" placeholder="اسم المستخدم، الاسم، رقم المشترك أو الجوال" autofocus />
+                        <button type="button" id="btnSearch" class="btn btn-primary">
+                            <i class="fas fa-search"></i> بحث
+                        </button>
                     </div>
                 </div>
-                <div class="table-responsive radtk-data-table-wrap">
-                    <table class="table table-hover align-middle radtk-data-table radtk-data-table--cards">
-                        <thead>
-                            <tr>
-                                <th>اسم المستخدم</th>
-                                <th>الاسم الثلاثي</th>
-                                <th>رقم المشترك</th>
-                                <th>رقم الجوال</th>
-                                <th>اسم البروفايل</th>
-                                <th>السعر الأساسي</th>
-                                <th>الضريبة</th>
-                                <th>الإجمالي</th>
-                                <th class="radtk-col-actions">الإجراء</th>
-                            </tr>
-                        </thead>
-                        <tbody id="searchResultsBody">
-                            <tr>
-                                <td colspan="9" class="text-center text-muted py-4">أدخل كلمة البحث وانقر على بحث</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div id="searchResults" class="collect-search-results">
+                    <div class="collect-search-status">
+                        <i class="fas fa-search"></i>
+                        <span>أدخل كلمة البحث ثم اضغط بحث لعرض بطاقة المشترك</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -199,88 +181,162 @@
     </div>
 </div>
 
+@section Styles {
+    <link rel="stylesheet" href="~/css/collection-point-search-cards.css" asp-append-version="true" />
+}
+
 @section Scripts {
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         var currentNetworkId = null;
         var searchModal = new bootstrap.Modal(document.getElementById('searchModal'));
         var confirmPayModal = new bootstrap.Modal(document.getElementById('confirmPayModal'));
+        var resultsEl = document.getElementById('searchResults');
+        var detailsBaseUrl = '@Url.Action("ClientDetails", "CollectionPoint", new { area = "CollectionPoint" })';
+
+        function escapeHtml(value) {
+            return String(value == null ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatMoney(amount, unit, digits) {
+            return Number(amount || 0).toLocaleString('en-US', {
+                minimumFractionDigits: digits,
+                maximumFractionDigits: digits
+            }) + ' ' + unit;
+        }
+
+        function renderStatus(kind, icon, text) {
+            var extra = kind ? ' collect-search-status--' + kind : '';
+            resultsEl.innerHTML = '<div class="collect-search-status' + extra + '">' +
+                '<i class="' + icon + '"></i>' +
+                '<span>' + text + '</span>' +
+                '</div>';
+        }
+
+        function firstLetter(text) {
+            var value = String(text || '').trim();
+            return value ? value.charAt(0) : 'م';
+        }
+
+        function renderClientCard(c) {
+            var basePrice = parseFloat(c.basePrice || 0);
+            var commissionAmount = parseFloat(c.commissionAmount || 0);
+            var totalPrice = parseFloat(c.totalPrice || 0);
+            var months = parseInt(c.pendingMonths || 1, 10);
+            var totalDue = parseFloat(c.totalAmountDue || totalPrice);
+            var isUsd = c.accountCurrency === 2;
+            var unit = isUsd ? '$' : 'ل.س.ج';
+            var pointDue = parseFloat(c.totalAmountDuePointChargeSyp || totalDue);
+            var overdue = months > 1;
+            var badgeClass = overdue ? 'badge bg-warning text-dark' : 'badge bg-success';
+            var badgeText = overdue ? ('متأخر ' + months + ' أشهر') : 'تجديد شهر';
+            var dueNote = overdue
+                ? ('يشمل ' + months + ' أشهر مستحقة')
+                : 'قيمة تجديد شهر واحد';
+            if (isUsd) {
+                dueNote += ' — يُخصم من النقطة ' + formatMoney(pointDue, 'ل.س.ج', 0);
+            }
+            var payConfirm = isUsd
+                ? (formatMoney(totalDue, '$', 2) + ' (خصم ' + formatMoney(pointDue, 'ل.س.ج', 0) + ' من النقطة)')
+                : formatMoney(totalDue, 'ل.س.ج', 2);
+            var fullName = c.fullName || c.userName || 'مشترك';
+            var phone = c.phoneNumber || '';
+            var phoneHtml = phone
+                ? ('<a href="tel:' + escapeHtml(phone.replace(/\s+/g, '')) + '">' + escapeHtml(phone) + '</a>')
+                : '—';
+            var speed = c.profileDownloadSpeedDisplay ? ' · ' + c.profileDownloadSpeedDisplay : '';
+
+            return '<article class="collect-client-card' + (overdue ? ' collect-client-card--overdue' : '') + '">' +
+                '<header class="collect-client-card__head">' +
+                    '<div class="collect-client-card__avatar">' + escapeHtml(firstLetter(fullName)) + '</div>' +
+                    '<div class="collect-client-card__identity">' +
+                        '<h3 class="collect-client-card__name">' + escapeHtml(fullName) + '</h3>' +
+                        '<p class="collect-client-card__username">@@' + escapeHtml(c.userName || '—') + '</p>' +
+                    '</div>' +
+                    '<span class="collect-client-card__badge ' + badgeClass + '">' + badgeText + '</span>' +
+                '</header>' +
+                '<dl class="collect-client-card__meta">' +
+                    '<div><dt>رقم المشترك</dt><dd>' + escapeHtml(c.subscriberNumber || '—') + '</dd></div>' +
+                    '<div><dt>الجوال</dt><dd>' + phoneHtml + '</dd></div>' +
+                    '<div><dt>الباقة</dt><dd>' + escapeHtml((c.profileName || '—') + speed) + '</dd></div>' +
+                    '<div><dt>سعر الشهر</dt><dd>' + escapeHtml(formatMoney(totalPrice, unit, 2)) + '</dd></div>' +
+                '</dl>' +
+                '<div class="collect-client-card__due">' +
+                    '<div>' +
+                        '<div class="collect-client-card__due-label">المبلغ المستحق</div>' +
+                        '<div class="collect-client-card__due-amount">' + escapeHtml(formatMoney(totalDue, unit, 2)) + '</div>' +
+                    '</div>' +
+                    '<p class="collect-client-card__due-note">' + escapeHtml(dueNote) + '</p>' +
+                '</div>' +
+                '<div class="collect-client-card__prices">' +
+                    '<span>أساسي: ' + escapeHtml(formatMoney(basePrice, unit, 2)) + '</span>' +
+                    '<span>ضريبة: ' + escapeHtml(formatMoney(commissionAmount, unit, 2)) + '</span>' +
+                '</div>' +
+                '<div class="collect-client-card__actions">' +
+                    '<button type="button" class="btn btn-success btn-pay" data-client-id="' + escapeHtml(c.id) +
+                        '" data-user-name="' + escapeHtml(c.userName || fullName) +
+                        '" data-pay-label="' + escapeHtml(payConfirm) +
+                        '" data-months="' + months + '">' +
+                        '<i class="fas fa-check-circle"></i> تسديد' +
+                    '</button>' +
+                    '<a class="btn btn-outline-primary" href="' + detailsBaseUrl + '/' + encodeURIComponent(c.id) + '">' +
+                        '<i class="fas fa-eye"></i> تفاصيل' +
+                    '</a>' +
+                '</div>' +
+            '</article>';
+        }
 
         document.querySelectorAll('.network-card').forEach(function(card) {
             card.addEventListener('click', function() {
                 currentNetworkId = parseInt(this.dataset.networkId, 10);
-                var networkName = this.dataset.networkName || '';
-                document.getElementById('modalNetworkName').textContent = networkName;
+                document.getElementById('modalNetworkName').textContent = this.dataset.networkName || '';
                 document.getElementById('searchQuery').value = '';
-                document.getElementById('searchResultsBody').innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">أدخل كلمة البحث وانقر على بحث</td></tr>';
+                renderStatus('', 'fas fa-search', 'أدخل كلمة البحث ثم اضغط بحث لعرض بطاقة المشترك');
                 searchModal.show();
                 setTimeout(function() { document.getElementById('searchQuery').focus(); }, 300);
             });
         });
 
+        resultsEl.addEventListener('click', function(e) {
+            var btn = e.target.closest('.btn-pay');
+            if (!btn) return;
+            var months = parseInt(btn.dataset.months || '1', 10);
+            document.getElementById('confirmPayClientId').value = btn.dataset.clientId;
+            var suffix = months > 1 ? (' (يشمل ' + months + ' أشهر متأخرة)') : '';
+            document.getElementById('confirmPayMessage').textContent =
+                'تسديد فاتورة المشترك ' + (btn.dataset.userName || '') + ' بمبلغ ' + (btn.dataset.payLabel || '') + '؟' + suffix;
+            confirmPayModal.show();
+        });
+
         function doSearch() {
             if (!currentNetworkId) return;
             var q = document.getElementById('searchQuery').value.trim();
-            var tbody = document.getElementById('searchResultsBody');
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> جاري البحث...</td></tr>';
+            renderStatus('', 'fas fa-spinner fa-spin', 'جاري البحث...');
 
-            var url = '@Url.Action("SearchClients")' + '?networkId=' + currentNetworkId + (q ? '&q=' + encodeURIComponent(q) : '');
-            fetch(url)
-                .then(function(r) { return r.json(); })
-                .then(function(items) {
-                    if (items.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">لا توجد نتائج</td></tr>';
-                    } else {
-                        tbody.innerHTML = items.map(function(c) {
-                            var basePrice = parseFloat(c.basePrice || 0);
-                            var commissionAmount = parseFloat(c.commissionAmount || 0);
-                            var totalPrice = parseFloat(c.totalPrice || 0);
-                            var months = parseInt(c.pendingMonths || 1, 10);
-                            var totalDue = parseFloat(c.totalAmountDue || totalPrice);
-                            var isUsd = c.accountCurrency === 2;
-                            var unit = isUsd ? '$' : 'ل.س';
-                            var pointDue = parseFloat(c.totalAmountDuePointChargeSyp || totalDue);
-                            var dueLabel = months > 1
-                                ? ('متأخر ' + months + ' أشهر (مستحق: ' + totalDue.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' ' + unit + ')')
-                                : ('مستحق: ' + totalDue.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' ' + unit);
-                            if (isUsd) {
-                                dueLabel += ' — خصم نقطة: ' + pointDue.toLocaleString('en-US', {minimumFractionDigits: 0}) + ' ل.س.ج';
-                            }
-                            var payConfirm = isUsd
-                                ? (totalDue.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' $ (خصم ' + pointDue.toLocaleString('en-US', {minimumFractionDigits: 0}) + ' ل.س.ج من النقطة)')
-                                : (totalDue.toLocaleString('ar-SY') + ' ل.س');
-                            return '<tr>' +
-                                '<td>' + (c.userName || '—') + '</td>' +
-                                '<td>' + (c.fullName || '—') + '</td>' +
-                                '<td>' + (c.subscriberNumber || '—') + '</td>' +
-                                '<td>' + (c.phoneNumber || '—') + '</td>' +
-                                '<td>' + (c.profileName || '—') + '</td>' +
-                                '<td>' + basePrice.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' ' + unit + '</td>' +
-                                '<td>' + commissionAmount.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' ' + unit + '</td>' +
-                                '<td><div>' + totalPrice.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' ' + unit + '</div><small class="text-muted">' + dueLabel + '</small></td>' +
-                                '<td class="d-flex gap-2 flex-wrap">' +
-                                    '<button type="button" class="btn btn-success btn-sm btn-pay" data-client-id="' + c.id + '" data-user-name="' + (c.userName || '') + '" data-pay-label="' + payConfirm + '" data-months="' + months + '">تسديد</button>' +
-                                    '<a class="btn btn-outline-primary btn-sm" href="@Url.Action("ClientDetails", "CollectionPoint", new { area = "CollectionPoint" })/' + c.id + '">تفاصيل</a>' +
-                                '</td>' +
-                                '</tr>';
-                        }).join('');
-                        if (window.RadtkUiKit) window.RadtkUiKit.enhanceMobileTables();
-                        document.querySelectorAll('.btn-pay').forEach(function(btn) {
-                            btn.addEventListener('click', function() {
-                                var clientId = this.dataset.clientId;
-                                var userName = this.dataset.userName;
-                                var payLabel = this.dataset.payLabel;
-                                var months = parseInt(this.dataset.months || '1', 10);
-                                document.getElementById('confirmPayClientId').value = clientId;
-                                var suffix = months > 1 ? (' (يشمل ' + months + ' أشهر متأخرة)') : '';
-                                document.getElementById('confirmPayMessage').textContent = 'تسديد فاتورة المشترك ' + userName + ' بمبلغ ' + payLabel + '؟' + suffix;
-                                confirmPayModal.show();
-                            });
-                        });
+            var url = '@Url.Action("SearchClients", "CollectionPoint", new { area = "CollectionPoint" })'
+                + '?networkId=' + encodeURIComponent(String(currentNetworkId))
+                + (q ? '&q=' + encodeURIComponent(q) : '');
+            fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+                .then(function(r) {
+                    if (!r.ok) {
+                        throw new Error('search-http-' + r.status);
                     }
+                    return r.json();
+                })
+                .then(function(items) {
+                    if (!Array.isArray(items) || items.length === 0) {
+                        renderStatus('', 'fas fa-inbox', 'لا توجد نتائج مطابقة');
+                        return;
+                    }
+                    resultsEl.innerHTML = items.map(renderClientCard).join('');
                 })
                 .catch(function() {
-                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">حدث خطأ أثناء البحث</td></tr>';
+                    renderStatus('error', 'fas fa-exclamation-circle', 'حدث خطأ أثناء البحث');
                 });
         }
 

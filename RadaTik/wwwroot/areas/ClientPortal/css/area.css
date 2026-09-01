@@ -85,6 +85,26 @@
     font-size: 0.95rem;
 }
 
+[data-theme="light"] .admin-dashboard-page .client-portal-social {
+    border-top-color: #e5e7eb;
+}
+
+[data-theme="light"] .admin-dashboard-page .client-portal-social__title {
+    color: #334155;
+}
+
+[data-theme="light"] .admin-dashboard-page .client-portal-social__link {
+    background: color-mix(in srgb, var(--brand, #2563eb) 14%, #fff);
+    color: var(--brand, #1d4ed8);
+    border: 1px solid color-mix(in srgb, var(--brand, #2563eb) 28%, #fff);
+}
+
+[data-theme="light"] .admin-dashboard-page .client-portal-social__link:hover,
+[data-theme="light"] .admin-dashboard-page .client-portal-social__link:focus-visible {
+    background: var(--brand, #2563eb);
+    color: #fff;
+}
+
 @media all and (display-mode: standalone) {
     html body {
         padding-top: env(safe-area-inset-top, 0px);

@@ -4,23 +4,19 @@
     var unreadOnly = ViewBag.UnreadOnly as bool? == true;
 }
 
-<div class="client-portal">
-    <div class="page-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+<div class="client-portal client-portal-notify-page">
+    <div class="support-page-head">
         <div>
-            <h2><i class="fas fa-bell text-primary"></i> الإشعارات</h2>
+            <h2><i class="fas fa-bell"></i> الإشعارات</h2>
             <p class="text-muted mb-0">كل التنبيهات الخاصة بحسابك تظهر هنا.</p>
         </div>
-        <div class="btn-group" role="group" aria-label="notification-filters">
+        <div class="support-filter" role="group" aria-label="تصفية الإشعارات">
             <a asp-action="Notifications"
                asp-route-unreadOnly="false"
-               class="btn @(unreadOnly ? "btn-outline-secondary" : "btn-primary")">
-                الكل
-            </a>
+               class="@(unreadOnly ? "" : "is-active")">الكل</a>
             <a asp-action="Notifications"
                asp-route-unreadOnly="true"
-               class="btn @(unreadOnly ? "btn-primary" : "btn-outline-secondary")">
-                غير المقروءة فقط
-            </a>
+               class="@(unreadOnly ? "is-active" : "")">غير المقروءة</a>
         </div>
     </div>
 
@@ -33,58 +29,47 @@
         <div class="alert alert-danger">@TempData["Error"]</div>
     }
 
-    <div class="card">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>العنوان</th>
-                            <th>الرسالة</th>
-                            <th>التاريخ</th>
-                            <th>الحالة</th>
-                            <th>إجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    @if (Model.Any())
-                    {
-                        foreach (var item in Model)
-                        {
-                            <tr class="@(item.IsRead ? string.Empty : "table-warning")">
-                                <td class="fw-semibold">@item.Title</td>
-                                <td class="text-muted">@item.Message</td>
-                                <td>@item.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
-                                <td>
-                                    @if (item.IsRead)
-                                    {
-                                        <span class="badge bg-secondary">مقروء</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-danger">غير مقروء</span>
-                                    }
-                                </td>
-                                <td>
-                                    <a asp-action="OpenNotification"
-                                       asp-route-id="@item.Id"
-                                       class="btn btn-sm btn-primary">
-                                        <i class="fas fa-external-link-alt"></i>
-                                        الانتقال للعمل المطلوب
-                                    </a>
-                                </td>
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="5" class="text-center text-muted py-4">لا توجد إشعارات حالياً.</td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-            </div>
+    @if (Model.Count == 0)
+    {
+        <div class="support-empty">
+            <i class="fas fa-bell-slash"></i>
+            <h3>لا توجد إشعارات حالياً</h3>
+            <p>@(unreadOnly ? "لا يوجد تنبيه غير مقروء." : "ستظهر هنا تنبيهات التجديد والصيانة والمحفظة.")</p>
         </div>
-    </div>
+    }
+    else
+    {
+        <div class="support-card-list">
+            @foreach (var item in Model)
+            {
+                <article class="support-card notify-card @(item.IsRead ? "is-read" : "is-unread")">
+                    <header class="support-card__head">
+                        <div>
+                            <div class="support-card__kicker">@item.CreatedAt.ToString("yyyy/MM/dd HH:mm")</div>
+                            <h3 class="support-card__title">@item.Title</h3>
+                        </div>
+                        @if (item.IsRead)
+                        {
+                            <span class="support-pill is-muted">مقروء</span>
+                        }
+                        else
+                        {
+                            <span class="support-pill is-alert">غير مقروء</span>
+                        }
+                    </header>
+                    <p class="support-card__note">@item.Message</p>
+                    <div class="support-card__actions">
+                        <a asp-action="OpenNotification" asp-route-id="@item.Id" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt"></i>
+                            الانتقال للعمل المطلوب
+                        </a>
+                    </div>
+                </article>
+            }
+        </div>
+    }
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/client-portal-support-cards.css" asp-append-version="true" />
+}

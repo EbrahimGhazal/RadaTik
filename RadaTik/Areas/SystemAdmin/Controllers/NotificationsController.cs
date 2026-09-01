@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using global::RadaTik.Data;
+using global::RadaTik.Helpers;
 using global::RadaTik.Models;
 using global::RadaTik.Security;
 
@@ -35,6 +36,7 @@ namespace RadaTik.Areas.SystemAdmin.Controllers
 
             int serviceRequests = await _context.NetworkServiceRequests
                 .AsNoTracking()
+                .WhereVisibleToSystemAdmin()
                 .CountAsync(r => r.Status == NetworkServiceRequestStatus.Pending);
 
             int topUpRequests = await _context.NetworkTopUpRequests

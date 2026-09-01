@@ -114,9 +114,11 @@ internal static class ServiceRegistrationExtensions
         services.AddScoped<Services.Clients.IClientInfoFileImportService, Services.Clients.ClientInfoFileImportService>();
         services.AddScoped<Services.Clients.IClientVipPolicyService, Services.Clients.ClientVipPolicyService>();
         services.AddScoped<Services.Clients.ISubscriberFaultDiagnosisService, Services.Clients.SubscriberFaultDiagnosisService>();
+        services.AddScoped<Services.Clients.IClientNationalIdImageService, Services.Clients.ClientNationalIdImageService>();
         services.AddScoped<Services.Sectors.ISectorExcelImportService, Services.Sectors.SectorExcelImportService>();
         services.AddScoped<Services.Receivers.IReceiverExcelImportService, Services.Receivers.ReceiverExcelImportService>();
         services.AddScoped<Services.Documents.ICompanyDocumentAppearanceService, Services.Documents.CompanyDocumentAppearanceService>();
+        services.AddScoped<Services.Company.ICompanyClientPresenceService, Services.Company.CompanyClientPresenceService>();
         services.AddScoped<Services.Clients.IClientPortalSelfRenewOrchestrator, Services.Clients.ClientPortalSelfRenewOrchestrator>();
         services.AddScoped<Services.Profiles.IProfileImportPricingService, Services.Profiles.ProfileImportPricingService>();
         services.AddScoped<Services.Approvals.IEmployeeServiceApprovalRequestService, Services.Approvals.EmployeeServiceApprovalRequestService>();

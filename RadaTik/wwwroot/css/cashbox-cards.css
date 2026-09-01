@@ -1,0 +1,214 @@
+/* الصندوق النقدي — تنظيم الموبايل والتابلت دون تجاوز عرض الشاشة */
+.radtk-page--companyadmin-views-cashbox-index,
+.financial-cashbox-page {
+    max-width: 100%;
+    min-width: 0;
+}
+
+@media (max-width: 1199.98px) {
+    html body .financial-cashbox-page,
+    html body .radtk-page--companyadmin-views-cashbox-index {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    html body .financial-cashbox-page .card,
+    html body .financial-cashbox-page .sys-hero,
+    html body .financial-cashbox-page .financial-quick-nav,
+    html body .financial-cashbox-page .table-responsive,
+    html body .financial-cashbox-page .financial-table-card,
+    html body .financial-cashbox-page .cashbox-log-table {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    html body .financial-cashbox-page .financial-quick-nav {
+        gap: 0.3rem;
+    }
+
+    html body .financial-cashbox-page .sys-hero,
+    html body .financial-cashbox-page .financial-sys-hero {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.7rem;
+    }
+
+    html body .financial-cashbox-page .sys-hero-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem;
+        width: 100%;
+    }
+
+    html body .financial-cashbox-page .sys-hero-actions .btn {
+        width: 100%;
+        min-height: 2.45rem;
+        justify-content: center;
+    }
+
+    html body .financial-cashbox-page .cashbox-balance-hero {
+        min-height: 0;
+        padding: 0.95rem 1.05rem;
+    }
+
+    html body .financial-cashbox-page .cashbox-balance-hero__amount {
+        font-size: 1.45rem;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.35rem;
+        border-bottom: 0;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-tabs .nav-item {
+        width: 100%;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-tabs .nav-link {
+        width: 100%;
+        min-height: 2.5rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        border-radius: 10px !important;
+        border: 1px solid rgba(148, 163, 184, 0.35) !important;
+        font-size: 0.82rem;
+        padding: 0.4rem 0.35rem;
+    }
+
+    html body .financial-cashbox-page .input-group {
+        flex-wrap: wrap;
+    }
+
+    html body .financial-cashbox-page .input-group > .form-control,
+    html body .financial-cashbox-page .cashbox-exchange-source {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-table,
+    html body .financial-cashbox-page .cashbox-log-table.radtk-data-table--cards {
+        display: block !important;
+        table-layout: auto !important;
+        border-collapse: separate !important;
+        overflow: visible !important;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-table thead {
+        display: none !important;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-table > tbody,
+    html body .financial-cashbox-page .cashbox-log-table tbody {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        width: 100% !important;
+        padding: 0.65rem;
+        box-sizing: border-box;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-table tbody tr {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0.75rem 0.85rem 0.85rem !important;
+        border: 1px solid rgba(148, 163, 184, 0.28) !important;
+        border-radius: 14px !important;
+        box-sizing: border-box !important;
+        float: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        transform: none !important;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-table tbody td {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.3rem 0.55rem;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0.32rem 0 !important;
+        border: none !important;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.28) !important;
+        border-radius: 0 !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+        text-align: start !important;
+        float: none !important;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-table tbody td::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: var(--text-muted, #64748b);
+        flex: 0 0 auto;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-table tbody td > * {
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-table tbody td.cashbox-cell-date {
+        display: block !important;
+        padding-bottom: 0.55rem !important;
+        margin-bottom: 0.15rem !important;
+        font-weight: 800;
+        font-size: 0.82rem;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-table tbody td.cashbox-cell-date::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-table tbody td.cashbox-cell-amount,
+    html body .financial-cashbox-page .cashbox-log-table tbody td[data-label="من"],
+    html body .financial-cashbox-page .cashbox-log-table tbody td[data-label="إلى"] {
+        font-size: 0.95rem;
+        font-weight: 800;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-table tbody td:last-child {
+        border-bottom: none !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    html body .financial-cashbox-page .sys-hero-actions {
+        grid-template-columns: 1fr;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-table > tbody,
+    html body .financial-cashbox-page .cashbox-log-table tbody {
+        grid-template-columns: 1fr !important;
+        padding: 0.55rem;
+    }
+
+    html body .financial-cashbox-page .cashbox-log-tabs {
+        grid-template-columns: 1fr;
+    }
+}

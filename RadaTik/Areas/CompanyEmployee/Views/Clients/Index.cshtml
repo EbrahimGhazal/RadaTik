@@ -338,6 +338,20 @@
         </div>
     </div>
     <div class="card-body clients-table-wrap">
+        <div class="clients-table-meta">
+            <div class="clients-table-counts">
+                <span class="clients-count-chip clients-count-chip--records" title="عدد السجلات الظاهرة في الجدول بعد الفلتر">
+                    <i class="fas fa-list-ol"></i>
+                    السجلات
+                    <strong id="clientsVisibleCount">@totalClients</strong>
+                </span>
+                <span class="clients-count-chip clients-count-chip--selected" id="clientsSelectedCountChip" hidden title="عدد المشتركين المحددين">
+                    <i class="fas fa-check-square"></i>
+                    المحدد
+                    <strong id="clientsSelectedCount">0</strong>
+                </span>
+            </div>
+        </div>
         <div class="table-container table-responsive">
             <table class="table table-sm table-compact radtk-data-table radtk-data-table--cards" id="clientsTable">
                 <thead>
@@ -800,6 +814,13 @@
             }
 
             updateFilterFooterStats(visibleDownloadSpeed, visibleUploadSpeed, visibleConnectedCount, filterType);
+            const visibleCountEl = document.getElementById('clientsVisibleCount');
+            if (visibleCountEl) {
+                const visibleRows = usingDataTable
+                    ? $('#clientsTable').DataTable().rows({ search: 'applied' }).count()
+                    : document.querySelectorAll('.client-row:not([style*="display: none"])').length;
+                visibleCountEl.textContent = String(visibleRows);
+            }
         }
 
         function refreshConnections() {
@@ -960,6 +981,30 @@
             localStorage.setItem('clients.employee.columns.visible', JSON.stringify(data));
         }
 
+        const CLIENTS_PAGE_LENGTH_KEY = 'clients.employee.pageLength';
+        const CLIENTS_PAGE_LENGTH_DEFAULT = -1;
+        const CLIENTS_PAGE_LENGTHS = [10, 25, 50, 100, 200, 500, -1];
+
+        function readSavedClientsPageLength() {
+            try {
+                const raw = localStorage.getItem(CLIENTS_PAGE_LENGTH_KEY);
+                if (raw === null || raw === '') {
+                    return CLIENTS_PAGE_LENGTH_DEFAULT;
+                }
+                const n = parseInt(raw, 10);
+                if (CLIENTS_PAGE_LENGTHS.indexOf(n) >= 0) {
+                    return n;
+                }
+            } catch (e) { }
+            return CLIENTS_PAGE_LENGTH_DEFAULT;
+        }
+
+        function persistClientsPageLength(len) {
+            try {
+                localStorage.setItem(CLIENTS_PAGE_LENGTH_KEY, String(len));
+            } catch (e) { }
+        }
+
         $(document).ready(function () {
             applyColumnVisibility();
             document.querySelectorAll('.column-toggle').forEach(function (chk) {
@@ -972,13 +1017,14 @@
             });
 
             ensureClientsStatusDataTableFilter();
+            const savedPageLength = readSavedClientsPageLength();
             $('#clientsTable').DataTable({
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/ar.json'
                 },
                 order: [[19, 'desc']],
                 responsive: true,
-                pageLength: 25,
+                pageLength: savedPageLength,
                 lengthMenu: [
                     [10, 25, 50, 100, 200, 500, -1],
                     [10, 25, 50, 100, 200, 500, 'الكل']
@@ -988,10 +1034,22 @@
                 ],
                 initComplete: function () {
                     applyColumnVisibility();
+                    const api = this.api();
+                    const desired = readSavedClientsPageLength();
+                    if (api.page.len() !== desired) {
+                        api.page.len(desired).draw(false);
+                    }
                 }
+            });
+            $('#clientsTable').on('length.dt', function (e, settings, len) {
+                persistClientsPageLength(len);
             });
             loadConnectionStatus(false);
         });
     </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/clients-index-cards.css" asp-append-version="true" />
 }
 

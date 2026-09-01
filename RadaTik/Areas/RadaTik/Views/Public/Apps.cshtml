@@ -1,6 +1,8 @@
 @using System.Globalization
+@using RadaTik.Helpers
 @{
     ViewData["Title"] = "تطبيقات RadaTik";
+    ViewData["MetaDescription"] = PublicSeo.DescriptionFor("Apps");
 
     bool ApkReady(string key) => ViewData[$"{key}ApkAvailable"] as bool? ?? false;
     int ApkSize(string key) => ViewData[$"{key}ApkSizeMb"] as int? ?? 0;
@@ -38,7 +40,7 @@
 
     .rt-apps-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 16px;
     }
 
@@ -116,6 +118,7 @@
     .rt-app-card--collection .rt-download-btn { background: linear-gradient(135deg, #047857, #0f766e); }
     .rt-app-card--employee .rt-download-btn { background: linear-gradient(135deg, #1d4ed8, #2563eb); }
     .rt-app-card--client .rt-download-btn { background: linear-gradient(135deg, #0f766e, #14b8a6); }
+    .rt-app-card--company .rt-download-btn { background: linear-gradient(135deg, #6d28d9, #7c3aed); }
 
     .rt-download-btn.is-disabled {
         pointer-events: none;
@@ -144,11 +147,12 @@
         font-size: 0.92rem;
     }
 
-    @@media (max-width: 991.98px) {
+    @@media (max-width: 767.98px) {
         .rt-apps-grid { grid-template-columns: 1fr; }
         .rt-page-hero { padding: 120px 16px 48px; }
         .rt-app-card { padding: 20px 16px; }
         .rt-steps { grid-template-columns: 1fr; }
+        .rt-apps-inner { padding: 0 16px; }
     }
 </style>
 }
@@ -191,7 +195,7 @@
 
             <article class="rt-app-card rt-app-card--collection">
                 <h2>RadaTik التحصيل</h2>
-                <p>بوابة نقطة التحصيل: البحث عن المشتركين، القبض، الصندوق، وتغذية الرصيد.</p>
+                <p>بوابة نقطة التحصيل: البحث عن المشتركين، القبض، الصندوق، وتغذية الرصيد. يمكن إنشاء حساب نقطة تحصيل من داخل التطبيق.</p>
                 <div class="rt-download-count">
                     <strong>@DownloadCount("Collection")</strong>
                     <span>عدد التحميلات</span>
@@ -238,6 +242,34 @@
                 @if (ApkReady("Employee"))
                 {
                     <a class="rt-download-btn" href="/RadaTik/DownloadEmployee">تحميل تطبيق الموظف</a>
+                }
+                else
+                {
+                    <span class="rt-download-btn is-disabled">التحميل غير متاح حالياً</span>
+                }
+            </article>
+
+            <article class="rt-app-card rt-app-card--company">
+                <h2>RadaTik مدير الشركة</h2>
+                <p>لوحة مدير الشركة: الشبكات، المشتركين، والمالية. يمكن إنشاء حساب مدير شركة من داخل التطبيق.</p>
+                <div class="rt-download-count">
+                    <strong>@DownloadCount("Company")</strong>
+                    <span>عدد التحميلات</span>
+                </div>
+                <div class="rt-app-meta">
+                    <span>أندرويد</span>
+                    @if (ApkReady("Company"))
+                    {
+                        <span>@ApkSize("Company") ميغابايت</span>
+                        @if (ApkDate("Company") is DateTime companyDate)
+                        {
+                            <span>@companyDate.ToString("yyyy/MM/dd")</span>
+                        }
+                    }
+                </div>
+                @if (ApkReady("Company"))
+                {
+                    <a class="rt-download-btn" href="/RadaTik/DownloadCompany">تحميل تطبيق مدير الشركة</a>
                 }
                 else
                 {

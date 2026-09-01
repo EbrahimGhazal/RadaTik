@@ -66,7 +66,8 @@
     var hasInfrastructure = canUseNetworks || canUseProfiles || canUseMikroTikServers || canUseSectors || canUseReceivers;
 
     var subscribersOpen = controller is "Clients" or "NewSubscriberWizard"
-        or "SubscriberInstallationPricing" or "SubscriberInstallationInvoices" or "PrivateSubscriberSetup";
+        or "SubscriberInstallationPricing" or "SubscriberInstallationInvoices" or "PrivateSubscriberSetup"
+        or "ClientPresence";
     var supportOpen = controller is "RequestsManagement" or "EmployeeServiceApprovals" or "MaintenanceInvoices" or "MaintenancePricing";
     var infraOpen = controller is "Network" or "Profile" or "MikroTikServers" or "MikroTikTraffic" or "Sector" or "Receiver";
     var mikrotikOpen = controller is "MikroTikServers" or "MikroTikTraffic";
@@ -82,6 +83,7 @@
         or "EmployeeRewardPenalties" or "CompanyAccounting" or "ErpReports";
     var maintenanceOpen = controller == "MaintenanceInvoices" || (controller == "RequestsManagement" && action == "MaintenanceRequests") || controller == "MaintenancePricing";
     var teamOpen = controller == "Admin";
+    var presenceOpen = controller == "ClientPresence";
 }
 
 @* ——— 1. الرئيسية ——— *@
@@ -157,6 +159,13 @@
                    asp-route="networkManager-subscriber-installation-pricing" asp-route-action="Index" asp-route-id="">
                     <span class="nav-icon"><i class="fas fa-tags"></i></span>
                     <span>تسعير التجهيز</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(presenceOpen ? "active" : "")"
+                   asp-route="networkManager-client-presence" asp-route-action="Index" asp-route-id="">
+                    <span class="nav-icon"><i class="fas fa-thumbs-up"></i></span>
+                    <span>صفحات التواصل</span>
                 </a>
             </li>
         </ul>
@@ -382,7 +391,7 @@
                     <a class="nav-link nav-link-sub @(controller == "ClientWalletTopUpRequests" ? "active" : "")"
                        asp-route="networkManager-client-wallet-topups" asp-route-action="Index" asp-route-id="">
                         <i class="fas fa-user-check"></i>
-                        <span>تغذية المشتركين</span>
+                        <span>تغذية رصيد للمشتركين</span>
                     </a>
                 </li>
             </ul>

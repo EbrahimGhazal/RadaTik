@@ -1,7 +1,9 @@
 @model RadaTik.ViewModels.Public.ContactViewModel
 
+@using RadaTik.Helpers
 @{
     ViewData["Title"] = "اتصل بنا";
+    ViewData["MetaDescription"] = PublicSeo.DescriptionFor("Contact");
 }
 
 @section Styles {

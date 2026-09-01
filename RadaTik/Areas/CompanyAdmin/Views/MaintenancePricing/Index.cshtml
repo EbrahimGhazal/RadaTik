@@ -5,7 +5,7 @@
     var scopeLabel = Model.NetworkScope == "main" ? "الشبكة الرئيسية" : "الشبكة الحالية (الفرعية)";
 }
 
-<div class="material-invoice-page material-invoice-page--maintenance maintenance-pricing-page material-invoice-page--create">
+<div class="radtk-page-maintenance-pricing material-invoice-page material-invoice-page--maintenance maintenance-pricing-page material-invoice-page--create">
     <div class="sys-hero material-invoice-hero mb-3">
         <div class="sys-hero-main">
             <div class="sys-hero-icon"><i class="fas fa-screwdriver-wrench"></i></div>
@@ -137,7 +137,7 @@
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive material-invoice-lines-shell maintenance-pricing-table-shell">
-                    <table class="table table-sm mb-0 material-invoice-lines-table maintenance-pricing-table maintenance-pricing-table--compact align-middle">
+                    <table class="table table-sm mb-0 material-invoice-lines-table maintenance-pricing-table maintenance-pricing-table--compact align-middle radtk-data-table radtk-data-table--cards" id="maintenancePricingTable">
                         <colgroup>
                             <col class="maint-col-name" />
                             <col class="maint-col-price" />
@@ -237,4 +237,8 @@
             refreshActiveCount();
         })();
     </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/maintenance-pricing-cards.css" asp-append-version="true" />
 }

@@ -9,7 +9,7 @@
     var assignableEmployees = ViewBag.AssignableEmployees as IEnumerable<SelectListItem>
         ?? Enumerable.Empty<SelectListItem>();
 }
-<div class="radtk-page--clientportal-views-clientportal-createmaintenancerequest">
+<div class="radtk-page--clientportal-views-clientportal-createmaintenancerequest client-portal-create-ticket-page">
 
 <partial name="_CrudPageHero" />
 
@@ -23,7 +23,7 @@
                 </h3>
             </div>
             <div class="card-body">
-                <form asp-action="CreateMaintenanceRequest" method="post" class="radtk-form">
+                <form asp-action="CreateMaintenanceRequest" method="post" class="radtk-form js-once-submit" id="createMaintenanceForm">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
                     <input type="hidden" asp-for="ClientId" />
 
@@ -98,12 +98,25 @@
                         </div>
                     </div>
 
-                    <!-- العنوان -->
+                    @{
+                        var addressFromReceiver = ViewBag.AddressFromReceiver as bool? == true;
+                        var receiverLat = ViewBag.ReceiverLatitude as double?;
+                        var receiverLng = ViewBag.ReceiverLongitude as double?;
+                    }
                     <div class="form-group mb-4">
-                        <label asp-for="Address" class="form-label">العنوان</label>
-                        <textarea asp-for="Address" class="form-control" rows="2" 
+                        <label asp-for="Address" class="form-label">العنوان التفصيلي</label>
+                        <textarea asp-for="Address"
+                                  class="form-control"
+                                  rows="3"
+                                  id="visitAddress"
+                                  data-receiver-lat="@(receiverLat?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                                  data-receiver-lng="@(receiverLng?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                                   placeholder="العنوان التفصيلي للزيارة الفنية (إن لزم)"></textarea>
                         <span asp-validation-for="Address" class="text-danger"></span>
+                        @if (addressFromReceiver)
+                        {
+                            <small class="form-text text-muted">تم تعبئة العنوان تلقائياً من موقع اللاقط المرتبط باشتراكك. يمكنك تعديله إن لزم.</small>
+                        }
                     </div>
 
                     <div class="form-group mb-4">
@@ -117,7 +130,7 @@
 
                     <!-- أزرار -->
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary btn-lg">
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitMaintenanceBtn" data-loading-text="جاري إرسال الطلب...">
                             <i class="fas fa-paper-plane"></i> تقديم الطلب
                         </button>
                         <a asp-action="MaintenanceRequests" class="btn btn-secondary btn-lg">
@@ -129,39 +142,77 @@
         </div>
     </div>
 </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/client-portal-support-cards.css" asp-append-version="true" />
+}
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/js/form-once-submit.js" asp-append-version="true"></script>
     <script>
         (function () {
             var wrap = document.getElementById('subscriber-fault-led-wrap');
-            if (!wrap) {
+            if (wrap) {
+                var outageTypes = new Set([@string.Join(", ", new[] {
+                    (int)MaintenanceType.NoInternet,
+                    (int)MaintenanceType.ServiceOutage,
+                    (int)MaintenanceType.SlowConnection,
+                    (int)MaintenanceType.RouterNotWorking,
+                    (int)MaintenanceType.RouterInternetLedOff,
+                    (int)MaintenanceType.RouterInternetAndWanLedsOff
+                })]);
+
+                function syncLed() {
+                    var selected = document.querySelector('input[name="Type"]:checked');
+                    var value = selected ? parseInt(selected.value, 10) : NaN;
+                    if (outageTypes.has(value)) {
+                        wrap.classList.remove('d-none');
+                    } else {
+                        wrap.classList.add('d-none');
+                    }
+                }
+
+                document.querySelectorAll('input[name="Type"]').forEach(function (input) {
+                    input.addEventListener('change', syncLed);
+                });
+                syncLed();
+            }
+
+            var address = document.getElementById('visitAddress');
+            if (!address) {
                 return;
             }
 
-            var outageTypes = new Set([@string.Join(", ", new[] {
-                (int)MaintenanceType.NoInternet,
-                (int)MaintenanceType.ServiceOutage,
-                (int)MaintenanceType.SlowConnection,
-                (int)MaintenanceType.RouterNotWorking,
-                (int)MaintenanceType.RouterInternetLedOff,
-                (int)MaintenanceType.RouterInternetAndWanLedsOff
-            })]);
+            var original = address.value;
+            address.addEventListener('input', function () {
+                address.dataset.userEdited = address.value !== original ? '1' : '';
+            });
 
-            function syncLed() {
-                var selected = document.querySelector('input[name="Type"]:checked');
-                var value = selected ? parseInt(selected.value, 10) : NaN;
-                if (outageTypes.has(value)) {
-                    wrap.classList.remove('d-none');
-                } else {
-                    wrap.classList.add('d-none');
-                }
+            var lat = parseFloat(address.getAttribute('data-receiver-lat') || '');
+            var lng = parseFloat(address.getAttribute('data-receiver-lng') || '');
+            if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) {
+                return;
             }
 
-            document.querySelectorAll('input[name="Type"]').forEach(function (input) {
-                input.addEventListener('change', syncLed);
-            });
-            syncLed();
+            var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' +
+                encodeURIComponent(String(lat)) + '&lon=' + encodeURIComponent(String(lng)) +
+                '&accept-language=ar';
+            fetch(url, { headers: { 'Accept': 'application/json' } })
+                .then(function (response) { return response.ok ? response.json() : null; })
+                .then(function (data) {
+                    if (!data || !data.display_name || address.dataset.userEdited === '1') {
+                        return;
+                    }
+                    var lines = original ? original.split(/\r?\n/) : [];
+                    if (lines.indexOf(data.display_name) === -1) {
+                        lines.unshift(data.display_name);
+                    }
+                    address.value = lines.join('\n');
+                    original = address.value;
+                })
+                .catch(function () { /* الإحداثيات واسم اللاقط كافيان إن تعذر العنوان النصي */ });
         })();
     </script>
 }

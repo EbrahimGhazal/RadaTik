@@ -28,6 +28,7 @@
     var current = ViewBag.FinancialNavCurrent as string ?? "";
     var showWarehouse = ViewBag.FinancialNavShowWarehouse as bool? ?? true;
 }
+<link rel="stylesheet" href="~/css/financial-quick-nav.css" asp-append-version="true" />
 <nav class="financial-quick-nav mb-3" aria-label="وحدات المالية">
     <a class="financial-quick-nav__item @(current == "cashbox" ? "is-current" : "")" asp-route="networkManager-cashbox" asp-route-action="Index" asp-route-id=""><i class="fas fa-cash-register"></i> الصندوق</a>
     <a class="financial-quick-nav__item @(current == "diary" ? "is-current" : "")" asp-route="networkManager-money-diary" asp-route-action="Index" asp-route-id=""><i class="fas fa-book"></i> الدفتر</a>

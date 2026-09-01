@@ -87,15 +87,20 @@ public sealed class NewSubscriberWizardOrchestrator
 
         if (path == NewSubscriberWizardPath.SharedSelectReceiver && client.ReceiverId.HasValue)
         {
-            bool hasPeers = await _context.Clients
+            bool receiverOk = await _context.Receivers
                 .AsNoTracking()
-                .AnyAsync(c => c.ReceiverId == client.ReceiverId && c.NetworkId == networkId, cancellationToken);
-            if (!hasPeers)
+                .AnyAsync(r =>
+                    r.Id == client.ReceiverId &&
+                    (r.NetworkId == networkId
+                     || r.Sector.NetworkId == networkId
+                     || (r.Sector.MikroTikServer != null && r.Sector.MikroTikServer.NetworkId == networkId)),
+                    cancellationToken);
+            if (!receiverOk)
             {
                 return new CreateSubscriberResult
                 {
                     Success = false,
-                    ErrorMessage = "اللاقط المحدد ليس مشتركاً بعد. استخدم مسار اللاقط الخاص أو اختر لاقطاً آخر."
+                    ErrorMessage = "اللاقط المحدد غير متاح في هذه الشبكة."
                 };
             }
         }

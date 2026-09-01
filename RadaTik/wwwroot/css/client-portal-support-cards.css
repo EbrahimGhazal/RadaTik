@@ -1,0 +1,371 @@
+/* بوابة المشترك — فواتير الصيانة، تفاصيل الطلب، الإشعارات، طلب صيانة جديد */
+
+.client-portal-invoices-page,
+.client-portal-notify-page,
+.client-portal-ticket-page,
+.client-portal-create-ticket-page {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.support-page-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.9rem;
+}
+
+.support-page-head h2 {
+    margin: 0 0 0.2rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.support-page-head h2 i {
+    color: #0d9488;
+    margin-inline-end: 0.35rem;
+}
+
+.support-page-head__action {
+    flex: 0 0 auto;
+    border-radius: 999px;
+}
+
+.support-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+}
+
+.support-summary__item {
+    min-width: 0;
+    padding: 0.85rem 0.9rem;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #f8fafc 0%, #fff 70%);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.support-summary__item span {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.support-summary__item strong {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.support-summary__item small {
+    font-size: 0.75rem;
+}
+
+.support-summary__item.is-due {
+    background: linear-gradient(180deg, #fff7ed 0%, #fff 72%);
+    border-color: rgba(249, 115, 22, 0.35);
+}
+
+.support-filter {
+    display: inline-flex;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.support-filter a {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: #475569;
+    background: #fff;
+}
+
+.support-filter a.is-active {
+    background: #0d9488;
+    color: #fff;
+}
+
+.support-card-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+}
+
+.support-card {
+    min-width: 0;
+    padding: 0.95rem 1rem 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+}
+
+.support-card.is-pending {
+    border-inline-start: 4px solid #f59e0b;
+}
+
+.support-card.is-paid {
+    border-inline-start: 4px solid #059669;
+}
+
+.support-card.is-unread {
+    border-inline-start: 4px solid #dc2626;
+    background: linear-gradient(180deg, #fff7ed 0%, #fff 55%);
+}
+
+.support-card__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.7rem;
+}
+
+.support-card__kicker {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.support-card__amount {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.support-card__title {
+    margin: 0.15rem 0 0;
+    font-size: 1.02rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.support-card__meta,
+.support-card__note {
+    margin: 0.45rem 0 0;
+    color: #475569;
+    overflow-wrap: anywhere;
+}
+
+.support-card__note {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.support-card__actions {
+    margin-top: 0.8rem;
+}
+
+.support-card__actions .btn {
+    width: 100%;
+    border-radius: 12px;
+}
+
+.support-pill {
+    flex: 0 0 auto;
+    padding: 0.22rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    background: #fff7ed;
+    color: #9a3412;
+}
+
+.support-card.is-paid .support-pill {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.support-pill.is-muted {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.support-pill.is-alert {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.support-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 2rem 1rem;
+    text-align: center;
+    border-radius: 16px;
+    border: 1px dashed rgba(148, 163, 184, 0.4);
+    background: #fff;
+    color: #64748b;
+}
+
+.support-empty i {
+    font-size: 1.6rem;
+    color: #94a3b8;
+}
+
+.support-empty h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #0f172a;
+}
+
+.ticket-status-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.85rem;
+}
+
+.ticket-status-banner__id {
+    font-weight: 800;
+    color: #64748b;
+}
+
+.ticket-facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 0.9rem;
+}
+
+.ticket-facts article {
+    min-width: 0;
+    padding: 0.8rem 0.85rem;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.ticket-facts span {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.ticket-facts strong {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.2rem;
+    overflow-wrap: anywhere;
+}
+
+.ticket-panel {
+    margin-bottom: 0.85rem;
+    padding: 0.95rem 1rem;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+}
+
+.ticket-panel h3 {
+    margin: 0 0 0.6rem;
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+.ticket-panel .request-box {
+    margin: 0;
+    padding: 0.7rem 0.8rem;
+    border-radius: 12px;
+    background: #f8fafc;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.ticket-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+    margin: 0;
+}
+
+.ticket-meta dt {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.ticket-meta dd {
+    margin: 0.15rem 0 0;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.ticket-address {
+    white-space: pre-wrap;
+}
+
+.client-portal-create-ticket-page .type-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.55rem;
+}
+
+.client-portal-create-ticket-page .type-content {
+    padding: 0.7rem 0.5rem;
+}
+
+.client-portal-create-ticket-page .form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.client-portal-create-ticket-page .form-actions .btn.is-loading {
+    opacity: 0.85;
+    pointer-events: none;
+}
+
+@media (max-width: 1199.98px) {
+    html body .client-portal-invoices-page,
+    html body .client-portal-notify-page,
+    html body .client-portal-ticket-page,
+    html body .client-portal-create-ticket-page {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
+
+    html body .support-summary,
+    html body .ticket-facts,
+    html body .ticket-meta {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    html body .client-portal-create-ticket-page .type-selector {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    html body .client-portal-create-ticket-page .form-actions {
+        flex-direction: column;
+    }
+
+    html body .client-portal-create-ticket-page .form-actions .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    html body .support-summary,
+    html body .ticket-facts,
+    html body .ticket-meta {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

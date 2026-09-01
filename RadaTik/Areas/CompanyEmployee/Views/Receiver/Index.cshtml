@@ -11,13 +11,14 @@
     var active = Model.Count(r => r.IsActive);
 }
 
+<div class="radtk-page-emp-receiver-index employee-receiver-page">
 <div class="page-header employee-receiver-hero card border-0 shadow-sm">
     <div class="page-header-content">
         <h1 class="page-title">
             <i class="fas fa-satellite-dish"></i>
             @ViewData["Title"]
         </h1>
-        <div class="page-actions">
+        <div class="page-actions employee-receiver-hero__actions">
             <a asp-action="ExportToExcel" class="btn btn-outline-success btn-sm receiver-action-btn" title="تصدير بيانات المستقبلات إلى Excel">
                 <i class="fas fa-file-export"></i> تصدير إلى Excel
             </a>
@@ -99,7 +100,7 @@
     </div>
 </div>
 
-<div class="row g-2 mb-3">
+<div class="row g-2 mb-3 employee-receiver-stats">
     <div class="col-md-4 col-6">
         <div class="card receiver-stat-card total h-100"><div class="card-body"><div class="receiver-stat-label">الإجمالي</div><div class="receiver-stat-value">@total</div></div></div>
     </div>
@@ -126,7 +127,7 @@
 <div class="card border-0 shadow-sm receiver-table-card">
     <div class="card-body">
         <div class="table-responsive receiver-table-wrap">
-            <table class="table table-hover align-middle receiver-table">
+            <table class="table table-hover align-middle receiver-table radtk-data-table radtk-data-table--cards" id="employeeReceiversTable">
                 <thead>
                     <tr>
                         <th>المستقبل</th>
@@ -134,19 +135,24 @@
                         <th>IP</th>
                         <th>العملاء</th>
                         <th>الحالة</th>
-                        <th style="width:220px;">إجراءات</th>
+                        <th>إجراءات</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var r in Model)
                     {
                         var isPendingApproval = pendingReceiverIds.Contains(r.Id);
-                        <tr>
-                            <td><strong>@r.Name</strong></td>
-                            <td>@(r.Sector?.Name ?? "-")</td>
-                            <td><code>@r.IPAddress</code></td>
-                            <td>@(r.Clients?.Count ?? 0)</td>
-                            <td>
+                        var rowStateClass = isPendingApproval
+                            ? "employee-receiver-row--pending"
+                            : (r.IsActive ? null : "employee-receiver-row--inactive");
+                        <tr class="@rowStateClass">
+                            <td data-label="المستقبل" class="employee-receiver-cell--lead">
+                                <strong>@r.Name</strong>
+                            </td>
+                            <td data-label="القطاع">@(r.Sector?.Name ?? "-")</td>
+                            <td data-label="IP"><code>@r.IPAddress</code></td>
+                            <td data-label="العملاء">@(r.Clients?.Count ?? 0)</td>
+                            <td data-label="الحالة">
                                 @if (r.IsActive)
                                 {
                                     <span class="badge bg-success">نشط</span>
@@ -160,16 +166,18 @@
                                     <span class="badge bg-secondary">متوقف</span>
                                 }
                             </td>
-                            <td>
-                                <a asp-action="Details" asp-route-id="@r.Id" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fas fa-eye"></i> تفاصيل
-                                </a>
-                                @if (canEdit)
-                                {
-                                    <a asp-action="Edit" asp-route-id="@r.Id" class="btn btn-sm btn-warning">
-                                        <i class="fas fa-edit"></i> تعديل
+                            <td data-label="إجراءات" class="radtk-col-actions employee-receiver-action-cell">
+                                <div class="employee-receiver-actions">
+                                    <a asp-action="Details" asp-route-id="@r.Id" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-eye"></i> <span class="employee-receiver-actions__label">تفاصيل</span>
                                     </a>
-                                }
+                                    @if (canEdit)
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@r.Id" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i> <span class="employee-receiver-actions__label">تعديل</span>
+                                        </a>
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }
@@ -193,9 +201,14 @@
     .receiver-map-card, .receiver-table-card { border-radius: .95rem; }
     .receiver-table-wrap { border: 1px solid #e6edf6; border-radius: .9rem; }
     .receiver-table thead th { background: #f8fafc; color: #344054; border-bottom: 1px solid #dbe4f0; font-weight: 700; }
-    .receiver-table td, .receiver-table th { padding: .68rem .8rem; vertical-align: middle; white-space: nowrap; }
+    .receiver-table td, .receiver-table th { padding: .68rem .8rem; vertical-align: middle; }
     .receiver-table tbody tr:hover { background: #f7fbff; }
 </style>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/employee-receiver-cards.css" asp-append-version="true" />
+}
 
 @section Scripts {
     <script src="~/js/receiver-map.js" asp-append-version="true"></script>

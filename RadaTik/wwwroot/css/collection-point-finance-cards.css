@@ -1,0 +1,318 @@
+/* مالية نقطة التحصيل — تبويبات وبطاقات بعرض الشاشة */
+.collection-point-finance-page {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.cp-finance-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.cp-finance-nav__item {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-height: 2.2rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 999px;
+    background: var(--bg-card, #fff);
+    color: var(--text-primary, #0f172a);
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.cp-finance-nav__item:hover {
+    border-color: #0d9488;
+    color: #0f766e;
+}
+
+.cp-finance-nav__item.is-current {
+    background: linear-gradient(135deg, #0f766e, #0d9488);
+    border-color: transparent;
+    color: #fff;
+}
+
+.cp-finance-balance {
+    padding: 1rem 1.1rem;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+    border: 1px solid rgba(16, 185, 129, 0.22);
+}
+
+.cp-finance-balance__label {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text-muted, #64748b);
+}
+
+.cp-finance-balance__amount {
+    font-size: 1.7rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #047857;
+    overflow-wrap: anywhere;
+}
+
+.cp-finance-stats .card {
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.cp-finance-stats .text-muted {
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.cp-finance-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.cp-finance-filters .btn {
+    min-height: 2.2rem;
+}
+
+.cp-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.cp-row-actions .btn {
+    min-height: 2.2rem;
+}
+
+@media (max-width: 1199.98px) {
+    html body .collection-point-finance-page {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    html body .collection-point-finance-page .card,
+    html body .collection-point-finance-page .card-body,
+    html body .collection-point-finance-page .card-header,
+    html body .collection-point-finance-page .table-responsive,
+    html body .collection-point-finance-page .alert,
+    html body .collection-point-finance-page .page-header {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    html body .collection-point-finance-page .page-header,
+    html body .collection-point-finance-page .wallet-topup-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.65rem;
+    }
+
+    html body .collection-point-finance-page > .row,
+    html body .collection-point-finance-page .wallet-topup-page > .row {
+        --bs-gutter-x: 0.75rem;
+    }
+
+    html body .collection-point-finance-page > .row > [class*="col-"],
+    html body .collection-point-finance-page .wallet-topup-page > .row > [class*="col-"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 auto !important;
+    }
+
+    html body .collection-point-finance-page .d-print-none .btn {
+        width: 100%;
+    }
+
+    html body .collection-point-finance-page .cp-finance-nav__item {
+        padding: 0.32rem 0.55rem;
+        font-size: 0.78rem;
+        min-height: 2.15rem;
+    }
+
+    html body .collection-point-finance-page .cp-finance-field {
+        padding: 0.8rem 0.85rem;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 12px;
+        background: var(--bg-card, #fff);
+    }
+
+    html body .collection-point-finance-page .form-control,
+    html body .collection-point-finance-page .form-select {
+        width: 100%;
+        max-width: 100%;
+        min-height: 2.55rem;
+    }
+
+    html body .collection-point-finance-page .table-responsive {
+        overflow: visible !important;
+    }
+
+    html body .collection-point-finance-page table.radtk-data-table--cards {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        table-layout: auto !important;
+        border-collapse: separate !important;
+    }
+
+    html body .collection-point-finance-page table.radtk-data-table--cards thead {
+        display: none !important;
+    }
+
+    html body .collection-point-finance-page table.radtk-data-table--cards > tbody,
+    html body .collection-point-finance-page table.radtk-data-table--cards tbody {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        width: 100% !important;
+        padding: 0.65rem;
+        box-sizing: border-box;
+    }
+
+    html body .collection-point-finance-page table.radtk-data-table--cards tbody tr {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0.75rem 0.85rem 0.85rem !important;
+        border: 1px solid rgba(148, 163, 184, 0.28) !important;
+        border-radius: 14px !important;
+        background: var(--bg-card, #fff) !important;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+        box-sizing: border-box !important;
+        float: none !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    html body .collection-point-finance-page table.radtk-data-table--cards tbody td {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.3rem 0.55rem;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0.32rem 0 !important;
+        border: none !important;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.28) !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+        text-align: start !important;
+        float: none !important;
+    }
+
+    html body .collection-point-finance-page table.radtk-data-table--cards tbody td::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: var(--text-muted, #64748b);
+        flex: 0 0 auto;
+    }
+
+    html body .collection-point-finance-page table.radtk-data-table--cards tbody td > * {
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    html body .collection-point-finance-page table.radtk-data-table--cards tbody td.cp-cell--lead {
+        display: block !important;
+        font-weight: 800;
+        padding-bottom: 0.55rem !important;
+    }
+
+    html body .collection-point-finance-page table.radtk-data-table--cards tbody td.cp-cell--lead::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    html body .collection-point-finance-page table.radtk-data-table--cards tbody td.radtk-col-actions,
+    html body .collection-point-finance-page table.radtk-data-table--cards tbody td.cp-cell-actions {
+        flex-direction: column !important;
+        border-bottom: none !important;
+        padding-top: 0.65rem !important;
+        visibility: visible !important;
+    }
+
+    html body .collection-point-finance-page table.radtk-data-table--cards tbody td.cp-cell-actions::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    html body .collection-point-finance-page .cp-row-actions {
+        width: 100%;
+    }
+
+    html body .collection-point-finance-page .cp-row-actions .btn,
+    html body .collection-point-finance-page .cp-row-actions form {
+        flex: 1 1 calc(50% - 0.35rem);
+    }
+
+    html body .collection-point-finance-page .cp-row-actions form .btn {
+        width: 100%;
+    }
+
+    html body .collection-point-finance-page .cp-finance-stats {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem;
+    }
+
+    html body .collection-point-finance-page .cp-finance-stats > [class*="col-"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: none !important;
+        padding: 0;
+    }
+
+    html body .collection-point-finance-page .wallet-stat-value,
+    html body .collection-point-finance-page .cp-finance-balance__amount,
+    html body .collection-point-finance-page .display-5 {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    html body .collection-point-finance-page img {
+        max-width: 100%;
+        height: auto;
+    }
+}
+
+@media (max-width: 767.98px) {
+    html body .collection-point-finance-page table.radtk-data-table--cards > tbody,
+    html body .collection-point-finance-page table.radtk-data-table--cards tbody {
+        grid-template-columns: 1fr !important;
+        padding: 0.45rem;
+    }
+
+    html body .collection-point-finance-page .cp-finance-stats {
+        grid-template-columns: 1fr;
+    }
+
+    html body .collection-point-finance-page .cp-finance-filters .btn {
+        flex: 1 1 calc(50% - 0.35rem);
+    }
+}

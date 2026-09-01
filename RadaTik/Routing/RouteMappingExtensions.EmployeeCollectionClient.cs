@@ -58,6 +58,16 @@ public static partial class RouteMappingExtensions
             defaults: new { area = "CollectionPoint", controller = "Dashboard", action = "Index" });
 
         app.MapControllerRoute(
+            name: "collectionPoint-search-clients",
+            pattern: "collectionPoint/SearchClients",
+            defaults: new { area = "CollectionPoint", controller = "CollectionPoint", action = "SearchClients" });
+
+        app.MapControllerRoute(
+            name: "collectionPoint-dashboard-search-clients",
+            pattern: "collectionPoint/Dashboard/SearchClients",
+            defaults: new { area = "CollectionPoint", controller = "CollectionPoint", action = "SearchClients" });
+
+        app.MapControllerRoute(
             name: "collectionPoint-wallet-client-topups",
             pattern: "collectionPoint/wallet/client-topups",
             defaults: new { area = "CollectionPoint", controller = "Wallet", action = "ClientTopUpRequests" });

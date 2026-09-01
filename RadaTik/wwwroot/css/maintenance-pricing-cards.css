@@ -1,0 +1,215 @@
+/* تسعير الصيانة — كروت بعرض الشاشة على الموبايل والتابلت */
+.radtk-page-maintenance-pricing,
+.maintenance-pricing-page {
+    max-width: 100%;
+    min-width: 0;
+}
+
+@media (max-width: 1199.98px) {
+    html body .radtk-page-maintenance-pricing,
+    html body .maintenance-pricing-page {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    html body .maintenance-pricing-page .sys-hero {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    html body .maintenance-pricing-page .sys-hero-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    html body .maintenance-pricing-page .sys-hero-actions,
+    html body .maintenance-pricing-page .sys-hero-actions .btn {
+        width: 100%;
+    }
+
+    html body .maintenance-pricing-page .card,
+    html body .maintenance-pricing-page .card-body,
+    html body .maintenance-pricing-page .card-header,
+    html body .maintenance-pricing-page .table-responsive,
+    html body .maintenance-pricing-page .maintenance-pricing-table-shell,
+    html body .maintenance-pricing-page .material-invoice-lines-table,
+    html body .maintenance-pricing-page #maintenancePricingTable {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
+    }
+
+    html body .maintenance-pricing-page .card-body.p-0 {
+        padding: 0.65rem 0.7rem !important;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable,
+    html body .maintenance-pricing-page #maintenancePricingTable.radtk-data-table--cards {
+        display: block !important;
+        table-layout: auto !important;
+        border-collapse: separate !important;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable thead,
+    html body .maintenance-pricing-page #maintenancePricingTable colgroup {
+        display: none !important;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable > tbody,
+    html body .maintenance-pricing-page #maintenancePricingTable tbody {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        width: 100% !important;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable tbody tr.maintenance-pricing-row {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0.85rem 0.9rem 0.95rem !important;
+        border: 1px solid rgba(148, 163, 184, 0.35) !important;
+        border-radius: 14px !important;
+        border-inline-start: 4px solid var(--mat-inv-accent, #ea580c) !important;
+        background: var(--bg-card, #fff) !important;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+        box-sizing: border-box !important;
+        float: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        opacity: 1;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable tbody tr.maintenance-pricing-row.is-inactive {
+        border-inline-start-color: rgba(148, 163, 184, 0.55) !important;
+        background: rgba(148, 163, 184, 0.06) !important;
+        opacity: 1;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable tbody td {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.4rem 0.65rem;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0.28rem 0 !important;
+        border: none !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+        text-align: start !important;
+        float: none !important;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable tbody td::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: var(--text-muted, #64748b);
+        flex: 0 0 auto;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable tbody td > * {
+        max-width: 100% !important;
+        min-width: 0 !important;
+        flex: 1 1 auto !important;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable tbody td.maint-cell-name {
+        display: block !important;
+        padding-bottom: 0.55rem !important;
+        margin-bottom: 0.35rem !important;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.3) !important;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable tbody td.maint-cell-name::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable tbody .maintenance-pricing-solution-name {
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.35;
+        color: var(--text-primary, #0f172a);
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable tbody td.maint-cell-price {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.35rem;
+        margin: 0.15rem 0 0.45rem !important;
+        padding: 0.6rem 0.7rem !important;
+        border-radius: 12px !important;
+        background: linear-gradient(180deg, rgba(234, 88, 12, 0.1), rgba(234, 88, 12, 0.03));
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable tbody td.maint-cell-price .maintenance-pricing-amount {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 2.55rem !important;
+        font-size: 1rem !important;
+        font-weight: 700;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable tbody td.maint-cell-active {
+        justify-content: space-between !important;
+        padding-top: 0.45rem !important;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable tbody .maintenance-pricing-switch {
+        display: inline-flex !important;
+        align-items: center;
+        margin: 0 !important;
+        flex: 0 0 auto !important;
+        max-width: none !important;
+        width: auto !important;
+    }
+
+    html body .maintenance-pricing-page #maintenancePricingTable tbody .maintenance-pricing-switch .form-check-input {
+        width: 2.6rem !important;
+        height: 1.4rem !important;
+        min-width: 2.6rem !important;
+        max-width: 2.6rem !important;
+        min-height: 1.4rem !important;
+        max-height: 1.4rem !important;
+        margin: 0 !important;
+        flex: none !important;
+    }
+
+    html body .maintenance-pricing-page .material-invoice-actions {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    html body .maintenance-pricing-page .material-invoice-actions .btn-lg {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 767.98px) {
+    html body .maintenance-pricing-page #maintenancePricingTable > tbody,
+    html body .maintenance-pricing-page #maintenancePricingTable tbody {
+        grid-template-columns: 1fr !important;
+    }
+}

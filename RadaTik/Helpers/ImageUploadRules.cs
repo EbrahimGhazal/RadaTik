@@ -9,6 +9,7 @@ public static class ImageUploadRules
     public const string MaxReceiptImageSizeMessage = "حجم صورة الإيصال يجب ألا يتجاوز 3 ميغابايت.";
     public const string MaxQrImageSizeMessage = "حجم صورة QR يجب ألا يتجاوز 3 ميغابايت.";
     public const string MaxNetworkLogoSizeMessage = "حجم شعار الشبكة يجب ألا يتجاوز 3 ميغابايت.";
+    public const string MaxNationalIdImageSizeMessage = "حجم صورة الهوية يجب ألا يتجاوز 3 ميغابايت.";
 
     public static bool IsTooLarge(IFormFile? file) =>
         file != null && file.Length > MaxImageBytes;

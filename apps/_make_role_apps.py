@@ -28,8 +28,9 @@ ROLES = [
         "app_id": "com.radatik.collection",
         "app_name": "RadaTik التحصيل",
         "subtitle": "بوابة نقطة التحصيل",
-        "url": "https://radatik.com/collectionPoint/dashboard",
+        "url": "https://radatik.com/collectionPoint/dashboard?app=collection",
         "scheme": "radatik-collection",
+        "role": "collection",
         "bg": (236, 253, 245, 255),
         "accent": (4, 120, 87, 255),
         "splash": "#047857",
@@ -39,11 +40,24 @@ ROLES = [
         "app_id": "com.radatik.employee",
         "app_name": "RadaTik الموظف",
         "subtitle": "بوابة الموظف",
-        "url": "https://radatik.com/employee/dashboard",
+        "url": "https://radatik.com/employee/dashboard?app=employee",
         "scheme": "radatik-employee",
+        "role": "employee",
         "bg": (239, 246, 255, 255),
         "accent": (29, 78, 216, 255),
         "splash": "#1d4ed8",
+    },
+    {
+        "folder": "radatik-company",
+        "app_id": "com.radatik.company",
+        "app_name": "RadaTik مدير الشركة",
+        "subtitle": "بوابة مدير الشركة",
+        "url": "https://radatik.com/networkManager/dashboard?app=company",
+        "scheme": "radatik-company",
+        "role": "company",
+        "bg": (245, 243, 255, 255),
+        "accent": (109, 40, 217, 255),
+        "splash": "#6d28d9",
     },
 ]
 
@@ -136,6 +150,11 @@ def clone_role(role: dict) -> Path:
     config["appName"] = role["app_name"]
     config["server"]["url"] = role["url"]
     config["ios"]["scheme"] = role["scheme"]
+    ua = f"RadaTikNative/{role.get('role', role['folder'].split('-')[-1])}/2"
+    android = config.setdefault("android", {})
+    android["appendUserAgent"] = ua
+    android["captureInput"] = False
+    config.setdefault("ios", {})["appendUserAgent"] = ua
     config["plugins"]["SplashScreen"]["backgroundColor"] = role["splash"]
     config["plugins"]["StatusBar"]["backgroundColor"] = role["splash"]
     config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -193,7 +212,10 @@ def update_client_name() -> None:
 
 def main() -> None:
     update_client_name()
+    only = sys.argv[1] if len(sys.argv) > 1 else None
     for role in ROLES:
+        if only and role["folder"] != only and role.get("role") != only:
+            continue
         dest = clone_role(role)
         print(f"created {dest}")
 

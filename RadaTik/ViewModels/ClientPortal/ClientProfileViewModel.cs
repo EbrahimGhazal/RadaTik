@@ -45,5 +45,9 @@ namespace RadaTik.ViewModels.ClientPortal
         public string? VipNote { get; set; }
 
         public DateTime? VipSince { get; set; }
+
+        public string? NationalIdFrontPath { get; set; }
+
+        public string? NationalIdBackPath { get; set; }
     }
 }

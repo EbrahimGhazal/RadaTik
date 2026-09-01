@@ -46,10 +46,7 @@ namespace RadaTik.Areas.SystemAdmin.Controllers
                 .Include(r => r.Network)
                 .Include(r => r.RequestedByUser)
                 .Include(r => r.DecidedByUser)
-                .Where(r =>
-                    (r.Notes == null || !r.Notes.StartsWith("EMP_REQ:")) &&
-                    !(r.FeatureKey == FeatureKeys.Sectors && r.Notes != null && r.Notes.Contains("SECTOR_CREATE_PENDING:")))
-                .AsQueryable();
+                .WhereVisibleToSystemAdmin();
 
             if (status.HasValue)
             {
@@ -63,7 +60,9 @@ namespace RadaTik.Areas.SystemAdmin.Controllers
 
             ViewBag.Items = list;
             ViewBag.SelectedStatus = status;
-            ViewBag.PendingCount = await _context.NetworkServiceRequests.CountAsync(r => r.Status == NetworkServiceRequestStatus.Pending);
+            ViewBag.PendingCount = await _context.NetworkServiceRequests
+                .WhereVisibleToSystemAdmin()
+                .CountAsync(r => r.Status == NetworkServiceRequestStatus.Pending);
 
             return View();
         }
@@ -97,17 +96,9 @@ namespace RadaTik.Areas.SystemAdmin.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                if (!string.IsNullOrWhiteSpace(req.Notes) && req.Notes.StartsWith("EMP_REQ:", StringComparison.Ordinal))
+                if (EmployeeApprovalRequestHelper.IsInternalEmployeeApproval(req.Notes, req.FeatureKey))
                 {
                     TempData["Error"] = "هذا الطلب يتبع موافقات مدير الشركة ويجب اعتماده من واجهة مدير الشركة.";
-                    return RedirectToAction(nameof(Index));
-                }
-
-                if (string.Equals(req.FeatureKey, FeatureKeys.Sectors, StringComparison.OrdinalIgnoreCase) &&
-                    !string.IsNullOrWhiteSpace(req.Notes) &&
-                    req.Notes.Contains("SECTOR_CREATE_PENDING:", StringComparison.OrdinalIgnoreCase))
-                {
-                    TempData["Error"] = "طلب إضافة المرسل من الموظف يجب اعتماده من واجهة مدير الشركة.";
                     return RedirectToAction(nameof(Index));
                 }
 
@@ -210,17 +201,9 @@ namespace RadaTik.Areas.SystemAdmin.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                if (!string.IsNullOrWhiteSpace(req.Notes) && req.Notes.StartsWith("EMP_REQ:", StringComparison.Ordinal))
+                if (EmployeeApprovalRequestHelper.IsInternalEmployeeApproval(req.Notes, req.FeatureKey))
                 {
                     TempData["Error"] = "هذا الطلب يتبع موافقات مدير الشركة ويجب رفضه من واجهة مدير الشركة.";
-                    return RedirectToAction(nameof(Index));
-                }
-
-                if (string.Equals(req.FeatureKey, FeatureKeys.Sectors, StringComparison.OrdinalIgnoreCase) &&
-                    !string.IsNullOrWhiteSpace(req.Notes) &&
-                    req.Notes.Contains("SECTOR_CREATE_PENDING:", StringComparison.OrdinalIgnoreCase))
-                {
-                    TempData["Error"] = "طلب إضافة المرسل من الموظف يجب رفضه من واجهة مدير الشركة.";
                     return RedirectToAction(nameof(Index));
                 }
 

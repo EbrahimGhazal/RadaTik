@@ -286,12 +286,11 @@ public class NewSubscriberWizardController : Controller
             return WizardRedirect(nameof(Start));
         }
 
-        bool isShared = await _context.Clients
-            .AsNoTracking()
-            .AnyAsync(c => c.ReceiverId == receiverId && c.NetworkId == networkId.Value);
-        if (!isShared)
+        bool receiverOk = await SharedReceiverQuery(networkId.Value, mikroTikServerId, sectorId)
+            .AnyAsync(r => r.Id == receiverId);
+        if (!receiverOk)
         {
-            TempData["Error"] = "اللاقط المحدد ليس مشتركاً (لا يوجد مشترك آخر عليه).";
+            TempData["Error"] = "اللاقط المحدد غير متاح ضمن السيرفر/المرسل الحالي.";
             return WizardRedirect(nameof(SharedReceiver));
         }
 
@@ -850,12 +849,8 @@ public class NewSubscriberWizardController : Controller
     {
         IQueryable<Sector> query = _context.Sectors
             .AsNoTracking()
-            .Where(s => s.NetworkId == networkId && s.IsActive)
-            .Where(s => _context.Receivers.Any(r =>
-                r.SectorId == s.Id &&
-                r.NetworkId == networkId &&
-                r.IsActive &&
-                _context.Clients.Any(c => c.ReceiverId == r.Id)));
+            .Where(s => s.IsActive)
+            .Where(s => s.NetworkId == networkId || (s.MikroTikServer != null && s.MikroTikServer.NetworkId == networkId));
 
         if (serverId is > 0)
         {
@@ -869,8 +864,10 @@ public class NewSubscriberWizardController : Controller
     {
         IQueryable<Receiver> query = _context.Receivers
             .AsNoTracking()
-            .Where(r => r.NetworkId == networkId && r.IsActive)
-            .Where(r => _context.Clients.Any(c => c.ReceiverId == r.Id));
+            .Where(r =>
+                r.NetworkId == networkId
+                || r.Sector.NetworkId == networkId
+                || (r.Sector.MikroTikServer != null && r.Sector.MikroTikServer.NetworkId == networkId));
 
         if (serverId is > 0)
         {
@@ -897,14 +894,17 @@ public class NewSubscriberWizardController : Controller
             .Select(s => new SelectListItem(s.Name, s.Id.ToString()))
             .ToListAsync();
 
-        List<SelectListItem> sectors = await SharedSectorQuery(networkId, serverId)
+        List<WizardSectorLookup> sectors = await SharedSectorQuery(networkId, null)
             .OrderBy(s => s.Name)
-            .Select(s => new SelectListItem(s.Name, s.Id.ToString()))
+            .Select(s => new WizardSectorLookup
+            {
+                Id = s.Id,
+                Name = s.Name ?? ("#" + s.Id),
+                MikroTikServerId = s.MikroTikServerId
+            })
             .ToListAsync();
 
-        IQueryable<Receiver> receiverQuery = SharedReceiverQuery(networkId, serverId, sectorId);
-
-        List<ReceiverPickOption> receivers = await receiverQuery
+        List<ReceiverPickOption> receivers = await SharedReceiverQuery(networkId, null, null)
             .OrderBy(r => r.Name)
             .Select(r => new ReceiverPickOption
             {
@@ -912,7 +912,10 @@ public class NewSubscriberWizardController : Controller
                 Name = r.Name ?? $"#{r.Id}",
                 SectorName = r.Sector.Name ?? "—",
                 ServerName = r.Sector.MikroTikServer != null ? r.Sector.MikroTikServer.Name! : "—",
-                IsShared = true
+                MikroTikServerId = r.Sector.MikroTikServerId,
+                SectorId = r.SectorId,
+                IsShared = true,
+                IsActive = r.IsActive
             })
             .ToListAsync();
 

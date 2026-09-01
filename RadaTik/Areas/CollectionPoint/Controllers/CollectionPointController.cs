@@ -166,69 +166,77 @@ namespace RadaTik.Areas.CollectionPoint.Controllers
         [HttpGet]
         public async Task<IActionResult> SearchClients(int networkId, string? q = null)
         {
-            ApplicationUser? user = await _userManager.GetUserAsync(User);
-            if (user == null)
+            try
             {
-                return Json(new List<ClientSearchResultItem>());
-            }
-
-            IQueryable<Client> query = _context.Clients
-                .Where(c => c.NetworkId == networkId)
-                .Include(c => c.Profile)
-                .Include(c => c.Network)
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(q))
-            {
-                q = q.Trim();
-                query = query.Where(c =>
-                    (c.Name != null && c.Name.Contains(q)) ||
-                    (c.UserName != null && c.UserName.Contains(q)) ||
-                    (c.SID != null && c.SID.Contains(q)) ||
-                    (c.PhoneNumber != null && c.PhoneNumber.Contains(q)));
-            }
-
-            List<Client> clients = await query.OrderBy(c => c.UserName).Take(50).ToListAsync();
-            string networkName = await _context.Networks.Where(n => n.Id == networkId).Select(n => n.Name).FirstOrDefaultAsync() ?? "";
-            DateTime now = DateTime.Now;
-
-            CompanyFinancialSnapshot financial = await _companyFinancial.GetSnapshotAsync(networkId);
-
-            List<ClientSearchResultItem> items = new();
-            foreach (Client c in clients)
-            {
-                int pendingMonths = SubscriptionArrearsCalculator.CalculatePendingMonths(c.AccountExpirationDate, now);
-                (decimal discountedBase, decimal vatAmount, decimal amountPerMonth) =
-                    await _vipPolicy.ApplyMonthlyPriceAsync(c);
-                decimal amountDueAccount = amountPerMonth * pendingMonths;
-                CollectionRenewalQuote quote = _collectionPaymentService.QuoteAccountCharge(
-                    c.AccountCurrency,
-                    amountDueAccount,
-                    financial.DefaultUsdToSypExchangeRate);
-
-                items.Add(new ClientSearchResultItem
+                ApplicationUser? user = await _userManager.GetUserAsync(User);
+                if (user == null)
                 {
-                    Id = c.Id,
-                    UserName = c.UserName ?? "",
-                    FullName = c.Name ?? "",
-                    SubscriberNumber = c.SID ?? "",
-                    NetworkName = networkName,
-                    PhoneNumber = c.PhoneNumber,
-                    ProfileName = c.Profile?.Name ?? c.ProfileName ?? "",
-                    BasePrice = discountedBase,
-                    CommissionAmount = vatAmount,
-                    TotalPrice = amountPerMonth,
-                    PendingMonths = pendingMonths,
-                    AccountCurrency = c.AccountCurrency,
-                    ExchangeRate = quote.ExchangeRate,
-                    TotalAmountDue = amountDueAccount,
-                    TotalAmountDuePointChargeSyp = quote.Success ? quote.PointChargeSyp : amountDueAccount,
-                    ProfileDownloadSpeed = c.Profile?.DownloadSpeedMbps ?? 0,
-                    ProfileDownloadSpeedDisplay = c.Profile?.DownloadSpeedDisplay ?? ""
-                });
-            }
+                    return Json(new List<ClientSearchResultItem>());
+                }
 
-            return Json(items);
+                IQueryable<Client> query = _context.Clients
+                    .Where(c => c.NetworkId == networkId)
+                    .Include(c => c.Profile)
+                    .Include(c => c.Network)
+                    .AsQueryable();
+
+                if (!string.IsNullOrWhiteSpace(q))
+                {
+                    q = q.Trim();
+                    query = query.Where(c =>
+                        (c.Name != null && c.Name.Contains(q)) ||
+                        (c.UserName != null && c.UserName.Contains(q)) ||
+                        (c.SID != null && c.SID.Contains(q)) ||
+                        (c.PhoneNumber != null && c.PhoneNumber.Contains(q)));
+                }
+
+                List<Client> clients = await query.OrderBy(c => c.UserName).Take(50).ToListAsync();
+                string networkName = await _context.Networks.Where(n => n.Id == networkId).Select(n => n.Name).FirstOrDefaultAsync() ?? "";
+                DateTime now = DateTime.Now;
+
+                CompanyFinancialSnapshot financial = await _companyFinancial.GetSnapshotAsync(networkId);
+
+                List<ClientSearchResultItem> items = new();
+                foreach (Client c in clients)
+                {
+                    int pendingMonths = SubscriptionArrearsCalculator.CalculatePendingMonths(c.AccountExpirationDate, now);
+                    (decimal discountedBase, decimal vatAmount, decimal amountPerMonth) =
+                        await _vipPolicy.ApplyMonthlyPriceAsync(c);
+                    decimal amountDueAccount = amountPerMonth * pendingMonths;
+                    CollectionRenewalQuote quote = _collectionPaymentService.QuoteAccountCharge(
+                        c.AccountCurrency,
+                        amountDueAccount,
+                        financial.DefaultUsdToSypExchangeRate);
+
+                    items.Add(new ClientSearchResultItem
+                    {
+                        Id = c.Id,
+                        UserName = c.UserName ?? "",
+                        FullName = c.Name ?? "",
+                        SubscriberNumber = c.SID ?? "",
+                        NetworkName = networkName,
+                        PhoneNumber = c.PhoneNumber,
+                        ProfileName = c.Profile?.Name ?? c.ProfileName ?? "",
+                        BasePrice = discountedBase,
+                        CommissionAmount = vatAmount,
+                        TotalPrice = amountPerMonth,
+                        PendingMonths = pendingMonths,
+                        AccountCurrency = c.AccountCurrency,
+                        ExchangeRate = quote.ExchangeRate,
+                        TotalAmountDue = amountDueAccount,
+                        TotalAmountDuePointChargeSyp = quote.Success ? quote.PointChargeSyp : amountDueAccount,
+                        ProfileDownloadSpeed = c.Profile?.DownloadSpeedMbps ?? 0,
+                        ProfileDownloadSpeedDisplay = c.Profile?.DownloadSpeedDisplay ?? ""
+                    });
+                }
+
+                return Json(items);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "فشل بحث مشتركي نقطة التحصيل للشبكة {NetworkId}", networkId);
+                return StatusCode(StatusCodes.Status500InternalServerError, new { error = "search_failed" });
+            }
         }
 
         /// <summary>تسديد فاتورة المشترك: حسم المبلغ وتجديد الاشتراك مباشرة</summary>
@@ -524,6 +532,22 @@ namespace RadaTik.Areas.CollectionPoint.Controllers
                 .ToListAsync();
 
             return View(txs);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> UnreadNotificationsCount()
+        {
+            ApplicationUser? user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Json(new { count = 0 });
+            }
+
+            int count = await _context.UserNotifications
+                .AsNoTracking()
+                .CountAsync(n => n.UserId == user.Id && !n.IsRead);
+
+            return Json(new { count });
         }
     }
 }

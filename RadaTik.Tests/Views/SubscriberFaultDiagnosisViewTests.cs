@@ -26,11 +26,14 @@ public sealed class SubscriberFaultDiagnosisViewTests
     public void MaintenanceDetailsViews_ShowDiagnosisReport()
     {
         Assert.Contains(
-            "_SubscriberFaultDiagnosisReport",
+            "_MaintenanceRequestDetailsBody",
             File.ReadAllText(FindView("Areas", "CompanyAdmin", "Views", "RequestsManagement", "MaintenanceRequestDetails.cshtml")));
         Assert.Contains(
-            "_SubscriberFaultDiagnosisReport",
+            "_MaintenanceRequestDetailsBody",
             File.ReadAllText(FindView("Areas", "CompanyEmployee", "Views", "RequestsManagement", "MaintenanceRequestDetails.cshtml")));
+        Assert.Contains(
+            "_SubscriberFaultDiagnosisReport",
+            File.ReadAllText(FindView("Views", "Shared", "_MaintenanceRequestDetailsBody.cshtml")));
         Assert.Contains(
             "_SubscriberFaultDiagnosisReport",
             File.ReadAllText(FindView("Areas", "ClientPortal", "Views", "ClientPortal", "MaintenanceRequestDetails.cshtml")));

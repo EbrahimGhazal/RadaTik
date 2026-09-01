@@ -1,0 +1,81 @@
+.client-nid-card__header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.client-nid-card__hint {
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+.client-nid-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.client-nid-side__title {
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+.client-nid-preview {
+    min-height: 160px;
+    border: 2px dashed #99f6e4;
+    border-radius: 14px;
+    background: #f0fdfa;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.client-nid-preview.is-filled {
+    border-style: solid;
+    border-color: #0f766e;
+}
+
+.client-nid-preview__img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
+}
+
+.client-nid-preview__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    color: #0f766e;
+    font-weight: 700;
+}
+
+.client-nid-preview__empty i {
+    font-size: 1.6rem;
+}
+
+.client-nid-form,
+.client-nid-remove {
+    margin-top: 0.65rem;
+}
+
+.client-nid-file {
+    display: block;
+    margin-bottom: 0.45rem;
+}
+
+.client-nid-file input[type="file"] {
+    width: 100%;
+}
+
+.client-nid-form__save {
+    width: 100%;
+}
+
+@media (max-width: 767.98px) {
+    .client-nid-grid {
+        grid-template-columns: 1fr;
+    }
+}

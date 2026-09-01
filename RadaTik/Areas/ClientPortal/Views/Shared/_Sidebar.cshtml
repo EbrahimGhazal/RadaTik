@@ -1,3 +1,6 @@
+@using RadaTik.Helpers
+@using RadaTik.Services.Company
+@inject ICompanyClientPresenceService ClientPresence
 @{
     var isAuthenticated = (bool?)(ViewData["Layout_IsAuthenticated"]) == true;
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
@@ -5,6 +8,18 @@
 
     var subscriptionOpen = action == "RenewSubscription" || action == "RequestTopUp" || action == "AvailablePlans" || action == "MaintenanceInvoices";
     var supportOpen = action == "MaintenanceRequests" || action == "SpeedChangeRequests";
+    var presence = new CompanyClientPresenceSnapshot();
+    if (isAuthenticated)
+    {
+        try
+        {
+            presence = await ClientPresence.GetForCurrentClientAsync(User);
+        }
+        catch
+        {
+            /* stable sidebar */
+        }
+    }
 }
 
 <aside class="sidebar sidebar-pro" id="sidebar">
@@ -176,6 +191,42 @@
                     </li>
                 </ul>
             </div>
+
+            @if (presence.HasComplaintContacts)
+            {
+                <div class="nav-section nav-section-complaints" data-section-key="complaints">
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a class="nav-link @(action == "Complaints" ? "active" : "")"
+                               asp-route="clientPortal-actions" asp-route-action="Complaints">
+                                <span class="nav-icon"><i class="fas fa-phone-volume"></i></span>
+                                <span>الشكاوى</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            }
         }
     </nav>
+    @if (isAuthenticated && presence.HasSocialLinks)
+    {
+        <div class="client-portal-social" data-section-key="social">
+            <span class="client-portal-social__title">كن من المعجبين بصفحاتنا على سوشال ميديا</span>
+            <div class="client-portal-social__icons">
+                @foreach (var link in presence.VisibleSocialLinks)
+                {
+                    var info = SocialMediaCatalog.Info(link.Platform);
+                    <a class="client-portal-social__link"
+                       href="@link.Url"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       title="@link.DisplayName"
+                       style="--brand:@info.BrandColor"
+                       aria-label="@link.DisplayName">
+                        <i class="@info.IconClass"></i>
+                    </a>
+                }
+            </div>
+        </div>
+    }
 </aside>

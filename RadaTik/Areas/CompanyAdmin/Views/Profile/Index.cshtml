@@ -285,8 +285,10 @@
                 @foreach (var item in Model)
                 {
                     <tr class="profile-row" data-profile-id="@item.Id" data-profile-name="@item.Name">
-                        <td data-label="تحديد">
-                            <input type="checkbox" class="form-check-input profile-select-check" value="@item.Id" />
+                        <td data-label="" class="profile-select-cell">
+                            <label class="profile-select-hit">
+                                <input type="checkbox" class="form-check-input profile-select-check" value="@item.Id" />
+                            </label>
                         </td>
                         <td data-label="الاسم">
                             <div class="profile-name">@item.Name</div>
@@ -305,14 +307,10 @@
                         </td>
                         <td data-label="السعر">
                             <div class="price-main">
-                                @SyrianCurrencyHelper.FormatNew(item.Price) ل.س جديد
+                                @SyrianCurrencyHelper.FormatNew(item.Price) ل.س.ج
                             </div>
                             <div class="price-vat">
-                                شامل: @SyrianCurrencyHelper.FormatNew(item.PriceWithVAT) ل.س جديد
-                            </div>
-                            <div class="price-old-hint" style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px;">
-                                <i class="fas fa-coins"></i>
-                                قديم: @((item.Price * 100).ToString("N0")) ل.س
+                                شامل: @SyrianCurrencyHelper.FormatNew(item.PriceWithVAT) ل.س.ج
                             </div>
                         </td>
                         <td data-label="السرعة">
@@ -383,23 +381,28 @@
                             <div class="action-buttons">
                                 <a asp-action="Details" asp-route-id="@item.Id" class="action-btn view" title="تفاصيل">
                                     <i class="fas fa-eye"></i>
+                                    <span class="action-btn__text">تفاصيل</span>
                                 </a>
                                 @if (item.CompanyProfileCatalogId.HasValue)
                                 {
                                     <a asp-action="Deploy" asp-route-id="@item.CompanyProfileCatalogId" class="action-btn view" title="نشر على سيرفرات">
                                         <i class="fas fa-share-alt"></i>
+                                        <span class="action-btn__text">نشر</span>
                                     </a>
                                 }
                                 <a asp-action="Edit" asp-route-id="@item.Id" asp-route-serverId="@ViewBag.SelectedServerId" class="action-btn edit" title="تعديل">
                                     <i class="fas fa-edit"></i>
+                                    <span class="action-btn__text">تعديل</span>
                                 </a>
                                 <a asp-action="Delete" asp-route-id="@item.Id" class="action-btn delete" title="حذف">
                                     <i class="fas fa-trash"></i>
+                                    <span class="action-btn__text">حذف</span>
                                 </a>
                                 @if (item.MikroTikServerId > 0)
                                 {
                                     <button type="button" class="action-btn sync" onclick="testSync(@item.MikroTikServerId, @item.Id)" title="فحص المزامنة">
                                         <i class="fas fa-sync"></i>
+                                        <span class="action-btn__text">فحص</span>
                                     </button>
                                 }
                             </div>
@@ -445,7 +448,7 @@
                     <span id="bulkProfilePriceSelectedHint" class="fw-semibold"></span>
                 </p>
                 <div class="mb-3">
-                    <label class="form-label" for="bulkProfilePriceValue">السعر الجديد (ل.س)</label>
+                    <label class="form-label" for="bulkProfilePriceValue">السعر الجديد (ل.س.ج)</label>
                     <input type="number" class="form-control" id="bulkProfilePriceValue" min="0" step="0.01" placeholder="مثال: 25000" />
                 </div>
                 <div class="mb-0">
@@ -505,6 +508,7 @@
                 if (already) {
                     $('#profilesTable').DataTable().destroy();
                     $('#profilesTable').removeAttr('style');
+                    $('#profilesTable tbody td').removeAttr('style');
                 }
                 return;
             }
@@ -516,7 +520,8 @@
                     },
                     order: [[1, 'asc']],
                     pageLength: 25,
-                    responsive: true,
+                    responsive: false,
+                    autoWidth: false,
                     columnDefs: [
                         { orderable: false, targets: [0, 10] }
                     ]
@@ -1030,4 +1035,8 @@
             }
         });
     </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/profile-index-cards.css" asp-append-version="true" />
 }

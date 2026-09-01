@@ -6,7 +6,7 @@
     decimal? exportPrice = ViewBag.ExportPriceSyp as decimal?;
 }
 
-<div class="financial-page financial-hub-page">
+<div class="radtk-page-reports-index financial-page financial-hub-page financial-reports-page">
     @{
         ViewBag.FinancialNavCurrent = "reports";
         ViewBag.FinancialNavShowWarehouse = false;
@@ -45,69 +45,56 @@
         <form id="reportsForm" method="post">
             @Html.AntiForgeryToken()
 
-            <div class="table-responsive">
-                <table class="table table-bordered align-middle mb-0 report-settings-table">
-                    <tbody>
-                        <tr>
-                            <th scope="row" class="text-nowrap bg-light">نوع التقرير</th>
-                            <td>
-                                <select name="Kind" id="reportKindSelect" class="form-select" required aria-label="نوع التقرير">
-                                    <option value="@((int)CompanyReportKind.Subscribers)">تقارير المشتركين</option>
-                                    <option value="@((int)CompanyReportKind.Sectors)">تقارير المرسلات (القطاعات)</option>
-                                    <option value="@((int)CompanyReportKind.Receivers)">تقارير المستقبلات</option>
-                                    <option value="@((int)CompanyReportKind.Servers)">تقارير السيرفرات (MikroTik)</option>
-                                    <option value="@((int)CompanyReportKind.Subcontractors)">تقارير المتعاقدين بالباطن (نقاط التحصيل)</option>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row" class="text-nowrap bg-light">الفترة الزمنية</th>
-                            <td>
-                                <select name="Period" id="periodSelect" class="form-select" required aria-label="الفترة الزمنية">
-                                    <option value="@((int)CompanyReportPeriodPreset.Today)">اليوم</option>
-                                    <option value="@((int)CompanyReportPeriodPreset.Week)">أسبوع (آخر 7 أيام)</option>
-                                    <option value="@((int)CompanyReportPeriodPreset.Month)">الشهر الحالي</option>
-                                    <option value="@((int)CompanyReportPeriodPreset.ThreeMonths)">3 أشهر</option>
-                                    <option value="@((int)CompanyReportPeriodPreset.SixMonths)">6 أشهر</option>
-                                    <option value="@((int)CompanyReportPeriodPreset.Year)">سنة (من بداية العام)</option>
-                                    <option value="@((int)CompanyReportPeriodPreset.Custom)">بين تاريخين</option>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr class="custom-range d-none" id="customFromWrap">
-                            <th scope="row" class="text-nowrap bg-light">من تاريخ</th>
-                            <td>
-                                <input type="datetime-local" name="CustomFrom" class="form-control" aria-label="من تاريخ" />
-                            </td>
-                        </tr>
-                        <tr class="custom-range d-none" id="customToWrap">
-                            <th scope="row" class="text-nowrap bg-light">إلى تاريخ</th>
-                            <td>
-                                <input type="datetime-local" name="CustomTo" class="form-control" aria-label="إلى تاريخ" />
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row" class="text-nowrap bg-light align-top pt-3">إجراءات</th>
-                            <td class="pt-3 pb-3">
-                                <div class="d-flex flex-wrap gap-2">
-                                    <button type="submit" class="btn btn-primary" formaction="@Url.Action("Print", "Reports", new { area = "CompanyAdmin" })" title="عرض التقرير على الشاشة دون خصم من المحفظة">
-                                        <i class="fas fa-print"></i> عرض وطباعة
-                                    </button>
-                                    <button type="button" class="btn btn-success" id="btnReportsExportExcel">
-                                        <i class="fas fa-file-excel"></i> تصدير Excel
-                                    </button>
-                                    <a class="btn btn-outline-secondary" asp-route="networkManager-dashboard">رجوع</a>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="report-settings-grid">
+                <div class="report-settings-field">
+                    <label class="form-label" for="reportKindSelect">نوع التقرير</label>
+                    <select name="Kind" id="reportKindSelect" class="form-select" required aria-label="نوع التقرير">
+                        <option value="@((int)CompanyReportKind.Subscribers)">تقارير المشتركين</option>
+                        <option value="@((int)CompanyReportKind.Sectors)">تقارير المرسلات (القطاعات)</option>
+                        <option value="@((int)CompanyReportKind.Receivers)">تقارير المستقبلات</option>
+                        <option value="@((int)CompanyReportKind.Servers)">تقارير السيرفرات (MikroTik)</option>
+                        <option value="@((int)CompanyReportKind.Subcontractors)">تقارير المتعاقدين بالباطن (نقاط التحصيل)</option>
+                    </select>
+                </div>
+                <div class="report-settings-field">
+                    <label class="form-label" for="periodSelect">الفترة الزمنية</label>
+                    <select name="Period" id="periodSelect" class="form-select" required aria-label="الفترة الزمنية">
+                        <option value="@((int)CompanyReportPeriodPreset.Today)">اليوم</option>
+                        <option value="@((int)CompanyReportPeriodPreset.Week)">أسبوع (آخر 7 أيام)</option>
+                        <option value="@((int)CompanyReportPeriodPreset.Month)">الشهر الحالي</option>
+                        <option value="@((int)CompanyReportPeriodPreset.ThreeMonths)">3 أشهر</option>
+                        <option value="@((int)CompanyReportPeriodPreset.SixMonths)">6 أشهر</option>
+                        <option value="@((int)CompanyReportPeriodPreset.Year)">سنة (من بداية العام)</option>
+                        <option value="@((int)CompanyReportPeriodPreset.Custom)">بين تاريخين</option>
+                    </select>
+                </div>
+                <div class="report-settings-field custom-range d-none" id="customFromWrap">
+                    <label class="form-label" for="reportCustomFrom">من تاريخ</label>
+                    <input type="datetime-local" name="CustomFrom" id="reportCustomFrom" class="form-control" aria-label="من تاريخ" />
+                </div>
+                <div class="report-settings-field custom-range d-none" id="customToWrap">
+                    <label class="form-label" for="reportCustomTo">إلى تاريخ</label>
+                    <input type="datetime-local" name="CustomTo" id="reportCustomTo" class="form-control" aria-label="إلى تاريخ" />
+                </div>
+                <div class="report-settings-actions">
+                    <button type="submit" class="btn btn-primary" formaction="@Url.Action("Print", "Reports", new { area = "CompanyAdmin" })" title="عرض التقرير على الشاشة دون خصم من المحفظة">
+                        <i class="fas fa-print"></i> عرض وطباعة
+                    </button>
+                    <button type="button" class="btn btn-success" id="btnReportsExportExcel">
+                        <i class="fas fa-file-excel"></i> تصدير Excel
+                    </button>
+                    <a class="btn btn-outline-secondary" asp-route="networkManager-dashboard">رجوع</a>
+                </div>
             </div>
         </form>
     </div>
 </div>
 
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/reports-index-cards.css" asp-append-version="true" />
+}
 
 @section Scripts {
     <script>

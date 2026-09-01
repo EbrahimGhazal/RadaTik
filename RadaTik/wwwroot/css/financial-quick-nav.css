@@ -1,0 +1,62 @@
+/* تبويبات المالية — على سطر واحد، وتلتف لسطر تالٍ إذا ضاق العرض */
+html body .financial-quick-nav,
+html body .financial-hub-page .financial-quick-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+html body .financial-quick-nav__item,
+html body .financial-hub-page .financial-quick-nav__item {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    width: auto !important;
+    max-width: 100%;
+    min-height: 2.2rem;
+    margin: 0;
+    padding: 0.35rem 0.7rem;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+html body .financial-quick-nav__sep,
+html body .financial-hub-page .financial-quick-nav__sep {
+    flex: 0 0 1px;
+    width: 1px;
+    min-width: 1px;
+    height: auto;
+    min-height: 1.15rem;
+    align-self: stretch;
+    margin: 0.15rem 0.1rem;
+}
+
+@media (max-width: 1199.98px) {
+    html body .financial-quick-nav__sep,
+    html body .financial-hub-page .financial-quick-nav__sep {
+        display: none;
+    }
+
+    html body .financial-quick-nav__item,
+    html body .financial-hub-page .financial-quick-nav__item {
+        padding: 0.32rem 0.55rem;
+        font-size: 0.78rem;
+        min-height: 2.15rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    html body .financial-quick-nav__item,
+    html body .financial-hub-page .financial-quick-nav__item {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.74rem;
+        min-height: 2.05rem;
+    }
+}

@@ -1,0 +1,485 @@
+@model RadaTik.Models.MaintenanceRequest
+@using System.Globalization
+@using RadaTik.Helpers
+@using RadaTik.Models
+@inject RadaTik.Services.IPermissionService PermissionService
+@{
+    var availableStaff = ViewBag.AvailableStaff as List<ApplicationUser> ?? new List<ApplicationUser>();
+    var canManageMaintenance = await PermissionService.HasPermissionAsync(User, "MaintenanceRequests.Manage");
+    var invoice = ViewBag.MaintenanceInvoice as MaintenanceInvoice;
+    var pricedOptions = ViewBag.PricedMaintenanceOptions as List<RadaTik.ViewModels.Maintenance.PricedMaintenanceOptionViewModel>
+        ?? new List<RadaTik.ViewModels.Maintenance.PricedMaintenanceOptionViewModel>();
+    var pricedTotal = pricedOptions.Sum(p => p.AmountSYP);
+    var defaultSelectedTotal = pricedOptions.Where(p => p.IsDefaultForRequestType).Sum(p => p.AmountSYP);
+    var transportFee = ViewBag.MaintenanceTransportFee is decimal tf ? tf : 0m;
+    var commissionMode = ViewBag.MaintenanceCommissionMode is MaintenanceCommissionMode cm ? cm : MaintenanceCommissionMode.Fixed;
+    var commissionValue = ViewBag.MaintenanceCommissionValue is decimal cv ? cv : 0m;
+    var initialSubtotalEstimate = defaultSelectedTotal + transportFee;
+    var initialCommissionEstimate = commissionMode == MaintenanceCommissionMode.Percent
+        ? Math.Ceiling(initialSubtotalEstimate * commissionValue / 100m)
+        : Math.Ceiling(commissionValue);
+    if (initialCommissionEstimate < 0m) { initialCommissionEstimate = 0m; }
+    var initialGrossEstimate = Math.Max(0m, initialSubtotalEstimate + initialCommissionEstimate);
+    var initialNetEstimate = Math.Max(0m, initialGrossEstimate - initialCommissionEstimate);
+    var commissionModeLabel = commissionMode == MaintenanceCommissionMode.Percent
+        ? $"نسبة ({commissionValue:N2}%)"
+        : $"ثابت ({commissionValue:N0} ل.س)";
+    var invoiceStatusText = invoice?.Status switch
+    {
+        MaintenanceInvoiceStatus.Pending => "بانتظار السداد",
+        MaintenanceInvoiceStatus.Paid => "مدفوعة بالكامل",
+        MaintenanceInvoiceStatus.Cancelled => "ملغاة",
+        _ => "غير معروفة"
+    };
+
+    var routeName = ViewBag.MaintenanceRouteName as string ?? "networkManager-requestsManagement";
+    var clientProfileUrl = ViewBag.ClientProfileUrl as string;
+    var showInvoiceLedgerLinks = ViewBag.ShowInvoiceLedgerLinks as bool? == true;
+    var canMoneyDiary = ViewBag.CanMoneyDiary as bool? == true;
+    var canWarehouse = ViewBag.CanWarehouse as bool? == true;
+    var invoiceDiaryDesc = invoice != null ? $"فاتورة صيانة #{invoice.Id} — {Model.Client?.Name}" : "";
+
+    var assignedName = Model.AssignedTo == null
+        ? null
+        : (string.IsNullOrWhiteSpace(Model.AssignedTo.FullName) ? Model.AssignedTo.UserName : Model.AssignedTo.FullName);
+    var requestAddress = string.IsNullOrWhiteSpace(Model.Address) ? null : Model.Address.Trim();
+    var receiverAddress = ReceiverVisitAddressFormatter.FromClient(Model.Client);
+    var hasMap = ReceiverVisitAddressFormatter.TryGetReceiverCoordinates(Model.Client, out var visitLat, out var visitLng);
+    var mapsUrl = hasMap
+        ? $"https://www.google.com/maps?q={visitLat.ToString(CultureInfo.InvariantCulture)},{visitLng.ToString(CultureInfo.InvariantCulture)}"
+        : null;
+    var callPhone = !string.IsNullOrWhiteSpace(Model.ContactPhone)
+        ? Model.ContactPhone
+        : Model.Client?.PhoneNumber;
+    var clientName = Model.Client?.Name;
+    var clientInitial = string.IsNullOrWhiteSpace(clientName) ? "?" : clientName.Trim()[0].ToString().ToUpperInvariant();
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Success"]</div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle alert-icon"></i>
+        <div class="alert-content">@TempData["Error"]</div>
+    </div>
+}
+
+<div class="maint-status-banner">
+    <span class="status-badge @GetStatusClass(Model.Status)">@GetStatusName(Model.Status)</span>
+    <span class="priority-badge @GetPriorityClass(Model.Priority)">@GetPriorityName(Model.Priority)</span>
+    <span class="maint-status-banner__id">طلب #@Model.Id</span>
+</div>
+
+<div class="maint-facts">
+    <article>
+        <span>نوع المشكلة</span>
+        <strong><i class="fas @GetTypeIcon(Model.Type)"></i> @GetMaintenanceTypeName(Model.Type)</strong>
+    </article>
+    <article>
+        <span>تاريخ الطلب</span>
+        <strong>@Model.RequestDate.ToString("yyyy/MM/dd HH:mm")</strong>
+    </article>
+    <article>
+        <span>موعد الزيارة</span>
+        <strong>@(Model.ScheduledVisitDate.HasValue ? Model.ScheduledVisitDate.Value.ToString("yyyy/MM/dd HH:mm") : "غير محدد")</strong>
+    </article>
+    <article>
+        <span>الموظف المسند</span>
+        <strong>@(string.IsNullOrWhiteSpace(assignedName) ? "غير معيّن" : assignedName)</strong>
+    </article>
+</div>
+
+<div class="maint-layout">
+    <section class="maint-panel">
+        <h3><i class="fas fa-user"></i> العميل</h3>
+        @if (Model.Client != null)
+        {
+            <div class="maint-client">
+                <div class="maint-client__avatar">@clientInitial</div>
+                <div class="maint-client__body">
+                    <h4>@Model.Client.Name</h4>
+                    <p><i class="fas fa-user"></i> @Model.Client.UserName</p>
+                    @if (!string.IsNullOrWhiteSpace(Model.Client.PhoneNumber))
+                    {
+                        <p><i class="fas fa-phone"></i> @Model.Client.PhoneNumber</p>
+                    }
+                    @if (Model.Client.Profile != null)
+                    {
+                        <p><i class="fas fa-wifi"></i> @Model.Client.Profile.Name - @Model.Client.Profile.DownloadSpeedDisplay</p>
+                    }
+                    @if (Model.Client.Receiver != null)
+                    {
+                        <p><i class="fas fa-broadcast-tower"></i> @Model.Client.Receiver.Name</p>
+                    }
+                </div>
+            </div>
+            <div class="maint-quick-actions">
+                @if (!string.IsNullOrWhiteSpace(callPhone))
+                {
+                    <a class="btn btn-success btn-sm" href="tel:@callPhone">
+                        <i class="fas fa-phone"></i> اتصال
+                    </a>
+                }
+                @if (!string.IsNullOrWhiteSpace(clientProfileUrl))
+                {
+                    <a class="btn btn-outline-info btn-sm" href="@clientProfileUrl">
+                        <i class="fas fa-external-link-alt"></i> ملف العميل
+                    </a>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="maint-panel">
+        <h3><i class="fas fa-map-marker-alt"></i> عنوان الزيارة</h3>
+        @if (!string.IsNullOrWhiteSpace(requestAddress))
+        {
+            <p class="maint-visit__address">@requestAddress</p>
+        }
+        else if (!string.IsNullOrWhiteSpace(receiverAddress))
+        {
+            <p class="maint-visit__address">@receiverAddress</p>
+        }
+        else
+        {
+            <p class="text-muted mb-2">لا يوجد عنوان مسجّل لهذه الزيارة.</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(requestAddress) && !string.IsNullOrWhiteSpace(receiverAddress)
+             && !string.Equals(requestAddress, receiverAddress, StringComparison.OrdinalIgnoreCase))
+        {
+            <p class="small text-muted mb-2">موقع اللاقط</p>
+            <p class="maint-visit__address">@receiverAddress</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.PreferredContactTime))
+        {
+            <p class="mb-2"><i class="fas fa-clock text-muted"></i> أفضل وقت: @Model.PreferredContactTime</p>
+        }
+        @if (hasMap)
+        {
+            <div id="maintVisitMap"
+                 class="maint-visit__map"
+                 data-lat="@visitLat.ToString(CultureInfo.InvariantCulture)"
+                 data-lng="@visitLng.ToString(CultureInfo.InvariantCulture)"></div>
+        }
+        @if (!string.IsNullOrWhiteSpace(mapsUrl) || !string.IsNullOrWhiteSpace(callPhone))
+        {
+            <div class="maint-quick-actions">
+                @if (!string.IsNullOrWhiteSpace(mapsUrl))
+                {
+                    <a class="btn btn-outline-primary btn-sm" href="@mapsUrl" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-directions"></i> افتح في الخرائط
+                    </a>
+                }
+            </div>
+        }
+    </section>
+</div>
+
+<section class="maint-panel">
+    <h3><i class="fas fa-align-right"></i> وصف المشكلة</h3>
+    <p class="maint-request-box">@Model.Description</p>
+</section>
+
+<partial name="_SubscriberFaultDiagnosisReport" model="@(ViewBag.FaultDiagnosis as RadaTik.Services.Clients.SubscriberFaultDiagnosisDto)" />
+
+@if (!string.IsNullOrWhiteSpace(Model.TechnicianNotes))
+{
+    <section class="maint-panel">
+        <h3><i class="fas fa-clipboard-check"></i> ملاحظات الفني</h3>
+        <p class="maint-request-box maint-request-box--notes">@Model.TechnicianNotes</p>
+    </section>
+}
+
+@if (invoice != null)
+{
+    <section class="maint-panel">
+        <h3><i class="fas fa-file-invoice-dollar"></i> فاتورة الصيانة</h3>
+        <div class="maint-invoice-grid">
+            <div>
+                <span>رقم الفاتورة</span>
+                <strong>#@invoice.Id</strong>
+            </div>
+            <div>
+                <span>الحالة</span>
+                <strong>@invoiceStatusText</strong>
+            </div>
+            <div>
+                <span>المبلغ الإجمالي</span>
+                <strong>@invoice.GrossAmount.ToString("N0") ل.س</strong>
+            </div>
+            <div>
+                <span>عمولة النظام</span>
+                <strong>@invoice.CommissionAmount.ToString("N0") ل.س</strong>
+            </div>
+            <div>
+                <span>صافي الشركة</span>
+                <strong>@invoice.NetAmountToCompany.ToString("N0") ل.س</strong>
+            </div>
+        </div>
+        @if (showInvoiceLedgerLinks && invoice.Status == MaintenanceInvoiceStatus.Paid && (canMoneyDiary || canWarehouse))
+        {
+            <p class="small text-muted mt-3 mb-2">تسجيل اختياري في إدارة الشركة (لا يغيّر محفظة RadaTik):</p>
+            <div class="maint-quick-actions">
+                @if (canMoneyDiary)
+                {
+                    <a class="btn btn-sm btn-outline-success"
+                       asp-route="networkManager-money-diary"
+                       asp-route-prefillAmount="@invoice.NetAmountToCompany.ToString(CultureInfo.InvariantCulture)"
+                       asp-route-prefillEntryType="1"
+                       asp-route-prefillCategoryKey="income_maintenance"
+                       asp-route-prefillDescription="@invoiceDiaryDesc">تسجيل إيراد في الدفتر</a>
+                    <a class="btn btn-sm btn-outline-danger"
+                       asp-route="networkManager-money-diary"
+                       asp-route-prefillAmount="@invoice.NetAmountToCompany.ToString(CultureInfo.InvariantCulture)"
+                       asp-route-prefillEntryType="2"
+                       asp-route-prefillCategoryKey="expense_maintenance"
+                       asp-route-prefillDescription="@($"قطع — {invoiceDiaryDesc}")">تسجيل مصروف قطع</a>
+                }
+                @if (canWarehouse)
+                {
+                    <a class="btn btn-sm btn-outline-primary"
+                       asp-route="networkManager-warehouse"
+                       asp-route-movementType="2"
+                       asp-route-prefillNotes="@($"صيانة #{invoice.Id}")">إخراج من المستودع</a>
+                }
+            </div>
+        }
+    </section>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.RejectionReason))
+{
+    <section class="maint-panel">
+        <h3><i class="fas fa-times-circle"></i> سبب الرفض</h3>
+        <p class="maint-request-box maint-request-box--reject">@Model.RejectionReason</p>
+    </section>
+}
+
+@if (Model.AcceptedDate.HasValue || Model.CompletedDate.HasValue)
+{
+    <section class="maint-panel">
+        <h3><i class="fas fa-history"></i> التواريخ</h3>
+        <div class="maint-invoice-grid">
+            @if (Model.AcceptedDate.HasValue)
+            {
+                <div>
+                    <span>تاريخ القبول</span>
+                    <strong>@Model.AcceptedDate.Value.ToString("yyyy/MM/dd HH:mm")</strong>
+                </div>
+            }
+            @if (Model.CompletedDate.HasValue)
+            {
+                <div>
+                    <span>تاريخ الإنجاز</span>
+                    <strong>@Model.CompletedDate.Value.ToString("yyyy/MM/dd HH:mm")</strong>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+<section class="maint-panel maint-actions actions-card">
+    <h3><i class="fas fa-cogs"></i> إجراءات</h3>
+    @if (canManageMaintenance && Model.Status != MaintenanceRequestStatus.Completed && Model.Status != MaintenanceRequestStatus.Rejected && Model.Status != MaintenanceRequestStatus.Cancelled)
+    {
+        <form asp-route="@routeName" asp-route-action="SetMaintenanceScheduledVisitDate" method="post" class="action-form mb-3 js-once-submit">
+            <input type="hidden" name="id" value="@Model.Id" />
+            <label class="form-label fw-bold"><i class="fas fa-calendar-alt"></i> موعد الزيارة</label>
+            <p class="small text-muted mb-2">يظهر الطلب في لوحة الموظف عندما يكون تاريخ الموعد في اليوم الحالي.</p>
+            <input type="datetime-local" name="scheduledVisitDate" class="form-control mb-2" value="@(Model.ScheduledVisitDate.HasValue ? Model.ScheduledVisitDate.Value.ToString("yyyy-MM-ddTHH:mm") : "")" />
+            <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-save"></i> حفظ الموعد</button>
+        </form>
+    }
+    @if (Model.Status == MaintenanceRequestStatus.Pending)
+    {
+        <div class="actions-grid">
+            <form asp-route="@routeName" asp-route-action="AcceptMaintenanceRequest" method="post" class="action-form js-once-submit">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="form-group mb-3">
+                    <label class="form-label">تعيين موظف (اختياري)</label>
+                    <select name="assignedToId" class="form-select">
+                        <option value="">@(string.IsNullOrWhiteSpace(Model.AssignedToId) ? "— يحدده المدير أو قسم الصيانة —" : "— الإبقاء على اختيار المشترك —")</option>
+                        @foreach (var staff in availableStaff)
+                        {
+                            <option value="@staff.Id" selected="@(staff.Id == Model.AssignedToId)">@staff.FullName</option>
+                        }
+                    </select>
+                    @if (Model.AssignedTo != null)
+                    {
+                        <small class="form-text text-muted">اختار المشترك: @Model.AssignedTo.FullName</small>
+                    }
+                </div>
+                <button type="submit" class="btn btn-success btn-lg w-100">
+                    <i class="fas fa-check"></i> قبول الطلب
+                </button>
+            </form>
+
+            <form asp-route="@routeName" asp-route-action="RejectMaintenanceRequest" method="post" class="action-form" onsubmit="return validateRejection(this)">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="form-group mb-3">
+                    <label class="form-label">سبب الرفض</label>
+                    <textarea name="rejectionReason" class="form-control" rows="2" placeholder="اكتب سبب الرفض..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger btn-lg w-100">
+                    <i class="fas fa-times"></i> رفض الطلب
+                </button>
+            </form>
+        </div>
+    }
+    else if (Model.Status == MaintenanceRequestStatus.Accepted)
+    {
+        @if (canManageMaintenance && string.IsNullOrWhiteSpace(Model.AssignedToId))
+        {
+            <form asp-route="@routeName" asp-route-action="AssignMaintenanceEmployee" method="post" class="action-form mb-3 js-once-submit">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="form-group mb-3">
+                    <label class="form-label">إسناد المهمة لموظف</label>
+                    <select name="assignedToId" class="form-select" required>
+                        <option value="">— اختر موظفاً —</option>
+                        @foreach (var staff in availableStaff)
+                        {
+                            <option value="@staff.Id">@staff.FullName</option>
+                        }
+                    </select>
+                    <small class="form-text text-muted">لم يحدد المشترك موظفاً. يمكن للمدير أو قسم الصيانة الإسناد الآن.</small>
+                </div>
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-user-check"></i> إسناد المهمة
+                </button>
+            </form>
+        }
+        <form asp-route="@routeName" asp-route-action="StartMaintenanceRequest" method="post" class="js-once-submit">
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button type="submit" class="btn btn-primary btn-lg w-100">
+                <i class="fas fa-play"></i> بدء العمل على الطلب
+            </button>
+        </form>
+    }
+    else if (Model.Status == MaintenanceRequestStatus.InProgress)
+    {
+        <form asp-route="@routeName" asp-route-action="CompleteMaintenanceRequest" method="post" onsubmit="return validateCompletion(this)">
+            <input type="hidden" name="id" value="@Model.Id" />
+            <div class="form-group mb-3">
+                <label class="form-label">شرح العطل</label>
+                <textarea name="faultExplanation" class="form-control" rows="3" placeholder="ما هو العطل الذي تم اكتشافه؟" required>@Model.Description</textarea>
+            </div>
+            <div class="form-group mb-3">
+                <label class="form-label">ملاحظات إضافية</label>
+                <textarea name="technicianNotes" class="form-control" rows="2" placeholder="ملاحظات اختيارية"></textarea>
+            </div>
+            <div class="form-group mb-3">
+                <label class="form-label">طرق الحل المسعّرة (اختر طريقة حل واحدة أو أكثر)</label>
+                @if (pricedOptions.Any())
+                {
+                    <div class="service-check-grid" id="serviceCheckGrid">
+                        @for (var idx = 0; idx < pricedOptions.Count; idx++)
+                        {
+                            var opt = pricedOptions[idx];
+                            var cid = $"maint_type_{(int)opt.MaintenanceType}";
+                            <label class="service-check-item" for="@cid">
+                                <span class="service-check-order">@(idx + 1)</span>
+                                <input type="checkbox"
+                                       id="@cid"
+                                       name="selectedMaintenanceTypes"
+                                       value="@((int)opt.MaintenanceType)"
+                                       data-price="@opt.AmountSYP.ToString(CultureInfo.InvariantCulture)"
+                                       class="service-check-input"
+                                       @(opt.IsDefaultForRequestType ? "checked" : null) />
+                                <span class="service-check-name">@opt.DisplayName</span>
+                                <span class="service-check-price">@opt.AmountSYP.ToString("N0") ل.س</span>
+                            </label>
+                        }
+                    </div>
+                    <div class="maint-totals">
+                        <div class="maint-totals__row live-total-box">
+                            <span>عدد طرق الحل المحددة</span>
+                            <strong id="liveSelectedServiceCount">@pricedOptions.Count(p => p.IsDefaultForRequestType)</strong>
+                        </div>
+                        <div class="maint-totals__row live-total-box">
+                            <span>إجمالي الخدمات المحددة</span>
+                            <strong id="liveSelectedServiceTotal">@defaultSelectedTotal.ToString("N0") ل.س</strong>
+                        </div>
+                        <div class="maint-totals__row live-total-box">
+                            <span>أجور النقل</span>
+                            <strong id="liveTransportFee">@transportFee.ToString("N0") ل.س</strong>
+                        </div>
+                    </div>
+                    <div class="form-group mt-2 mb-2">
+                        <label class="form-label">أجور النقل (ل.س)</label>
+                        <input type="number"
+                               class="form-control"
+                               id="transportFeeOverrideInput"
+                               name="transportFeeOverride"
+                               min="0"
+                               step="1"
+                               value="@transportFee.ToString(CultureInfo.InvariantCulture)" />
+                    </div>
+                    <div class="maint-totals">
+                        <div class="maint-totals__row live-total-box">
+                            <span>الإجمالي قبل العمولة</span>
+                            <strong id="liveSubtotalEstimate" data-transport="@transportFee.ToString(CultureInfo.InvariantCulture)">@initialSubtotalEstimate.ToString("N0") ل.س</strong>
+                        </div>
+                        <div class="maint-totals__row live-total-box">
+                            <span>عمولة النظام المضافة</span>
+                            <strong id="liveCommissionEstimate"
+                                    data-commission-mode="@((int)commissionMode)"
+                                    data-commission-value="@commissionValue.ToString(CultureInfo.InvariantCulture)">@initialCommissionEstimate.ToString("N0") ل.س</strong>
+                        </div>
+                        <div class="maint-totals__row maint-totals__row--gross live-total-box">
+                            <span>الإجمالي النهائي على العميل</span>
+                            <strong id="liveGrossEstimate">@initialGrossEstimate.ToString("N0") ل.س</strong>
+                        </div>
+                        <div class="maint-totals__row maint-totals__row--net live-total-box">
+                            <span>صافي الشركة التقديري</span>
+                            <strong id="liveNetEstimate">@initialNetEstimate.ToString("N0") ل.س</strong>
+                        </div>
+                    </div>
+                    <div class="form-text text-muted mt-2">
+                        نوع العمولة الحالي: <strong>@commissionModeLabel</strong>
+                        — مجموع العناصر المحددة سيُستخدم كسعر خدمة أساسي، ثم تُضاف أجور النقل والعمولة تلقائياً.
+                        إجمالي التسعيرات المتاحة: <strong>@pricedTotal.ToString("N0") ل.س</strong>
+                    </div>
+                    <div id="selectionValidationMessage" class="text-danger small mt-2" style="display:none;">
+                        يرجى اختيار طريقة حل واحدة على الأقل قبل إتمام الطلب.
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning py-2 mb-0">
+                        لا توجد عناصر صيانة مسعّرة حالياً لهذه الشبكة. يجب على مدير الشركة ضبط أسعار الصيانة أولاً.
+                    </div>
+                }
+            </div>
+            <button type="submit" id="completeMaintenanceSubmitBtn" class="btn btn-success btn-lg w-100" @(pricedOptions.Any() ? null : "disabled")>
+                <i class="fas fa-check-double"></i> تمت الصيانة وإصدار الفاتورة
+            </button>
+        </form>
+    }
+    else
+    {
+        <div class="maint-empty-actions">
+            <i class="fas fa-info-circle"></i>
+            لا توجد إجراءات متاحة لهذا الطلب
+        </div>
+    }
+</section>
+@functions {
+    string GetMaintenanceTypeName(MaintenanceType type) => MaintenanceCatalog.GetDisplayName(type);
+
+    string GetTypeIcon(MaintenanceType type) => MaintenanceCatalog.GetIcon(type);
+
+    string GetStatusName(MaintenanceRequestStatus status) => PricingDisplay.MaintenanceRequestStatusLabel(status);
+
+    string GetStatusClass(MaintenanceRequestStatus status) => PricingDisplay.MaintenanceRequestStatusClass(status);
+
+    string GetPriorityName(RequestPriority priority) => PricingDisplay.RequestPriorityLabel(priority);
+
+    string GetPriorityClass(RequestPriority priority) => PricingDisplay.RequestPriorityClass(priority);
+}

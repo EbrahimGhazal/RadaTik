@@ -1086,8 +1086,8 @@ button.header-user:focus-visible {
 
 /* قائمة المستخدم: Bootstrap + Popper (لا تُعرض يدوياً عبر display — يُدار عبر .dropdown-menu.show) */
 .dropdown-menu.header-user-dropdown {
-    min-width: min(280px, calc(100vw - 24px));
-    max-width: calc(100vw - 24px);
+    min-width: min(280px, calc(100% - 24px));
+    max-width: calc(100% - 24px);
     padding: 8px;
     margin-top: 8px !important;
     border: 1px solid var(--border-strong);
@@ -1129,8 +1129,8 @@ button.header-user:focus-visible {
     position: absolute;
     top: calc(100% + 10px);
     inset-inline-start: 0;
-    min-width: 320px;
-    max-width: min(92vw, 360px);
+    min-width: min(320px, 100%);
+    max-width: min(92%, 360px);
     padding: 0;
     border: 1px solid var(--border-strong);
     border-radius: 14px;
@@ -1585,7 +1585,7 @@ body.sidebar-mobile-open {
 }
 
 .company-features .company-features-search {
-    min-width: 320px;
+    min-width: min(320px, 100%);
 }
 
 .company-features .company-features-grid {

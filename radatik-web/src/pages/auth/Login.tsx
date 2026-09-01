@@ -71,6 +71,12 @@ export function Login() {
               id="login-userName"
               type="text"
               autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="on"
+              spellCheck
+              inputMode="text"
+              enterKeyHint="next"
+              dir="ltr"
               placeholder={t('auth.userNameHint')}
               disabled={submitting}
               {...register('userName', { required: true })}
@@ -85,6 +91,10 @@ export function Login() {
               id="login-password"
               type="password"
               autoComplete="current-password"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="go"
+              dir="ltr"
               disabled={submitting}
               {...register('password', { required: true })}
             />

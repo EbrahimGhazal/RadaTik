@@ -40,6 +40,11 @@ public static partial class RouteMappingExtensions
             pattern: "RadaTik/DownloadEmployee",
             defaults: new { area = "RadaTik", controller = "Public", action = "DownloadEmployee" });
 
+        app.MapControllerRoute(
+            name: "radatik-download-company",
+            pattern: "RadaTik/DownloadCompany",
+            defaults: new { area = "RadaTik", controller = "Public", action = "DownloadCompany" });
+
         app.MapAreaControllerRoute(
             name: "radatik-area",
             areaName: "RadaTik",
@@ -52,7 +57,17 @@ public static partial class RouteMappingExtensions
             pattern: "Public/{action=Index}/{id?}",
             defaults: new { area = "SkyBeam", controller = "Public" });
 
-        // الصفحة الجذرية → موقع RadaTik العام
-        app.MapGet("/", () => Results.Redirect("/radatik", permanent: false));
+        app.MapControllerRoute(
+            name: "robots-txt",
+            pattern: "robots.txt",
+            defaults: new { area = "RadaTik", controller = "Public", action = "Robots" });
+
+        app.MapControllerRoute(
+            name: "sitemap-xml",
+            pattern: "sitemap.xml",
+            defaults: new { area = "RadaTik", controller = "Public", action = "Sitemap" });
+
+        // الصفحة الجذرية → الموقع العام بعنوانه القانوني
+        app.MapGet("/", () => Results.Redirect("/RadaTik", permanent: true));
     }
 }

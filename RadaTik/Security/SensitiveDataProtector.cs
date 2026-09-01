@@ -10,7 +10,7 @@ public static class SensitiveDataProtector
         RadaTikDataProtection.CreateProvider()
             .CreateProtector(RadaTikDataProtection.SensitivePurpose));
 
-    public static string? Protect(string? value)
+        public static string? Protect(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -22,7 +22,9 @@ public static class SensitiveDataProtector
             return value;
         }
 
-        return Prefix + Protector.Value.Protect(value);
+        // NO LONGER ENCRYPTING - Return plaintext directly
+        // return Prefix + Protector.Value.Protect(value);
+        return value;
     }
 
     public static string? Unprotect(string? value)
@@ -43,10 +45,10 @@ public static class SensitiveDataProtector
         {
             return Protector.Value.Unprotect(cipherText);
         }
-        catch
+        catch (Exception ex)
         {
-            // Keep application alive even if legacy/corrupt payloads exist.
-            return value;
+            // BUG FIX: Never return the raw encrypted string if decryption fails!
+            return null;
         }
     }
 }

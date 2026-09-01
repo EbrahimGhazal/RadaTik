@@ -11,7 +11,7 @@
         ViewBag.PageHeroBackText = "العودة";
     }
 }
-<div class="radtk-page--clientportal-views-clientportal-availableplans">
+<div class="radtk-page--clientportal-views-clientportal-availableplans client-portal-plans-page">
 
 <partial name="_CrudPageHero" />
 
@@ -57,34 +57,41 @@
                 var isFeatured = profile.DisplayOrder == 1; // الباقة المميزة هي الأولى في الترتيب
                 
                 <div class="plan-card @(isCurrentPlan ? "current" : "") @(isFeatured ? "featured" : "")">
-                    @if (isFeatured)
+                    @if (isFeatured || isCurrentPlan || profile.Type != ProfileType.Internet)
                     {
-                        <div class="plan-ribbon">
-                            <span>الأكثر طلباً</span>
+                        <div class="plan-card__badges">
+                            @if (isFeatured)
+                            {
+                                <span class="plan-pill plan-pill--featured"><i class="fas fa-fire"></i> الأكثر طلباً</span>
+                            }
+                            @if (isCurrentPlan)
+                            {
+                                <span class="plan-pill plan-pill--current"><i class="fas fa-check"></i> باقتك الحالية</span>
+                            }
+                            @if (profile.Type != ProfileType.Internet)
+                            {
+                                <span class="plan-pill plan-pill--type">@GetProfileTypeName(profile.Type)</span>
+                            }
                         </div>
                     }
-                    
-                    @if (isCurrentPlan)
-                    {
-                        <div class="current-badge">
-                            <i class="fas fa-check"></i> باقتك الحالية
+
+                    <div class="plan-card__intro">
+                        <div class="plan-header">
+                            <h3 class="plan-name">@profile.Name</h3>
+                            @if (!string.IsNullOrEmpty(profile.Description))
+                            {
+                                <p class="plan-description">@profile.Description</p>
+                            }
                         </div>
-                    }
-                    
-                    <div class="plan-header">
-                        <h3 class="plan-name">@profile.Name</h3>
-                        @if (!string.IsNullOrEmpty(profile.Description))
-                        {
-                            <p class="plan-description">@profile.Description</p>
-                        }
+                        <div class="plan-price">
+                            <span class="price-amount">@profile.PriceWithVAT.ToString("N0")</span>
+                            <span class="price-meta">
+                                <span class="price-currency">ل.س.ج</span>
+                                <span class="price-period">/ شهر</span>
+                            </span>
+                        </div>
                     </div>
-                    
-                    <div class="plan-price">
-                        <span class="price-amount">@profile.PriceWithVAT.ToString("N0")</span>
-                        <span class="price-currency">ل.س.جديدة</span>
-                        <span class="price-period">/ شهر</span>
-                    </div>
-                    
+
                     <div class="plan-speed">
                         @{
                             decimal downloadMbps = profile.DownloadSpeedMbps;
@@ -176,12 +183,6 @@
                         }
                     </div>
                     
-                    @if (profile.Type != ProfileType.Internet)
-                    {
-                        <div class="plan-type-badge">
-                            @GetProfileTypeName(profile.Type)
-                        </div>
-                    }
                 </div>
             }
         </div>
@@ -284,6 +285,11 @@
 
 
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/client-portal-plans-cards.css" asp-append-version="true" />
+}
+
 @section Scripts {
     <script>
         (function () {

@@ -1,4 +1,5 @@
 @using System.Globalization
+@using RadaTik.Helpers
 @using RadaTik.Services.PublicStats
 @inject IPublicStatsService PublicStats
 @{
@@ -6,6 +7,14 @@
     var areaRoute = new { area = "RadaTik" };
     long siteVisitors = await PublicStats.GetAsync(PublicStatsKeys.SiteVisitors);
     string siteVisitorsText = siteVisitors.ToString("N0", CultureInfo.GetCultureInfo("en-US"));
+    string pageTitle = ViewData["Title"]?.ToString() ?? PublicSeo.DefaultTitle;
+    string pageDescription = ViewData["MetaDescription"]?.ToString() ?? PublicSeo.DescriptionFor(currentAction);
+    string baseUrl = PublicSeo.PublicBaseUrl(Context.Request);
+    string canonical = baseUrl + PublicSeo.CanonicalPath(currentAction);
+    string ogImage = baseUrl + "/images/brand/radatik-logo.png";
+    string documentTitle = currentAction == "Index"
+        ? $"{pageTitle} | {PublicSeo.Brand}"
+        : $"{pageTitle} | {PublicSeo.Brand}";
 }
 
 <!DOCTYPE html>
@@ -13,8 +22,52 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="RadaTik - منصة متكاملة لإدارة مزودي خدمة الإنترنت" />
-    <title>@ViewData["Title"] - RadaTik</title>
+    <title>@documentTitle</title>
+    <meta name="description" content="@pageDescription" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0b1733" />
+    <link rel="canonical" href="@canonical" />
+    <link rel="alternate" hreflang="ar" href="@canonical" />
+    <link rel="sitemap" type="application/xml" href="@baseUrl/sitemap.xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ar_AR" />
+    <meta property="og:site_name" content="@PublicSeo.Brand" />
+    <meta property="og:title" content="@documentTitle" />
+    <meta property="og:description" content="@pageDescription" />
+    <meta property="og:url" content="@canonical" />
+    <meta property="og:image" content="@ogImage" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="@documentTitle" />
+    <meta name="twitter:description" content="@pageDescription" />
+    <meta name="twitter:image" content="@ogImage" />
+    <script type="application/ld+json">
+    {
+      "@@context": "https://schema.org",
+      "@@graph": [
+        {
+          "@@type": "Organization",
+          "name": "RadaTik",
+          "url": "@baseUrl/RadaTik",
+          "logo": "@ogImage",
+          "description": "@PublicSeo.DefaultDescription"
+        },
+        {
+          "@@type": "WebSite",
+          "name": "RadaTik",
+          "url": "@baseUrl/RadaTik",
+          "inLanguage": "ar"
+        },
+        {
+          "@@type": "SoftwareApplication",
+          "name": "RadaTik",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web, Android",
+          "url": "@baseUrl/RadaTik",
+          "description": "@PublicSeo.DefaultDescription"
+        }
+      ]
+    }
+    </script>
     <link rel="icon" type="image/png" href="~/images/brand/radatik-favicon.png" asp-append-version="true" />
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -38,6 +91,11 @@
             --rt-radius: 16px;
         }
 
+        html, body {
+            overflow-x: hidden;
+            max-width: 100%;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
@@ -45,6 +103,8 @@
             background: var(--rt-bg);
             color: var(--rt-text);
             line-height: 1.7;
+            overflow-x: hidden;
+            max-width: 100%;
         }
 
         .rt-nav {
@@ -144,8 +204,9 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 1100;
-            min-width: 320px;
-            max-width: 90vw;
+            min-width: 0;
+            width: min(320px, calc(100% - 24px));
+            max-width: calc(100% - 24px);
             padding: 14px 20px;
             border-radius: 12px;
             display: flex;

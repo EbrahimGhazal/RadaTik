@@ -1,0 +1,207 @@
+/* خوادم مايكروتك — كروت بعرض الشاشة على الموبايل والتابلت */
+.radtk-page-mikrotik-servers,
+.mikrotik-servers-page {
+    max-width: 100%;
+    min-width: 0;
+}
+
+@media (max-width: 1199.98px) {
+    html body .radtk-page-mikrotik-servers,
+    html body .mikrotik-servers-page {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    html body .mikrotik-servers-page .sys-hero,
+    html body .mikrotik-servers-page .card,
+    html body .mikrotik-servers-page .card-body,
+    html body .mikrotik-servers-page .table-responsive,
+    html body .mikrotik-servers-page .mikrotik-servers-shell,
+    html body .mikrotik-servers-page #mikrotikServersTable {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
+    }
+
+    html body .mikrotik-servers-page .mikrotik-servers-hero {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    html body .mikrotik-servers-page .mikrotik-servers-hero__actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    html body .mikrotik-servers-page .mikrotik-servers-hero__actions .btn {
+        width: 100%;
+        min-height: 2.55rem;
+        justify-content: center;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable,
+    html body .mikrotik-servers-page #mikrotikServersTable.radtk-data-table--cards {
+        display: block !important;
+        table-layout: auto !important;
+        border-collapse: separate !important;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable thead {
+        display: none !important;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable > tbody,
+    html body .mikrotik-servers-page #mikrotikServersTable tbody {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        width: 100% !important;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody tr {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0.75rem 0.85rem 0.85rem !important;
+        border: 1px solid rgba(148, 163, 184, 0.28) !important;
+        border-radius: 14px !important;
+        background: var(--bg-card, #fff) !important;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+        box-sizing: border-box !important;
+        float: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        opacity: 1;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody tr.mikrotik-servers-row--inactive {
+        border-inline-start: 4px solid #dc3545 !important;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody td {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.35rem 0.65rem;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0.32rem 0 !important;
+        border: none !important;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.28) !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+        text-align: start !important;
+        float: none !important;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody td::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: var(--text-muted, #64748b);
+        flex: 0 0 auto;
+        max-width: 42%;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody td > * {
+        max-width: 100% !important;
+        min-width: 0 !important;
+        flex: 1 1 auto !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody td[data-label="#"] {
+        display: none !important;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody td.mikrotik-servers-cell--lead {
+        display: block !important;
+        padding: 0.1rem 0 0.65rem !important;
+        margin-bottom: 0.2rem !important;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.3) !important;
+        background: none !important;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody td.mikrotik-servers-cell--lead::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody td.mikrotik-servers-cell--lead strong {
+        font-size: 1.02rem;
+        font-weight: 800;
+        line-height: 1.35;
+        color: var(--text-primary, #0f172a);
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody td.radtk-col-actions,
+    html body .mikrotik-servers-page #mikrotikServersTable tbody td.mikrotik-servers-action-cell,
+    html body .mikrotik-servers-page #mikrotikServersTable tbody td[data-label="الإجراءات"] {
+        display: flex !important;
+        flex-direction: column !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: visible !important;
+        border-bottom: none !important;
+        padding-top: 0.65rem !important;
+        margin-top: 0.2rem !important;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody td.mikrotik-servers-action-cell::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody .mikrotik-servers-actions {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.4rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        justify-content: stretch !important;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody .mikrotik-servers-actions .btn {
+        flex: 1 1 calc(50% - 0.4rem) !important;
+        min-height: 2.45rem !important;
+        width: auto !important;
+        max-width: none !important;
+        justify-content: center;
+        gap: 0.35rem;
+    }
+
+    html body .mikrotik-servers-page #mikrotikServersTable tbody .mikrotik-servers-actions__label {
+        display: inline !important;
+        font-size: 0.75rem;
+        font-weight: 800;
+    }
+}
+
+@media (max-width: 767.98px) {
+    html body .mikrotik-servers-page #mikrotikServersTable > tbody,
+    html body .mikrotik-servers-page #mikrotikServersTable tbody {
+        grid-template-columns: 1fr !important;
+    }
+
+    html body .mikrotik-servers-page .mikrotik-servers-hero__actions {
+        grid-template-columns: 1fr;
+    }
+}

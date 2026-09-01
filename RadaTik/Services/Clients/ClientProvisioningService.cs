@@ -94,6 +94,77 @@ public sealed partial class ClientProvisioningService(
         }
     }
 
+    public async Task<BulkDeleteClientsResult> BulkDeleteSelectedAsync(
+        int networkId,
+        IReadOnlyList<int>? clientIds,
+        CancellationToken ct = default)
+    {
+        int[] ids = (clientIds ?? Array.Empty<int>()).Where(id => id > 0).Distinct().ToArray();
+        if (ids.Length == 0)
+        {
+            return BulkDeleteClientsResult.Fail("لم يتم تحديد أي مشترك.");
+        }
+
+        if (ids.Length > 300)
+        {
+            return BulkDeleteClientsResult.Fail("لا يمكن حذف أكثر من 300 مشترك في عملية واحدة.");
+        }
+
+        int deleted = 0;
+        int failed = 0;
+        int notFound = 0;
+        int mikroTikWarnings = 0;
+        List<string> errors = [];
+
+        foreach (int id in ids)
+        {
+            ct.ThrowIfCancellationRequested();
+            ClientOperationOutcome outcome = await DeleteClientAsync(id, networkId, ct);
+            if (outcome.NotFound)
+            {
+                notFound++;
+                continue;
+            }
+
+            if (!outcome.IsSuccess)
+            {
+                failed++;
+                if (!string.IsNullOrWhiteSpace(outcome.ErrorMessage) && errors.Count < 20)
+                {
+                    errors.Add($"#{id}: {outcome.ErrorMessage}");
+                }
+
+                continue;
+            }
+
+            deleted++;
+            if (!string.IsNullOrWhiteSpace(outcome.SuccessMessage) &&
+                outcome.SuccessMessage.Contains("تعذر", StringComparison.Ordinal))
+            {
+                mikroTikWarnings++;
+                if (errors.Count < 20)
+                {
+                    errors.Add($"#{id}: {outcome.SuccessMessage}");
+                }
+            }
+        }
+
+        string message = deleted > 0
+            ? $"تم حذف {deleted} من {ids.Length} مشتركاً من قاعدة البيانات والسيرفر."
+              + (mikroTikWarnings > 0 ? $" تعذر الحذف من MikroTik لـ {mikroTikWarnings}." : string.Empty)
+              + (failed > 0 ? $" فشل {failed}." : string.Empty)
+            : "تعذر حذف المشتركين المحددين.";
+
+        return BulkDeleteClientsResult.Ok(
+            ids.Length,
+            deleted,
+            failed,
+            notFound,
+            mikroTikWarnings,
+            message,
+            errors);
+    }
+
     /// <summary>
     /// يحذف السجلات المرتبطة بـ Restrict قبل حذف المشترك (فواتير التركيب، الصيانة، الشحن...).
     /// </summary>

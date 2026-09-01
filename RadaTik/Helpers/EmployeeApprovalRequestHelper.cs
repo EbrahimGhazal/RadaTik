@@ -1,5 +1,6 @@
 using System.Text.Json;
 using RadaTik.Models;
+using RadaTik.Security;
 
 namespace RadaTik.Helpers;
 
@@ -95,6 +96,18 @@ public static class EmployeeApprovalRequestHelper
 
     public static string? BuildClientEdit(int clientId, ClientApprovalPayload payload) =>
         BuildWithPayload("CLIENT_EDIT", clientId, payload);
+
+    public static bool IsInternalEmployeeApproval(string? notes, string? featureKey = null)
+    {
+        if (!string.IsNullOrWhiteSpace(notes) && notes.StartsWith(Prefix, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return string.Equals(featureKey, FeatureKeys.Sectors, StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(notes)
+            && notes.Contains("SECTOR_CREATE_PENDING:", StringComparison.OrdinalIgnoreCase);
+    }
 
     public static bool TryParse(
         string? notes,

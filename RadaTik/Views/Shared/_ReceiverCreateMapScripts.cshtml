@@ -738,15 +738,24 @@
                     currentReceiversLayer = L.layerGroup(markers).addTo(map);
                 }
 
-                if (bounds.length > 0) {
-                    map.fitBounds(bounds, {
-                        padding: isNarrowMap() ? [18, 18] : [30, 30],
-                        maxZoom: isNarrowMap() ? 16 : 18
-                    });
-                } else {
-                    map.setView([s.latitude, s.longitude], 15);
+                function fitCoverageInView() {
+                    try { map.invalidateSize({ animate: false, pan: false }); } catch (e) { /* ignore */ }
+                    if (bounds.length > 0) {
+                        map.fitBounds(bounds, {
+                            padding: isNarrowMap() ? [24, 24] : [36, 36],
+                            maxZoom: isNarrowMap() ? 15 : 17,
+                            animate: false
+                        });
+                    } else {
+                        map.setView([s.latitude, s.longitude], isNarrowMap() ? 14 : 15);
+                    }
                 }
-                refreshMapLayout();
+
+                requestAnimationFrame(function () {
+                    fitCoverageInView();
+                    setTimeout(fitCoverageInView, 120);
+                    setTimeout(fitCoverageInView, 400);
+                });
             }
 
             function drawCoverageSector(s) {

@@ -43,6 +43,11 @@ public static partial class RouteMappingExtensions
             name: "reglog-register-network-admin",
             pattern: "Account/RegisterNetworkAdmin",
             defaults: new { controller = "Account", action = "RegisterNetworkAdmin" });
+
+        app.MapControllerRoute(
+            name: "reglog-register-collection-point",
+            pattern: "Account/RegisterCollectionPoint",
+            defaults: new { controller = "Account", action = "RegisterCollectionPoint" });
     }
 
     private static void MapCompanyAdminRoutes(this WebApplication app)
@@ -215,6 +220,11 @@ public static partial class RouteMappingExtensions
             defaults: new { area = "CompanyAdmin", controller = "Notifications", action = "Index" });
 
         app.MapControllerRoute(
+            name: "networkManager-notifications-unread",
+            pattern: "networkManager/notifications/UnreadCount",
+            defaults: new { area = "CompanyAdmin", controller = "Notifications", action = "UnreadCount" });
+
+        app.MapControllerRoute(
             name: "networkManager-users-employees",
             pattern: "networkManager/Users/Employee",
             defaults: new { area = "CompanyAdmin", controller = "Admin", action = "Index", type = "employees" });
@@ -373,6 +383,11 @@ public static partial class RouteMappingExtensions
             name: "networkManager-erp-reports",
             pattern: "networkManager/erp/reports/{action=Index}/{id?}",
             defaults: new { area = "CompanyAdmin", controller = "ErpReports", action = "Index" });
+
+        app.MapControllerRoute(
+            name: "networkManager-client-presence",
+            pattern: "networkManager/ClientPresence/{action=Index}/{id?}",
+            defaults: new { area = "CompanyAdmin", controller = "ClientPresence", action = "Index" });
 
         app.MapAreaControllerRoute(
             name: "networkManager-area",

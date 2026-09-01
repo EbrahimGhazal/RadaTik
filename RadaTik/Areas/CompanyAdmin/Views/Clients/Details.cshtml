@@ -246,6 +246,14 @@
     </div>
 </div>
 
+<partial name="_ClientNationalIdCard" model="new RadaTik.ViewModels.Clients.ClientNationalIdCardViewModel
+{
+    ClientId = Model.Id,
+    FrontPath = Model.NationalIdFrontPath,
+    BackPath = Model.NationalIdBackPath,
+    CanUpload = canEditClient && !isClientOnly
+}" />
+
 @if (ViewBag.IsClientOnly != true)
 {
     <partial name="_SubscriberFaultDiagnosis" model="Model" />

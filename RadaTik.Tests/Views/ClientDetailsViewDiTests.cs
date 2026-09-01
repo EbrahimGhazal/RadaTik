@@ -21,6 +21,8 @@ public sealed class ClientDetailsViewDiTests
         Assert.DoesNotContain("MikroTikInfo.Password", text);
         Assert.Contains("CreateMaintenanceFromDiagnosis", File.ReadAllText(FindView("Views", "Shared", "_SubscriberFaultDiagnosis.cshtml")));
         Assert.Contains("_SubscriberFaultLedQuestions", File.ReadAllText(FindView("Views", "Shared", "_SubscriberFaultDiagnosis.cshtml")));
+        Assert.Contains("_ClientNationalIdCard", text);
+        Assert.Contains("NationalIdFrontPath", text);
     }
 
     [Fact]
@@ -34,6 +36,7 @@ public sealed class ClientDetailsViewDiTests
         Assert.DoesNotContain("@inject RadaTik.Services.PermissionService", text);
         Assert.DoesNotContain("model.Password", text);
         Assert.DoesNotContain("كلمة المرور", text);
+        Assert.Contains("_ClientNationalIdCard", text);
     }
 
     private static string FindView(params string[] relativeParts)

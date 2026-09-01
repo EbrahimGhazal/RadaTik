@@ -1,0 +1,257 @@
+/* قائمة العملاء — أدوات البطاقة على سطح المكتب، ثم شبكة الموبايل/التابلت */
+.radtk-page-clients-index .clients-table-meta,
+.radtk-page-emp-clients-index .clients-table-meta {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.65rem;
+    max-width: 100%;
+}
+
+.radtk-page-clients-index .clients-table-counts,
+.radtk-page-emp-clients-index .clients-table-counts {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.radtk-page-clients-index .clients-count-chip,
+.radtk-page-emp-clients-index .clients-count-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2rem;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    border: 1px solid var(--border-light, #e5e7eb);
+    background: var(--bg-card, #fff);
+    color: var(--text-primary, #0f172a);
+}
+
+.radtk-page-clients-index .clients-count-chip--records,
+.radtk-page-emp-clients-index .clients-count-chip--records {
+    background: rgba(37, 99, 235, 0.08);
+    border-color: rgba(37, 99, 235, 0.22);
+    color: #1d4ed8;
+}
+
+.radtk-page-clients-index .clients-count-chip--selected,
+.radtk-page-emp-clients-index .clients-count-chip--selected {
+    background: #fff7ed;
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #9a3412;
+}
+
+.radtk-page-clients-index .clients-count-chip strong,
+.radtk-page-emp-clients-index .clients-count-chip strong {
+    font-variant-numeric: tabular-nums;
+    min-width: 1.2em;
+    text-align: center;
+}
+
+.radtk-page-clients-index .clients-bulk-actions,
+.radtk-surface .radtk-page-clients-index .clients-bulk-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.radtk-page-clients-index .clients-card-tools,
+.radtk-surface .radtk-page-clients-index .clients-card-tools {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+@media (max-width: 1199.98px) {
+    html body .radtk-page-clients-index .clients-mobile-search,
+    html body .radtk-surface .radtk-page-clients-index .clients-mobile-search,
+    html body.clients-cards-mode .radtk-page-clients-index .clients-mobile-search {
+        display: block !important;
+        margin: 0 0 0.85rem;
+    }
+
+    html body .radtk-page-clients-index .clients-mobile-search__toolbar {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center;
+        gap: 0.65rem;
+        width: 100%;
+    }
+
+    html body .radtk-page-clients-index .clients-mobile-search__select-all {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex: 0 0 auto;
+        margin: 0;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--text-muted, #64748b);
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    html body .radtk-page-clients-index .clients-mobile-search__select-all .form-check-input {
+        width: 1.15rem !important;
+        height: 1.15rem !important;
+        min-width: 1.15rem !important;
+        max-width: 1.15rem !important;
+        margin: 0;
+        flex: 0 0 1.15rem !important;
+        accent-color: var(--primary, #2563eb);
+    }
+
+    html body .radtk-page-clients-index .clients-mobile-search__field {
+        position: relative;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    html body .radtk-page-clients-index .card-header .card-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.65rem;
+        width: 100%;
+    }
+
+    html body .radtk-page-clients-index .clients-bulk-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    html body .radtk-page-clients-index .clients-bulk-actions .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        width: 100%;
+        min-height: 2.7rem;
+        margin: 0;
+        padding: 0.45rem 0.5rem;
+        border-radius: 0.8rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1.25;
+        white-space: normal;
+        text-align: center;
+    }
+
+    html body .radtk-page-clients-index .clients-card-tools {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    html body .radtk-page-clients-index #clientsTable tbody tr.client-row {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 2.5rem !important;
+        align-items: start;
+        column-gap: 0.35rem;
+        position: relative !important;
+    }
+
+    html body .radtk-page-clients-index #clientsTable tbody td.clients-select-cell {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
+        position: static !important;
+        inset: auto !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        display: flex !important;
+        align-items: flex-start !important;
+        justify-content: center !important;
+        width: 2.5rem !important;
+        min-width: 2.5rem !important;
+        max-width: 2.5rem !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
+        flex: none !important;
+        z-index: 2;
+        order: 0 !important;
+    }
+
+    html body .radtk-page-clients-index #clientsTable tbody td.clients-select-cell::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    html body .radtk-page-clients-index #clientsTable tbody td.clients-select-cell > *,
+    html body .radtk-page-clients-index #clientsTable tbody .clients-select-hit {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem !important;
+        min-width: 2.5rem !important;
+        max-width: 2.5rem !important;
+        height: 2.5rem !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        flex: none !important;
+        cursor: pointer;
+    }
+
+    html body .radtk-page-clients-index #clientsTable tbody td.clients-select-cell .form-check-input,
+    html body .radtk-page-clients-index #clientsTable tbody td.clients-select-cell .client-select-check {
+        -webkit-appearance: auto !important;
+        appearance: auto !important;
+        width: 1.15rem !important;
+        height: 1.15rem !important;
+        min-width: 1.15rem !important;
+        min-height: 1.15rem !important;
+        max-width: 1.15rem !important;
+        max-height: 1.15rem !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        flex: none !important;
+        align-self: center !important;
+        background-image: none !important;
+        background-size: auto !important;
+        accent-color: var(--primary, #2563eb);
+    }
+
+    html body .radtk-page-clients-index #clientsTable tbody td[data-col="fullName"] {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        padding-inline-end: 0.15rem !important;
+        padding-inline-start: 0.15rem !important;
+    }
+
+    html body .radtk-page-clients-index #clientsTable tbody td:not(.clients-select-cell):not([data-col="fullName"]) {
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+html body .radtk-page-clients-index #clientsTable tbody tr.client-row.is-card-hidden,
+html body .radtk-page-clients-index #clientsTable tbody tr.client-row[hidden],
+html body .radtk-surface .radtk-page-clients-index #clientsTable tbody tr.client-row.is-card-hidden,
+html body .radtk-surface .radtk-page-clients-index #clientsTable tbody tr.client-row[hidden] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+}

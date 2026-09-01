@@ -1,0 +1,27 @@
+@model RadaTik.ViewModels.Clients.ClientNationalIdCardViewModel
+<link rel="stylesheet" href="~/css/client-national-id-cards.css" asp-append-version="true" />
+
+<section class="client-nid-card card mb-4" aria-labelledby="client-nid-title">
+    <div class="card-header client-nid-card__header">
+        <h5 class="mb-0" id="client-nid-title">
+            <i class="fas fa-id-card"></i> الهوية الشخصية
+        </h5>
+        <p class="client-nid-card__hint mb-0">أضف صورة الوجه الأمامي والوجه الخلفي للهوية.</p>
+    </div>
+    <div class="card-body">
+        <div class="client-nid-grid">
+            @await Html.PartialAsync("_ClientNationalIdSide", Model, new ViewDataDictionary(ViewData)
+            {
+                ["Side"] = "front",
+                ["Title"] = "الوجه الأمامي",
+                ["Path"] = Model.FrontPath
+            })
+            @await Html.PartialAsync("_ClientNationalIdSide", Model, new ViewDataDictionary(ViewData)
+            {
+                ["Side"] = "back",
+                ["Title"] = "الوجه الخلفي",
+                ["Path"] = Model.BackPath
+            })
+        </div>
+    </div>
+</section>

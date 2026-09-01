@@ -1,0 +1,34 @@
+@model RadaTik.Services.Company.CompanyClientPresenceSnapshot
+@using RadaTik.Helpers
+@{
+    ViewData["Title"] = "الشكاوى";
+    ViewBag.PageHeroIcon = "fas fa-phone-volume";
+    ViewBag.PageHeroBackUrl = Url.Action("Index");
+    ViewBag.PageHeroBackText = "العودة";
+}
+
+<div class="radtk-page--clientportal-complaints">
+    <partial name="_CrudPageHero" />
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <p class="mb-1">أرقام الشكاوى الخاصة بـ <strong>@(string.IsNullOrWhiteSpace(Model.CompanyName) ? "شركتك" : Model.CompanyName)</strong>.</p>
+            <p class="text-muted small mb-0">هذه الأرقام يحددها مدير الشركة التابع لها اشتراكك.</p>
+        </div>
+    </div>
+
+    <div class="d-flex flex-column gap-2">
+        @foreach (var contact in Model.VisibleComplaintContacts)
+        {
+            <div class="client-complaints-card">
+                <div>
+                    <div class="fw-bold">@contact.Label</div>
+                    <a href="@SocialMediaCatalog.TelHref(contact.PhoneNumber)">@contact.PhoneNumber</a>
+                </div>
+                <a class="btn btn-primary btn-sm" href="@SocialMediaCatalog.TelHref(contact.PhoneNumber)">
+                    <i class="fas fa-phone"></i> اتصال
+                </a>
+            </div>
+        }
+    </div>
+</div>

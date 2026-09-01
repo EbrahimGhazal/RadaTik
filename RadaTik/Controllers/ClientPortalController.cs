@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +14,7 @@ using RadaTik.Models;
 using RadaTik.Services;
 using RadaTik.Domain.FaultDiagnosis;
 using RadaTik.Services.Clients;
+using RadaTik.Services.Company;
 using RadaTik.Services.MikroTik;
 using RadaTik.ViewModels.ClientPortal;
 
@@ -36,6 +39,7 @@ namespace RadaTik.Controllers
         private readonly IMaintenanceEmployeeTaskService _maintenanceEmployeeTasks;
         private readonly IClientVipPolicyService _vipPolicy;
         private readonly ISubscriberFaultDiagnosisService _faultDiagnosis;
+        private readonly ICompanyClientPresenceService _clientPresence;
 
         public ClientPortalController(
             ApplicationDbContext context,
@@ -50,6 +54,7 @@ namespace RadaTik.Controllers
             IMaintenanceEmployeeTaskService maintenanceEmployeeTasks,
             IClientVipPolicyService vipPolicy,
             ISubscriberFaultDiagnosisService faultDiagnosis,
+            ICompanyClientPresenceService clientPresence,
             IMikroTikPppoeUserService? mikroTikService = null)
         {
             _context = context;
@@ -64,6 +69,7 @@ namespace RadaTik.Controllers
             _maintenanceEmployeeTasks = maintenanceEmployeeTasks;
             _vipPolicy = vipPolicy;
             _faultDiagnosis = faultDiagnosis;
+            _clientPresence = clientPresence;
             _mikroTikService = mikroTikService;
         }
 
@@ -81,6 +87,7 @@ namespace RadaTik.Controllers
             return await _context.Clients
                 .Include(c => c.Profile)
                 .Include(c => c.Receiver)
+                    .ThenInclude(r => r!.Sector)
                 .Include(c => c.MikroTikServer)
                 .FirstOrDefaultAsync(c => c.Id == user.ClientId);
         }
@@ -843,7 +850,9 @@ namespace RadaTik.Controllers
                 MikroTikUserName = client.UserName,
                 IsVip = client.IsVip,
                 VipNote = client.VipNote,
-                VipSince = client.VipSince
+                VipSince = client.VipSince,
+                NationalIdFrontPath = client.NationalIdFrontPath,
+                NationalIdBackPath = client.NationalIdBackPath
             };
 
         private static void RestoreClientProfileReadOnlyFields(
@@ -856,6 +865,78 @@ namespace RadaTik.Controllers
             model.IsVip = client.IsVip;
             model.VipNote = client.VipNote;
             model.VipSince = client.VipSince;
+            model.NationalIdFrontPath = client.NationalIdFrontPath;
+            model.NationalIdBackPath = client.NationalIdBackPath;
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadNationalId(int id, string? side, IFormFile? image, bool remove = false)
+        {
+            Client? client = await GetCurrentClientAsync();
+            if (client == null || client.Id != id)
+            {
+                TempData["Error"] = "غير مصرح بتعديل هذا الحساب";
+                return RedirectToAction(nameof(MyProfile));
+            }
+
+            client = await _context.Clients.FirstOrDefaultAsync(c => c.Id == client.Id);
+            if (client == null)
+            {
+                TempData["Error"] = "لم يتم العثور على الحساب";
+                return RedirectToAction(nameof(MyProfile));
+            }
+
+            IClientNationalIdImageService images = HttpContext.RequestServices.GetRequiredService<IClientNationalIdImageService>();
+            bool isFront = string.Equals(side, "front", StringComparison.OrdinalIgnoreCase);
+            bool isBack = string.Equals(side, "back", StringComparison.OrdinalIgnoreCase);
+            if (!isFront && !isBack)
+            {
+                TempData["Error"] = "حدد وجه الهوية (أمامي أو خلفي).";
+                return RedirectToAction(nameof(MyProfile));
+            }
+
+            if (remove)
+            {
+                if (isFront)
+                {
+                    images.DeleteOwned(client.NationalIdFrontPath, client.Id);
+                    client.NationalIdFrontPath = null;
+                }
+                else
+                {
+                    images.DeleteOwned(client.NationalIdBackPath, client.Id);
+                    client.NationalIdBackPath = null;
+                }
+
+                client.LastUpdated = DateTime.Now;
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "تم حذف صورة الهوية.";
+                return RedirectToAction(nameof(MyProfile));
+            }
+
+            Domain.Common.ServiceResult<string> saved = await images.SaveAsync(client.Id, image!);
+            if (!saved.IsSuccess || string.IsNullOrWhiteSpace(saved.Value))
+            {
+                TempData["Error"] = saved.ErrorMessage ?? "تعذر حفظ صورة الهوية.";
+                return RedirectToAction(nameof(MyProfile));
+            }
+
+            if (isFront)
+            {
+                images.DeleteOwned(client.NationalIdFrontPath, client.Id);
+                client.NationalIdFrontPath = saved.Value;
+            }
+            else
+            {
+                images.DeleteOwned(client.NationalIdBackPath, client.Id);
+                client.NationalIdBackPath = saved.Value;
+            }
+
+            client.LastUpdated = DateTime.Now;
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "تم حفظ صورة الهوية.";
+            return RedirectToAction(nameof(MyProfile));
         }
 
         #endregion
@@ -899,8 +980,15 @@ namespace RadaTik.Controllers
             {
                 ClientId = client.Id,
                 ContactPhone = client.PhoneNumber,
-                Address = client.Receiver?.Name
+                Address = ReceiverVisitAddressFormatter.FromClient(client)
             };
+
+            ViewBag.AddressFromReceiver = client.Receiver != null;
+            if (ReceiverVisitAddressFormatter.TryGetReceiverCoordinates(client, out double latitude, out double longitude))
+            {
+                ViewBag.ReceiverLatitude = latitude;
+                ViewBag.ReceiverLongitude = longitude;
+            }
 
             await PopulateAssignableEmployeesAsync(client.Id, model.AssignedToId);
             return View(model);
@@ -953,11 +1041,33 @@ namespace RadaTik.Controllers
             {
                 try
                 {
+                    DateTime duplicateSince = DateTime.Now.AddSeconds(-90);
+                    bool duplicateClick = await _context.MaintenanceRequests.AnyAsync(m =>
+                        m.ClientId == client.Id
+                        && m.Type == model.Type
+                        && m.Status == MaintenanceRequestStatus.Pending
+                        && m.RequestDate >= duplicateSince
+                        && m.Description == model.Description);
+                    if (duplicateClick)
+                    {
+                        TempData["Success"] = "تم استلام طلب مشابه قبل لحظات. يمكنك متابعته من قائمة الطلبات بدل إرسال نسخة ثانية.";
+                        return RedirectToAction(nameof(MaintenanceRequests));
+                    }
+
+                    if (string.IsNullOrWhiteSpace(model.Address))
+                    {
+                        model.Address = ReceiverVisitAddressFormatter.FromClient(client);
+                    }
+
+                    _context.MaintenanceRequests.Add(model);
+                    await _context.SaveChangesAsync();
+
                     SubscriberFaultDiagnosisDto? diagnosis = null;
                     if (SubscriberFaultProblemTypes.IsOutage(model.Type) && client.NetworkId.HasValue)
                     {
                         try
                         {
+                            using CancellationTokenSource diagnoseTimeout = new(TimeSpan.FromSeconds(6));
                             ApplicationUser? user = await _userManager.GetUserAsync(User);
                             SubscriberFaultLedAnswers led = SubscriberFaultLedAnswersParser.From(
                                 routerPowerOn,
@@ -968,23 +1078,26 @@ namespace RadaTik.Controllers
                                 client.Id,
                                 client.NetworkId.Value,
                                 led,
-                                user?.Id);
+                                user?.Id,
+                                diagnoseTimeout.Token);
                             if (diagnosis.Success)
                             {
                                 model.Description = SubscriberFaultDiagnosisText.AppendToDescription(
                                     model.Description,
                                     diagnosis.CauseLabel,
                                     diagnosis.Summary);
+                                await _context.SaveChangesAsync();
                             }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            _logger.LogWarning("انتهت مهلة تشخيص العطل لطلب الصيانة {RequestId}", model.Id);
                         }
                         catch (Exception ex)
                         {
                             _logger.LogWarning(ex, "تعذر تشخيص العطل تلقائياً عند إنشاء طلب صيانة للعميل {ClientId}", client.Id);
                         }
                     }
-
-                    _context.MaintenanceRequests.Add(model);
-                    await _context.SaveChangesAsync();
 
                     if (diagnosis is { Success: true, DiagnosisId: not null })
                     {
@@ -1009,6 +1122,13 @@ namespace RadaTik.Controllers
                     _logger.LogError(ex, "خطأ في إنشاء طلب الصيانة");
                     ModelState.AddModelError(string.Empty, "حدث خطأ أثناء تقديم الطلب. يرجى المحاولة مرة أخرى.");
                 }
+            }
+
+            ViewBag.AddressFromReceiver = client.Receiver != null;
+            if (ReceiverVisitAddressFormatter.TryGetReceiverCoordinates(client, out double retryLat, out double retryLng))
+            {
+                ViewBag.ReceiverLatitude = retryLat;
+                ViewBag.ReceiverLongitude = retryLng;
             }
 
             await PopulateAssignableEmployeesAsync(client.Id, model.AssignedToId);
@@ -1262,6 +1382,30 @@ namespace RadaTik.Controllers
             await _context.SaveChangesAsync();
 
             return Json(new { success = true, message = AppMessages.OperationSuccess });
+        }
+
+        #endregion
+
+        #region الشكاوى
+
+        public async Task<IActionResult> Complaints()
+        {
+            ViewData["Title"] = "الشكاوى";
+            Client? client = await GetCurrentClientAsync();
+            if (client == null)
+            {
+                TempData["Error"] = "لم يتم العثور على بيانات حسابك";
+                return RedirectToAction("Index", "Home");
+            }
+
+            CompanyClientPresenceSnapshot presence = await _clientPresence.GetForCurrentClientAsync(User);
+            if (!presence.HasComplaintContacts)
+            {
+                TempData["Error"] = "لم تحدد الشركة أرقام شكاوى ظاهرة حالياً.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            return View(presence);
         }
 
         #endregion

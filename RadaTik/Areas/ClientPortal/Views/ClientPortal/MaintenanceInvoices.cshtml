@@ -1,22 +1,38 @@
 @model List<RadaTik.Models.MaintenanceInvoice>
+@using RadaTik.Models
 @{
     ViewData["Title"] = "فواتير الصيانة";
     var clientBalance = ViewBag.ClientBalance as decimal? ?? 0m;
     var pendingTotal = Model
-        .Where(i => i.Status == RadaTik.Models.MaintenanceInvoiceStatus.Pending)
+        .Where(i => i.Status == MaintenanceInvoiceStatus.Pending)
         .Sum(i => i.GrossAmount);
+    var pendingCount = Model.Count(i => i.Status == MaintenanceInvoiceStatus.Pending);
 }
 
-<div class="client-portal">
-    <div class="page-header mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+<div class="client-portal client-portal-invoices-page">
+    <div class="support-page-head">
         <div>
-            <h2><i class="fas fa-file-invoice-dollar text-primary"></i> فواتير الصيانة</h2>
-            <p class="text-muted mb-0">رصيدك الحالي: <strong>@clientBalance.ToString("N0") ل.س</strong></p>
-            <p class="text-muted mb-0">إجمالي الفواتير المستحقة: <strong>@pendingTotal.ToString("N0") ل.س</strong></p>
+            <h2><i class="fas fa-file-invoice-dollar"></i> فواتير الصيانة</h2>
+            <p class="text-muted mb-0">سدّد الفواتير المستحقة من رصيد محفظتك.</p>
         </div>
-        <a asp-action="RenewSubscription" class="btn btn-outline-secondary">
+        <a asp-action="RenewSubscription" class="btn btn-outline-secondary support-page-head__action">
             <i class="fas fa-sync-alt"></i> صفحة التجديد
         </a>
+    </div>
+
+    <div class="support-summary">
+        <article class="support-summary__item">
+            <span>رصيدك الحالي</span>
+            <strong>@clientBalance.ToString("N0") <small>ل.س</small></strong>
+        </article>
+        <article class="support-summary__item @(pendingCount > 0 ? "is-due" : "")">
+            <span>مستحق الآن</span>
+            <strong>@pendingTotal.ToString("N0") <small>ل.س</small></strong>
+        </article>
+        <article class="support-summary__item">
+            <span>فواتير معلّقة</span>
+            <strong>@pendingCount</strong>
+        </article>
     </div>
 
     @if (TempData["Success"] != null)
@@ -28,70 +44,72 @@
         <div class="alert alert-danger">@TempData["Error"]</div>
     }
 
-    <div class="card">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>تاريخ الإصدار</th>
-                            <th>المبلغ</th>
-                            <th>الحالة</th>
-                            <th>إجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.Any())
-                        {
-                            foreach (var invoice in Model)
-                            {
-                                <tr>
-                                    <td>#@invoice.Id</td>
-                                    <td>@invoice.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
-                                    <td>@invoice.GrossAmount.ToString("N0") ل.س</td>
-                                    <td>
-                                        @if (invoice.Status == RadaTik.Models.MaintenanceInvoiceStatus.Pending)
-                                        {
-                                            <span class="badge bg-warning text-dark">بانتظار السداد</span>
-                                        }
-                                        else if (invoice.Status == RadaTik.Models.MaintenanceInvoiceStatus.Paid)
-                                        {
-                                            <span class="badge bg-success">مدفوعة بالكامل</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">ملغاة</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (invoice.Status == RadaTik.Models.MaintenanceInvoiceStatus.Pending)
-                                        {
-                                            <form asp-action="PayMaintenanceInvoice" method="post" class="d-inline">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="id" value="@invoice.Id" />
-                                                <button type="submit" class="btn btn-sm btn-primary">
-                                                    <i class="fas fa-wallet"></i> تسديد الآن
-                                                </button>
-                                            </form>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">—</span>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-4">لا توجد فواتير صيانة حالياً.</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+    @if (Model.Count == 0)
+    {
+        <div class="support-empty">
+            <i class="fas fa-receipt"></i>
+            <h3>لا توجد فواتير صيانة حالياً</h3>
+            <p>عند إصدار فاتورة بعد زيارة فنية ستظهر هنا للتسديد.</p>
         </div>
-    </div>
+    }
+    else
+    {
+        <div class="support-card-list">
+            @foreach (var invoice in Model)
+            {
+                var isPending = invoice.Status == MaintenanceInvoiceStatus.Pending;
+                var statusLabel = invoice.Status switch
+                {
+                    MaintenanceInvoiceStatus.Pending => "بانتظار السداد",
+                    MaintenanceInvoiceStatus.Paid => "مدفوعة بالكامل",
+                    _ => "ملغاة"
+                };
+                var statusClass = invoice.Status switch
+                {
+                    MaintenanceInvoiceStatus.Pending => "is-pending",
+                    MaintenanceInvoiceStatus.Paid => "is-paid",
+                    _ => "is-cancelled"
+                };
+                <article class="support-card @statusClass">
+                    <header class="support-card__head">
+                        <div>
+                            <div class="support-card__kicker">فاتورة #@invoice.Id</div>
+                            <div class="support-card__amount">@invoice.GrossAmount.ToString("N0") <small>ل.س</small></div>
+                        </div>
+                        <span class="support-pill">@statusLabel</span>
+                    </header>
+                    <p class="support-card__meta">
+                        <i class="fas fa-calendar"></i>
+                        @invoice.CreatedAt.ToString("yyyy/MM/dd HH:mm")
+                    </p>
+                    @if (!string.IsNullOrWhiteSpace(invoice.FaultExplanation))
+                    {
+                        <p class="support-card__note">@invoice.FaultExplanation</p>
+                    }
+                    @if (isPending)
+                    {
+                        <form asp-action="PayMaintenanceInvoice" method="post" class="js-once-submit support-card__actions">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@invoice.Id" />
+                            <button type="submit" class="btn btn-primary" data-loading-text="جاري التسديد...">
+                                <i class="fas fa-wallet"></i> تسديد الآن
+                            </button>
+                        </form>
+                    }
+                    else if (invoice.PaidAt.HasValue)
+                    {
+                        <p class="support-card__meta mb-0">سُددت في @invoice.PaidAt.Value.ToString("yyyy/MM/dd HH:mm")</p>
+                    }
+                </article>
+            }
+        </div>
+    }
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/client-portal-support-cards.css" asp-append-version="true" />
+}
+
+@section Scripts {
+    <script src="~/js/form-once-submit.js" asp-append-version="true"></script>
+}

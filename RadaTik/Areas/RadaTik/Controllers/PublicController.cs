@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using global::RadaTik.Constants;
+using global::RadaTik.Helpers;
 using global::RadaTik.Services.PublicStats;
 using global::RadaTik.ViewModels.Public;
 
@@ -17,6 +18,8 @@ public class PublicController : Controller
     public const string CollectionApkDownloadName = "RadaTik-Collection.apk";
     public const string EmployeeApkFileName = "radatik-employee.apk";
     public const string EmployeeApkDownloadName = "RadaTik-Employee.apk";
+    public const string CompanyApkFileName = "radatik-company.apk";
+    public const string CompanyApkDownloadName = "RadaTik-Company.apk";
 
     private readonly ILogger<PublicController> _logger;
     private readonly IWebHostEnvironment _environment;
@@ -32,6 +35,20 @@ public class PublicController : Controller
         _publicStats = publicStats;
     }
 
+    [HttpGet]
+    public IActionResult Robots()
+    {
+        string body = PublicSeo.RobotsTxt(PublicSeo.PublicBaseUrl(Request));
+        return Content(body, "text/plain; charset=utf-8");
+    }
+
+    [HttpGet]
+    public IActionResult Sitemap()
+    {
+        string body = PublicSeo.SitemapXml(PublicSeo.PublicBaseUrl(Request), DateTimeOffset.UtcNow);
+        return Content(body, "application/xml; charset=utf-8");
+    }
+
     public IActionResult Index() => View();
 
     public IActionResult About() => View();
@@ -45,9 +62,11 @@ public class PublicController : Controller
         BindApkInfo("Client", AndroidApkFileName);
         BindApkInfo("Collection", CollectionApkFileName);
         BindApkInfo("Employee", EmployeeApkFileName);
+        BindApkInfo("Company", CompanyApkFileName);
         ViewData["ClientDownloadCount"] = await _publicStats.GetAsync(PublicStatsKeys.ClientDownloads);
         ViewData["CollectionDownloadCount"] = await _publicStats.GetAsync(PublicStatsKeys.CollectionDownloads);
         ViewData["EmployeeDownloadCount"] = await _publicStats.GetAsync(PublicStatsKeys.EmployeeDownloads);
+        ViewData["CompanyDownloadCount"] = await _publicStats.GetAsync(PublicStatsKeys.CompanyDownloads);
         return View();
     }
 
@@ -62,6 +81,10 @@ public class PublicController : Controller
     [AcceptVerbs("GET", "HEAD")]
     public Task<IActionResult> DownloadEmployee() =>
         DownloadApk(EmployeeApkFileName, EmployeeApkDownloadName, PublicStatsKeys.EmployeeDownloads);
+
+    [AcceptVerbs("GET", "HEAD")]
+    public Task<IActionResult> DownloadCompany() =>
+        DownloadApk(CompanyApkFileName, CompanyApkDownloadName, PublicStatsKeys.CompanyDownloads);
 
     [HttpPost]
     [ValidateAntiForgeryToken]

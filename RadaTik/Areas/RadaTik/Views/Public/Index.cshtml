@@ -1,8 +1,10 @@
 @using System.Globalization
+@using RadaTik.Helpers
 @using RadaTik.Services.PublicStats
 @inject IPublicStatsService PublicStats
 @{
-    ViewData["Title"] = "الصفحة الرئيسية";
+    ViewData["Title"] = PublicSeo.DefaultTitle;
+    ViewData["MetaDescription"] = PublicSeo.DefaultDescription;
     long visitorCount = await PublicStats.GetAsync(PublicStatsKeys.SiteVisitors);
     string visitorText = visitorCount.ToString("N0", CultureInfo.GetCultureInfo("en-US"));
 }

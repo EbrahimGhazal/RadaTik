@@ -1,6 +1,7 @@
 using System.Data;
 using System.IO;
 using System.Linq;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
@@ -53,10 +54,12 @@ namespace RadaTik
                 || string.Equals(Environment.GetEnvironmentVariable("RADATIK_SKIP_STARTUP_DATA_INIT"), "true", StringComparison.OrdinalIgnoreCase);
             CookieSecurePolicy cookieSecure = insecureHttp ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
 
-            DirectoryInfo dataProtectionKeys = RadaTikDataProtection.EnsureKeysDirectory();
-            builder.Services.AddDataProtection()
-                .PersistKeysToFileSystem(dataProtectionKeys)
-                .SetApplicationName("RadaTik");
+        // Data protection configuration
+        DirectoryInfo dataProtectionKeys = RadaTikDataProtection.EnsureKeysDirectory();
+        builder.Services.AddDataProtection()
+            .PersistKeysToFileSystem(dataProtectionKeys)
+            .SetApplicationName("RadaTik");
+
 
             // Add services to the container.
             builder.Services.AddScoped<AuditActionFilter>();
@@ -138,6 +141,19 @@ namespace RadaTik
                 options.Cookie.IsEssential = true;
                 options.Cookie.SameSite = SameSiteMode.Lax;
                 options.Cookie.SecurePolicy = cookieSecure;
+                options.Events = new CookieAuthenticationEvents
+                {
+                    OnSigningIn = context =>
+                    {
+                        if (NativeAppContext.Detect(context.HttpContext.Request) != null)
+                        {
+                            context.Properties.IsPersistent = true;
+                            context.Properties.ExpiresUtc = DateTimeOffset.UtcNow.AddDays(90);
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
             builder.Services.AddAntiforgery(options =>

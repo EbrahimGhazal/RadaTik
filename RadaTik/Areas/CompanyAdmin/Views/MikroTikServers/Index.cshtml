@@ -32,7 +32,7 @@
     </div>
 }
 
-<div class="mikrotik-servers-page">
+<div class="radtk-page-mikrotik-servers mikrotik-servers-page">
 <div class="sys-hero mikrotik-servers-hero mb-3">
     <div class="sys-hero-main">
         <div class="sys-hero-icon"><i class="fas fa-server"></i></div>
@@ -148,7 +148,7 @@ else
         else
         {
             <div class="table-responsive mikrotik-servers-shell">
-                <table id="mikrotikServersTable" class="table table-hover mikrotik-servers-table mb-0">
+                <table id="mikrotikServersTable" class="table table-hover mikrotik-servers-table mb-0 radtk-data-table radtk-data-table--cards">
                     <thead class="table-light">
                         <tr>
                             <th scope="col" class="text-center" style="width: 3.5rem;">#</th>
@@ -200,7 +200,7 @@ else
                                     }
                                 </td>
                                 <td data-label="تاريخ الإنشاء">@item.CreatedAt.ToString("yyyy-MM-dd")</td>
-                                <td class="mikrotik-servers-action-cell" data-label="الإجراءات">
+                                <td class="mikrotik-servers-action-cell radtk-col-actions" data-label="الإجراءات">
                                     <div class="mikrotik-servers-actions" role="group" aria-label="إجراءات الخادم">
                                         <a asp-action="Details" asp-route-id="@item.Id"
                                            class="btn btn-sm btn-outline-info" title="تفاصيل">
@@ -264,3 +264,7 @@ else
     }
 </div>
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/mikrotik-servers-cards.css" asp-append-version="true" />
+}

@@ -37,6 +37,13 @@
     font-family: inherit;
 }
 
+.receiver-create-page .leaflet-overlay-pane svg,
+.receiver-create-page .leaflet-pane svg,
+.receiver-create-page .leaflet-zoom-animated {
+    max-width: none !important;
+    max-height: none !important;
+}
+
 .receiver-create-page .receiver-map-tap-hint {
     position: absolute;
     left: 50%;

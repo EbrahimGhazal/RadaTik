@@ -30,4 +30,5 @@ public interface IClientApplicationServices
     IClientFormLookupService FormLookup { get; }
     IClientInfoFileImportService InfoFileImport { get; }
     ISubscriberFaultDiagnosisService FaultDiagnosis { get; }
+    IClientNationalIdImageService NationalIdImages { get; }
 }

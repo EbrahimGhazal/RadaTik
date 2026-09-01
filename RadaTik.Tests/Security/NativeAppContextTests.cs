@@ -10,6 +10,8 @@ public sealed class NativeAppContextTests
     [InlineData("client", NativeAppContext.Client)]
     [InlineData("COLLECTION", NativeAppContext.Collection)]
     [InlineData("employee", NativeAppContext.Employee)]
+    [InlineData("company", NativeAppContext.Company)]
+    [InlineData("networkManager", NativeAppContext.Company)]
     [InlineData("other", null)]
     public void Normalize_MapsKnownAppAliases(string? input, string? expected)
     {
@@ -27,6 +29,9 @@ public sealed class NativeAppContextTests
 
         HttpRequest pathRequest = CreateRequest("/clientPortal/dashboard", "Mozilla/5.0 Capacitor/7.0");
         Assert.Equal(NativeAppContext.Client, NativeAppContext.Detect(pathRequest));
+
+        HttpRequest companyPath = CreateRequest("/networkManager/dashboard", "Mozilla/5.0 Capacitor/7.0");
+        Assert.Equal(NativeAppContext.Company, NativeAppContext.Detect(companyPath));
 
         HttpRequest browserRequest = CreateRequest("/clientPortal/dashboard", "Mozilla/5.0 Chrome/120");
         Assert.Null(NativeAppContext.Detect(browserRequest));
@@ -59,8 +64,8 @@ public sealed class NativeAppContextTests
     }
 
     [Theory]
-    [InlineData("Mozilla/5.0 RadaTikNative/client Capacitor", 0, true)]
-    [InlineData("Mozilla/5.0 RadaTikNative/client/1 Capacitor", 1, true)]
+    [InlineData("Mozilla/5.0 RadaTikNative/client Capacitor", 0, false)]
+    [InlineData("Mozilla/5.0 RadaTikNative/client/1 Capacitor", 1, false)]
     [InlineData("Mozilla/5.0 RadaTikNative/employee/2 Capacitor", 2, false)]
     [InlineData("Mozilla/5.0 Chrome/120", 0, false)]
     public void NativeVersion_BlocksOldShellsOnly(string userAgent, int expectedVersion, bool outdated)
@@ -99,6 +104,8 @@ public sealed class NativeAppContextTests
         Assert.True(NativeAppContext.IsRoleAllowed(NativeAppContext.Employee, [RoleNames.CompanyEmployee]));
         Assert.True(NativeAppContext.IsRoleAllowed(NativeAppContext.Employee, [RoleNames.EmployeeLegacy]));
         Assert.False(NativeAppContext.IsRoleAllowed(NativeAppContext.Employee, [RoleNames.Client]));
+        Assert.True(NativeAppContext.IsRoleAllowed(NativeAppContext.Company, [RoleNames.NetworkAdministrator]));
+        Assert.False(NativeAppContext.IsRoleAllowed(NativeAppContext.Company, [RoleNames.CollectionPoint]));
     }
 
     [Theory]

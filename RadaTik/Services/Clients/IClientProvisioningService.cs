@@ -11,4 +11,9 @@ public interface IClientProvisioningService
     Task<ClientEditOutcome> UpdateClientAsync(ClientEditRequest request, CancellationToken ct = default);
 
     Task<ClientOperationOutcome> DeleteClientAsync(int clientId, int networkId, CancellationToken ct = default);
+
+    Task<BulkDeleteClientsResult> BulkDeleteSelectedAsync(
+        int networkId,
+        IReadOnlyList<int>? clientIds,
+        CancellationToken ct = default);
 }

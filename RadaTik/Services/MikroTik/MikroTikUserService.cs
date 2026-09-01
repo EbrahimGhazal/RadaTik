@@ -6,8 +6,11 @@ using RadaTik.Models;
 using RadaTik.Services;
 using RadaTik.Services.Clients;
 using RadaTik.ViewModels.MikroTikServers;
+using System.Collections.Concurrent;
 using System.Globalization;
 using tik4net;
+
+using RadaTik.Security;
 
 namespace RadaTik.Services.MikroTik;
 
@@ -387,7 +390,12 @@ public sealed class MikroTikUserService(
             {
                 ITikCommand addCmd = connection.CreateCommand("/ppp/secret/add");
                 addCmd.AddParameter("name", client.UserName);
-                addCmd.AddParameter("password", client.Password);
+                string plaintextPassword = client.Password;
+            if (plaintextPassword != null && plaintextPassword.StartsWith("enc::"))
+            {
+                plaintextPassword = SensitiveDataProtector.Unprotect(plaintextPassword);
+            }
+            addCmd.AddParameter("password", plaintextPassword);
                 addCmd.AddParameter("service", "pppoe");
                 addCmd.AddParameter("profile", mikrotikProfileName);
 
@@ -533,7 +541,12 @@ public sealed class MikroTikUserService(
                 {
                     ITikCommand addCmd = connection.CreateCommand("/ppp/secret/add");
                     addCmd.AddParameter("name", userName);
-                    addCmd.AddParameter("password", password);
+                    string plaintextPassword = password;
+                if (plaintextPassword != null && plaintextPassword.StartsWith("enc::"))
+                {
+                    plaintextPassword = SensitiveDataProtector.Unprotect(plaintextPassword);
+                }
+                addCmd.AddParameter("password", plaintextPassword);
                     addCmd.AddParameter("service", "pppoe");
                     addCmd.AddParameter("profile", profileName);
 
@@ -727,7 +740,12 @@ public sealed class MikroTikUserService(
         updateCmd.AddParameter(".id", userId);
         if (!string.IsNullOrEmpty(client.Password))
         {
-            updateCmd.AddParameter("password", client.Password);
+            string plaintextPassword = client.Password;
+            if (plaintextPassword != null && plaintextPassword.StartsWith("enc::"))
+            {
+                plaintextPassword = SensitiveDataProtector.Unprotect(plaintextPassword);
+            }
+            updateCmd.AddParameter("password", plaintextPassword);
         }
 
         updateCmd.AddParameter("profile", mikrotikProfileName);
@@ -863,7 +881,12 @@ public sealed class MikroTikUserService(
 
                 if (!string.IsNullOrEmpty(client.Password))
                 {
-                    updateCmd.AddParameter("password", client.Password);
+                    string plaintextPassword = client.Password;
+            if (plaintextPassword != null && plaintextPassword.StartsWith("enc::"))
+            {
+                plaintextPassword = SensitiveDataProtector.Unprotect(plaintextPassword);
+            }
+            updateCmd.AddParameter("password", plaintextPassword);
                 }
 
                 if (!string.IsNullOrEmpty(client.Address))
@@ -1128,6 +1151,61 @@ public sealed class MikroTikUserService(
         }
 
         return result;
+    }
+
+    public async Task<IReadOnlyDictionary<int, IReadOnlyList<string>>> GetActivePppSessionNamesByServerAsync(
+        IReadOnlyCollection<int> serverIds,
+        CancellationToken ct = default)
+    {
+        if (serverIds.Count == 0)
+        {
+            return new Dictionary<int, IReadOnlyList<string>>();
+        }
+
+        List<int> distinctIds = serverIds.Distinct().ToList();
+        List<MikroTikServer> servers = await _context.MikroTikServers
+            .AsNoTracking()
+            .Where(s => distinctIds.Contains(s.Id))
+            .ToListAsync(ct);
+
+        ConcurrentDictionary<int, IReadOnlyList<string>> namesByServer = new();
+
+        await Task.WhenAll(servers.Select(server => Task.Run(() =>
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                namesByServer[server.Id] = ReadActiveSessionNames(server);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "تعذر جلب جلسات /ppp/active من السيرفر {ServerId} ({Host})",
+                    server.Id,
+                    server.Host);
+                namesByServer[server.Id] = [];
+            }
+        }, ct)));
+
+        return namesByServer;
+    }
+
+    private IReadOnlyList<string> ReadActiveSessionNames(MikroTikServer server)
+    {
+        using ITikConnection connection = _connection.CreateConnectionWithRetry(server);
+        IReadOnlyList<ITikReSentence> rows = MikroTikApiSupport.PrintList(connection, "/ppp/active/print", "name");
+        List<string> names = [];
+        foreach (ITikReSentence row in rows)
+        {
+            string username = MikroTikApiSupport.GetSafeValue(row, "name");
+            if (!string.IsNullOrWhiteSpace(username))
+            {
+                names.Add(username);
+            }
+        }
+
+        return names;
     }
 
     /// <summary>

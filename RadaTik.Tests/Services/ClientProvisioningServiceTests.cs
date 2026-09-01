@@ -138,6 +138,44 @@ public sealed class ClientProvisioningServiceTests
     }
 
     [Fact]
+    public async Task BulkDeleteSelectedAsync_NoSelection_ReturnsFail()
+    {
+        await using ApplicationDbContext db = CreateDb();
+        ClientProvisioningService sut = CreateSut(db, Mock.Of<IMikroTikPppoeUserService>());
+
+        BulkDeleteClientsResult result = await sut.BulkDeleteSelectedAsync(2, Array.Empty<int>());
+
+        Assert.False(result.Success);
+        Assert.Contains("تحديد", result.Message);
+    }
+
+    [Fact]
+    public async Task BulkDeleteSelectedAsync_DeletesFromDatabaseAndMikroTik()
+    {
+        await using ApplicationDbContext db = CreateDb();
+        db.Clients.Add(MinimalClient(11, "sel-a", 2, 9));
+        db.Clients.Add(MinimalClient(12, "sel-b", 2, 9));
+        db.Clients.Add(MinimalClient(13, "keep-me", 2, 9));
+        await db.SaveChangesAsync();
+
+        Mock<IMikroTikPppoeUserService> mikroTik = new(MockBehavior.Strict);
+        mikroTik.Setup(m => m.DeletePPPoEUser("sel-a", 9)).ReturnsAsync(true);
+        mikroTik.Setup(m => m.DeletePPPoEUser("sel-b", 9)).ReturnsAsync(true);
+
+        ClientProvisioningService sut = CreateSut(db, mikroTik.Object);
+        BulkDeleteClientsResult result = await sut.BulkDeleteSelectedAsync(2, new[] { 11, 12 });
+
+        Assert.True(result.Success);
+        Assert.Equal(2, result.DeletedCount);
+        Assert.Equal(0, result.FailedCount);
+        Assert.Single(await db.Clients.ToListAsync());
+        Assert.Equal("keep-me", (await db.Clients.SingleAsync()).UserName);
+        mikroTik.Verify(m => m.DeletePPPoEUser("sel-a", 9), Times.Once);
+        mikroTik.Verify(m => m.DeletePPPoEUser("sel-b", 9), Times.Once);
+        mikroTik.Verify(m => m.DeletePPPoEUser("keep-me", 9), Times.Never);
+    }
+
+    [Fact]
     public async Task DeleteClientAsync_UnknownClient_ReturnsNotFound()
     {
         await using ApplicationDbContext db = CreateDb();

@@ -1,0 +1,399 @@
+/* تفاصيل طلب الصيانة — بطاقات واضحة على سطح المكتب والموبايل */
+
+.radtk-page-maint-details,
+.maint-request-details-page {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+.maint-request-details-page .sys-hero,
+.maint-request-details-page .alert,
+.maint-request-details-page .maint-status-banner,
+.maint-request-details-page .maint-facts,
+.maint-request-details-page .maint-layout,
+.maint-request-details-page .maint-panel,
+.maint-request-details-page .maint-actions {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.maint-status-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.85rem;
+}
+
+.maint-status-banner__id {
+    margin-inline-start: auto;
+    font-weight: 800;
+    color: #64748b;
+}
+
+.maint-facts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 0.9rem;
+}
+
+.maint-facts article {
+    min-width: 0;
+    padding: 0.8rem 0.85rem;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04);
+}
+
+.maint-facts span {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.maint-facts strong {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.2rem;
+    font-size: 0.95rem;
+    overflow-wrap: anywhere;
+}
+
+.maint-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 0.85rem;
+}
+
+.maint-panel {
+    margin-bottom: 0.85rem;
+    padding: 0.95rem 1rem;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+}
+
+.maint-layout .maint-panel {
+    margin-bottom: 0;
+}
+
+.maint-panel h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.7rem;
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+.maint-panel h3 i {
+    color: var(--primary, #5b21b6);
+}
+
+.maint-request-box {
+    margin: 0;
+    padding: 0.75rem 0.85rem;
+    border-radius: 12px;
+    background: #f8fafc;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.maint-request-box--notes {
+    background: rgba(16, 185, 129, 0.1);
+    border-inline-start: 3px solid #059669;
+}
+
+.maint-request-box--reject {
+    background: rgba(239, 68, 68, 0.1);
+    border-inline-start: 3px solid #dc2626;
+}
+
+.maint-client {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+}
+
+.maint-client__avatar {
+    flex: 0 0 auto;
+    width: 3.4rem;
+    height: 3.4rem;
+    border-radius: 50%;
+    background: var(--primary, #5b21b6);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    font-weight: 800;
+}
+
+.maint-client__body {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.maint-client__body h4 {
+    margin: 0 0 0.35rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.maint-client__body p {
+    margin: 0.2rem 0;
+    color: #475569;
+    font-size: 0.88rem;
+    overflow-wrap: anywhere;
+}
+
+.maint-client__body p i {
+    width: 1.1rem;
+    color: #94a3b8;
+}
+
+.maint-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.maint-quick-actions .btn {
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.maint-visit__address {
+    margin: 0 0 0.65rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.maint-visit__map,
+#maintVisitMap {
+    width: 100%;
+    height: 180px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    margin-bottom: 0.65rem;
+}
+
+.maint-invoice-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.maint-invoice-grid div {
+    min-width: 0;
+    padding: 0.65rem 0.75rem;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.maint-invoice-grid span {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.maint-invoice-grid strong {
+    display: block;
+    margin-top: 0.15rem;
+    overflow-wrap: anywhere;
+}
+
+.maint-actions .action-form {
+    padding: 0.85rem;
+    background: #f8fafc;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.maint-actions .actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.maint-actions .btn-lg {
+    min-height: 2.7rem;
+    font-weight: 800;
+    border-radius: 12px;
+}
+
+.maint-request-details-page .service-check-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+}
+
+.maint-request-details-page .service-check-item {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 12px;
+    padding: 0.65rem 0.75rem;
+    background: #fff;
+    cursor: pointer;
+}
+
+.maint-request-details-page .service-check-item:hover,
+.maint-request-details-page .service-check-item:has(.service-check-input:checked) {
+    border-color: var(--primary, #5b21b6);
+    background: #f5f3ff;
+}
+
+.maint-request-details-page .service-check-order {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: rgba(91, 33, 182, 0.12);
+    color: var(--primary, #5b21b6);
+    font-size: 0.75rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.maint-request-details-page .service-check-name {
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.maint-request-details-page .service-check-price {
+    color: #64748b;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.maint-totals {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+}
+
+.maint-totals__row,
+.live-total-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 12px;
+    padding: 0.55rem 0.75rem;
+    background: #f8fafc;
+    font-size: 0.92rem;
+}
+
+.maint-totals__row strong,
+.live-total-box strong {
+    overflow-wrap: anywhere;
+}
+
+.maint-totals__row--gross {
+    background: #ecfdf5;
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
+.maint-totals__row--net {
+    background: #eff6ff;
+    border-color: rgba(37, 99, 235, 0.28);
+}
+
+.maint-request-details-page #subscriber-fault-diagnosis-report {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+}
+
+.maint-request-details-page #subscriber-fault-diagnosis-report .table-responsive {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.maint-empty-actions {
+    text-align: center;
+    color: #64748b;
+    padding: 0.5rem 0;
+}
+
+@media (max-width: 1199.98px) {
+    html body .radtk-page-maint-details,
+    html body .maint-request-details-page {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
+
+    html body .maint-request-details-page .maint-facts,
+    html body .maint-request-details-page .maint-layout,
+    html body .maint-request-details-page .maint-invoice-grid,
+    html body .maint-request-details-page .actions-grid,
+    html body .maint-request-details-page .service-check-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    html body .maint-request-details-page .maint-quick-actions .btn,
+    html body .maint-request-details-page .maint-actions .btn-lg {
+        width: 100%;
+    }
+
+    html body .maint-request-details-page .actions-card {
+        max-width: 100%;
+    }
+
+    html body .maint-request-details-page #maintVisitMap,
+    html body .maint-request-details-page .maint-visit__map {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    html body .maint-request-details-page .maint-facts,
+    html body .maint-request-details-page .maint-layout,
+    html body .maint-request-details-page .maint-invoice-grid,
+    html body .maint-request-details-page .actions-grid,
+    html body .maint-request-details-page .service-check-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    html body .maint-request-details-page .maint-client {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    html body .maint-request-details-page .service-check-item {
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-areas:
+            "order name"
+            "check price";
+    }
+
+    html body .maint-request-details-page .service-check-order { grid-area: order; }
+    html body .maint-request-details-page .service-check-input { grid-area: check; }
+    html body .maint-request-details-page .service-check-name { grid-area: name; }
+    html body .maint-request-details-page .service-check-price { grid-area: price; }
+}

@@ -11,8 +11,8 @@
     var canRenewFromWallet = firstDueSubscription?.CanRenewFromWallet ?? false;
 }
 
-<div class="client-portal">
-    <div class="page-header mb-4">
+<div class="client-portal client-portal-renew-page">
+    <div class="page-header mb-3">
         <h2><i class="fas fa-sync-alt text-primary"></i> تجديد الاشتراك</h2>
         <p class="text-muted mb-0">عرض الاشتراكات المستحقة وحالة كل اشتراك مع إمكانية التجديد المباشر من المحفظة</p>
     </div>
@@ -29,6 +29,11 @@
             <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
         </div>
     }
+
+    <div class="renew-wallet-hero mb-3">
+        <div class="renew-wallet-hero__label">رصيد المحفظة</div>
+        <div class="renew-wallet-hero__amount">@(Model.WalletBalance.ToString("N0")) <span>ل.س</span></div>
+    </div>
 
     @if (Model.HasBlockingInvoices)
     {
@@ -52,33 +57,32 @@
         </div>
     }
 
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="card mb-3">
+        <div class="card-header">
             <h5 class="mb-0"><i class="fas fa-list-alt"></i> الاشتراكات الواجبة للتجديد</h5>
-            <span class="wallet-balance">رصيد المحفظة: <strong>@(Model.WalletBalance.ToString("N0")) ل.س</strong></span>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>الاشتراك</th>
-                            <th>تاريخ الانتهاء</th>
-                            <th>المبلغ المستحق</th>
-                            <th>حالة الاشتراك</th>
-                            <th>جاهزية السداد</th>
-                            <th class="text-center">الإجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.DueSubscriptions.Any())
-                        {
+            @if (Model.DueSubscriptions.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle radtk-data-table radtk-data-table--cards">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الاشتراك</th>
+                                <th>تاريخ الانتهاء</th>
+                                <th>المبلغ المستحق</th>
+                                <th>حالة الاشتراك</th>
+                                <th>جاهزية السداد</th>
+                                <th class="text-center">الإجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                             @foreach (var subscription in Model.DueSubscriptions)
                             {
                                 <tr>
-                                    <td>@subscription.SubscriptionName</td>
-                                    <td>@(subscription.ExpirationDate.HasValue ? subscription.ExpirationDate.Value.ToString("yyyy/MM/dd") : "غير محدد")</td>
-                                    <td>
+                                    <td class="renew-cell--lead" data-label="الاشتراك">@subscription.SubscriptionName</td>
+                                    <td data-label="تاريخ الانتهاء">@(subscription.ExpirationDate.HasValue ? subscription.ExpirationDate.Value.ToString("yyyy/MM/dd") : "غير محدد")</td>
+                                    <td data-label="المبلغ المستحق">
                                         @if (subscription.AmountDue > 0)
                                         {
                                             <div>@subscription.AmountDue.ToString("N0") ل.س</div>
@@ -92,17 +96,17 @@
                                             <span>-</span>
                                         }
                                     </td>
-                                    <td>
+                                    <td data-label="حالة الاشتراك">
                                         <span class="badge @GetSubscriptionStatusClass(subscription.IsExpired, subscription.IsExpiringSoon)">
                                             @subscription.SubscriptionStatus
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="جاهزية السداد">
                                         <span class="badge @GetPaymentStatusClass(subscription.CanRenewFromWallet, subscription.AmountDue)">
                                             @subscription.PaymentStatus
                                         </span>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="radtk-col-actions renew-cell-actions" data-label="الإجراء">
                                         @if (subscription.CanRenewFromWallet && subscription.IsPrimaryInternetSubscription && !Model.HasBlockingInvoices)
                                         {
                                             <form method="post" action="@Url.Action("SelfRenewSubscription")" class="d-inline">
@@ -122,16 +126,14 @@
                                     </td>
                                 </tr>
                             }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-4">لا توجد اشتراكات مستحقة للتجديد حالياً.</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="p-3 text-muted">لا توجد اشتراكات مستحقة للتجديد حالياً.</div>
+            }
         </div>
     </div>
 
@@ -158,14 +160,9 @@
     </div>
 </div>
 
-<style>
-    .client-portal { padding: var(--spacing-lg, 1.5rem); }
-    .wallet-balance { color: #495057; font-size: 0.95rem; }
-    .badge-danger-soft { background: #f8d7da; color: #842029; }
-    .badge-warning-soft { background: #fff3cd; color: #664d03; }
-    .badge-success-soft { background: #d1e7dd; color: #0f5132; }
-    .badge-secondary-soft { background: #e2e3e5; color: #41464b; }
-</style>
+@section Styles {
+    <link rel="stylesheet" href="~/css/client-portal-renew-cards.css" asp-append-version="true" />
+}
 
 @functions {
     public string GetSubscriptionStatusClass(bool expired, bool expiringSoon)

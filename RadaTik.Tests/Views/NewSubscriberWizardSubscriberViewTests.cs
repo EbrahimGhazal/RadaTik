@@ -34,16 +34,24 @@ public sealed class NewSubscriberWizardSubscriberViewTests
     public void SharedReceiverStep_ReloadsReceiversAfterSenderChange()
     {
         string view = File.ReadAllText(FindFile("RadaTik", "Areas", "CompanyAdmin", "Views", "NewSubscriberWizard", "SharedReceiver.cshtml"));
-        Assert.Contains("data-receivers-url", view);
-        Assert.Contains("data-sectors-url", view);
-        Assert.Contains("loadReceivers", view);
-        Assert.Contains("change.select2", view);
-        Assert.Contains("لا يوجد لاقط مشترك على هذا المرسل", view);
+        Assert.Contains("data-server-id", view);
+        Assert.Contains("data-sector-id", view);
+        Assert.Contains("sectorMatcher", view);
+        Assert.Contains("receiverMatcher", view);
+        Assert.Contains("no-select2", view);
+        Assert.Contains("لا يوجد لاقط على هذا المرسل", view);
+        Assert.Contains("بانتظار التفعيل", view);
+        Assert.DoesNotContain("GetSectorsByServer", view);
+        Assert.DoesNotContain("$('#sectorSelect').html", view);
 
         string controller = File.ReadAllText(FindFile("RadaTik", "Areas", "CompanyAdmin", "Controllers", "NewSubscriberWizardController.cs"));
         Assert.Contains("GetSectorsByServer(int? serverId)", controller);
         Assert.Contains("SharedReceiverQuery", controller);
         Assert.Contains("SharedSectorQuery", controller);
+        Assert.Contains("s.MikroTikServer != null && s.MikroTikServer.NetworkId == networkId", controller);
+        Assert.Contains("WizardSectorLookup", controller);
+        Assert.Contains("اللاقط المحدد غير متاح ضمن السيرفر/المرسل الحالي", controller);
+        Assert.DoesNotContain("لا يوجد مشترك آخر عليه", controller);
     }
 
     [Fact]

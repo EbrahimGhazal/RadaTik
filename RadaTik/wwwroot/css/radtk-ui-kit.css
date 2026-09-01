@@ -194,7 +194,22 @@
 /* ——— Mobile-responsive data tables ——— */
 .radtk-data-table-wrap { width: 100%; }
 
-@media (max-width: 767.98px) {
+@media (max-width: 1199.98px) {
+    html body .radtk-surface,
+    html body .page-content {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    html body .radtk-surface .card,
+    html body .radtk-surface .table-card,
+    html body .radtk-surface .sys-hero,
+    html body .radtk-surface .table-responsive {
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
     .radtk-data-table-wrap,
     .table-container:has(.radtk-data-table--cards),
     .table-responsive:has(.radtk-data-table--cards),
@@ -204,6 +219,7 @@
         overflow: visible !important;
         width: 100% !important;
         max-width: 100% !important;
+        min-width: 0 !important;
     }
 
     table.radtk-data-table.radtk-data-table--cards,
@@ -250,7 +266,7 @@
     .radtk-data-table.radtk-data-table--cards tbody td {
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: nowrap !important;
+        flex-wrap: wrap !important;
         justify-content: space-between;
         align-items: center;
         gap: 0.75rem;
@@ -284,14 +300,34 @@
         display: none;
     }
 
-    .radtk-data-table.radtk-data-table--cards tbody td > * {
+    .radtk-data-table.radtk-data-table--cards tbody td > *:not(input[type="checkbox"]):not(.clients-select-hit):not(.profile-select-hit) {
         min-width: 0;
-        max-width: 58%;
+        max-width: 100%;
         flex: 1 1 auto;
         overflow-wrap: anywhere;
         word-break: break-word;
         white-space: normal;
         text-align: start;
+    }
+
+    .radtk-data-table.radtk-data-table--cards tbody tr.is-card-hidden,
+    .radtk-data-table.radtk-data-table--cards tbody tr[hidden] {
+        display: none !important;
+    }
+
+    .radtk-data-table.radtk-data-table--cards tbody td.clients-select-cell,
+    .radtk-data-table.radtk-data-table--cards tbody td.clients-select-cell > *,
+    .radtk-data-table.radtk-data-table--cards tbody td input[type="checkbox"]:not([role="switch"]) {
+        width: 1.15rem !important;
+        height: 1.15rem !important;
+        min-width: 1.15rem !important;
+        max-width: 1.15rem !important;
+        min-height: 1.15rem !important;
+        max-height: 1.15rem !important;
+        margin: 0 !important;
+        flex: 0 0 1.15rem !important;
+        align-self: start;
+        accent-color: var(--rtk-primary, var(--primary, #2563eb));
     }
 }
 
@@ -1388,14 +1424,14 @@
     justify-content: center;
 }
 
-@media (max-width: 767.98px) {
+@media (max-width: 1199.98px) {
     .radtk-data-table.radtk-data-table--cards tbody td.radtk-col-actions,
     .radtk-data-table.radtk-data-table--cards tbody td[data-label="إجراءات"],
     .radtk-data-table.radtk-data-table--cards tbody td[data-label="الإجراءات"] {
         flex-direction: row !important;
-        flex-wrap: nowrap !important;
+        flex-wrap: wrap !important;
         align-items: center !important;
-        justify-content: space-between !important;
+        justify-content: flex-start !important;
     }
 
     .radtk-data-table.radtk-data-table--cards tbody td.radtk-col-actions .action-buttons,
@@ -1406,14 +1442,14 @@
     .radtk-surface .radtk-page-clients-index .radtk-data-table.radtk-data-table--cards tbody td.clients-actions-cell .action-buttons {
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: nowrap !important;
+        flex-wrap: wrap !important;
         align-items: center !important;
         justify-content: flex-start !important;
         gap: 0.35rem;
-        width: auto !important;
-        max-width: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
         min-width: 0;
-        flex: 0 0 auto !important;
+        flex: 1 1 auto !important;
     }
 
     .radtk-data-table.radtk-data-table--cards tbody td.radtk-col-actions .action-buttons .btn,

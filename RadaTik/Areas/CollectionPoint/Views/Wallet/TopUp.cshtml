@@ -8,9 +8,9 @@
     var pmList = paymentMethods.ToList();
     var shamCashQrPath = ViewBag.CollectionPointShamCashQrCodePath as string;
 }
-<div class="radtk-page--collectionpoint-views-wallet-topup">
-
+<div class="radtk-page--collectionpoint-views-wallet-topup collection-point-finance-page">
 <div class="wallet-topup-page">
+    <partial name="_CollectionPointFinanceNav" />
     <div class="page-header wallet-topup-header">
         <div>
             <h1>
@@ -58,7 +58,7 @@
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="requestTargetType" value="@((int)CollectionPointTopUpTarget.SystemAdmin)" />
                         <div class="row g-3">
-                            <div class="col-md-6">
+                            <div class="col-md-6 cp-finance-field">
                                 @if (pmList.Any())
                                 {
                                     <label for="paymentMethodId" class="form-label">طريقة الدفع</label>
@@ -78,23 +78,23 @@
                                 }
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-6 cp-finance-field">
                                 <label for="referenceNumber" class="form-label">رقم إشعار/مرجع الدفع</label>
                                 <input type="text" id="referenceNumber" name="referenceNumber" class="form-control" required placeholder="رقم إيصال/مرجع الدفع" />
                             </div>
 
-                            <div class="col-md-6">
-                                <label for="amount" class="form-label">المبلغ المطلوب (ل.س)</label>
+                            <div class="col-md-6 cp-finance-field">
+                                <label for="amount" class="form-label">المبلغ المطلوب (ل.س.ج)</label>
                                 <input type="number" id="amount" name="amount" class="form-control" min="0.01" step="0.01" required placeholder="أدخل المبلغ المطلوب" />
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-6 cp-finance-field">
                                 <label for="receiptImage" class="form-label">صورة الإيصال</label>
                                 <input type="file" id="receiptImage" name="receiptImage" class="form-control" required accept="image/*" data-max-bytes="3145728" data-size-message="حجم صورة الإيصال يجب ألا يتجاوز 3 ميغابايت." />
                                 <small class="text-muted">يرجى رفع صورة واضحة للإيصال (الحد الأقصى: 3 ميغابايت).</small>
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-6 cp-finance-field">
                                 <label for="notes" class="form-label">ملاحظات (اختياري)</label>
                                 <textarea id="notes" name="notes" class="form-control" rows="3" placeholder="أي ملاحظات إضافية..."></textarea>
                             </div>
@@ -110,12 +110,12 @@
         </div>
 
         <div class="col-xl-4">
-            <div class="card wallet-stat-card mb-4">
+            <div class="card wallet-stat-card mb-4 cp-finance-balance">
                 <div class="card-body">
-                    <div class="wallet-stat-label">الرصيد الحالي</div>
-                    <div class="wallet-stat-value">
+                    <div class="wallet-stat-label cp-finance-balance__label">الرصيد الحالي</div>
+                    <div class="wallet-stat-value cp-finance-balance__amount">
                         @accountBalance.ToString("N0")
-                        <span class="wallet-currency">ل.س</span>
+                        <span class="wallet-currency">ل.س.ج</span>
                     </div>
                     @if (!string.IsNullOrEmpty(networkName))
                     {
@@ -163,7 +163,7 @@
                         @if (!string.IsNullOrWhiteSpace(shamCashQrPath))
                         {
                             <div class="mt-2">
-                                <img src="@shamCashQrPath" alt="QR شام كاش" class="img-thumbnail" style="max-width:220px;" />
+                                <img src="@shamCashQrPath" alt="QR شام كاش" class="img-thumbnail" style="max-width:100%;" />
                             </div>
                             <div class="form-check mt-2">
                                 <input class="form-check-input" type="checkbox" name="removeShamCashQrCode" id="removeShamCashQrCode" value="true" />
@@ -183,12 +183,12 @@
         </div>
     </div>
 </div>
+</div>
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/collection-point-finance-cards.css" asp-append-version="true" />
 }
 
-
-</div>
 @section Scripts {
 <script>
     document.addEventListener('DOMContentLoaded', function() {

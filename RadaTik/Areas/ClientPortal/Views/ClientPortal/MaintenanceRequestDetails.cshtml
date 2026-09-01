@@ -6,8 +6,11 @@
     ViewBag.PageHeroIcon = "fas fa-tools";
     ViewBag.PageHeroBackUrl = Url.Action("MaintenanceRequests");
     ViewBag.PageHeroBackText = "العودة للطلبات";
+    var assignedName = Model.AssignedTo == null
+        ? null
+        : (string.IsNullOrWhiteSpace(Model.AssignedTo.FullName) ? Model.AssignedTo.UserName : Model.AssignedTo.FullName);
 }
-<div class="radtk-page--clientportal-views-clientportal-maintenancerequestdetails">
+<div class="radtk-page--clientportal-views-clientportal-maintenancerequestdetails client-portal-ticket-page">
 
 <partial name="_CrudPageHero" />
 
@@ -16,92 +19,102 @@
     <div class="alert alert-danger">@TempData["Error"]</div>
 }
 
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title mb-0">
-            <i class="fas fa-info-circle"></i> بيانات الطلب
-        </h3>
-        <span class="badge @GetStatusBadgeClass(Model.Status)">@GetStatusName(Model.Status)</span>
-    </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <div class="text-muted small">نوع المشكلة</div>
-                <div class="fw-bold d-flex align-items-center gap-2">
-                    <i class="fas @GetTypeIcon(Model.Type)"></i>
-                    <span>@GetMaintenanceTypeName(Model.Type)</span>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="text-muted small">الأولوية</div>
-                <div class="fw-bold">@GetPriorityName(Model.Priority)</div>
-            </div>
-            <div class="col-md-4">
-                <div class="text-muted small">تاريخ الطلب</div>
-                <div class="fw-bold">@Model.RequestDate.ToString("yyyy/MM/dd HH:mm")</div>
-            </div>
-        </div>
+<div class="ticket-status-banner">
+    <span class="badge @GetStatusBadgeClass(Model.Status)">@GetStatusName(Model.Status)</span>
+    <span class="ticket-status-banner__id">طلب #@Model.Id</span>
+</div>
 
-        <hr />
+<div class="ticket-facts">
+    <article>
+        <span>نوع المشكلة</span>
+        <strong><i class="fas @GetTypeIcon(Model.Type)"></i> @GetMaintenanceTypeName(Model.Type)</strong>
+    </article>
+    <article>
+        <span>الأولوية</span>
+        <strong>@GetPriorityName(Model.Priority)</strong>
+    </article>
+    <article>
+        <span>تاريخ الطلب</span>
+        <strong>@Model.RequestDate.ToString("yyyy/MM/dd HH:mm")</strong>
+    </article>
+</div>
 
-        <div class="mb-3">
-            <div class="text-muted small mb-1">وصف المشكلة</div>
-            <div class="request-box">@Model.Description</div>
-        </div>
+<section class="ticket-panel">
+    <h3>وصف المشكلة</h3>
+    <div class="request-box">@Model.Description</div>
+</section>
 
-        <partial name="_SubscriberFaultDiagnosisReport" model="@(ViewBag.FaultDiagnosis as RadaTik.Services.Clients.SubscriberFaultDiagnosisDto)" />
+<partial name="_SubscriberFaultDiagnosisReport" model="@(ViewBag.FaultDiagnosis as RadaTik.Services.Clients.SubscriberFaultDiagnosisDto)" />
 
-        @if (!string.IsNullOrWhiteSpace(Model.TechnicianNotes))
-        {
-            <div class="mb-3">
-                <div class="text-muted small mb-1">ملاحظات الفريق الفني</div>
-                <div class="request-box">@Model.TechnicianNotes</div>
-            </div>
-        }
+@if (!string.IsNullOrWhiteSpace(Model.TechnicianNotes))
+{
+    <section class="ticket-panel">
+        <h3>ملاحظات الفريق الفني</h3>
+        <div class="request-box">@Model.TechnicianNotes</div>
+    </section>
+}
 
+<section class="ticket-panel">
+    <h3>بيانات الزيارة</h3>
+    <dl class="ticket-meta">
         @if (Model.ScheduledVisitDate.HasValue)
         {
-            <div class="mb-2">
-                <span class="text-muted">موعد الزيارة:</span>
-                <strong>@Model.ScheduledVisitDate.Value.ToString("yyyy/MM/dd HH:mm")</strong>
+            <div>
+                <dt>موعد الزيارة</dt>
+                <dd>@Model.ScheduledVisitDate.Value.ToString("yyyy/MM/dd HH:mm")</dd>
             </div>
         }
-        @if (Model.AssignedTo != null)
+        @if (!string.IsNullOrWhiteSpace(assignedName))
         {
-            <div class="mb-2">
-                <span class="text-muted">الموظف المسند:</span>
-                <strong>@(Model.AssignedTo.FullName ?? Model.AssignedTo.UserName)</strong>
+            <div>
+                <dt>الموظف المسند</dt>
+                <dd>@assignedName</dd>
             </div>
         }
         else if (Model.Status == MaintenanceRequestStatus.Pending)
         {
-            <div class="mb-2 text-muted">
-                سيتم تحديد الموظف من المدير أو قسم الصيانة.
+            <div>
+                <dt>الموظف المسند</dt>
+                <dd class="text-muted">سيتم تحديده من المدير أو قسم الصيانة.</dd>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.ContactPhone))
+        {
+            <div>
+                <dt>هاتف التواصل</dt>
+                <dd><a href="tel:@Model.ContactPhone">@Model.ContactPhone</a></dd>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.PreferredContactTime))
+        {
+            <div>
+                <dt>أفضل وقت للتواصل</dt>
+                <dd>@Model.PreferredContactTime</dd>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Address))
+        {
+            <div>
+                <dt>العنوان التفصيلي</dt>
+                <dd class="ticket-address">@Model.Address</dd>
             </div>
         }
         @if (Model.CompletedDate.HasValue)
         {
-            <div class="mb-2">
-                <span class="text-muted">تاريخ الإنجاز:</span>
-                <strong>@Model.CompletedDate.Value.ToString("yyyy/MM/dd HH:mm")</strong>
+            <div>
+                <dt>تاريخ الإنجاز</dt>
+                <dd>@Model.CompletedDate.Value.ToString("yyyy/MM/dd HH:mm")</dd>
             </div>
         }
         @if (!string.IsNullOrWhiteSpace(Model.RejectionReason))
         {
-            <div class="mb-2">
-                <span class="text-muted">سبب الرفض:</span>
-                <strong>@Model.RejectionReason</strong>
+            <div>
+                <dt>سبب الرفض</dt>
+                <dd>@Model.RejectionReason</dd>
             </div>
         }
-        @if (Model.AssignedTo != null)
-        {
-            <div class="mb-2">
-                <span class="text-muted">الموظف المكلّف:</span>
-                <strong>@(string.IsNullOrWhiteSpace(Model.AssignedTo.FullName) ? Model.AssignedTo.UserName : Model.AssignedTo.FullName)</strong>
-            </div>
-        }
-    </div>
-</div>
+    </dl>
+</section>
 @functions {
     string GetMaintenanceTypeName(MaintenanceType type) => MaintenanceCatalog.GetDisplayName(type);
 
@@ -114,3 +127,7 @@
     string GetStatusBadgeClass(MaintenanceRequestStatus status) => PricingDisplay.MaintenanceRequestStatusBadgeClass(status);
 }
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/client-portal-support-cards.css" asp-append-version="true" />
+}

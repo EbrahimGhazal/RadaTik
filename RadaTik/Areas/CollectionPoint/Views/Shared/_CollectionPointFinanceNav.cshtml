@@ -1,0 +1,26 @@
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var current = controller switch
+    {
+        "Wallet" when action == "ClientTopUpRequests" => "client-topups",
+        "Wallet" => "topup",
+        "CashBox" => "cashbox",
+        "Receipts" => "receipts",
+        _ => ""
+    };
+}
+<nav class="cp-finance-nav mb-3" aria-label="مالية نقطة التحصيل">
+    <a class="cp-finance-nav__item @(current == "topup" ? "is-current" : "")" asp-route="collectionPoint-wallet-topup">
+        <i class="fas fa-plus-circle"></i> تغذية الرصيد
+    </a>
+    <a class="cp-finance-nav__item @(current == "client-topups" ? "is-current" : "")" asp-route="collectionPoint-wallet-client-topups">
+        <i class="fas fa-user-check"></i> تغذية المشتركين
+    </a>
+    <a class="cp-finance-nav__item @(current == "cashbox" ? "is-current" : "")" asp-area="CollectionPoint" asp-controller="CashBox" asp-action="Index">
+        <i class="fas fa-cash-register"></i> الصندوق
+    </a>
+    <a class="cp-finance-nav__item @(current == "receipts" ? "is-current" : "")" asp-route="collectionPoint-receipts">
+        <i class="fas fa-receipt"></i> سجل القبض
+    </a>
+</nav>

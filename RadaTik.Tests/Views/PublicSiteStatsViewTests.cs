@@ -30,6 +30,11 @@ public sealed class PublicSiteStatsViewTests
         string controller = Read("RadaTik", "Controllers", "AccountController.cs");
         Assert.Contains("NativeAppContext.IsRoleAllowed", controller);
         Assert.Contains("DeniedMessage", controller);
+        Assert.Contains("persistSession", controller);
+        Assert.Contains("سيبقى حسابك مسجلاً على هذا التطبيق", view);
+        Assert.Contains("NativeAppContext.Company", view);
+        Assert.Contains("إنشاء حساب مدير شركة", view);
+        Assert.Contains("إنشاء حساب نقطة تحصيل", view);
     }
 
     private static string Read(params string[] relativeParts)

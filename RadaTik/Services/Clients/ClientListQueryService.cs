@@ -183,7 +183,7 @@ public sealed class ClientListQueryService(
             serverIds.Add(assignedServerId);
         }
 
-        HashSet<int> connectedIds = await ResolveConnectedClientIdsAsync(clients, serverIds, ct);
+        HashSet<int> connectedIds = await ResolveConnectedClientIdsAsync(serverIds, clients, ct);
         _cache.Set(cacheKey, connectedIds, ConnectedCacheDuration);
         return connectedIds;
     }
@@ -194,32 +194,18 @@ public sealed class ClientListQueryService(
     /// يحدد المتصلين فعلياً عبر جلسات /ppp/active على كل سيرفرات MikroTik للشركة.
     /// </summary>
     private async Task<HashSet<int>> ResolveConnectedClientIdsAsync(
-        IReadOnlyList<Client> clients,
         IReadOnlyCollection<int> serverIds,
+        IReadOnlyList<Client> clients,
         CancellationToken ct)
     {
-        Dictionary<int, IReadOnlyCollection<string>> activeNamesByServer = [];
+        IReadOnlyDictionary<int, IReadOnlyList<string>> namesByServer =
+            await _mikroTik.GetActivePppSessionNamesByServerAsync(serverIds, ct);
 
-        foreach (int serverId in serverIds)
-        {
-            ct.ThrowIfCancellationRequested();
-            try
-            {
-                List<Client> activeSessions = await _mikroTik.GetActivePPPoEUsers(serverId);
-                HashSet<string> activeUserNames = activeSessions
-                    .Select(a => ClientLiveConnectionMatcher.NormalizeUserName(a.UserName))
-                    .Where(name => name.Length > 0)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                activeNamesByServer[serverId] = activeUserNames;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(
-                    ex,
-                    "تعذر جلب الجلسات النشطة من سيرفر MikroTik {ServerId} — سيُعرض المشتركون كغير متصلين لهذا السيرفر",
-                    serverId);
-            }
-        }
+        Dictionary<int, IReadOnlyCollection<string>> activeNamesByServer = namesByServer.ToDictionary(
+            pair => pair.Key,
+            pair => (IReadOnlyCollection<string>)pair.Value.Select(ClientLiveConnectionMatcher.NormalizeUserName)
+                .Where(name => name.Length > 0)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase));
 
         return ClientLiveConnectionMatcher.Match(clients, activeNamesByServer);
     }

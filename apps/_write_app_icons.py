@@ -1,4 +1,4 @@
-"""Regenerate Android/iOS/web icons: larger RT mark, white background, T colored per role."""
+"""Regenerate Android/iOS/web icons: official RT mark, white background, T colored per role."""
 from __future__ import annotations
 
 import colorsys
@@ -46,11 +46,37 @@ def recolor_orange_t(src: Image.Image, target_rgb: tuple[int, int, int] | None) 
     return image
 
 
+def crop_ink(image: Image.Image) -> Image.Image:
+    rgba = image.convert("RGBA")
+    w, h = rgba.size
+    mask = Image.new("L", (w, h), 0)
+    src = rgba.load()
+    dest = mask.load()
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = src[x, y]
+            if a >= 20 and not (r > 245 and g > 245 and b > 245):
+                dest[x, y] = 255
+    box = mask.getbbox()
+    if box is None:
+        return rgba
+    left, top, right, bottom = box
+    pad = max(2, int(min(right - left, bottom - top) * 0.02))
+    return rgba.crop((
+        max(0, left - pad),
+        max(0, top - pad),
+        min(w, right + pad),
+        min(h, bottom + pad),
+    ))
+
+
 def fit_logo(mark: Image.Image, size: int, pad_ratio: float) -> Image.Image:
     canvas = Image.new("RGBA", (size, size), WHITE)
     inner = max(1, int(size * (1 - 2 * pad_ratio)))
-    logo = mark.copy()
-    logo.thumbnail((inner, inner), Image.Resampling.LANCZOS)
+    logo = crop_ink(mark)
+    scale = min(inner / max(1, logo.width), inner / max(1, logo.height))
+    new_size = (max(1, int(logo.width * scale)), max(1, int(logo.height * scale)))
+    logo = logo.resize(new_size, Image.Resampling.LANCZOS)
     x = (size - logo.width) // 2
     y = (size - logo.height) // 2
     canvas.alpha_composite(logo, (x, y))
@@ -77,18 +103,18 @@ def write_icons(dest_app: Path, mark: Image.Image) -> None:
     for folder, size in sizes.items():
         dest = android / folder
         dest.mkdir(parents=True, exist_ok=True)
-        icon = fit_logo(mark, size, 0.06)
+        icon = fit_logo(mark, size, 0.02)
         icon.save(dest / "ic_launcher.png")
         icon.save(dest / "ic_launcher_round.png")
     for folder, size in fg_sizes.items():
         dest = android / folder
         dest.mkdir(parents=True, exist_ok=True)
-        fit_logo(mark, size, 0.15).save(dest / "ic_launcher_foreground.png")
+        fit_logo(mark, size, 0.08).save(dest / "ic_launcher_foreground.png")
     if ios_icon.parent.exists():
-        fit_logo(mark, 1024, 0.06).save(ios_icon)
+        fit_logo(mark, 1024, 0.02).save(ios_icon)
     www_icon = dest_app / "www" / "icon.png"
     www_icon.parent.mkdir(parents=True, exist_ok=True)
-    fit_logo(mark, 512, 0.05).save(www_icon)
+    fit_logo(mark, 512, 0.02).save(www_icon)
 
     bg_color = android / "values" / "ic_launcher_background.xml"
     if bg_color.exists():

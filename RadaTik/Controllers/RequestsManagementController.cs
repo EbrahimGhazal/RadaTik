@@ -194,6 +194,7 @@ namespace RadaTik.Controllers
                     .ThenInclude(c => c!.Profile)
                 .Include(m => m.Client)
                     .ThenInclude(c => c!.Receiver)
+                        .ThenInclude(r => r!.Sector)
                 .Include(m => m.AssignedTo)
                 .Include(m => m.ProcessedBy)
                 .FirstOrDefaultAsync(m => m.Id == id);

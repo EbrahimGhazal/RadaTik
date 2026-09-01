@@ -1,0 +1,48 @@
+{
+  "appId": "com.radatik.company",
+  "appName": "RadaTik مدير الشركة",
+  "webDir": "www",
+  "server": {
+    "url": "https://radatik.com/networkManager/dashboard?app=company",
+    "androidScheme": "https",
+    "hostname": "radatik.com",
+    "allowNavigation": [
+      "radatik.com",
+      "www.radatik.com",
+      "cdn.jsdelivr.net",
+      "cdnjs.cloudflare.com",
+      "unpkg.com",
+      "code.jquery.com",
+      "cdn.datatables.net",
+      "fonts.googleapis.com",
+      "fonts.gstatic.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "appendUserAgent": "RadaTikNative/company/2"
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "preferredContentMode": "mobile",
+    "scheme": "radatik-company",
+    "appendUserAgent": "RadaTikNative/company/2"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 900,
+      "launchAutoHide": true,
+      "backgroundColor": "#6d28d9",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#6d28d9"
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_notification",
+      "iconColor": "#6d28d9"
+    }
+  }
+}

@@ -157,6 +157,17 @@
         },
 
         setupAutofocus: function() {
+            // Native WebView / touch: programmatic focus opens a keyboard without IME
+            // composition, so backspace and predictive text break. Let the user tap.
+            const ua = navigator.userAgent || '';
+            const isNative = !!(window.Capacitor && (typeof window.Capacitor.isNativePlatform !== 'function' || window.Capacitor.isNativePlatform()))
+                || /RadaTikNative\//i.test(ua)
+                || /Capacitor/i.test(ua);
+            const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+            if (isNative || isTouch) {
+                return;
+            }
+
             const user = document.querySelector('#loginForm input[name="UserName"], #loginForm input#UserName, #loginForm input[type="text"]');
             if (user) {
                 try { user.focus(); } catch (_) {}

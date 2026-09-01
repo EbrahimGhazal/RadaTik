@@ -10,6 +10,8 @@
     var balance = cashBox?.Balance ?? 0m;
 }
 
+<div class="collection-point-finance-page">
+<partial name="_CollectionPointFinanceNav" />
 <partial name="_CrudPageHero" />
 
 @if (TempData["Success"] != null)
@@ -29,16 +31,10 @@
 
 <div class="row">
     <div class="col-lg-4">
-        <div class="card mb-4 border-primary">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-coins"></i>
-                    رصيد الصندوق الحالي
-                </h5>
-            </div>
-            <div class="card-body text-center">
-                <div class="display-5 fw-bold">@SyrianCurrencyHelper.FormatNew(balance)</div>
-                <span class="text-muted">ل.س</span>
+        <div class="card mb-4 border-0">
+            <div class="card-body cp-finance-balance">
+                <div class="cp-finance-balance__label">رصيد الصندوق الحالي</div>
+                <div class="cp-finance-balance__amount">@SyrianCurrencyHelper.FormatNew(balance) <span class="wallet-currency">ل.س.ج</span></div>
                 @if (!string.IsNullOrEmpty(ownerName))
                 {
                     <div class="text-muted small mt-2">@ownerName</div>
@@ -54,7 +50,7 @@
                 <form asp-area="CollectionPoint" asp-controller="CashBox" asp-action="Deposit" method="post">
                     @Html.AntiForgeryToken()
                     <div class="mb-2">
-                        <label class="form-label">المبلغ (ل.س)</label>
+                        <label class="form-label">المبلغ (ل.س.ج)</label>
                         <input type="number" name="amount" class="form-control" min="0.01" step="0.01" required placeholder="0.00" />
                     </div>
                     <div class="mb-2">
@@ -76,7 +72,7 @@
                 <form asp-area="CollectionPoint" asp-controller="CashBox" asp-action="Withdraw" method="post">
                     @Html.AntiForgeryToken()
                     <div class="mb-2">
-                        <label class="form-label">المبلغ (ل.س)</label>
+                        <label class="form-label">المبلغ (ل.س.ج)</label>
                         <input type="number" name="amount" class="form-control" min="0.01" step="0.01" required placeholder="0.00" />
                     </div>
                     <div class="mb-2">
@@ -104,7 +100,7 @@
                 @if (withdrawals.Any())
                 {
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0 radtk-data-table radtk-data-table--cards">
+                        <table class="table table-hover mb-0 radtk-data-table radtk-data-table--cards cp-log-table">
                             <thead>
                                 <tr>
                                     <th>التاريخ</th>
@@ -119,12 +115,12 @@
                                 @foreach (var w in withdrawals.Take(50))
                                 {
                                     <tr>
-                                        <td>@w.WithdrawnAt.ToString("yyyy/MM/dd HH:mm")</td>
-                                        <td class="text-danger">-@SyrianCurrencyHelper.FormatNew(w.Amount)</td>
-                                        <td>@SyrianCurrencyHelper.FormatNew(w.BalanceBefore)</td>
-                                        <td>@SyrianCurrencyHelper.FormatNew(w.BalanceAfter)</td>
-                                        <td>@(w.WithdrawnByUser?.FullName ?? w.WithdrawnByUser?.UserName ?? w.WithdrawnByUserId)</td>
-                                        <td class="text-muted small">@(w.Notes ?? "—")</td>
+                                        <td class="cp-cell--lead" data-label="التاريخ">@w.WithdrawnAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                        <td class="text-danger" data-label="المبلغ">-@SyrianCurrencyHelper.FormatNew(w.Amount)</td>
+                                        <td data-label="الرصيد قبل">@SyrianCurrencyHelper.FormatNew(w.BalanceBefore)</td>
+                                        <td data-label="الرصيد بعد">@SyrianCurrencyHelper.FormatNew(w.BalanceAfter)</td>
+                                        <td data-label="من نفّذ">@(w.WithdrawnByUser?.FullName ?? w.WithdrawnByUser?.UserName ?? w.WithdrawnByUserId)</td>
+                                        <td class="text-muted small" data-label="ملاحظات">@(w.Notes ?? "—")</td>
                                     </tr>
                                 }
                             </tbody>
@@ -150,7 +146,7 @@
                 @if (deposits.Any())
                 {
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0 radtk-data-table radtk-data-table--cards">
+                        <table class="table table-hover mb-0 radtk-data-table radtk-data-table--cards cp-log-table">
                             <thead>
                                 <tr>
                                     <th>التاريخ</th>
@@ -165,12 +161,12 @@
                                 @foreach (var d in deposits.Take(50))
                                 {
                                     <tr>
-                                        <td>@d.DepositedAt.ToString("yyyy/MM/dd HH:mm")</td>
-                                        <td class="text-success">+@SyrianCurrencyHelper.FormatNew(d.Amount)</td>
-                                        <td>@SyrianCurrencyHelper.FormatNew(d.BalanceBefore)</td>
-                                        <td>@SyrianCurrencyHelper.FormatNew(d.BalanceAfter)</td>
-                                        <td>@(d.DepositedByUser?.FullName ?? d.DepositedByUser?.UserName ?? d.DepositedByUserId)</td>
-                                        <td class="text-muted small">@(d.Notes ?? "—")</td>
+                                        <td class="cp-cell--lead" data-label="التاريخ">@d.DepositedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                        <td class="text-success" data-label="المبلغ">+@SyrianCurrencyHelper.FormatNew(d.Amount)</td>
+                                        <td data-label="الرصيد قبل">@SyrianCurrencyHelper.FormatNew(d.BalanceBefore)</td>
+                                        <td data-label="الرصيد بعد">@SyrianCurrencyHelper.FormatNew(d.BalanceAfter)</td>
+                                        <td data-label="من نفّذ">@(d.DepositedByUser?.FullName ?? d.DepositedByUser?.UserName ?? d.DepositedByUserId)</td>
+                                        <td class="text-muted small" data-label="ملاحظات">@(d.Notes ?? "—")</td>
                                     </tr>
                                 }
                             </tbody>
@@ -189,3 +185,8 @@
         </div>
     </div>
 </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/collection-point-finance-cards.css" asp-append-version="true" />
+}

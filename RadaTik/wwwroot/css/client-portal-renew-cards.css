@@ -1,0 +1,194 @@
+/* بوابة المشترك — تجديد الاشتراك على الجوال والتابلت */
+.client-portal-renew-page {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.client-portal-renew-page .badge-danger-soft { background: #f8d7da; color: #842029; }
+.client-portal-renew-page .badge-warning-soft { background: #fff3cd; color: #664d03; }
+.client-portal-renew-page .badge-success-soft { background: #d1e7dd; color: #0f5132; }
+.client-portal-renew-page .badge-secondary-soft { background: #e2e3e5; color: #41464b; }
+
+.renew-wallet-hero {
+    padding: 1rem 1.1rem;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+    border: 1px solid rgba(16, 185, 129, 0.22);
+}
+
+.renew-wallet-hero__label {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text-muted, #64748b);
+}
+
+.renew-wallet-hero__amount {
+    font-size: 1.7rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #047857;
+    overflow-wrap: anywhere;
+}
+
+.renew-wallet-hero__amount span {
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+@media (max-width: 1199.98px) {
+    html body .client-portal-renew-page {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        padding: 0.65rem 0.15rem !important;
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
+
+    html body .client-portal-renew-page .page-header,
+    html body .client-portal-renew-page .card,
+    html body .client-portal-renew-page .card-body,
+    html body .client-portal-renew-page .card-header,
+    html body .client-portal-renew-page .table-responsive,
+    html body .client-portal-renew-page .alert,
+    html body .client-portal-renew-page .renew-wallet-hero {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    html body .client-portal-renew-page .page-header {
+        margin-bottom: 0.75rem !important;
+    }
+
+    html body .client-portal-renew-page .page-header h2 {
+        font-size: 1.2rem;
+        overflow-wrap: anywhere;
+    }
+
+    html body .client-portal-renew-page .table-responsive {
+        overflow: visible !important;
+    }
+
+    html body .client-portal-renew-page table.radtk-data-table--cards {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        table-layout: auto !important;
+        border-collapse: separate !important;
+    }
+
+    html body .client-portal-renew-page table.radtk-data-table--cards thead {
+        display: none !important;
+    }
+
+    html body .client-portal-renew-page table.radtk-data-table--cards > tbody,
+    html body .client-portal-renew-page table.radtk-data-table--cards tbody {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        width: 100% !important;
+        padding: 0.65rem;
+        box-sizing: border-box;
+    }
+
+    html body .client-portal-renew-page table.radtk-data-table--cards tbody tr {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0.75rem 0.85rem 0.85rem !important;
+        border: 1px solid rgba(148, 163, 184, 0.28) !important;
+        border-radius: 14px !important;
+        background: var(--bg-card, #fff) !important;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+        box-sizing: border-box !important;
+        float: none !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    html body .client-portal-renew-page table.radtk-data-table--cards tbody td {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.3rem 0.55rem;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0.32rem 0 !important;
+        border: none !important;
+        border-bottom: 1px dashed rgba(148, 163, 184, 0.28) !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+        text-align: start !important;
+        float: none !important;
+    }
+
+    html body .client-portal-renew-page table.radtk-data-table--cards tbody td::before {
+        content: attr(data-label);
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: var(--text-muted, #64748b);
+        flex: 0 0 auto;
+    }
+
+    html body .client-portal-renew-page table.radtk-data-table--cards tbody td > * {
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    html body .client-portal-renew-page table.radtk-data-table--cards tbody td.renew-cell--lead {
+        display: block !important;
+        font-weight: 800;
+        padding-bottom: 0.55rem !important;
+    }
+
+    html body .client-portal-renew-page table.radtk-data-table--cards tbody td.renew-cell--lead::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    html body .client-portal-renew-page table.radtk-data-table--cards tbody td.radtk-col-actions,
+    html body .client-portal-renew-page table.radtk-data-table--cards tbody td.renew-cell-actions {
+        flex-direction: column !important;
+        border-bottom: none !important;
+        padding-top: 0.65rem !important;
+        visibility: visible !important;
+    }
+
+    html body .client-portal-renew-page table.radtk-data-table--cards tbody td.renew-cell-actions::before {
+        display: none !important;
+        content: none !important;
+    }
+
+    html body .client-portal-renew-page .renew-cell-actions .btn,
+    html body .client-portal-renew-page .renew-cell-actions form,
+    html body .client-portal-renew-page .renew-cell-actions form .btn {
+        width: 100%;
+        min-height: 2.4rem;
+    }
+
+    html body .client-portal-renew-page .renew-wallet-hero__amount,
+    html body .client-portal-renew-page .card-body {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+}
+
+@media (max-width: 767.98px) {
+    html body .client-portal-renew-page table.radtk-data-table--cards > tbody,
+    html body .client-portal-renew-page table.radtk-data-table--cards tbody {
+        grid-template-columns: 1fr !important;
+        padding: 0.45rem;
+    }
+}

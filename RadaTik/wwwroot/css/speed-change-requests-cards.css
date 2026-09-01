@@ -1,0 +1,184 @@
+/* طلبات تغيير السرعة — لا يتجاوز الكرت عرض النافذة على الموبايل/التابلت */
+:is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+:is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .card,
+:is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .card-body,
+:is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .table-responsive,
+:is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .dataTables_wrapper,
+:is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .dataTables_wrapper .row,
+:is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .dataTables_wrapper [class*="col-"] {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+:is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .dataTables_wrapper .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+@media (max-width: 1199.98px) {
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .page-header-content {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.65rem;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .filter-bar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .filter-btn {
+        justify-content: center;
+        min-height: 2.45rem;
+        width: 100%;
+        box-sizing: border-box;
+        white-space: nowrap;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .card,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .card-body,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .table-responsive,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .dataTables_wrapper,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .dataTables_scroll,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .dataTables_scrollBody {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable.radtk-data-table--cards {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        table-layout: auto !important;
+        border-collapse: separate !important;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable thead {
+        display: none !important;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable > tbody,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable tbody {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable tbody tr {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 0 0.75rem !important;
+        padding: 0.55rem 0.7rem 0.7rem !important;
+        border: 1px solid var(--border-light, #e5e7eb) !important;
+        border-radius: 12px !important;
+        background: var(--bg-card, #fff) !important;
+        box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+        box-sizing: border-box !important;
+        float: none !important;
+        height: auto !important;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable tbody td {
+        display: flex !important;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.65rem;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        padding: 0.38rem 0 !important;
+        border: none !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+        text-align: start !important;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable tbody td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        font-size: 0.72rem;
+        color: var(--text-muted, #64748b);
+        flex: 0 0 auto;
+        max-width: 42%;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable tbody td[data-label=""]::before,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable tbody td:not([data-label])::before {
+        display: none;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable tbody td[data-label="العميل"] {
+        display: block !important;
+        border-bottom: 1px dashed var(--border-light, #e5e7eb) !important;
+        padding-bottom: 0.55rem !important;
+        margin-bottom: 0.15rem !important;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable tbody td[data-label="العميل"]::before {
+        display: none !important;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable tbody td[data-label="إجراءات"] {
+        flex-direction: column;
+        align-items: stretch;
+        border-top: 1px dashed var(--border-light, #e5e7eb) !important;
+        margin-top: 0.25rem;
+        padding-top: 0.55rem !important;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable tbody td[data-label="إجراءات"]::before {
+        display: none !important;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) #speedChangeTable tbody td[data-label="إجراءات"] .btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 2.45rem;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .client-info,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .profile-info,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .date-info {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .client-name,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .profile-name {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        white-space: normal;
+    }
+
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .dataTables_length,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .dataTables_filter,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .dataTables_info,
+    html body :is(.radtk-page-speed-requests, .radtk-page-emp-speed-req) .dataTables_paginate {
+        width: 100%;
+        float: none !important;
+        text-align: start !important;
+    }
+}

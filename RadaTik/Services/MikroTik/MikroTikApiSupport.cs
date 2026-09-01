@@ -85,7 +85,10 @@ public static class MikroTikApiSupport
         return string.Equals(CompactName(a), CompactName(b), StringComparison.OrdinalIgnoreCase);
     }
 
-    public static IReadOnlyList<ITikReSentence> PrintList(ITikConnection connection, string printPath)
+    public static IReadOnlyList<ITikReSentence> PrintList(
+        ITikConnection connection,
+        string printPath,
+        string? propList = null)
     {
         if (connection is null || string.IsNullOrWhiteSpace(printPath))
         {
@@ -93,6 +96,11 @@ public static class MikroTikApiSupport
         }
 
         ITikCommand cmd = connection.CreateCommand(printPath);
+        if (!string.IsNullOrWhiteSpace(propList))
+        {
+            cmd.AddParameter(".proplist", propList);
+        }
+
         try
         {
             return cmd.ExecuteList().ToList();

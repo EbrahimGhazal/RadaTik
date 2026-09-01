@@ -1,4 +1,5 @@
 @model RadaTik.ViewModels.Account.LoginViewModel
+@using RadaTik.Security
 @{
     ViewData["Title"] = "تسجيل الدخول";
     ViewData["BodyClass"] = "login-page login-page--radatik-spa-identity";
@@ -69,8 +70,18 @@
 
                 <div class="form-group">
                     <label asp-for="UserName" class="form-label">اسم المستخدم</label>
-                    <div class="input-wrapper">
-                        <input asp-for="UserName" class="form-control rt-input" placeholder="أدخل اسم المستخدم" autocomplete="username" required />
+                    <div class="input-wrapper" dir="ltr">
+                        <input asp-for="UserName"
+                               class="form-control rt-input"
+                               placeholder="أدخل اسم المستخدم"
+                               autocomplete="username"
+                               autocapitalize="none"
+                               autocorrect="on"
+                               spellcheck="true"
+                               inputmode="text"
+                               enterkeyhint="next"
+                               dir="ltr"
+                               required />
                         <i class="fas fa-user"></i>
                     </div>
                     <span asp-validation-for="UserName" class="validation-error"></span>
@@ -78,8 +89,18 @@
 
                 <div class="form-group">
                     <label asp-for="Password" class="form-label">كلمة المرور</label>
-                    <div class="input-wrapper">
-                        <input asp-for="Password" class="form-control rt-input" id="passwordInput" type="password" placeholder="أدخل كلمة المرور" autocomplete="current-password" required />
+                    <div class="input-wrapper" dir="ltr">
+                        <input asp-for="Password"
+                               class="form-control rt-input"
+                               id="passwordInput"
+                               type="password"
+                               placeholder="أدخل كلمة المرور"
+                               autocomplete="current-password"
+                               autocapitalize="none"
+                               spellcheck="false"
+                               enterkeyhint="go"
+                               dir="ltr"
+                               required />
                         <i class="fas fa-lock"></i>
                         <button type="button" class="password-toggle" id="passwordToggle" aria-label="إظهار كلمة المرور" title="إظهار كلمة المرور">
                             <i class="fas fa-eye" id="passwordToggleIcon"></i>
@@ -93,10 +114,17 @@
                 </div>
 
                 <div class="form-options">
-                    <div class="form-check">
-                        <input asp-for="RememberMe" class="form-check-input" />
-                        <label asp-for="RememberMe" class="form-check-label">تذكرني</label>
-                    </div>
+                    @if (string.IsNullOrWhiteSpace(ViewData["NativeApp"] as string))
+                    {
+                        <div class="form-check">
+                            <input asp-for="RememberMe" class="form-check-input" />
+                            <label asp-for="RememberMe" class="form-check-label">تذكرني</label>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="login-persist-note">سيبقى حسابك مسجلاً على هذا التطبيق حتى تسجّل الخروج بنفسك.</p>
+                    }
                     <a asp-route="reglog-forgotpassword" class="forgot-link">نسيت كلمة المرور؟</a>
                 </div>
 
@@ -117,12 +145,12 @@
         <div class="login-footer">
             <p class="login-footer-copy">© @DateTime.Now.Year RadaTik - جميع الحقوق محفوظة</p>
             <div class="login-footer-links">
-                <a asp-controller="Public" asp-action="Index" class="back-link">
-                    <i class="fas fa-arrow-right"></i>
-                    العودة للصفحة الرئيسية
-                </a>
-                @if (string.IsNullOrWhiteSpace(ViewData["NativeApp"] as string))
+                @if (string.IsNullOrWhiteSpace(nativeApp))
                 {
+                    <a asp-controller="Public" asp-action="Index" class="back-link">
+                        <i class="fas fa-arrow-right"></i>
+                        العودة للصفحة الرئيسية
+                    </a>
                     <span class="login-footer-sep">|</span>
                     <a asp-action="RegisterNetworkAdmin" asp-controller="Account" asp-area="" class="back-link back-link--emphasis">
                         <i class="fas fa-user-shield"></i>
@@ -132,6 +160,20 @@
                     <a asp-action="RegisterCollectionPoint" asp-controller="Account" asp-area="" class="back-link back-link--emphasis">
                         <i class="fas fa-paper-plane"></i>
                         طلب إنشاء نقطة تحصيل
+                    </a>
+                }
+                else if (nativeApp == NativeAppContext.Company)
+                {
+                    <a asp-action="RegisterNetworkAdmin" asp-controller="Account" asp-area="" asp-route-app="company" class="back-link back-link--emphasis">
+                        <i class="fas fa-user-shield"></i>
+                        إنشاء حساب مدير شركة
+                    </a>
+                }
+                else if (nativeApp == NativeAppContext.Collection)
+                {
+                    <a asp-action="RegisterCollectionPoint" asp-controller="Account" asp-area="" asp-route-app="collection" class="back-link back-link--emphasis">
+                        <i class="fas fa-paper-plane"></i>
+                        إنشاء حساب نقطة تحصيل
                     </a>
                 }
             </div>

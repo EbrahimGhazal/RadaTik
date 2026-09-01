@@ -32,7 +32,7 @@ public class ClientWalletTopUpRequestsController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(ClientWalletTopUpRequestStatus? status = null)
     {
-        ViewData["Title"] = "طلبات تغذية المشتركين";
+        ViewData["Title"] = "طلبات تغذية رصيد للمشتركين";
 
         ApplicationUser? user = await _userManager.GetUserAsync(User);
         if (user == null)

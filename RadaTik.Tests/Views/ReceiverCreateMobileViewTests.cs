@@ -17,8 +17,17 @@ public sealed class ReceiverCreateMobileViewTests
         Assert.Contains("receiver-map-toolbar", map);
         Assert.Contains("btnUseMyLocation", map);
         Assert.Contains("invalidateSize", scripts);
+        Assert.Contains("fitCoverageInView", scripts);
         Assert.Contains("--receiver-map-height", text);
         Assert.DoesNotContain("height: 250px", text);
+
+        string css = File.ReadAllText(FindFile("RadaTik", "wwwroot", "css", "radatik-responsive-spa.css"));
+        Assert.Contains(".leaflet-overlay-pane svg", css);
+        Assert.Contains("max-width: none !important", css);
+        Assert.DoesNotContain(".leaflet-container .leaflet-pane svg", css);
+
+        string mapCss = File.ReadAllText(FindFile("RadaTik", "wwwroot", "css", "receiver-create-map.css"));
+        Assert.Contains(".leaflet-overlay-pane svg", mapCss);
     }
 
     [Fact]

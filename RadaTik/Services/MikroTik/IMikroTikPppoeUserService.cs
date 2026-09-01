@@ -43,6 +43,13 @@ public interface IMikroTikPppoeUserService
 
     Task<List<Client>> GetActivePPPoEUsers(int serverId);
 
+    /// <summary>
+    /// أسماء الجلسات من <c>/ppp/active</c> لكل سيرفر (حقل name فقط، بالتوازي).
+    /// </summary>
+    Task<IReadOnlyDictionary<int, IReadOnlyList<string>>> GetActivePppSessionNamesByServerAsync(
+        IReadOnlyCollection<int> serverIds,
+        CancellationToken ct = default);
+
     Task<List<Client>> GetAllPPPoEUsers(int serverId);
 
     Task<bool> DisconnectActiveUser(int serverId, string username);

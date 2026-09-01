@@ -15,28 +15,48 @@
     <div class="card-body">
         <form asp-route="@ViewData["WizardRoute"]" asp-route-action="SharedReceiver" method="post">
             @Html.AntiForgeryToken()
-            <div class="row g-3" id="sharedReceiverLookups"
-                 data-sectors-url="@Url.RouteUrl((string)ViewData["WizardRoute"]!, new { action = "GetSectorsByServer" })"
-                 data-receivers-url="@Url.RouteUrl((string)ViewData["WizardRoute"]!, new { action = "SearchSharedReceivers" })">
+            <div class="row g-3" id="sharedReceiverLookups">
                 <div class="col-md-4">
                     <label class="form-label" for="serverSelect">اسم السيرفر</label>
-                    <select asp-for="MikroTikServerId" class="form-select" asp-items="Model.Servers" id="serverSelect">
+                    <select asp-for="MikroTikServerId" class="form-select no-select2" asp-items="Model.Servers" id="serverSelect"
+                            data-placeholder="ابحث عن السيرفر...">
                         <option value="">— الكل —</option>
                     </select>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="sectorSelect">اسم المرسل</label>
-                    <select asp-for="SectorId" class="form-select" asp-items="Model.Sectors" id="sectorSelect">
+                    <select asp-for="SectorId" class="form-select no-select2" id="sectorSelect"
+                            data-placeholder="ابحث عن المرسل...">
                         <option value="">— الكل —</option>
+                        @foreach (var sector in Model.Sectors)
+                        {
+                            if (Model.SectorId == sector.Id)
+                            {
+                                <option value="@sector.Id" data-server-id="@sector.MikroTikServerId" selected="selected">@sector.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@sector.Id" data-server-id="@sector.MikroTikServerId">@sector.Name</option>
+                            }
+                        }
                     </select>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="receiverSelect">اسم اللاقط <span class="text-danger">*</span></label>
-                    <select name="receiverId" class="form-select" id="receiverSelect" required>
+                    <select name="receiverId" class="form-select no-select2" id="receiverSelect" required
+                            data-placeholder="ابحث عن اللاقط...">
                         <option value="">— اختر —</option>
                         @foreach (var r in Model.Receivers)
                         {
-                            <option value="@r.Id" selected="@(Model.ReceiverId == r.Id)">@r.Name — @r.ServerName / @r.SectorName</option>
+                            var receiverLabel = r.IsActive ? r.Name : r.Name + " (بانتظار التفعيل)";
+                            if (Model.ReceiverId == r.Id)
+                            {
+                                <option value="@r.Id" data-server-id="@r.MikroTikServerId" data-sector-id="@r.SectorId" selected="selected">@receiverLabel — @r.ServerName / @r.SectorName</option>
+                            }
+                            else
+                            {
+                                <option value="@r.Id" data-server-id="@r.MikroTikServerId" data-sector-id="@r.SectorId">@receiverLabel — @r.ServerName / @r.SectorName</option>
+                            }
                         }
                     </select>
                     <div class="form-text text-muted" id="receiverLookupHint"></div>
@@ -50,98 +70,150 @@
 @section Scripts {
 <script>
 (function () {
-    const lookups = document.getElementById('sharedReceiverLookups');
-    const sectorsUrl = lookups && lookups.getAttribute('data-sectors-url');
-    const receiversUrl = lookups && lookups.getAttribute('data-receivers-url');
     const $server = $('#serverSelect');
     const $sector = $('#sectorSelect');
     const $receiver = $('#receiverSelect');
     const hint = document.getElementById('receiverLookupHint');
+    let selectedServerId = '';
+    let selectedSectorId = '';
 
-    function pick(item, camel, pascal) {
-        if (!item) return '';
-        const value = item[camel];
-        return value == null || value === '' ? (item[pascal] == null ? '' : item[pascal]) : value;
-    }
-
-    function refreshSelect($el) {
-        if (!$el.length) return;
-        if ($el.hasClass('select2-hidden-accessible')) {
-            $el.trigger('change.select2');
+    function matchesText(params, data) {
+        if ($.trim(params.term || '') === '') {
+            return data;
         }
+        return data.text.toUpperCase().indexOf(params.term.toUpperCase()) > -1 ? data : null;
     }
 
-    function replaceOptions($el, html) {
-        const selected = $el.val();
-        $el.html(html);
-        if (selected && $el.find('option[value="' + selected + '"]').length) {
-            $el.val(selected);
+    function sectorMatcher(params, data) {
+        if (data == null || typeof data.text === 'undefined') {
+            return null;
         }
-        refreshSelect($el);
+        if (data.id && selectedServerId) {
+            const el = data.element;
+            const serverId = el ? (el.getAttribute('data-server-id') || '') : '';
+            if (String(serverId) !== selectedServerId) {
+                return null;
+            }
+        }
+        return matchesText(params, data);
     }
 
-    function setHint(text) {
-        if (hint) hint.textContent = text || '';
+    function receiverMatcher(params, data) {
+        if (data == null || typeof data.text === 'undefined') {
+            return null;
+        }
+        if (data.id) {
+            const el = data.element;
+            if (selectedServerId) {
+                const serverId = el ? (el.getAttribute('data-server-id') || '') : '';
+                if (String(serverId) !== selectedServerId) {
+                    return null;
+                }
+            }
+            if (selectedSectorId) {
+                const sectorId = el ? (el.getAttribute('data-sector-id') || '') : '';
+                if (String(sectorId) !== selectedSectorId) {
+                    return null;
+                }
+            }
+        }
+        return matchesText(params, data);
     }
 
-    function loadSectors() {
-        if (!sectorsUrl) return;
-        const serverId = $server.val() || '';
-        $.get(sectorsUrl, serverId ? { serverId: serverId } : {})
-            .done(function (data) {
-                const rows = Array.isArray(data) ? data : [];
-                let html = '<option value="">— الكل —</option>';
-                rows.forEach(function (s) {
-                    const id = pick(s, 'id', 'Id');
-                    const name = pick(s, 'name', 'Name') || ('#' + id);
-                    html += '<option value="' + id + '">' + name + '</option>';
-                });
-                replaceOptions($sector, html);
-            })
-            .fail(function () {
-                setHint('تعذر تحميل المرسلين. أعد المحاولة.');
-            });
+    function select2Config(placeholder, matcher) {
+        return {
+            theme: 'bootstrap-5',
+            dir: 'rtl',
+            width: '100%',
+            allowClear: true,
+            placeholder: placeholder,
+            matcher: matcher,
+            language: {
+                noResults: function () { return 'لا توجد نتائج'; },
+                searching: function () { return 'جاري البحث...'; }
+            }
+        };
     }
 
-    function loadReceivers() {
-        if (!receiversUrl) {
-            setHint('تعذر تحديد مسار البحث عن اللواقط.');
+    function bootSelect2() {
+        if ($server.hasClass('select2-hidden-accessible')) $server.select2('destroy');
+        if ($sector.hasClass('select2-hidden-accessible')) $sector.select2('destroy');
+        if ($receiver.hasClass('select2-hidden-accessible')) $receiver.select2('destroy');
+
+        $server.select2(select2Config($server.attr('data-placeholder') || 'ابحث عن السيرفر...', matchesText));
+        $sector.select2(select2Config($sector.attr('data-placeholder') || 'ابحث عن المرسل...', sectorMatcher));
+        $receiver.select2(select2Config($receiver.attr('data-placeholder') || 'ابحث عن اللاقط...', receiverMatcher));
+    }
+
+    function selectedAttr($el, name) {
+        const val = $el.val();
+        if (!val) return '';
+        return String($el.find('option:selected').attr(name) || '');
+    }
+
+    function countVisibleReceivers() {
+        let n = 0;
+        $receiver.find('option').each(function () {
+            if (!this.value) return;
+            if (selectedServerId && String(this.getAttribute('data-server-id') || '') !== selectedServerId) return;
+            if (selectedSectorId && String(this.getAttribute('data-sector-id') || '') !== selectedSectorId) return;
+            n++;
+        });
+        return n;
+    }
+
+    function setHint() {
+        if (!hint) return;
+        const n = countVisibleReceivers();
+        if (n === 0) {
+            hint.textContent = selectedSectorId
+                ? 'لا يوجد لاقط على هذا المرسل.'
+                : 'لا توجد لواقط ضمن التصفية الحالية.';
             return;
         }
-        setHint('جاري تحميل اللواقط...');
-        $.get(receiversUrl, {
-            serverId: $server.val() || '',
-            sectorId: $sector.val() || ''
-        })
-            .done(function (data) {
-                const rows = Array.isArray(data) ? data : [];
-                let html = '<option value="">— اختر —</option>';
-                rows.forEach(function (r) {
-                    const id = pick(r, 'id', 'Id');
-                    const name = pick(r, 'name', 'Name') || ('#' + id);
-                    const serverName = pick(r, 'serverName', 'ServerName') || '—';
-                    const sectorName = pick(r, 'sectorName', 'SectorName') || '—';
-                    html += '<option value="' + id + '">' + name + ' — ' + serverName + ' / ' + sectorName + '</option>';
-                });
-                replaceOptions($receiver, html);
-                if (rows.length === 0) {
-                    setHint($sector.val()
-                        ? 'لا يوجد لاقط مشترك على هذا المرسل.'
-                        : 'لا توجد لواقط مشتركة ضمن التصفية الحالية.');
-                } else {
-                    setHint(rows.length === 1 ? 'لاقط واحد متاح.' : (rows.length + ' لواقط متاحة.'));
-                }
-            })
-            .fail(function () {
-                setHint('تعذر تحميل اللواقط. أعد المحاولة.');
-            });
+        hint.textContent = n === 1 ? 'لاقط واحد متاح.' : (n + ' لواقط متاحة.');
     }
 
-    $server.on('change', function () {
-        loadSectors();
-        loadReceivers();
-    });
-    $sector.on('change', loadReceivers);
+    function onServerChange() {
+        selectedServerId = String($server.val() || '');
+        if (selectedServerId && $sector.val() && selectedAttr($sector, 'data-server-id') !== selectedServerId) {
+            $sector.val(null).trigger('change');
+            return;
+        }
+        selectedSectorId = String($sector.val() || '');
+        $sector.trigger('change.select2');
+        onSectorChange();
+    }
+
+    function onSectorChange() {
+        selectedSectorId = String($sector.val() || '');
+        const receiverBelongs =
+            !$receiver.val() ||
+            ((!selectedSectorId || selectedAttr($receiver, 'data-sector-id') === selectedSectorId) &&
+             (!selectedServerId || selectedAttr($receiver, 'data-server-id') === selectedServerId));
+        if (!receiverBelongs) {
+            $receiver.val(null).trigger('change');
+        } else {
+            $receiver.trigger('change.select2');
+        }
+        setHint();
+    }
+
+    $server.on('change.sharedReceiver', onServerChange);
+    $sector.on('change.sharedReceiver', onSectorChange);
+
+    function boot() {
+        selectedServerId = String($server.val() || '');
+        selectedSectorId = String($sector.val() || '');
+        bootSelect2();
+        setHint();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 0); });
+    } else {
+        setTimeout(boot, 0);
+    }
 })();
 </script>
 }

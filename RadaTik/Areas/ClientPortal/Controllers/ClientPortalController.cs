@@ -26,6 +26,7 @@ namespace RadaTik.Areas.ClientPortal.Controllers
             global::RadaTik.Services.IMaintenanceEmployeeTaskService maintenanceEmployeeTasks,
             global::RadaTik.Services.Clients.IClientVipPolicyService vipPolicy,
             global::RadaTik.Services.Clients.ISubscriberFaultDiagnosisService faultDiagnosis,
+            global::RadaTik.Services.Company.ICompanyClientPresenceService clientPresence,
             global::RadaTik.Services.MikroTik.IMikroTikPppoeUserService mikroTikService)
             : base(
                 context,
@@ -40,6 +41,7 @@ namespace RadaTik.Areas.ClientPortal.Controllers
                 maintenanceEmployeeTasks,
                 vipPolicy,
                 faultDiagnosis,
+                clientPresence,
                 mikroTikService)
         {
         }

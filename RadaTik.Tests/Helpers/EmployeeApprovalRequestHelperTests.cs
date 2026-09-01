@@ -32,4 +32,15 @@ public sealed class EmployeeApprovalRequestHelperTests
         Assert.Equal("portal-pass", payload.DbPassword);
         Assert.Null(payload.UserName);
     }
+
+    [Theory]
+    [InlineData("EMP_REQ:CLIENT_CREATE:10", "Clients", true)]
+    [InlineData("EMP_REQ:RECEIVER_CREATE:3", "Receivers", true)]
+    [InlineData("SECTOR_CREATE_PENDING:9;Network:2", "Sectors", true)]
+    [InlineData("اشتراك شهري", "Reports", false)]
+    [InlineData(null, "Reports", false)]
+    public void IsInternalEmployeeApproval_DetectsCompanyManagerOnlyRequests(string? notes, string? featureKey, bool expected)
+    {
+        Assert.Equal(expected, EmployeeApprovalRequestHelper.IsInternalEmployeeApproval(notes, featureKey));
+    }
 }

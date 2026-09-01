@@ -16,7 +16,17 @@ public sealed class ReceiverPickOption
     public string Name { get; init; } = string.Empty;
     public string ServerName { get; init; } = string.Empty;
     public string SectorName { get; init; } = string.Empty;
+    public int MikroTikServerId { get; init; }
+    public int SectorId { get; init; }
     public bool IsShared { get; init; }
+    public bool IsActive { get; init; }
+}
+
+public sealed class WizardSectorLookup
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public int MikroTikServerId { get; init; }
 }
 
 public sealed class NewSubscriberWizardSharedReceiverViewModel
@@ -25,7 +35,7 @@ public sealed class NewSubscriberWizardSharedReceiverViewModel
     public int? SectorId { get; set; }
     public int? ReceiverId { get; set; }
     public List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> Servers { get; set; } = new();
-    public List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> Sectors { get; set; } = new();
+    public List<WizardSectorLookup> Sectors { get; set; } = new();
     public List<ReceiverPickOption> Receivers { get; set; } = new();
 }
 

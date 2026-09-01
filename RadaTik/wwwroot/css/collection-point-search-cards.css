@@ -1,0 +1,264 @@
+/* نتائج بحث نقطة التحصيل — بطاقة مشترك بدل الجدول */
+.collect-search-bar {
+    width: 100%;
+}
+
+.collect-search-bar .input-group {
+    width: 100%;
+}
+
+.collect-search-results {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+}
+
+.collect-search-status {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 8rem;
+    padding: 1.25rem 1rem;
+    border: 1px dashed rgba(148, 163, 184, 0.4);
+    border-radius: 16px;
+    background: var(--bg-card, #fff);
+    color: var(--text-muted, #64748b);
+    text-align: center;
+}
+
+.collect-search-status--error {
+    color: #b91c1c;
+    border-color: rgba(185, 28, 28, 0.28);
+    background: #fef2f2;
+}
+
+.collect-search-status i {
+    font-size: 1.4rem;
+}
+
+.collect-client-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    min-width: 0;
+    padding: 0.95rem 1rem 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 16px;
+    background: var(--bg-card, #fff);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.collect-client-card--overdue {
+    border-inline-start: 4px solid #f59e0b;
+}
+
+.collect-client-card__head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.collect-client-card__avatar {
+    flex: 0 0 2.6rem;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.05rem;
+}
+
+.collect-client-card__identity {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.collect-client-card__name {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1.35;
+    color: var(--text-primary, #0f172a);
+    overflow-wrap: anywhere;
+}
+
+.collect-client-card__username {
+    margin: 0.15rem 0 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-muted, #64748b);
+    overflow-wrap: anywhere;
+}
+
+.collect-client-card__badge {
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+    font-size: 0.72rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.collect-client-card__meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem 0.65rem;
+    margin: 0;
+}
+
+.collect-client-card__meta div {
+    min-width: 0;
+    padding: 0.45rem 0.55rem;
+    border-radius: 10px;
+    background: rgba(241, 245, 249, 0.9);
+}
+
+.collect-client-card__meta dt {
+    margin: 0 0 0.15rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--text-muted, #64748b);
+}
+
+.collect-client-card__meta dd {
+    margin: 0;
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: var(--text-primary, #0f172a);
+    overflow-wrap: anywhere;
+}
+
+.collect-client-card__due {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.45rem 0.85rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+    border: 1px solid rgba(16, 185, 129, 0.22);
+}
+
+.collect-client-card--overdue .collect-client-card__due {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-color: rgba(245, 158, 11, 0.28);
+}
+
+.collect-client-card__due-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-muted, #64748b);
+}
+
+.collect-client-card__due-amount {
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #047857;
+    overflow-wrap: anywhere;
+}
+
+.collect-client-card--overdue .collect-client-card__due-amount {
+    color: #b45309;
+}
+
+.collect-client-card__due-note {
+    width: 100%;
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted, #475569);
+}
+
+.collect-client-card__prices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted, #64748b);
+}
+
+.collect-client-card__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+.collect-client-card__actions .btn {
+    min-height: 2.55rem;
+    justify-content: center;
+    font-weight: 800;
+}
+
+@media (min-width: 768px) {
+    .collect-search-results {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 575.98px) {
+    #searchModal .modal-dialog {
+        margin: 0.4rem;
+    }
+
+    .collect-search-bar .input-group {
+        flex-wrap: wrap;
+    }
+
+    .collect-search-bar .form-control {
+        width: 100%;
+        min-height: 2.7rem;
+        border-radius: 0.7rem !important;
+    }
+
+    .collect-search-bar .btn {
+        width: 100%;
+        min-height: 2.7rem;
+        margin-top: 0.45rem;
+        border-radius: 0.7rem !important;
+    }
+
+    .collect-client-card__meta {
+        grid-template-columns: 1fr;
+    }
+
+    .collect-client-card__head {
+        flex-wrap: wrap;
+    }
+
+    .collect-client-card__badge {
+        width: 100%;
+        margin: 0.15rem 0 0;
+        text-align: center;
+    }
+}
+
+[data-theme="dark"] .collect-client-card,
+[data-theme="dark"] .collect-search-status {
+    background: var(--bg-card, #1e293b);
+}
+
+[data-theme="dark"] .collect-client-card__meta div {
+    background: rgba(51, 65, 85, 0.6);
+}
+
+[data-theme="dark"] .collect-client-card__due {
+    background: rgba(6, 95, 70, 0.28);
+}
+
+[data-theme="dark"] .collect-client-card--overdue .collect-client-card__due {
+    background: rgba(120, 53, 15, 0.35);
+}
+
+[data-theme="dark"] .collect-search-status--error {
+    background: rgba(127, 29, 29, 0.28);
+    color: #fecaca;
+}

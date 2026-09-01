@@ -1,0 +1,228 @@
+@model RadaTik.Services.Company.CompanyClientPresenceAdminPage
+@using RadaTik.Helpers
+@{
+    ViewData["Title"] = "حضور الشركة للمشترك";
+    var socialTab = Model.Tab != "complaints";
+    var visibleSocial = Model.SocialLinks.Count(x => x.IsVisibleToClients);
+    var visiblePhones = Model.ComplaintContacts.Count(x => x.IsVisibleToClients);
+}
+
+<link rel="stylesheet" href="~/css/company-client-presence.css" asp-append-version="true" />
+
+<div class="client-presence-page">
+    <div class="sys-hero mb-3">
+        <div class="sys-hero-main">
+            <div class="sys-hero-icon"><i class="fas fa-share-nodes"></i></div>
+            <div>
+                <h1 class="sys-hero-title mb-1">@ViewData["Title"]</h1>
+                <p class="sys-hero-subtitle mb-0">ما يظهر لمشتركي @Model.CompanyName في التطبيق والموقع</p>
+            </div>
+        </div>
+        <div class="sys-hero-chips">
+            <span class="sys-hero-chip"><i class="fas fa-thumbs-up"></i> @visibleSocial سوشال</span>
+            <span class="sys-hero-chip"><i class="fas fa-phone"></i> @visiblePhones شكاوى</span>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success py-2 mb-3">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger py-2 mb-3">@TempData["Error"]</div>
+    }
+
+    <div class="client-presence-switch">
+        <a class="client-presence-switch__btn @(socialTab ? "is-active" : null)"
+           asp-route="networkManager-client-presence" asp-route-action="Index" asp-route-tab="social">
+            <i class="fas fa-thumbs-up"></i>
+            <span>السوشال ميديا</span>
+        </a>
+        <a class="client-presence-switch__btn @(!socialTab ? "is-active" : null)"
+           asp-route="networkManager-client-presence" asp-route-action="Index" asp-route-tab="complaints">
+            <i class="fas fa-headset"></i>
+            <span>الشكاوى</span>
+        </a>
+    </div>
+
+    @if (socialTab)
+    {
+        <section class="client-presence-panel">
+            <header class="client-presence-panel__head">
+                <h2>صفحات الشركة</h2>
+                <p>أضف روابط فيسبوك أو واتساب أو أي منصة. الظاهر منها يظهر أسفل قائمة المشترك.</p>
+            </header>
+
+            <form asp-route="networkManager-client-presence" asp-route-action="AddSocial" method="post" class="client-presence-add">
+                @Html.AntiForgeryToken()
+                <label>
+                    <span>المنصة</span>
+                    <select name="platform" required>
+                        @foreach (var platform in SocialMediaCatalog.All)
+                        {
+                            <option value="@((int)platform.Platform)">@platform.ArabicName</option>
+                        }
+                    </select>
+                </label>
+                <label>
+                    <span>الاسم</span>
+                    <input name="displayName" maxlength="80" placeholder="اختياري" />
+                </label>
+                <label class="client-presence-add__wide">
+                    <span>الرابط أو رقم واتساب</span>
+                    <input name="url" maxlength="500" required placeholder="https://facebook.com/..." />
+                </label>
+                <label class="client-presence-toggle">
+                    <input type="checkbox" name="isVisibleToClients" value="true" checked />
+                    <span>إظهار للمشترك</span>
+                </label>
+                <button type="submit" class="client-presence-add__submit"><i class="fas fa-plus"></i> إضافة</button>
+            </form>
+
+            @if (Model.SocialLinks.Count == 0)
+            {
+                <div class="client-presence-empty">
+                    <i class="fas fa-share-nodes"></i>
+                    <strong>لا توجد صفحات بعد</strong>
+                    <span>أضف أول صفحة لتظهر في شريط المشترك.</span>
+                </div>
+            }
+            else
+            {
+                <div class="client-presence-grid">
+                    @foreach (var link in Model.SocialLinks)
+                    {
+                        var info = SocialMediaCatalog.Info(link.Platform);
+                        <article class="client-presence-item @(link.IsVisibleToClients ? null : "is-off")">
+                            <div class="client-presence-item__top">
+                                <span class="client-presence-icon" style="--brand:@info.BrandColor"><i class="@info.IconClass"></i></span>
+                                <div>
+                                    <strong>@link.DisplayName</strong>
+                                    <small>@info.ArabicName</small>
+                                </div>
+                                <span class="client-presence-badge @(link.IsVisibleToClients ? "is-on" : "is-off")">
+                                    @(link.IsVisibleToClients ? "ظاهر" : "مخفي")
+                                </span>
+                            </div>
+                            <form asp-route="networkManager-client-presence" asp-route-action="UpdateSocial" method="post" class="client-presence-item__form">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@link.Id" />
+                                @if (link.IsVisibleToClients)
+                                {
+                                    <input type="hidden" name="isVisibleToClients" value="true" />
+                                }
+                                <select name="platform">
+                                    @foreach (var platform in SocialMediaCatalog.All)
+                                    {
+                                        if (platform.Platform == link.Platform)
+                                        {
+                                            <option value="@((int)platform.Platform)" selected>@platform.ArabicName</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@((int)platform.Platform)">@platform.ArabicName</option>
+                                        }
+                                    }
+                                </select>
+                                <input name="displayName" maxlength="80" value="@link.DisplayName" />
+                                <input name="url" maxlength="500" value="@link.Url" dir="ltr" />
+                                <button type="submit" class="btn-save">حفظ</button>
+                            </form>
+                            <div class="client-presence-item__actions">
+                                <form asp-route="networkManager-client-presence" asp-route-action="ToggleSocial" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@link.Id" />
+                                    <button type="submit" class="btn-ghost">@(link.IsVisibleToClients ? "إخفاء" : "إظهار")</button>
+                                </form>
+                                <form asp-route="networkManager-client-presence" asp-route-action="DeleteSocial" method="post" onsubmit="return confirm('حذف هذا الرابط؟');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@link.Id" />
+                                    <button type="submit" class="btn-danger">حذف</button>
+                                </form>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+    }
+    else
+    {
+        <section class="client-presence-panel">
+            <header class="client-presence-panel__head">
+                <h2>أرقام الشكاوى</h2>
+                <p>أرقام خاصة بهذه الشركة. المشترك يراها فقط إذا كانت ظاهرة.</p>
+            </header>
+
+            <form asp-route="networkManager-client-presence" asp-route-action="AddComplaint" method="post" class="client-presence-add">
+                @Html.AntiForgeryToken()
+                <label>
+                    <span>التسمية</span>
+                    <input name="label" maxlength="80" placeholder="شكاوى فنية" />
+                </label>
+                <label class="client-presence-add__wide">
+                    <span>رقم الهاتف</span>
+                    <input name="phoneNumber" maxlength="40" required placeholder="09xxxxxxxx" dir="ltr" />
+                </label>
+                <label class="client-presence-toggle">
+                    <input type="checkbox" name="isVisibleToClients" value="true" checked />
+                    <span>إظهار للمشترك</span>
+                </label>
+                <button type="submit" class="client-presence-add__submit"><i class="fas fa-plus"></i> إضافة رقم</button>
+            </form>
+
+            @if (Model.ComplaintContacts.Count == 0)
+            {
+                <div class="client-presence-empty">
+                    <i class="fas fa-phone-volume"></i>
+                    <strong>لا توجد أرقام شكاوى</strong>
+                    <span>أضف رقم الدعم أو الشكاوى ليظهر للمشترك في تبويب الشكاوى.</span>
+                </div>
+            }
+            else
+            {
+                <div class="client-presence-grid">
+                    @foreach (var contact in Model.ComplaintContacts)
+                    {
+                        <article class="client-presence-item client-presence-item--phone @(contact.IsVisibleToClients ? null : "is-off")">
+                            <div class="client-presence-item__top">
+                                <span class="client-presence-icon" style="--brand:#0f766e"><i class="fas fa-phone"></i></span>
+                                <div>
+                                    <strong>@contact.Label</strong>
+                                    <small class="client-presence-phone" dir="ltr">@contact.PhoneNumber</small>
+                                </div>
+                                <span class="client-presence-badge @(contact.IsVisibleToClients ? "is-on" : "is-off")">
+                                    @(contact.IsVisibleToClients ? "ظاهر للمشترك" : "مخفي")
+                                </span>
+                            </div>
+                            <form asp-route="networkManager-client-presence" asp-route-action="UpdateComplaint" method="post" class="client-presence-item__form">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@contact.Id" />
+                                @if (contact.IsVisibleToClients)
+                                {
+                                    <input type="hidden" name="isVisibleToClients" value="true" />
+                                }
+                                <input name="label" maxlength="80" value="@contact.Label" />
+                                <input name="phoneNumber" maxlength="40" value="@contact.PhoneNumber" dir="ltr" />
+                                <button type="submit" class="btn-save">حفظ</button>
+                            </form>
+                            <div class="client-presence-item__actions">
+                                <form asp-route="networkManager-client-presence" asp-route-action="ToggleComplaint" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@contact.Id" />
+                                    <button type="submit" class="btn-ghost">@(contact.IsVisibleToClients ? "إخفاء" : "إظهار")</button>
+                                </form>
+                                <form asp-route="networkManager-client-presence" asp-route-action="DeleteComplaint" method="post" onsubmit="return confirm('حذف هذا الرقم؟');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@contact.Id" />
+                                    <button type="submit" class="btn-danger">حذف</button>
+                                </form>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+    }
+</div>

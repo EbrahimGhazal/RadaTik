@@ -5,6 +5,8 @@
     ViewData["Title"] = Model.Title;
 }
 
+<div class="collection-point-finance-page">
+<partial name="_CollectionPointFinanceNav" />
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
         <h1 class="mb-1"><i class="fas fa-receipt"></i> @Model.Title</h1>
@@ -30,20 +32,20 @@
 <div class="card mb-3">
     <div class="card-body">
         <form method="get" class="row g-2 align-items-end">
-            <div class="col-sm-4 col-md-3">
+            <div class="col-sm-4 col-md-3 cp-finance-field">
                 <label class="form-label">من</label>
                 <input type="date" name="from" class="form-control" value="@(Model.From?.ToString("yyyy-MM-dd") ?? "")" />
             </div>
-            <div class="col-sm-4 col-md-3">
+            <div class="col-sm-4 col-md-3 cp-finance-field">
                 <label class="form-label">إلى</label>
                 <input type="date" name="to" class="form-control" value="@(Model.To?.ToString("yyyy-MM-dd") ?? "")" />
             </div>
-            <div class="col-sm-4 col-md-3 d-flex gap-2">
+            <div class="col-sm-4 col-md-3 d-flex gap-2 flex-wrap">
                 <button type="submit" class="btn btn-primary flex-grow-1">
                     <i class="fas fa-filter"></i>
                     تطبيق
                 </button>
-                <a class="btn btn-outline-secondary" asp-route="collectionPoint-receipts">
+                <a class="btn btn-outline-secondary flex-grow-1" asp-route="collectionPoint-receipts">
                     تفريغ
                 </a>
             </div>
@@ -51,9 +53,9 @@
     </div>
 </div>
 
-<div class="row g-3 mb-3">
+<div class="row g-3 mb-3 cp-finance-stats">
     <div class="col-md-4">
-        <div class="card h-100 border-primary">
+        <div class="card h-100 border-0">
             <div class="card-body">
                 <div class="text-muted">عدد العمليات</div>
                 <div class="fs-4 fw-bold">@Model.TotalCount</div>
@@ -61,15 +63,15 @@
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card h-100">
+        <div class="card h-100 border-0">
             <div class="card-body">
-                <div class="text-muted">الإجمالي (ل.س)</div>
+                <div class="text-muted">الإجمالي (ل.س.ج)</div>
                 <div class="fs-4 fw-bold">@Model.TotalSYP.ToString("N0")</div>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card h-100">
+        <div class="card h-100 border-0">
             <div class="card-body">
                 <div class="text-muted">الإجمالي ($)</div>
                 <div class="fs-4 fw-bold">@Model.TotalUSD.ToString("N2")</div>
@@ -87,12 +89,12 @@
         @if (Model.ByMethod.Any())
         {
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover mb-0 radtk-data-table radtk-data-table--cards">
                     <thead>
                         <tr>
                             <th>طريقة الدفع</th>
                             <th>عدد العمليات</th>
-                            <th>الإجمالي (ل.س)</th>
+                            <th>الإجمالي (ل.س.ج)</th>
                             <th>الإجمالي ($)</th>
                         </tr>
                     </thead>
@@ -100,10 +102,10 @@
                         @foreach (var m in Model.ByMethod)
                         {
                             <tr>
-                                <td><strong>@m.Method</strong></td>
-                                <td>@m.Count</td>
-                                <td>@m.TotalSYP.ToString("N0")</td>
-                                <td>@m.TotalUSD.ToString("N2")</td>
+                                <td class="cp-cell--lead" data-label="طريقة الدفع"><strong>@m.Method</strong></td>
+                                <td data-label="عدد العمليات">@m.Count</td>
+                                <td data-label="الإجمالي (ل.س.ج)">@m.TotalSYP.ToString("N0")</td>
+                                <td data-label="الإجمالي ($)">@m.TotalUSD.ToString("N2")</td>
                             </tr>
                         }
                     </tbody>
@@ -126,14 +128,14 @@
         @if (Model.Items.Any())
         {
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 radtk-data-table radtk-data-table--cards">
                     <thead>
                         <tr>
                             <th>تاريخ الاعتماد</th>
                             <th>نوع المصدر</th>
                             <th>رقم الطلب</th>
                             <th>طريقة الدفع</th>
-                            <th>المبلغ (ل.س)</th>
+                            <th>المبلغ (ل.س.ج)</th>
                             <th>مرجع</th>
                             <th>الإيصال</th>
                             <th>الموافق</th>
@@ -144,8 +146,8 @@
                         @foreach (var r in Model.Items.Take(500))
                         {
                             <tr>
-                                <td>@r.ApprovedAt.ToString("yyyy/MM/dd HH:mm")</td>
-                                <td>
+                                <td class="cp-cell--lead" data-label="تاريخ الاعتماد">@r.ApprovedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td data-label="نوع المصدر">
                                     @if (r.SourceType == ReceiptSourceType.CollectionPointTopUp)
                                     {
                                         <span class="badge bg-secondary">تغذية نقطة</span>
@@ -159,11 +161,11 @@
                                         <span class="badge bg-dark">أخرى</span>
                                     }
                                 </td>
-                                <td class="text-muted">#@r.SourceId</td>
-                                <td>@r.PaymentMethod</td>
-                                <td class="fw-bold">@r.AmountSYP.ToString("N0")</td>
-                                <td class="text-muted small">@(string.IsNullOrWhiteSpace(r.ReferenceNumber) ? "—" : r.ReferenceNumber)</td>
-                                <td>
+                                <td class="text-muted" data-label="رقم الطلب">#@r.SourceId</td>
+                                <td data-label="طريقة الدفع">@r.PaymentMethod</td>
+                                <td class="fw-bold" data-label="المبلغ (ل.س.ج)">@r.AmountSYP.ToString("N0")</td>
+                                <td class="text-muted small" data-label="مرجع">@(string.IsNullOrWhiteSpace(r.ReferenceNumber) ? "—" : r.ReferenceNumber)</td>
+                                <td class="cp-cell-actions" data-label="الإيصال">
                                     @if (!string.IsNullOrWhiteSpace(r.ReceiptImagePath))
                                     {
                                         <a class="btn btn-sm btn-outline-secondary" href="@r.ReceiptImagePath" target="_blank">
@@ -176,8 +178,8 @@
                                         <span class="text-muted small">—</span>
                                     }
                                 </td>
-                                <td class="text-muted small">@(string.IsNullOrWhiteSpace(r.ApprovedBy) ? "—" : r.ApprovedBy)</td>
-                                <td class="text-muted small">@(string.IsNullOrWhiteSpace(r.Notes) ? "—" : r.Notes)</td>
+                                <td class="text-muted small" data-label="الموافق">@(string.IsNullOrWhiteSpace(r.ApprovedBy) ? "—" : r.ApprovedBy)</td>
+                                <td class="text-muted small" data-label="ملاحظات">@(string.IsNullOrWhiteSpace(r.Notes) ? "—" : r.Notes)</td>
                             </tr>
                         }
                     </tbody>
@@ -190,4 +192,9 @@
         }
     </div>
 </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/collection-point-finance-cards.css" asp-append-version="true" />
+}
 

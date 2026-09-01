@@ -66,6 +66,14 @@ namespace RadaTik.Models
         [StringLength(200, ErrorMessage = "مكان العمل يجب أن لا يتجاوز 200 حرف")]
         public string? Workplace { get; set; }
 
+        [Display(Name = "الهوية — الوجه الأمامي")]
+        [StringLength(260)]
+        public string? NationalIdFrontPath { get; set; }
+
+        [Display(Name = "الهوية — الوجه الخلفي")]
+        [StringLength(260)]
+        public string? NationalIdBackPath { get; set; }
+
         [Display(Name = "خط العرض")]
         public double? Latitude { get; set; }
 

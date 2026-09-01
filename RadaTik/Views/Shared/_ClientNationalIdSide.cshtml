@@ -1,0 +1,53 @@
+@model RadaTik.ViewModels.Clients.ClientNationalIdCardViewModel
+@{
+    var side = ViewData["Side"] as string ?? "front";
+    var title = ViewData["Title"] as string ?? "الوجه";
+    var path = ViewData["Path"] as string;
+    var hasImage = !string.IsNullOrWhiteSpace(path);
+}
+
+<div class="client-nid-side">
+    <div class="client-nid-side__title">@title</div>
+    <div class="client-nid-preview @(hasImage ? "is-filled" : "is-empty")">
+        @if (hasImage)
+        {
+            <a href="@path" target="_blank" rel="noopener" class="client-nid-preview__link" title="فتح الصورة">
+                <img src="@path" alt="@title" class="client-nid-preview__img" />
+            </a>
+        }
+        else
+        {
+            <div class="client-nid-preview__empty">
+                <i class="fas fa-id-card"></i>
+                <span>لم تُرفع بعد</span>
+            </div>
+        }
+    </div>
+    @if (Model.CanUpload)
+    {
+        <form asp-action="UploadNationalId" method="post" enctype="multipart/form-data" class="client-nid-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.ClientId" />
+            <input type="hidden" name="side" value="@side" />
+            <label class="client-nid-file">
+                <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required />
+                <span>@(hasImage ? "استبدال الصورة" : "رفع الصورة")</span>
+            </label>
+            <button type="submit" class="btn btn-primary btn-sm client-nid-form__save">
+                <i class="fas fa-save"></i> حفظ
+            </button>
+        </form>
+        @if (hasImage)
+        {
+            <form asp-action="UploadNationalId" method="post" class="client-nid-remove">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.ClientId" />
+                <input type="hidden" name="side" value="@side" />
+                <input type="hidden" name="remove" value="true" />
+                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('حذف صورة الهوية؟');">
+                    <i class="fas fa-trash"></i> حذف
+                </button>
+            </form>
+        }
+    }
+</div>

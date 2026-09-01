@@ -5,7 +5,9 @@
 
 /* Login Page Body — مطابقة rt-page في React */
 body.login-page {
+    overflow-x: hidden;
     overflow-y: auto;
+    max-width: 100%;
     font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
     background: #f3f4f6;
     color: #374151;
@@ -31,6 +33,7 @@ body.login-page.login-page--radatik-spa-identity {
     z-index: 1;
     width: 100%;
     max-width: 28rem; /* max-w-md مثل React */
+    min-width: 0;
     margin: 0 auto;
     padding: 2.5rem 1rem;
     display: flex;
@@ -38,6 +41,7 @@ body.login-page.login-page--radatik-spa-identity {
     justify-content: center;
     min-height: 100vh;
     min-height: 100dvh;
+    box-sizing: border-box;
 }
 
 .login-card {
@@ -92,11 +96,9 @@ body.login-page.login-page--radatik-spa-identity {
 @keyframes slideUp {
     from {
         opacity: 0;
-        transform: translateY(30px);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
     }
 }
 
@@ -117,7 +119,16 @@ body.login-page.login-page--radatik-spa-identity {
 .login-brand-inner {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
+    gap: 0;
+}
+
+.login-brand-inner .rt-logo-full {
+    height: 56px;
+}
+
+.login-brand-inner .rt-logo-mark {
+    display: none;
 }
 
 .rt-logomark {
@@ -220,6 +231,19 @@ body.login-page.login-page--radatik-spa-identity {
     margin-top: 0.25rem;
 }
 
+.login-app-lock {
+    margin-top: 0.45rem;
+    color: #0f766e;
+    font-weight: 800;
+}
+
+.login-persist-note {
+    margin: 0;
+    color: #0f766e;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
 /* Login Body */
 .login-body {
     padding: 1.5rem 2rem 2rem;
@@ -250,8 +274,15 @@ body.login-page.login-page--radatik-spa-identity {
     border-radius: 0.5rem;
     border: 1px solid #e5e7eb;
     background: #f3f4f6;
-    font-size: 0.875rem;
+    font-size: 16px;
     transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.login-page .form-control[dir="ltr"],
+.login-page .rt-input[dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+    unicode-bidi: isolate;
 }
 
 [data-theme="dark"] .login-page .form-control,
@@ -735,7 +766,7 @@ body.login-page.login-page--radatik-spa-identity {
     .login-page .form-control {
         min-height: 42px;
         padding: 9px 12px;
-        font-size: 0.93rem;
+        font-size: 16px;
     }
 
     .password-toggle {

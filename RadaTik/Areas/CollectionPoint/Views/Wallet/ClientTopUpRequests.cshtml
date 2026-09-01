@@ -2,13 +2,14 @@
 @using RadaTik.Helpers
 @using RadaTik.Models
 @{
-    ViewData["Title"] = "طلبات تغذية المشتركين";
+    ViewData["Title"] = "طلبات تغذية رصيد للمشتركين";
     var selectedStatus = ViewBag.SelectedStatus as ClientWalletTopUpRequestStatus?;
     var pendingCount = ViewBag.PendingCount as int? ?? 0;
     var accountBalance = ViewBag.AccountBalance as decimal? ?? 0m;
 }
 
-<div class="financial-page collection-point-wallet-page">
+<div class="financial-page collection-point-wallet-page collection-point-finance-page">
+    <partial name="_CollectionPointFinanceNav" />
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div>
@@ -25,7 +26,7 @@
     @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
     @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
 
-    <div class="btn-group mb-3 flex-wrap" role="group">
+    <div class="cp-finance-filters mb-3" role="group">
         <a class="btn btn-sm @(selectedStatus == null ? "btn-primary" : "btn-outline-primary")" asp-action="ClientTopUpRequests">الكل</a>
         <a class="btn btn-sm @(selectedStatus == ClientWalletTopUpRequestStatus.Pending ? "btn-primary" : "btn-outline-primary")" asp-action="ClientTopUpRequests" asp-route-status="@ClientWalletTopUpRequestStatus.Pending">معلّقة (@pendingCount)</a>
     </div>
@@ -41,7 +42,7 @@
                         <th>طريقة الدفع</th>
                         <th>الحالة</th>
                         <th>التاريخ</th>
-                        <th></th>
+                        <th>إجراءات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -51,30 +52,32 @@
                     {
                         var clientLabel = r.Client?.Name ?? r.Client?.UserName ?? $"#{r.ClientId}";
                         <tr>
-                            <td>@r.Id</td>
-                            <td>@clientLabel</td>
-                            <td>@SyrianCurrencyHelper.FormatNew(r.Amount) ل.س.ج</td>
-                            <td>@(r.PaymentMethod?.Name ?? "—")</td>
-                            <td>@PricingDisplay.ClientWalletTopUpRequestStatusLabel(r.Status)</td>
-                            <td>@r.RequestedAt.ToString("yyyy/MM/dd HH:mm")</td>
-                            <td class="text-nowrap">
+                            <td data-label="#">@r.Id</td>
+                            <td class="cp-cell--lead" data-label="المشترك">@clientLabel</td>
+                            <td data-label="المبلغ">@SyrianCurrencyHelper.FormatNew(r.Amount) ل.س.ج</td>
+                            <td data-label="طريقة الدفع">@(r.PaymentMethod?.Name ?? "—")</td>
+                            <td data-label="الحالة">@PricingDisplay.ClientWalletTopUpRequestStatusLabel(r.Status)</td>
+                            <td data-label="التاريخ">@r.RequestedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                            <td class="radtk-col-actions cp-cell-actions" data-label="إجراءات">
+                                <div class="cp-row-actions">
                                 @if (!string.IsNullOrWhiteSpace(r.ReceiptImagePath))
                                 {
-                                    <a class="btn btn-sm btn-outline-secondary micro-btn" href="@r.ReceiptImagePath" target="_blank" rel="noopener"><i class="fas fa-receipt"></i></a>
+                                    <a class="btn btn-sm btn-outline-secondary" href="@r.ReceiptImagePath" target="_blank" rel="noopener"><i class="fas fa-receipt"></i> إيصال</a>
                                 }
                                 @if (r.Status == ClientWalletTopUpRequestStatus.Pending)
                                 {
-                                    <form asp-action="ApproveClientTopUp" method="post" class="d-inline">
+                                    <form asp-action="ApproveClientTopUp" method="post">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@r.Id" />
-                                        <button type="submit" class="btn btn-sm btn-success micro-btn" onclick="return confirm('تأكيد الموافقة؟');"><i class="fas fa-check"></i></button>
+                                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('تأكيد الموافقة؟');"><i class="fas fa-check"></i> موافقة</button>
                                     </form>
-                                    <form asp-action="RejectClientTopUp" method="post" class="d-inline">
+                                    <form asp-action="RejectClientTopUp" method="post">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@r.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-danger micro-btn" onclick="return confirm('تأكيد الرفض؟');"><i class="fas fa-times"></i></button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('تأكيد الرفض؟');"><i class="fas fa-times"></i> رفض</button>
                                     </form>
                                 }
+                                </div>
                             </td>
                         </tr>
                     }
@@ -88,5 +91,9 @@
         </div>
     </div>
 
-    <a class="btn btn-outline-secondary mt-3 micro-btn" asp-route="collectionPoint-wallet-topup"><i class="fas fa-arrow-right"></i> العودة</a>
+    <a class="btn btn-outline-secondary mt-3" asp-route="collectionPoint-wallet-topup"><i class="fas fa-arrow-right"></i> العودة لتغذية الرصيد</a>
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/collection-point-finance-cards.css" asp-append-version="true" />
+}

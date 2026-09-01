@@ -22,6 +22,8 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         entity.Property(e => e.ResidenceAddress).HasMaxLength(500).IsRequired(false);
         entity.Property(e => e.Occupation).HasMaxLength(100).IsRequired(false);
         entity.Property(e => e.Workplace).HasMaxLength(200).IsRequired(false);
+        entity.Property(e => e.NationalIdFrontPath).HasMaxLength(260).IsRequired(false);
+        entity.Property(e => e.NationalIdBackPath).HasMaxLength(260).IsRequired(false);
         entity.Property(e => e.Latitude).IsRequired(false);
         entity.Property(e => e.Longitude).IsRequired(false);
         entity.Property(e => e.Service).HasMaxLength(50).IsRequired(false);

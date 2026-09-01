@@ -10,9 +10,13 @@ public static class NativeAppContext
     public const string Client = "client";
     public const string Collection = "collection";
     public const string Employee = "employee";
+    public const string Company = "company";
     public const string UserAgentMarker = "RadaTikNative/";
     public const int CurrentVersion = 2;
-    public const int MinimumSupportedVersion = 2;
+    /// <summary>
+    /// 0 = لا نغلق التطبيقات المثبّتة. الإغلاق على 2 منع كل النسخ الحالية لأنها لا ترسل رقم إصدار.
+    /// </summary>
+    public const int MinimumSupportedVersion = 0;
 
     public static string? Normalize(string? value)
     {
@@ -27,6 +31,7 @@ public static class NativeAppContext
             Client or "subscriber" or "clientportal" => Client,
             Collection or "collectionpoint" or "collector" => Collection,
             Employee or "companyemployee" => Employee,
+            Company or "companyadmin" or "networkadmin" or "networkmanager" or "networkadministrator" => Company,
             _ => null,
         };
     }
@@ -93,6 +98,12 @@ public static class NativeAppContext
             return Employee;
         }
 
+        if (value.Contains("/networkManager", StringComparison.OrdinalIgnoreCase) ||
+            value.Contains("/CompanyAdmin", StringComparison.OrdinalIgnoreCase))
+        {
+            return Company;
+        }
+
         return null;
     }
 
@@ -121,6 +132,7 @@ public static class NativeAppContext
             Client => set.Contains(RoleNames.Client),
             Collection => set.Contains(RoleNames.CollectionPoint),
             Employee => set.Contains(RoleNames.CompanyEmployee) || set.Contains(RoleNames.EmployeeLegacy),
+            Company => set.Contains(RoleNames.NetworkAdministrator),
             _ => true,
         };
     }
@@ -143,6 +155,7 @@ public static class NativeAppContext
             Client => context.User.IsInRole(RoleNames.Client),
             Collection => context.User.IsInRole(RoleNames.CollectionPoint),
             Employee => context.User.IsInRole(RoleNames.CompanyEmployee) || context.User.IsInRole(RoleNames.EmployeeLegacy),
+            Company => context.User.IsInRole(RoleNames.NetworkAdministrator),
             _ => true,
         };
     }
@@ -152,6 +165,7 @@ public static class NativeAppContext
         Client => "تطبيق المشترك",
         Collection => "تطبيق التحصيل",
         Employee => "تطبيق الموظف",
+        Company => "تطبيق مدير الشركة",
         _ => "RadaTik",
     };
 
@@ -160,6 +174,7 @@ public static class NativeAppContext
         Client => "هذا التطبيق مخصص للمشتركين فقط. سجّل الدخول بحساب المشترك، أو استخدم تطبيق دورك.",
         Collection => "هذا التطبيق مخصص لنقاط التحصيل فقط. سجّل الدخول بحساب نقطة التحصيل، أو استخدم تطبيق دورك.",
         Employee => "هذا التطبيق مخصص للموظفين فقط. سجّل الدخول بحساب الموظف، أو استخدم تطبيق دورك.",
+        Company => "هذا التطبيق مخصص لمديري الشركات فقط. سجّل الدخول بحساب مدير الشركة، أو استخدم تطبيق دورك.",
         _ => "هذا الحساب لا يملك صلاحية الدخول إلى هذا التطبيق.",
     };
 
@@ -229,6 +244,7 @@ public static class NativeAppContext
         Client => "/RadaTik/DownloadAndroid",
         Collection => "/RadaTik/DownloadCollection",
         Employee => "/RadaTik/DownloadEmployee",
+        Company => "/RadaTik/DownloadCompany",
         _ => "/RadaTik/Apps",
     };
 

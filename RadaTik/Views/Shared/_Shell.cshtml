@@ -129,6 +129,7 @@
     <partial name="_ThemeHeadBootstrap" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="نظام RadaTik لإدارة مزود خدمة الإنترنت" />
+    <meta name="robots" content="noindex, nofollow" />
     <title>@ViewData["Title"] - RadaTik</title>
     <link rel="icon" type="image/png" href="~/images/brand/radatik-favicon.png" asp-append-version="true" />
     @if (areaName == "ClientPortal")
@@ -310,6 +311,7 @@
     @await RenderSectionAsync("Scripts", required: false)
     <script src="~/js/syp-global.js" asp-append-version="true"></script>
     <script src="~/js/radtk-ui-kit.js" asp-append-version="true"></script>
+    <script src="~/js/native-app-shell.js" asp-append-version="true"></script>
 </body>
 </html>
 
