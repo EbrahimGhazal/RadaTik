@@ -390,12 +390,7 @@ public sealed class MikroTikUserService(
             {
                 ITikCommand addCmd = connection.CreateCommand("/ppp/secret/add");
                 addCmd.AddParameter("name", client.UserName);
-                string plaintextPassword = client.Password;
-            if (plaintextPassword != null && plaintextPassword.StartsWith("enc::"))
-            {
-                plaintextPassword = SensitiveDataProtector.Unprotect(plaintextPassword);
-            }
-            addCmd.AddParameter("password", plaintextPassword);
+                addCmd.AddParameter("password", SensitiveDataProtector.ToPlaintext(client.Password));
                 addCmd.AddParameter("service", "pppoe");
                 addCmd.AddParameter("profile", mikrotikProfileName);
 
@@ -541,12 +536,7 @@ public sealed class MikroTikUserService(
                 {
                     ITikCommand addCmd = connection.CreateCommand("/ppp/secret/add");
                     addCmd.AddParameter("name", userName);
-                    string plaintextPassword = password;
-                if (plaintextPassword != null && plaintextPassword.StartsWith("enc::"))
-                {
-                    plaintextPassword = SensitiveDataProtector.Unprotect(plaintextPassword);
-                }
-                addCmd.AddParameter("password", plaintextPassword);
+                    addCmd.AddParameter("password", SensitiveDataProtector.ToPlaintext(password));
                     addCmd.AddParameter("service", "pppoe");
                     addCmd.AddParameter("profile", profileName);
 
@@ -740,12 +730,7 @@ public sealed class MikroTikUserService(
         updateCmd.AddParameter(".id", userId);
         if (!string.IsNullOrEmpty(client.Password))
         {
-            string plaintextPassword = client.Password;
-            if (plaintextPassword != null && plaintextPassword.StartsWith("enc::"))
-            {
-                plaintextPassword = SensitiveDataProtector.Unprotect(plaintextPassword);
-            }
-            updateCmd.AddParameter("password", plaintextPassword);
+            updateCmd.AddParameter("password", SensitiveDataProtector.ToPlaintext(client.Password));
         }
 
         updateCmd.AddParameter("profile", mikrotikProfileName);
@@ -881,12 +866,7 @@ public sealed class MikroTikUserService(
 
                 if (!string.IsNullOrEmpty(client.Password))
                 {
-                    string plaintextPassword = client.Password;
-            if (plaintextPassword != null && plaintextPassword.StartsWith("enc::"))
-            {
-                plaintextPassword = SensitiveDataProtector.Unprotect(plaintextPassword);
-            }
-            updateCmd.AddParameter("password", plaintextPassword);
+                    updateCmd.AddParameter("password", SensitiveDataProtector.ToPlaintext(client.Password));
                 }
 
                 if (!string.IsNullOrEmpty(client.Address))

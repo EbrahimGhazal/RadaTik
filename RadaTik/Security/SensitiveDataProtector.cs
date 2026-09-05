@@ -2,6 +2,10 @@ using Microsoft.AspNetCore.DataProtection;
 
 namespace RadaTik.Security;
 
+/// <summary>
+/// تشفير الحقول الحساسة للتخزين في التطبيق/قاعدة البيانات فقط.
+/// عند الإرسال إلى أنظمة خارجية (مثل MikroTik API) يجب استخدام <see cref="ToPlaintext"/>.
+/// </summary>
 public static class SensitiveDataProtector
 {
     private const string Prefix = "enc::";
@@ -10,7 +14,7 @@ public static class SensitiveDataProtector
         RadaTikDataProtection.CreateProvider()
             .CreateProtector(RadaTikDataProtection.SensitivePurpose));
 
-        public static string? Protect(string? value)
+    public static string? Protect(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -22,9 +26,7 @@ public static class SensitiveDataProtector
             return value;
         }
 
-        // NO LONGER ENCRYPTING - Return plaintext directly
-        // return Prefix + Protector.Value.Protect(value);
-        return value;
+        return Prefix + Protector.Value.Protect(value);
     }
 
     public static string? Unprotect(string? value)
@@ -45,10 +47,31 @@ public static class SensitiveDataProtector
         {
             return Protector.Value.Unprotect(cipherText);
         }
-        catch (Exception ex)
+        catch
         {
-            // BUG FIX: Never return the raw encrypted string if decryption fails!
+            // Never return ciphertext to callers that may forward it to MikroTik.
             return null;
         }
+    }
+
+    /// <summary>
+    /// يعيد كلمة المرور كنص صريح للاستخدام الخارجي (MikroTik وغيرها).
+    /// لا يُرجع أبداً قيمة مشفّرة تبدأ بـ <c>enc::</c>.
+    /// </summary>
+    public static string? ToPlaintext(string? value)
+    {
+        string? plain = Unprotect(value);
+        if (string.IsNullOrEmpty(plain))
+        {
+            return plain;
+        }
+
+        if (plain.StartsWith(Prefix, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "تعذر فك تشفير كلمة المرور للاستخدام الخارجي. لن يتم إرسال قيمة مشفّرة إلى MikroTik.");
+        }
+
+        return plain;
     }
 }

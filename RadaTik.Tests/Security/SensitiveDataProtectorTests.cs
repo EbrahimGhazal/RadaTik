@@ -28,6 +28,26 @@ public class SensitiveDataProtectorTests
     }
 
     [Fact]
+    public void ToPlaintext_EncryptedValue_ReturnsPlaintextWithoutCipherPrefix()
+    {
+        const string plain = "pppoe-secret";
+        string? encrypted = SensitiveDataProtector.Protect(plain);
+        string? forMikroTik = SensitiveDataProtector.ToPlaintext(encrypted);
+
+        Assert.NotNull(encrypted);
+        Assert.StartsWith("enc::", encrypted);
+        Assert.Equal(plain, forMikroTik);
+        Assert.DoesNotContain("enc::", forMikroTik);
+    }
+
+    [Fact]
+    public void ToPlaintext_AlreadyPlaintext_ReturnsSameValue()
+    {
+        const string plain = "already-plain";
+        Assert.Equal(plain, SensitiveDataProtector.ToPlaintext(plain));
+    }
+
+    [Fact]
     public void SharedKeyDirectory_AllowsNewProviderToDecryptExistingCipher()
     {
         string keysDir = Path.Combine(Path.GetTempPath(), "radatik-dp-" + Guid.NewGuid().ToString("N"));

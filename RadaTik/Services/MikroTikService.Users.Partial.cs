@@ -358,7 +358,7 @@ public partial class MikroTikService
             {
                 ITikCommand addCmd = connection.CreateCommand("/ppp/secret/add");
                 addCmd.AddParameter("name", client.UserName);
-                addCmd.AddParameter("password", client.Password);
+                addCmd.AddParameter("password", RadaTik.Security.SensitiveDataProtector.ToPlaintext(client.Password));
                 addCmd.AddParameter("service", "pppoe");
                 addCmd.AddParameter("profile", client.ProfileName);
 
@@ -471,7 +471,7 @@ public partial class MikroTikService
                 updateCmd.AddParameter(".id", userId);
                 if (!string.IsNullOrEmpty(client.Password))
                 {
-                    updateCmd.AddParameter("password", client.Password);
+                    updateCmd.AddParameter("password", RadaTik.Security.SensitiveDataProtector.ToPlaintext(client.Password));
                 }
                 updateCmd.AddParameter("profile", client.ProfileName);
                 updateCmd.AddParameter("disabled", client.IsActive ? "no" : "yes");
@@ -563,7 +563,7 @@ public partial class MikroTikService
 
                 if (!string.IsNullOrEmpty(client.Password))
                 {
-                    updateCmd.AddParameter("password", client.Password);
+                    updateCmd.AddParameter("password", RadaTik.Security.SensitiveDataProtector.ToPlaintext(client.Password));
                 }
 
                 if (!string.IsNullOrEmpty(client.Address))
