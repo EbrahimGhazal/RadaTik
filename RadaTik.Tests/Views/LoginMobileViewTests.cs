@@ -16,12 +16,15 @@ public sealed class LoginMobileViewTests
         Assert.Contains("dir=\"ltr\"", view);
         Assert.Contains("input-wrapper\" dir=\"ltr\"", view);
         Assert.Contains("autocapitalize=\"none\"", view);
+        Assert.Contains("اسم المستخدم أو رقم الجوال", view);
+        Assert.Contains("MikroTik", view);
         Assert.DoesNotContain("autocorrect=\"off\"", view);
 
         string publicLogin = File.ReadAllText(FindFile("RadaTik", "Areas", "RadaTik", "Views", "Public", "Login.cshtml"));
         Assert.Contains("autocorrect=\"on\"", publicLogin);
         Assert.Contains("dir=\"ltr\"", publicLogin);
         Assert.Contains("inputmode=\"text\"", publicLogin);
+        Assert.Contains("اسم المستخدم أو رقم الجوال", publicLogin);
     }
 
     [Fact]

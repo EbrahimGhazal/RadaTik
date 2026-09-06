@@ -8,8 +8,8 @@ namespace RadaTik.ViewModels.Account
 {
     public class LoginViewModel
     {
-        [Required(ErrorMessage = "اسم المستخدم مطلوب")]
-        [Display(Name = "اسم المستخدم")]
+        [Required(ErrorMessage = "اسم المستخدم أو رقم الجوال مطلوب")]
+        [Display(Name = "اسم المستخدم أو رقم الجوال")]
         public string UserName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "كلمة المرور مطلوبة")]

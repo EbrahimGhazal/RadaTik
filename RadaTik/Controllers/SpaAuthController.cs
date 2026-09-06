@@ -6,6 +6,7 @@ using RadaTik.Data;
 using RadaTik.Middleware;
 using RadaTik.Models;
 using RadaTik.Security;
+using RadaTik.Services.Auth;
 using RadaTik.ViewModels.Spa;
 
 namespace RadaTik.Controllers;
@@ -22,17 +23,20 @@ public class SpaAuthController : ControllerBase
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<SpaAuthController> _logger;
+    private readonly ILoginIdentityResolver _loginIdentityResolver;
 
     public SpaAuthController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         ApplicationDbContext context,
-        ILogger<SpaAuthController> logger)
+        ILogger<SpaAuthController> logger,
+        ILoginIdentityResolver loginIdentityResolver)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _context = context;
         _logger = logger;
+        _loginIdentityResolver = loginIdentityResolver;
     }
 
     [HttpPost("login")]
@@ -41,17 +45,13 @@ public class SpaAuthController : ControllerBase
     {
         if (body == null || string.IsNullOrWhiteSpace(body.UserName) || string.IsNullOrWhiteSpace(body.Password))
         {
-            return BadRequest(new { ok = false, message = "يرجى إدخال اسم المستخدم وكلمة المرور." });
+            return BadRequest(new { ok = false, message = "يرجى إدخال اسم المستخدم أو رقم الجوال وكلمة المرور." });
         }
 
         var userNameInput = body.UserName.Trim();
         var password = body.Password;
 
-        var user = await _userManager.FindByNameAsync(userNameInput);
-        if (user == null)
-        {
-            user = await _userManager.FindByEmailAsync(userNameInput);
-        }
+        var user = await _loginIdentityResolver.ResolveAsync(userNameInput);
 
         if (user == null)
         {

@@ -143,6 +143,7 @@ internal static class ServiceRegistrationExtensions
         services.AddScoped<ILineOfSightAnalysisService, LineOfSightAnalysisService>();
         services.AddMikroTikServices();
         services.AddScoped<IRequestNotificationService, RequestNotificationService>();
+        services.AddScoped<Services.Auth.ILoginIdentityResolver, Services.Auth.LoginIdentityResolver>();
         services.AddScoped<ClientWalletTopUpApprovalService>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddSingleton<ICurrencyHelper, CurrencyHelperAdapter>();

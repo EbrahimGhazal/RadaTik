@@ -9,6 +9,7 @@ using RadaTik.Models;
 using RadaTik.Security;
 using RadaTik.Middleware;
 using RadaTik.Services;
+using RadaTik.Services.Auth;
 using RadaTik.ViewModels.Account;
 using RadaTik.ViewModels.CollectionPoints;
 using System.Net;
@@ -25,6 +26,7 @@ namespace RadaTik.Controllers
         private readonly ILogger<AccountController> _logger;
         private readonly IConfiguration _configuration;
         private readonly IRequestNotificationService _requestNotificationService;
+        private readonly ILoginIdentityResolver _loginIdentityResolver;
 
         public AccountController(
             UserManager<ApplicationUser> userManager,
@@ -32,7 +34,8 @@ namespace RadaTik.Controllers
             ApplicationDbContext context,
             ILogger<AccountController> logger,
             IConfiguration configuration,
-            IRequestNotificationService requestNotificationService)
+            IRequestNotificationService requestNotificationService,
+            ILoginIdentityResolver loginIdentityResolver)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -40,6 +43,7 @@ namespace RadaTik.Controllers
             _logger = logger;
             _configuration = configuration;
             _requestNotificationService = requestNotificationService;
+            _loginIdentityResolver = loginIdentityResolver;
         }
 
         [HttpGet]
@@ -75,11 +79,7 @@ namespace RadaTik.Controllers
                 return View(model);
             }
 
-            ApplicationUser? user = await _userManager.FindByNameAsync(model.UserName);
-            if (user == null)
-            {
-                user = await _userManager.FindByEmailAsync(model.UserName);
-            }
+            ApplicationUser? user = await _loginIdentityResolver.ResolveAsync(model.UserName);
 
             // إذا لم يكن المستخدم موجوداً، تحقّق من وجود طلب مدير شركة (قيد الانتظار/مرفوض)
             if (user == null)
