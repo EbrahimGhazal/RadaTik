@@ -29,6 +29,10 @@
                 <i class="fas fa-info-circle" aria-hidden="true"></i>
                 <span><strong>ملاحظة:</strong> سيتم إرسال طلبك للمراجعة من قبل الإدارة. بعد الموافقة على طلبك، سيتم إنشاء حسابك وستتمكن من تسجيل الدخول وإنشاء شبكتك الخاصة.</span>
             </div>
+            <div class="rt-register-info" role="note">
+                <i class="fas fa-user-check" aria-hidden="true"></i>
+                <span><strong>تأكيد ملاحظة:</strong> @RadaTik.Security.UserNameRules.AllowedHint</span>
+            </div>
 
             @if (TempData["Error"] != null)
             {
@@ -62,15 +66,18 @@
                     <div class="input-wrapper">
                         <input asp-for="UserName"
                                class="form-control rt-input"
-                               placeholder="أدخل اسم المستخدم"
+                               placeholder="مثال: company_admin"
                                autocomplete="username"
                                autocapitalize="none"
-                               autocorrect="on"
-                               spellcheck="true"
-                               inputmode="text"
+                               autocorrect="off"
+                               spellcheck="false"
+                               inputmode="latin"
+                               pattern="[A-Za-z0-9._-]+"
+                               title="@RadaTik.Security.UserNameRules.AllowedHint"
                                dir="ltr" />
                         <i class="fas fa-user"></i>
                     </div>
+                    <div class="form-text">@RadaTik.Security.UserNameRules.AllowedHint</div>
                     <span asp-validation-for="UserName" class="validation-error"></span>
                 </div>
 

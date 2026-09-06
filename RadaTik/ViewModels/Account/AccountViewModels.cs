@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Http;
 using RadaTik.Models;
+using RadaTik.Security;
 using System.ComponentModel.DataAnnotations;
 
 namespace RadaTik.ViewModels.Account
@@ -26,6 +27,9 @@ namespace RadaTik.ViewModels.Account
     {
         [Required(ErrorMessage = "اسم المستخدم مطلوب")]
         [Display(Name = "اسم المستخدم")]
+        [RegularExpression(
+            UserNameRules.AllowedPattern,
+            ErrorMessage = UserNameRules.InvalidMessage)]
         public string UserName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "البريد الإلكتروني مطلوب")]

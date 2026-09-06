@@ -348,8 +348,14 @@ namespace RadaTik.Controllers
             model.Email = requestedEmail;
             model.PhoneNumber = requestedPhone;
 
+            string? userNameRuleError = UserNameRules.ValidateOrError(requestedUserName);
+            if (userNameRuleError != null)
+            {
+                ModelState.AddModelError(nameof(model.UserName), userNameRuleError);
+            }
+
             // منع التكرار على حسابات المستخدمين الحالية
-            if (!string.IsNullOrWhiteSpace(requestedUserName))
+            if (!string.IsNullOrWhiteSpace(requestedUserName) && userNameRuleError is null)
             {
                 ApplicationUser? existingUserByUserName = await _userManager.FindByNameAsync(requestedUserName);
                 if (existingUserByUserName != null)
@@ -442,7 +448,17 @@ namespace RadaTik.Controllers
 
             if (!ModelState.IsValid)
             {
-                ModelState.AddModelError(string.Empty, "يوجد تكرار في بعض البيانات المدخلة. يرجى تعديل الحقول المكررة ثم إعادة الإرسال.");
+                bool onlyUserNameFormatError =
+                    ModelState.ErrorCount == 1 &&
+                    ModelState[nameof(model.UserName)]?.Errors.Any(e =>
+                        e.ErrorMessage == UserNameRules.InvalidMessage ||
+                        e.ErrorMessage == "اسم المستخدم مطلوب.") == true;
+
+                if (!onlyUserNameFormatError)
+                {
+                    ModelState.AddModelError(string.Empty, "يوجد تكرار في بعض البيانات المدخلة. يرجى تعديل الحقول المكررة ثم إعادة الإرسال.");
+                }
+
                 return View(model);
             }
 
