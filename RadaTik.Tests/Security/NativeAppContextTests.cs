@@ -109,7 +109,7 @@ public sealed class NativeAppContextTests
     }
 
     [Theory]
-    [InlineData("/", true)]
+    [InlineData("/", false)]
     [InlineData("/RadaTik", true)]
     [InlineData("/radatik/Apps", true)]
     [InlineData("/RadaTik/DownloadAndroid", false)]
@@ -118,6 +118,22 @@ public sealed class NativeAppContextTests
     public void PublicVisitorPath_CountsMarketingPagesOnly(string path, bool expected)
     {
         Assert.Equal(expected, RadaTik.Middleware.PublicVisitorCounterMiddleware.IsPublicSitePath(path));
+    }
+
+    [Fact]
+    public void PublicVisitor_PrimaryDocumentRequest_RequiresHtmlNavigation()
+    {
+        DefaultHttpContext ok = new();
+        ok.Request.Headers["Sec-Fetch-Dest"] = "document";
+        ok.Request.Headers["Sec-Fetch-Mode"] = "navigate";
+        ok.Request.Headers.Accept = "text/html";
+        Assert.True(RadaTik.Middleware.PublicVisitorCounterMiddleware.IsPrimaryDocumentRequest(ok.Request));
+
+        DefaultHttpContext prefetch = new();
+        prefetch.Request.Headers["Sec-Fetch-Dest"] = "empty";
+        prefetch.Request.Headers["Sec-Fetch-Mode"] = "cors";
+        prefetch.Request.Headers.Accept = "*/*";
+        Assert.False(RadaTik.Middleware.PublicVisitorCounterMiddleware.IsPrimaryDocumentRequest(prefetch.Request));
     }
 
     private static string FindFile(params string[] relativeParts)
