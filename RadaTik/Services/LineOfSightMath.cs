@@ -15,6 +15,11 @@ public static class LineOfSightMath
     public const double GeometricBlockSlackM = 0.5;
     public const double DefaultGuessBuildingHeightM = 12;
     public const double MetersPerBuildingLevel = 3.2;
+    public const double DefaultForestHeightM = 16;
+    public const double DefaultTreeHeightM = 12;
+    public const double DefaultTreeRowHeightM = 10;
+    public const double DefaultOrchardHeightM = 7;
+    public const double DefaultScrubHeightM = 3.5;
 
     public static double NormalizeFrequencyMhz(double frequencyMhz) =>
         frequencyMhz is >= 400 and <= 90_000 ? frequencyMhz : DefaultFrequencyMhz;
@@ -93,6 +98,12 @@ public static class LineOfSightMath
         double lat1, double lon1, double lat2, double lon2,
         IReadOnlyList<(double Lat, double Lon)> ring)
     {
+        if (ring.Count == 1)
+        {
+            (double tPt, double distPt) = ProjectOntoPath(lat1, lon1, lat2, lon2, ring[0].Lat, ring[0].Lon);
+            return new PathPolygonRelation(tPt, distPt, ring[0].Lat, ring[0].Lon, distPt < 0.35);
+        }
+
         if (ring.Count < 2)
         {
             return new PathPolygonRelation(0.5, double.PositiveInfinity, lat1, lon1, false);
@@ -212,6 +223,84 @@ public static class LineOfSightMath
             GuessHeightFromBuildingType(type),
             BuildingHeightSource.BuildingType,
             BuildingHeightConfidence.Low);
+    }
+
+    public static string? ClassifyOsmObstacle(IReadOnlyDictionary<string, string> tags)
+    {
+        if (TryGetTag(tags, "building", out string? building) &&
+            !string.IsNullOrWhiteSpace(building) &&
+            !building.Equals("no", StringComparison.OrdinalIgnoreCase) &&
+            !building.Equals("false", StringComparison.OrdinalIgnoreCase))
+        {
+            return LosObstacleKind.Building;
+        }
+
+        if (TryGuessVegetationHeight(tags, out _))
+        {
+            return LosObstacleKind.Vegetation;
+        }
+
+        return null;
+    }
+
+    public static BuildingHeightEstimate EstimateVegetationHeight(IReadOnlyDictionary<string, string> tags)
+    {
+        if (TryGetTag(tags, "height", out string? heightRaw) && TryParseMeters(heightRaw, out double height))
+        {
+            return new BuildingHeightEstimate(
+                Math.Clamp(height, 1, 80),
+                BuildingHeightSource.OsmHeight,
+                BuildingHeightConfidence.High);
+        }
+
+        if (TryGuessVegetationHeight(tags, out double guessed))
+        {
+            return new BuildingHeightEstimate(
+                guessed,
+                BuildingHeightSource.VegetationType,
+                BuildingHeightConfidence.Low);
+        }
+
+        return new BuildingHeightEstimate(
+            DefaultTreeHeightM,
+            BuildingHeightSource.VegetationType,
+            BuildingHeightConfidence.Low);
+    }
+
+    public static bool TryGuessVegetationHeight(IReadOnlyDictionary<string, string> tags, out double heightMeters)
+    {
+        heightMeters = 0;
+        if (TryGetTag(tags, "natural", out string? natural) && !string.IsNullOrWhiteSpace(natural))
+        {
+            heightMeters = natural.Trim().ToLowerInvariant() switch
+            {
+                "wood" => DefaultForestHeightM,
+                "tree" => DefaultTreeHeightM,
+                "tree_row" => DefaultTreeRowHeightM,
+                "scrub" => DefaultScrubHeightM,
+                _ => 0
+            };
+            if (heightMeters > 0)
+            {
+                return true;
+            }
+        }
+
+        if (TryGetTag(tags, "landuse", out string? landuse) && !string.IsNullOrWhiteSpace(landuse))
+        {
+            heightMeters = landuse.Trim().ToLowerInvariant() switch
+            {
+                "forest" => DefaultForestHeightM,
+                "orchard" => DefaultOrchardHeightM,
+                _ => 0
+            };
+            if (heightMeters > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static double GuessHeightFromBuildingType(string buildingType)
@@ -444,6 +533,13 @@ public static class BuildingHeightSource
     public const string OsmHeight = "osm_height";
     public const string Levels = "levels";
     public const string BuildingType = "building_type";
+    public const string VegetationType = "vegetation_type";
+}
+
+public static class LosObstacleKind
+{
+    public const string Building = "building";
+    public const string Vegetation = "vegetation";
 }
 
 public static class BuildingHeightConfidence

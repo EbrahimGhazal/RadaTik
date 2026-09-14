@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 using RadaTik.ViewModels;
 
 namespace RadaTik.Services;
@@ -15,15 +16,18 @@ public interface ILineOfSightAnalysisService
 }
 
 /// <summary>
-/// تحليل تقريبي لخط الرؤية: تضاريس، انحناء الأرض، منطقة فريسنل، ومبانٍ من OSM بتقاطع المضلعات.
+/// تحليل تقريبي لخط الرؤية: تضاريس، فريسنل، مبانٍ وغطاء نباتي من OSM، مع تخزين مؤقت للخدمات الخارجية.
 /// </summary>
 public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
 {
     private const double DefaultSectorAntennaAgl = 12;
     private const double DefaultReceiverAntennaAgl = 6;
-    private const int MaxBuildingsForElevation = 80;
-    private const int MaxBuildingsReturned = 40;
+    private const int MaxObstaclesForElevation = 80;
+    private const int MaxObstaclesReturned = 40;
     private const int OverpassAroundMeters = 90;
+
+    private static readonly TimeSpan ElevationCacheTtl = TimeSpan.FromHours(12);
+    private static readonly TimeSpan OsmCacheTtl = TimeSpan.FromHours(6);
 
     private static readonly string[] OverpassEndpoints =
     [
@@ -33,11 +37,16 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
     ];
 
     private readonly IHttpClientFactory _httpFactory;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<LineOfSightAnalysisService> _logger;
 
-    public LineOfSightAnalysisService(IHttpClientFactory httpFactory, ILogger<LineOfSightAnalysisService> logger)
+    public LineOfSightAnalysisService(
+        IHttpClientFactory httpFactory,
+        IMemoryCache cache,
+        ILogger<LineOfSightAnalysisService> logger)
     {
         _httpFactory = httpFactory;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -79,7 +88,13 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
 
         double dist = LineOfSightMath.HaversineMeters(lat1, lon1, lat2, lon2);
         double frequencyMhz = LineOfSightMath.NormalizeFrequencyMhz(input.FrequencyMhz);
-        bool frequencyIsDefault = input.FrequencyMhz < 400;
+        string frequencySource = string.IsNullOrWhiteSpace(input.FrequencySource) ? "default" : input.FrequencySource;
+        if (input.FrequencyMhz < 400)
+        {
+            frequencySource = "default";
+        }
+
+        bool frequencyIsDefault = frequencySource == "default";
 
         if (dist < 5)
         {
@@ -95,6 +110,7 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
                 TerrainNote = "المسافة شبه معدومة.",
                 FrequencyMhzUsed = frequencyMhz,
                 FrequencyIsDefault = frequencyIsDefault,
+                FrequencySource = frequencySource,
                 EarthCurvatureApplied = true,
                 BuildingsDataAvailable = false
             };
@@ -201,39 +217,45 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
             minFresnelMargin = 0;
         }
 
-        List<BuildingObstructionInfo> buildingList = new List<BuildingObstructionInfo>();
+        List<BuildingObstructionInfo> obstacleList = [];
         int buildingsConsidered = 0;
-        bool buildingsOk = false;
+        int vegetationConsidered = 0;
+        bool osmOk = false;
         try
         {
-            (buildingList, buildingsConsidered) = await AnalyzeBuildingsAsync(
+            (obstacleList, buildingsConsidered, vegetationConsidered) = await AnalyzeOsmObstaclesAsync(
                 lat1, lon1, lat2, lon2, hStart, hEnd, dist, frequencyMhz, ct);
-            buildingsOk = true;
+            osmOk = true;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Overpass / buildings analysis failed");
+            _logger.LogWarning(ex, "Overpass / OSM obstacle analysis failed");
         }
 
-        bool blockedByBuilding = buildingList.Any(b => b.LikelyBlocksLos);
-        bool blockedByBuildingFresnel = buildingList.Any(b => b.LikelyBlocksFresnel);
-        bool fresnelClear = !fresnelTerrainBlocked && !blockedByBuildingFresnel;
+        bool blockedByBuilding = obstacleList.Any(b => b.ObstacleKind == LosObstacleKind.Building && b.LikelyBlocksLos);
+        bool blockedByVegetation = obstacleList.Any(b => b.ObstacleKind == LosObstacleKind.Vegetation && b.LikelyBlocksLos);
+        bool blockedByObstacleFresnel = obstacleList.Any(b => b.LikelyBlocksFresnel);
+        bool fresnelClear = !fresnelTerrainBlocked && !blockedByObstacleFresnel;
         bool pathClear = !terrainBlocked && fresnelClear;
 
         string note;
-        if (!buildingsOk)
+        if (!osmOk)
         {
             note = terrainBlocked || fresnelTerrainBlocked
-                ? "التضاريس أو منطقة فريسنل قد تحجب المسار. لم تُحمّل بيانات المبانٍ."
-                : "خط الرؤية فوق التضاريس ضمن النموذج التقريبي، لكن بيانات المبانٍ غير متاحة.";
+                ? "التضاريس أو منطقة فريسنل قد تحجب المسار. لم تُحمّل بيانات المبانٍ والغطاء النباتي."
+                : "خط الرؤية فوق التضاريس ضمن النموذج التقريبي، لكن بيانات OSM غير متاحة.";
         }
         else if (blockedByBuilding)
         {
             note = "يوجد مبنى يعترض خط الرؤية الهندسي وفق مضلع OSM وارتفاع تقديري.";
         }
-        else if (blockedByBuildingFresnel || fresnelTerrainBlocked)
+        else if (blockedByVegetation)
         {
-            note = "خط الرؤية الهندسي قد يكون مكشوفاً، لكن 60٪ من منطقة فريسنل الأولى غير خالية (تضاريس أو مبنى).";
+            note = "يوجد غطاء نباتي (شجر/غابة) قد يعترض خط الرؤية وفق بيانات OSM التقديرية.";
+        }
+        else if (blockedByObstacleFresnel || fresnelTerrainBlocked)
+        {
+            note = "خط الرؤية الهندسي قد يكون مكشوفاً، لكن 60٪ من منطقة فريسنل الأولى غير خالية (تضاريس أو مبنى أو شجر).";
         }
         else if (terrainBlocked)
         {
@@ -241,11 +263,11 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
         }
         else
         {
-            note = "خط الرؤية ومنطقة فريسنل ضمن النموذج التقريبي فوق التضاريس والمبانٍ المفحوصة.";
+            note = "خط الرؤية ومنطقة فريسنل ضمن النموذج التقريبي فوق التضاريس والمبانٍ والغطاء النباتي المفحوص.";
         }
 
-        int measured = buildingList.Count(b => b.HeightSource == BuildingHeightSource.OsmHeight);
-        int estimated = buildingList.Count(b => b.HeightSource != BuildingHeightSource.OsmHeight);
+        int measured = obstacleList.Count(b => b.HeightSource == BuildingHeightSource.OsmHeight);
+        int estimated = obstacleList.Count(b => b.HeightSource != BuildingHeightSource.OsmHeight);
 
         return new LineOfSightResult
         {
@@ -259,33 +281,37 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
             TerrainNote = note,
             FrequencyMhzUsed = Math.Round(frequencyMhz, 1),
             FrequencyIsDefault = frequencyIsDefault,
+            FrequencySource = frequencySource,
             EarthCurvatureApplied = true,
-            BuildingsDataAvailable = buildingsOk,
+            BuildingsDataAvailable = osmOk,
             BuildingsConsidered = buildingsConsidered,
+            VegetationConsidered = vegetationConsidered,
             BuildingsMeasuredHeightCount = measured,
             BuildingsEstimatedHeightCount = estimated,
-            BuildingObstructions = buildingList,
+            BuildingObstructions = obstacleList,
             Profile = profile
         };
     }
 
-    private async Task<(List<BuildingObstructionInfo> Buildings, int Considered)> AnalyzeBuildingsAsync(
+    private async Task<(List<BuildingObstructionInfo> Obstacles, int BuildingsConsidered, int VegetationConsidered)> AnalyzeOsmObstaclesAsync(
         double lat1, double lon1, double lat2, double lon2,
         double hStart, double hEnd,
         double dist,
         double frequencyMhz,
         CancellationToken ct)
     {
-        List<OsmBuildingWay> ways = await FetchOsmBuildingsAlongPathAsync(lat1, lon1, lat2, lon2, ct);
-        if (ways.Count == 0)
+        List<OsmFeature> features = await FetchOsmFeaturesAlongPathAsync(lat1, lon1, lat2, lon2, ct);
+        if (features.Count == 0)
         {
-            return ([], 0);
+            return ([], 0, 0);
         }
 
-        List<(OsmBuildingWay Way, PathPolygonRelation Rel, BuildingHeightEstimate Height)> candidates = [];
-        foreach (OsmBuildingWay way in ways)
+        List<(OsmFeature Feature, PathPolygonRelation Rel, BuildingHeightEstimate Height)> candidates = [];
+        int buildingsConsidered = 0;
+        int vegetationConsidered = 0;
+        foreach (OsmFeature feature in features)
         {
-            PathPolygonRelation rel = LineOfSightMath.RelatePolygonToPath(lat1, lon1, lat2, lon2, way.Ring);
+            PathPolygonRelation rel = LineOfSightMath.RelatePolygonToPath(lat1, lon1, lat2, lon2, feature.Ring);
             if (rel.T is < 0.02 or > 0.98 || double.IsInfinity(rel.DistanceMeters))
             {
                 continue;
@@ -297,26 +323,36 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
                 continue;
             }
 
-            BuildingHeightEstimate height = LineOfSightMath.EstimateBuildingHeight(way.Tags);
-            candidates.Add((way, rel, height));
+            BuildingHeightEstimate height = feature.Kind == LosObstacleKind.Vegetation
+                ? LineOfSightMath.EstimateVegetationHeight(feature.Tags)
+                : LineOfSightMath.EstimateBuildingHeight(feature.Tags);
+            candidates.Add((feature, rel, height));
+            if (feature.Kind == LosObstacleKind.Vegetation)
+            {
+                vegetationConsidered++;
+            }
+            else
+            {
+                buildingsConsidered++;
+            }
         }
 
         if (candidates.Count == 0)
         {
-            return ([], 0);
+            return ([], 0, 0);
         }
 
         candidates.Sort((a, b) => a.Rel.DistanceMeters.CompareTo(b.Rel.DistanceMeters));
-        List<(OsmBuildingWay Way, PathPolygonRelation Rel, BuildingHeightEstimate Height)> top =
-            candidates.Take(MaxBuildingsForElevation).ToList();
+        List<(OsmFeature Feature, PathPolygonRelation Rel, BuildingHeightEstimate Height)> top =
+            candidates.Take(MaxObstaclesForElevation).ToList();
 
         List<(double lat, double lon)> elevPoints = top.Select(c => (c.Rel.ClosestLat, c.Rel.ClosestLon)).ToList();
         double[] bElev = await FetchElevationsBatchAsync(elevPoints, ct);
 
-        List<BuildingObstructionInfo> scored = new List<BuildingObstructionInfo>();
+        List<BuildingObstructionInfo> scored = [];
         for (int i = 0; i < top.Count; i++)
         {
-            (OsmBuildingWay way, PathPolygonRelation rel, BuildingHeightEstimate height) = top[i];
+            (OsmFeature feature, PathPolygonRelation rel, BuildingHeightEstimate height) = top[i];
             double g = bElev[i];
             double roof = g + height.HeightMeters;
             double line = hStart + rel.T * (hEnd - hStart);
@@ -325,7 +361,9 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
             double fresnelFloor = line - (LineOfSightMath.FresnelClearanceFraction * r1);
             bool blocksLos = roof > line + LineOfSightMath.GeometricBlockSlackM;
             bool blocksFresnel = roof > fresnelFloor + LineOfSightMath.GeometricBlockSlackM;
-            way.Tags.TryGetValue("building", out string? buildingType);
+            string? typeLabel = feature.Kind == LosObstacleKind.Vegetation
+                ? VegetationTypeLabel(feature.Tags)
+                : (feature.Tags.TryGetValue("building", out string? buildingType) ? buildingType : null);
 
             scored.Add(new BuildingObstructionInfo
             {
@@ -334,7 +372,8 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
                 EstimatedBuildingHeightMeters = Math.Round(height.HeightMeters, 2),
                 HeightSource = height.Source,
                 HeightConfidence = height.Confidence,
-                BuildingType = string.IsNullOrWhiteSpace(buildingType) ? null : buildingType,
+                ObstacleKind = feature.Kind,
+                BuildingType = string.IsNullOrWhiteSpace(typeLabel) ? null : typeLabel,
                 GroundElevationMslMeters = Math.Round(g, 2),
                 RoofMslMeters = Math.Round(roof, 2),
                 PathFraction = Math.Round(rel.T, 4),
@@ -362,7 +401,7 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
             return spareA.CompareTo(spareB);
         });
 
-        List<BuildingObstructionInfo> returned = new List<BuildingObstructionInfo>();
+        List<BuildingObstructionInfo> returned = [];
         foreach (BuildingObstructionInfo b in scored)
         {
             bool nearMiss = !b.LikelyBlocksFresnel &&
@@ -372,19 +411,25 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
                 returned.Add(b);
             }
 
-            if (returned.Count >= MaxBuildingsReturned)
+            if (returned.Count >= MaxObstaclesReturned)
             {
                 break;
             }
         }
 
         List<BuildingObstructionInfo> result = returned.Count > 0 ? returned : scored.Take(8).ToList();
-        return (result, candidates.Count);
+        return (result, buildingsConsidered, vegetationConsidered);
     }
 
-    private async Task<List<OsmBuildingWay>> FetchOsmBuildingsAlongPathAsync(
+    private async Task<List<OsmFeature>> FetchOsmFeaturesAlongPathAsync(
         double lat1, double lon1, double lat2, double lon2, CancellationToken ct)
     {
+        string cacheKey = OsmCacheKey(lat1, lon1, lat2, lon2);
+        if (_cache.TryGetValue(cacheKey, out List<OsmFeature>? cached) && cached != null)
+        {
+            return cached;
+        }
+
         StringBuilder aroundPts = new StringBuilder();
         const int polySamples = 10;
         for (int i = 0; i <= polySamples; i++)
@@ -395,9 +440,15 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
             aroundPts.Append(CultureInfo.InvariantCulture, $",{lat},{lon}");
         }
 
+        string around = aroundPts.ToString();
         string query = $"""
-            [out:json][timeout:25];
-            way["building"](around:{OverpassAroundMeters}{aroundPts});
+            [out:json][timeout:28];
+            (
+              way["building"](around:{OverpassAroundMeters}{around});
+              way["natural"~"^(wood|tree_row|scrub)$"](around:{OverpassAroundMeters}{around});
+              way["landuse"~"^(forest|orchard)$"](around:{OverpassAroundMeters}{around});
+              node["natural"="tree"](around:{OverpassAroundMeters}{around});
+            );
             out geom tags;
             """;
 
@@ -424,9 +475,10 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
                     continue;
                 }
 
-                List<OsmBuildingWay> ways = ParseOsmBuildingWays(elements);
-                _logger.LogDebug("Overpass {Endpoint} returned {Count} building ways", endpoint, ways.Count);
-                return ways;
+                List<OsmFeature> features = ParseOsmFeatures(elements);
+                _cache.Set(cacheKey, features, OsmCacheTtl);
+                _logger.LogDebug("Overpass {Endpoint} returned {Count} OSM features", endpoint, features.Count);
+                return features;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -437,9 +489,9 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
         throw new InvalidOperationException("All Overpass endpoints failed.");
     }
 
-    private static List<OsmBuildingWay> ParseOsmBuildingWays(JsonElement elements)
+    private static List<OsmFeature> ParseOsmFeatures(JsonElement elements)
     {
-        List<OsmBuildingWay> ways = [];
+        List<OsmFeature> features = [];
         foreach (JsonElement el in elements.EnumerateArray())
         {
             if (el.ValueKind != JsonValueKind.Object)
@@ -447,60 +499,111 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
                 continue;
             }
 
-            if (!el.TryGetProperty("geometry", out JsonElement geom) || geom.ValueKind != JsonValueKind.Array)
+            Dictionary<string, string> tags = ReadTags(el);
+            string? kind = LineOfSightMath.ClassifyOsmObstacle(tags);
+            if (kind == null)
             {
                 continue;
             }
 
             List<(double Lat, double Lon)> ring = [];
-            foreach (JsonElement pt in geom.EnumerateArray())
+            if (el.TryGetProperty("geometry", out JsonElement geom) && geom.ValueKind == JsonValueKind.Array)
             {
-                if (pt.ValueKind != JsonValueKind.Object)
+                foreach (JsonElement pt in geom.EnumerateArray())
                 {
-                    continue;
-                }
+                    if (pt.ValueKind != JsonValueKind.Object)
+                    {
+                        continue;
+                    }
 
-                if (!pt.TryGetProperty("lat", out JsonElement latProp) || !pt.TryGetProperty("lon", out JsonElement lonProp))
-                {
-                    continue;
-                }
+                    if (!pt.TryGetProperty("lat", out JsonElement latProp) || !pt.TryGetProperty("lon", out JsonElement lonProp))
+                    {
+                        continue;
+                    }
 
-                ring.Add((latProp.GetDouble(), lonProp.GetDouble()));
+                    ring.Add((latProp.GetDouble(), lonProp.GetDouble()));
+                }
+            }
+            else if (el.TryGetProperty("lat", out JsonElement nlat) && el.TryGetProperty("lon", out JsonElement nlon))
+            {
+                ring.Add((nlat.GetDouble(), nlon.GetDouble()));
             }
 
-            if (ring.Count < 2)
+            if (ring.Count < 1)
             {
                 continue;
             }
 
-            Dictionary<string, string> tags = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (el.TryGetProperty("tags", out JsonElement tagsEl) && tagsEl.ValueKind == JsonValueKind.Object)
-            {
-                foreach (JsonProperty p in tagsEl.EnumerateObject())
-                {
-                    if (p.Value.ValueKind == JsonValueKind.String)
-                    {
-                        tags[p.Name] = p.Value.GetString() ?? "";
-                    }
-                    else if (p.Value.ValueKind is JsonValueKind.Number)
-                    {
-                        tags[p.Name] = p.Value.ToString();
-                    }
-                }
-            }
-
-            ways.Add(new OsmBuildingWay { Tags = tags, Ring = ring });
+            features.Add(new OsmFeature { Tags = tags, Ring = ring, Kind = kind });
         }
 
-        return ways;
+        return features;
+    }
+
+    private static Dictionary<string, string> ReadTags(JsonElement el)
+    {
+        Dictionary<string, string> tags = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (!el.TryGetProperty("tags", out JsonElement tagsEl) || tagsEl.ValueKind != JsonValueKind.Object)
+        {
+            return tags;
+        }
+
+        foreach (JsonProperty p in tagsEl.EnumerateObject())
+        {
+            if (p.Value.ValueKind == JsonValueKind.String)
+            {
+                tags[p.Name] = p.Value.GetString() ?? "";
+            }
+            else if (p.Value.ValueKind is JsonValueKind.Number)
+            {
+                tags[p.Name] = p.Value.ToString();
+            }
+        }
+
+        return tags;
+    }
+
+    private static string? VegetationTypeLabel(IReadOnlyDictionary<string, string> tags)
+    {
+        if (tags.TryGetValue("natural", out string? natural) && !string.IsNullOrWhiteSpace(natural))
+        {
+            return natural;
+        }
+
+        if (tags.TryGetValue("landuse", out string? landuse) && !string.IsNullOrWhiteSpace(landuse))
+        {
+            return landuse;
+        }
+
+        return "vegetation";
     }
 
     private async Task<double[]> FetchElevationsBatchAsync(IReadOnlyList<(double Lat, double Lon)> points, CancellationToken ct)
     {
+        double[] list = new double[points.Count];
+        List<int> missing = [];
+        for (int i = 0; i < points.Count; i++)
+        {
+            if (_cache.TryGetValue(ElevationCacheKey(points[i].Lat, points[i].Lon), out double cached))
+            {
+                list[i] = cached;
+            }
+            else
+            {
+                missing.Add(i);
+            }
+        }
+
+        if (missing.Count == 0)
+        {
+            return list;
+        }
+
+        List<(double Lat, double Lon)> toFetch = missing.Select(i => points[i]).ToList();
         HttpClient client = _httpFactory.CreateClient("OpenElevation");
         OpenElevationRequestDto payload = new OpenElevationRequestDto
         {
-            locations = points.Select(p => new OpenElevationLocationDto { latitude = p.Lat, longitude = p.Lon }).ToList()
+            locations = toFetch.Select(p => new OpenElevationLocationDto { latitude = p.Lat, longitude = p.Lon }).ToList()
         };
 
         using HttpResponseMessage resp = await client.PostAsJsonAsync("https://api.open-elevation.com/api/v1/lookup", payload, ct);
@@ -512,19 +615,22 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
             throw new InvalidOperationException("Invalid elevation response");
         }
 
-        double[] list = new double[points.Count];
-        int i = 0;
+        int fetched = 0;
         foreach (JsonElement r in results.EnumerateArray())
         {
-            if (i >= list.Length)
+            if (fetched >= missing.Count)
             {
                 break;
             }
 
-            list[i++] = r.GetProperty("elevation").GetDouble();
+            double elev = r.GetProperty("elevation").GetDouble();
+            int idx = missing[fetched];
+            list[idx] = elev;
+            _cache.Set(ElevationCacheKey(points[idx].Lat, points[idx].Lon), elev, ElevationCacheTtl);
+            fetched++;
         }
 
-        if (i != list.Length)
+        if (fetched != missing.Count)
         {
             throw new InvalidOperationException("Elevation count mismatch");
         }
@@ -532,10 +638,19 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
         return list;
     }
 
-    private sealed class OsmBuildingWay
+    private static string OsmCacheKey(double lat1, double lon1, double lat2, double lon2) =>
+        string.Create(CultureInfo.InvariantCulture,
+            $"los:osm:{Math.Round(lat1, 4):F4}:{Math.Round(lon1, 4):F4}:{Math.Round(lat2, 4):F4}:{Math.Round(lon2, 4):F4}:{OverpassAroundMeters}");
+
+    private static string ElevationCacheKey(double lat, double lon) =>
+        string.Create(CultureInfo.InvariantCulture,
+            $"los:elev:{Math.Round(lat, 5):F5}:{Math.Round(lon, 5):F5}");
+
+    private sealed class OsmFeature
     {
         public Dictionary<string, string> Tags { get; init; } = new(StringComparer.OrdinalIgnoreCase);
         public List<(double Lat, double Lon)> Ring { get; init; } = [];
+        public string Kind { get; init; } = LosObstacleKind.Building;
     }
 
     private sealed class OpenElevationLocationDto

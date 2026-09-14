@@ -195,13 +195,21 @@ else if (pendingSectorApprovalsCount > 0)
                         </div>
                     </div>
 
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="losFrequencyMhzInput">تردد الراديو لتحليل فريسنل (ميغاهرتز)</label>
+                            <input class="form-control" id="losFrequencyMhzInput" type="number" min="400" max="90000" step="1" placeholder="5800" autocomplete="off" />
+                            <small class="form-hint" id="losFrequencyHint">يُملأ من قياس القطاع إن وُجد، وإلا 5800. يمكن تعديله يدوياً (مثلاً 2400 أو 5800).</small>
+                        </div>
+                    </div>
+
                     <details class="los-static-notes" id="losStaticNotes">
                         <summary class="los-notes-title"><i class="fas fa-info-circle"></i> ملاحظات مهمة — اقرأ قبل الاعتماد على التحليل</summary>
                         <ul class="los-notes-list">
-                            <li><strong>ما الذي يُحسب؟</strong> مسار تقريبي بين هوائي القطاع وهوائي المستقبل، مع: ارتفاع التضاريس، انتفاخ الأرض، 60٪ من منطقة فريسنل الأولى (حسب تردد القطاع إن وُجد وإلا 5.8 غيغاهرتز)، ثم المبانٍ من خريطة الشارع المفتوحة عبر تقاطع مضلع المبنى مع ممر المسار.</li>
-                            <li><strong>دقة النتيجة:</strong> النتيجة <strong>تقديرية</strong> وليست مسحاً ميدانياً. ارتفاع المبنى يُؤخذ من وسم OSM إن وُجد، وإلا من عدد الطوابق، وإلا تقدير حسب نوع المبنى. لا يغني عن المعاينة الميدانية عند الحاجة.</li>
-                            <li><strong>عند فشل جلب المبانٍ:</strong> يُعرض تحذير في النتيجة، والتحليل يبقى مفيداً للتضاريس وفريسنل فقط.</li>
-                            <li><strong>الخريطة بعد التحليل:</strong> خط برتقالي = المسار؛ أحمر = مبنى يعترض خط الرؤية؛ برتقالي غامق = مبنى يدخل منطقة فريسنل؛ أصفر = أضيق هامش على المسار.</li>
+                            <li><strong>ما الذي يُحسب؟</strong> مسار تقريبي بين الهوائيين، مع التضاريس، انتفاخ الأرض، 60٪ من فريسنل (حسب التردد المدخل أو قياس القطاع أو 5.8 غيغاهرتز)، ثم المبانٍ والأشجار/الغابات من OSM عبر تقاطع المضلع مع ممر المسار.</li>
+                            <li><strong>دقة النتيجة:</strong> النتيجة <strong>تقديرية</strong>. ارتفاع المبنى أو الشجر من وسم OSM إن وُجد، وإلا تقدير حسب النوع. لا يغني عن المعاينة الميدانية.</li>
+                            <li><strong>عند فشل جلب OSM:</strong> يُعرض تحذير، والتحليل يبقى مفيداً للتضاريس وفريسنل. الطلبات المتكررة لنفس المسار تُسرَّع من الذاكرة المؤقتة.</li>
+                            <li><strong>الخريطة بعد التحليل:</strong> خط برتقالي = المسار؛ أحمر = مبنى يعترض؛ برتقالي = مبنى يدخل فريسنل؛ أخضر = شجر/غابة؛ أصفر = أضيق هامش.</li>
                         </ul>
                     </details>
 
@@ -244,7 +252,7 @@ else if (pendingSectorApprovalsCount > 0)
                 <button type="submit" class="btn btn-success">
                     <i class="fas fa-save"></i> حفظ المستقبل
                 </button>
-                <button type="button" class="btn btn-outline-primary" id="btnAnalyzeLos" title="تحليل المسار: تضاريس + فريسنل + مبانٍ (بيانات خارجية)">
+                <button type="button" class="btn btn-outline-primary" id="btnAnalyzeLos" title="تحليل المسار: تضاريس + فريسنل + مبانٍ + أشجار">
                     <i class="fas fa-mountain"></i> تحليل خط الرؤية
                 </button>
                 <button type="button" class="btn btn-info" id="btnCheckConnection" title="فحص اتصال المستقبل">
@@ -723,6 +731,7 @@ else if (pendingSectorApprovalsCount > 0)
     .los-lg-los { background: #fd7e14; }
     .los-lg-fresnel { background: #7c3aed; height: 0; border-top: 2px dashed #7c3aed; }
     .los-lg-bldg { background: #dc3545; width: 8px; height: 8px; border-radius: 50%; }
+    .los-lg-veg { background: #2f9e44; width: 8px; height: 8px; border-radius: 50%; }
 
     @@media (max-width: 991.98px) {
         .receiver-create-page {

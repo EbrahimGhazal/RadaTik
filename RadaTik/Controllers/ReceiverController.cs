@@ -832,7 +832,7 @@ namespace RadaTik.Controllers
             return Json(new { success = true, elevationMeters = Math.Round(elevation.Value, 1) });
         }
 
-        /// <summary>تحليل تقريبي لخط الرؤية: تضاريس، فريسنل، ومبانٍ من OSM بتقاطع المضلعات.</summary>
+        /// <summary>تحليل تقريبي لخط الرؤية: تضاريس، فريسنل، مبانٍ وغطاء نباتي من OSM.</summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequirePermission("Receivers.Create")]
@@ -859,11 +859,29 @@ namespace RadaTik.Controllers
                 return Json(new { success = false, message = "القطاع غير موجود." });
             }
 
-            int frequencyMhz = await _context.SectorRadioMetricSamples.AsNoTracking()
+            int sampleFrequencyMhz = await _context.SectorRadioMetricSamples.AsNoTracking()
                 .Where(s => s.SectorId == sector.Id && s.FrequencyMhz != null && s.FrequencyMhz > 100)
                 .OrderByDescending(s => s.CapturedAt)
                 .Select(s => s.FrequencyMhz!.Value)
                 .FirstOrDefaultAsync(ct);
+
+            double frequencyMhz;
+            string frequencySource;
+            if (request.FrequencyMhz is >= 400 and <= 90_000)
+            {
+                frequencyMhz = request.FrequencyMhz.Value;
+                frequencySource = "user";
+            }
+            else if (sampleFrequencyMhz > 100)
+            {
+                frequencyMhz = sampleFrequencyMhz;
+                frequencySource = "sector";
+            }
+            else
+            {
+                frequencyMhz = 0;
+                frequencySource = "default";
+            }
 
             LineOfSightAnalysisInput input = new LineOfSightAnalysisInput
             {
@@ -876,7 +894,8 @@ namespace RadaTik.Controllers
                 ReceiverTerrainElevationMeters = request.ReceiverElevationMeters,
                 ReceiverAntennaAglMeters = request.ReceiverAntennaHeightAglMeters ?? 0,
                 SampleCount = 48,
-                FrequencyMhz = frequencyMhz
+                FrequencyMhz = frequencyMhz,
+                FrequencySource = frequencySource
             };
 
             LineOfSightResult result = await _lineOfSightAnalysisService.AnalyzeAsync(input, ct);
@@ -925,6 +944,12 @@ namespace RadaTik.Controllers
                     .Select(r => new ReceiverMapPointJson(r.Id, r.Name, r.Latitude, r.Longitude, r.IPAddress))
                     .ToList();
 
+                int? sectorFrequencyMhz = await _context.SectorRadioMetricSamples.AsNoTracking()
+                    .Where(s => s.SectorId == sector.Id && s.FrequencyMhz != null && s.FrequencyMhz > 100)
+                    .OrderByDescending(s => s.CapturedAt)
+                    .Select(s => s.FrequencyMhz)
+                    .FirstOrDefaultAsync();
+
                 return Json(new
                 {
                     success = true,
@@ -940,7 +965,8 @@ namespace RadaTik.Controllers
                         ipAddress = sector.IPAddress,
                         networkMask = sector.NetworkMask,
                         elevationMeters = sector.ElevationMeters,
-                        antennaHeightAglMeters = sector.AntennaHeightAglMeters
+                        antennaHeightAglMeters = sector.AntennaHeightAglMeters,
+                        frequencyMhz = sectorFrequencyMhz
                     },
                     receivers = receivers
                 });

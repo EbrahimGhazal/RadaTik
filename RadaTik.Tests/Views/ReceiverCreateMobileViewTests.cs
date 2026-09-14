@@ -20,6 +20,10 @@ public sealed class ReceiverCreateMobileViewTests
         Assert.Contains("fitCoverageInView", scripts);
         Assert.Contains("renderLosProfileChart", scripts);
         Assert.Contains("likelyBlocksFresnel", scripts);
+        Assert.Contains("losFrequencyMhzInput", scripts);
+        Assert.Contains("obstacleKind", scripts);
+        Assert.Contains("vegetation", scripts);
+        Assert.Contains("id=\"losFrequencyMhzInput\"", text);
         Assert.Contains("--receiver-map-height", text);
         Assert.DoesNotContain("height: 250px", text);
 
@@ -41,6 +45,7 @@ public sealed class ReceiverCreateMobileViewTests
         Assert.Contains("<partial name=\"_ReceiverCreateMapScripts\" />", text);
         Assert.Contains("id=\"sectorSelect\"", text);
         Assert.Contains("id=\"latitudeInput\"", text);
+        Assert.Contains("id=\"losFrequencyMhzInput\"", text);
         Assert.Contains("id=\"map\"", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_ReceiverCreateMap.cshtml")));
         Assert.Contains("L.map", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_ReceiverCreateMapScripts.cshtml")));
     }

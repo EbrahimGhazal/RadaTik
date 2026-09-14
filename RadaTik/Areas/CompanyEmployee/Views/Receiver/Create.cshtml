@@ -139,6 +139,11 @@
                     <input asp-for="AntennaHeightAglMeters" class="form-control elegant-input" id="receiverAntennaAglInput" type="number" step="0.1" placeholder="6" />
                     <span asp-validation-for="AntennaHeightAglMeters" class="text-danger"></span>
                 </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="losFrequencyMhzInput">تردد الراديو لتحليل فريسنل (ميغاهرتز)</label>
+                    <input class="form-control elegant-input" id="losFrequencyMhzInput" type="number" min="400" max="90000" step="1" placeholder="5800" autocomplete="off" />
+                    <small class="text-muted" id="losFrequencyHint">من قياس القطاع إن وُجد، وإلا 5800 — قابل للتعديل.</small>
+                </div>
                 <div class="col-12">
                     <div class="alert alert-secondary py-2 px-3 mb-0" role="note">
                         <div class="fw-bold mb-1"><i class="fas fa-calculator me-1"></i> كيف تحدد ارتفاع الهوائي عن سطح الأرض؟</div>
@@ -174,7 +179,7 @@
                 <button type="submit" class="btn btn-success action-btn">
                     <i class="fas fa-save"></i> حفظ
                 </button>
-                <button type="button" class="btn btn-outline-primary action-btn" id="btnAnalyzeLos" title="تحليل خط الرؤية (تضاريس + فريسنل + مبانٍ)">
+                <button type="button" class="btn btn-outline-primary action-btn" id="btnAnalyzeLos" title="تحليل خط الرؤية (تضاريس + فريسنل + مبانٍ + أشجار)">
                     <i class="fas fa-mountain"></i> تحليل خط الرؤية
                 </button>
                 <a asp-action="Index" class="btn btn-outline-secondary action-btn">إلغاء</a>

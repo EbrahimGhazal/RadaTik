@@ -112,6 +112,55 @@ public sealed class LineOfSightMathTests
     }
 
     [Fact]
+    public void EstimateVegetationHeight_ForestIsTallerThanOrchard()
+    {
+        BuildingHeightEstimate forest = LineOfSightMath.EstimateVegetationHeight(new Dictionary<string, string>
+        {
+            ["landuse"] = "forest"
+        });
+        BuildingHeightEstimate orchard = LineOfSightMath.EstimateVegetationHeight(new Dictionary<string, string>
+        {
+            ["landuse"] = "orchard"
+        });
+        Assert.True(forest.HeightMeters > orchard.HeightMeters);
+        Assert.Equal(BuildingHeightSource.VegetationType, forest.Source);
+        Assert.Equal(LosObstacleKind.Vegetation, LineOfSightMath.ClassifyOsmObstacle(new Dictionary<string, string>
+        {
+            ["natural"] = "wood"
+        }));
+    }
+
+    [Fact]
+    public void EstimateVegetationHeight_PrefersOsmHeight()
+    {
+        BuildingHeightEstimate h = LineOfSightMath.EstimateVegetationHeight(new Dictionary<string, string>
+        {
+            ["height"] = "8",
+            ["natural"] = "tree"
+        });
+        Assert.Equal(8, h.HeightMeters);
+        Assert.Equal(BuildingHeightSource.OsmHeight, h.Source);
+    }
+
+    [Fact]
+    public void ClassifyOsmObstacle_IgnoresFarmland()
+    {
+        Assert.Null(LineOfSightMath.ClassifyOsmObstacle(new Dictionary<string, string>
+        {
+            ["landuse"] = "farmland"
+        }));
+    }
+
+    [Fact]
+    public void RelatePolygonToPath_TreatsSingleTreeAsPoint()
+    {
+        double lat1 = 33.50, lon1 = 36.30, lat2 = 33.50, lon2 = 36.31;
+        PathPolygonRelation rel = LineOfSightMath.RelatePolygonToPath(lat1, lon1, lat2, lon2, [(33.50, 36.305)]);
+        Assert.InRange(rel.T, 0.3, 0.7);
+        Assert.True(rel.DistanceMeters < 5);
+    }
+
+    [Fact]
     public void CorridorMetersAt_IsAtLeast12m()
     {
         Assert.True(LineOfSightMath.CorridorMetersAt(5800, 500, 1000) >= 12);

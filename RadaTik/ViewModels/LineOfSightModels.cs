@@ -10,6 +10,8 @@ public sealed class AnalyzeLineOfSightRequest
     public double? ReceiverElevationMeters { get; set; }
     /// <summary>اختياري: ارتفاع الهوائي عند المستقبل (م).</summary>
     public double? ReceiverAntennaHeightAglMeters { get; set; }
+    /// <summary>اختياري: تردد الراديو بالميغاهرتز لحساب فريسنل.</summary>
+    public double? FrequencyMhz { get; set; }
 }
 
 public sealed class LineOfSightAnalysisInput
@@ -30,6 +32,8 @@ public sealed class LineOfSightAnalysisInput
 
     /// <summary>تردد الراديو بالميغاهرتز لحساب فريسنل. 0 = افتراضي 5800.</summary>
     public double FrequencyMhz { get; init; }
+    /// <summary>user | sector | default</summary>
+    public string FrequencySource { get; init; } = "default";
 }
 
 public sealed class LineOfSightResult
@@ -54,10 +58,13 @@ public sealed class LineOfSightResult
 
     public double FrequencyMhzUsed { get; init; }
     public bool FrequencyIsDefault { get; init; }
+    /// <summary>user | sector | default</summary>
+    public string FrequencySource { get; init; } = "default";
     public bool EarthCurvatureApplied { get; init; }
 
     public bool BuildingsDataAvailable { get; init; }
     public int BuildingsConsidered { get; init; }
+    public int VegetationConsidered { get; init; }
     public int BuildingsMeasuredHeightCount { get; init; }
     public int BuildingsEstimatedHeightCount { get; init; }
     public IReadOnlyList<BuildingObstructionInfo> BuildingObstructions { get; init; } = [];
@@ -85,6 +92,7 @@ public sealed class BuildingObstructionInfo
     public double EstimatedBuildingHeightMeters { get; init; }
     public string HeightSource { get; init; } = "building_type";
     public string HeightConfidence { get; init; } = "low";
+    public string ObstacleKind { get; init; } = "building";
     public string? BuildingType { get; init; }
     public double GroundElevationMslMeters { get; init; }
     public double RoofMslMeters { get; init; }

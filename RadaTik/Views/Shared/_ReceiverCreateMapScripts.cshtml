@@ -118,7 +118,12 @@
             function heightSourceLabel(source) {
                 if (source === 'osm_height') return 'من وسم الارتفاع في الخريطة';
                 if (source === 'levels') return 'من عدد الطوابق';
+                if (source === 'vegetation_type') return 'تقدير غطاء نباتي';
                 return 'تقدير حسب نوع المبنى';
+            }
+
+            function isVegetationObstacle(b) {
+                return b && b.obstacleKind === 'vegetation';
             }
 
             function heightConfidenceLabel(conf) {
@@ -198,11 +203,19 @@
                     if (!b.likelyBlocksLos && !b.likelyBlocksFresnel) {
                         return;
                     }
-                    var color = b.likelyBlocksLos ? '#dc3545' : '#e8590c';
-                    var title = b.likelyBlocksLos ? 'مبنى — يعترض خط الرؤية' : 'مبنى — يدخل منطقة فريسنل';
+                    var veg = isVegetationObstacle(b);
+                    var color = veg
+                        ? (b.likelyBlocksLos ? '#2f9e44' : '#74b816')
+                        : (b.likelyBlocksLos ? '#dc3545' : '#e8590c');
+                    var title = veg
+                        ? (b.likelyBlocksLos ? 'شجر/غابة — يعترض خط الرؤية' : 'شجر/غابة — يدخل منطقة فريسنل')
+                        : (b.likelyBlocksLos ? 'مبنى — يعترض خط الرؤية' : 'مبنى — يدخل منطقة فريسنل');
+                    var iconHtml = veg
+                        ? '<i class="fas fa-tree"></i>'
+                        : '<i class="fas fa-building"></i>';
                     var icon = L.divIcon({
                         className: 'los-building-marker',
-                        html: '<div style="background:' + color + ';width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;"><i class="fas fa-building"></i></div>',
+                        html: '<div style="background:' + color + ';width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;">' + iconHtml + '</div>',
                         iconSize: [28, 28],
                         iconAnchor: [14, 14]
                     });
@@ -275,9 +288,13 @@
                 (analysis.buildingObstructions || []).forEach(function (b) {
                     if (!b.likelyBlocksLos && !b.likelyBlocksFresnel) return;
                     var d = (b.pathFraction || 0) * distMax;
-                    var color = b.likelyBlocksLos ? '#dc3545' : '#e8590c';
+                    var veg = isVegetationObstacle(b);
+                    var color = veg
+                        ? (b.likelyBlocksLos ? '#2f9e44' : '#74b816')
+                        : (b.likelyBlocksLos ? '#dc3545' : '#e8590c');
+                    var label = veg ? 'غطاء نباتي ' : 'سقف مبنى ';
                     bMarks += '<circle cx="' + xOf(d).toFixed(1) + '" cy="' + yOf(b.roofMslMeters).toFixed(1) +
-                        '" r="4" fill="' + color + '" stroke="#fff" stroke-width="1"><title>سقف مبنى ' +
+                        '" r="4" fill="' + color + '" stroke="#fff" stroke-width="1"><title>' + label +
                         losNum(b.roofMslMeters) + ' م</title></circle>';
                 });
                 return '<div class="los-profile-wrap" dir="ltr">' +
@@ -297,6 +314,7 @@
                     '<span><i class="los-lg los-lg-los"></i> خط الرؤية</span>' +
                     '<span><i class="los-lg los-lg-fresnel"></i> أرضية فريسنل 60٪</span>' +
                     '<span><i class="los-lg los-lg-bldg"></i> مبنى حاجب</span>' +
+                    '<span><i class="los-lg los-lg-veg"></i> شجر/غابة</span>' +
                     '</div></div>';
             }
 
@@ -414,6 +432,7 @@
                             networkMask: sec.networkMask,
                             elevationMeters: sec.elevationMeters,
                             antennaHeightAglMeters: sec.antennaHeightAglMeters,
+                            frequencyMhz: sec.frequencyMhz,
                             receivers: (data.receivers || []).map(function (r) {
                                 return { id: r.id, name: r.name, latitude: r.latitude, longitude: r.longitude, ip: r.ip };
                             })
@@ -631,12 +650,14 @@
                 var token = tokenInput ? tokenInput.value : '';
                 var elevIn = document.getElementById('receiverElevationInput');
                 var aglIn = document.getElementById('receiverAntennaAglInput');
+                var freqIn = document.getElementById('losFrequencyMhzInput');
                 var body = {
                     sectorId: parseInt(sectorId, 10),
                     receiverLatitude: lat,
                     receiverLongitude: lng,
                     receiverElevationMeters: parseOptionalFloatInput(elevIn),
-                    receiverAntennaHeightAglMeters: parseOptionalFloatInput(aglIn)
+                    receiverAntennaHeightAglMeters: parseOptionalFloatInput(aglIn),
+                    frequencyMhz: parseOptionalFloatInput(freqIn)
                 };
                 var btn = document.getElementById('btnAnalyzeLos');
                 var prev = btn.innerHTML;
@@ -646,7 +667,7 @@
                 var panel = document.getElementById('losResultPanel');
                 var content = document.getElementById('losResultContent');
                 panel.classList.remove('d-none');
-                content.innerHTML = '<p class="text-muted mb-0">جارٍ جلب التضاريس وبيانات المبانٍ...</p>';
+                content.innerHTML = '<p class="text-muted mb-0">جارٍ جلب التضاريس وبيانات المبانٍ والأشجار...</p>';
 
                 fetch(analyzeLosUrl, {
                     method: 'POST',
@@ -674,22 +695,28 @@
                         var pathClear = a.pathClear !== undefined ? a.pathClear : a.terrainClear;
                         var terrainOk = pathClear
                             ? '<span class="badge-ok">لا يظهر حجب واضح في النموذج</span>'
-                            : '<span class="badge-warn">قد يوجد حجب (تضاريس و/أو فريسنل و/أو مبنى)</span>';
+                            : '<span class="badge-warn">قد يوجد حجب (تضاريس و/أو فريسنل و/أو مبنى/شجر)</span>';
                         var terrainSummary = pathClear
-                            ? 'ضمن النموذج التقريبي، خط الرؤية و60٪ من منطقة فريسنل يبقيان فوق التضاريس، ولم يُرصد مبنى حاجب في البيانات المتاحة.'
-                            : 'هناك موضع على المسار حيث التضاريس أو منطقة فريسنل أو مبنى قد يعيق الإشارة — راجع التفاصيل والمقطع والخريطة.';
+                            ? 'ضمن النموذج التقريبي، خط الرؤية و60٪ من منطقة فريسنل يبقيان فوق التضاريس، ولم يُرصد مبنى أو غطاء نباتي حاجب في البيانات المتاحة.'
+                            : 'هناك موضع على المسار حيث التضاريس أو منطقة فريسنل أو مبنى/شجر قد يعيق الإشارة — راجع التفاصيل والمقطع والخريطة.';
 
-                        var freqText = losNum(a.frequencyMhzUsed, 0) + ' ميغاهرتز' +
-                            (a.frequencyIsDefault ? ' (افتراضي 5.8 غيغاهرتز — لم يُرصد تردد القطاع)' : ' (من قياسات القطاع)');
+                        var freqSource = a.frequencySource || (a.frequencyIsDefault ? 'default' : 'sector');
+                        var freqNote = freqSource === 'user'
+                            ? ' (أدخلته يدوياً)'
+                            : (freqSource === 'default' || a.frequencyIsDefault
+                                ? ' (افتراضي 5.8 غيغاهرتز — لم يُرصد تردد القطاع)'
+                                : ' (من قياسات القطاع)');
+                        var freqText = losNum(a.frequencyMhzUsed, 0) + ' ميغاهرتز' + freqNote;
 
                         var buildingIntro = '';
                         if (a.buildingsDataAvailable) {
-                            buildingIntro = 'فُحصت مضلعات المبانٍ على ممر المسار من خريطة الشارع المفتوحة (' +
-                                (a.buildingsConsidered || 0) + ' مبنى). ' +
+                            buildingIntro = 'فُحصت عوائق OSM على ممر المسار: ' +
+                                (a.buildingsConsidered || 0) + ' مبنى، و' +
+                                (a.vegetationConsidered || 0) + ' عنصر غطاء نباتي. ' +
                                 'ارتفاعات موثّقة: ' + (a.buildingsMeasuredHeightCount || 0) +
                                 '، تقديرية: ' + (a.buildingsEstimatedHeightCount || 0) + '.';
                         } else {
-                            buildingIntro = '<strong class="text-warning">لم تُحمّل بيانات المبانٍ من الخادم الخارجي.</strong> النتيجة تعتمد على التضاريس وفريسنل فقط.';
+                            buildingIntro = '<strong class="text-warning">لم تُحمّل بيانات المبانٍ والأشجار من الخادم الخارجي.</strong> النتيجة تعتمد على التضاريس وفريسنل فقط.';
                         }
 
                         var obstructs = (a.buildingObstructions || []).filter(function (b) {
@@ -699,8 +726,10 @@
                         if (obstructs.length) {
                             obstHtml = '<ul class="los-notes-list" style="margin-top:8px">';
                             obstructs.forEach(function (b) {
-                                var kind = b.likelyBlocksLos ? 'يعترض خط الرؤية' : 'يدخل منطقة فريسنل';
-                                obstHtml += '<li>' + kind + ': سقف ~' + losNum(b.roofMslMeters) +
+                                var veg = isVegetationObstacle(b);
+                                var kind = (veg ? 'غطاء نباتي — ' : 'مبنى — ') +
+                                    (b.likelyBlocksLos ? 'يعترض خط الرؤية' : 'يدخل منطقة فريسنل');
+                                obstHtml += '<li>' + kind + ': ارتفاع تقريبي ~' + losNum(b.roofMslMeters) +
                                     ' م، خط الرؤية ~' + losNum(b.lineHeightAtPointMslMeters) +
                                     ' م، بعد عن المحور ~' + losNum(b.crossTrackMeters) + ' م. ' +
                                     heightSourceLabel(b.heightSource) + ' (' + heightConfidenceLabel(b.heightConfidence) + ').' +
@@ -708,12 +737,12 @@
                                     '</li>';
                             });
                             obstHtml += '</ul>';
-                        } else if (a.buildingsDataAvailable && (a.buildingsConsidered || 0) > 0) {
-                            obstHtml = '<p class="mb-0 mt-1 text-muted">لم يُعتبر أي مبنى حاجباً لخط الرؤية أو لمنطقة فريسنل ضمن القواعد المستخدمة.</p>';
+                        } else if (a.buildingsDataAvailable && ((a.buildingsConsidered || 0) + (a.vegetationConsidered || 0)) > 0) {
+                            obstHtml = '<p class="mb-0 mt-1 text-muted">لم يُعتبر أي مبنى أو غطاء نباتي حاجباً لخط الرؤية أو لمنطقة فريسنل ضمن القواعد المستخدمة.</p>';
                         } else if (!a.buildingsDataAvailable) {
                             obstHtml = '';
                         } else {
-                            obstHtml = '<p class="mb-0 mt-1 text-muted">لم يُعثر على مبانٍ ضمن ممر الفحص.</p>';
+                            obstHtml = '<p class="mb-0 mt-1 text-muted">لم يُعثر على مبانٍ أو غطاء نباتي ضمن ممر الفحص.</p>';
                         }
 
                         var profileBlock = '';
@@ -747,14 +776,14 @@
                             '</div>' +
 
                             '<div class="los-result-block">' +
-                            '<h5>المبانٍ (من بيانات خارجية)</h5>' +
+                            '<h5>المبانٍ والأشجار (من بيانات خارجية)</h5>' +
                             '<p class="mb-1">' + buildingIntro + '</p>' +
                             obstHtml +
                             '</div>' +
 
                             '<div class="los-result-block">' +
                             '<h5>الخريطة</h5>' +
-                            '<p class="mb-0">خط برتقالي متقطع = المسار؛ أحمر = مبنى يعترض خط الرؤية؛ برتقالي غامق = يدخل فريسنل؛ أصفر = أضيق نقطة.</p>' +
+                            '<p class="mb-0">خط برتقالي متقطع = المسار؛ أحمر = مبنى يعترض؛ برتقالي غامق = مبنى يدخل فريسنل؛ أخضر = شجر/غابة؛ أصفر = أضيق نقطة.</p>' +
                             '</div>' +
 
                             '<div class="los-result-block">' +
@@ -804,6 +833,17 @@
                 if (rangeEl) rangeEl.textContent = (Number(s.coverageRange) || 0).toFixed(2);
                 if (receiversCount) receiversCount.textContent = Array.isArray(s.receivers) ? s.receivers.length : 0;
                 if (sectorIPRange) sectorIPRange.textContent = (s.ipAddress || '') + ' / ' + (s.networkMask || '');
+                var freqIn = document.getElementById('losFrequencyMhzInput');
+                var freqHint = document.getElementById('losFrequencyHint');
+                if (freqIn) {
+                    var f = Number(s.frequencyMhz);
+                    if (isFinite(f) && f >= 400) {
+                        freqIn.value = String(Math.round(f));
+                        if (freqHint) freqHint.textContent = 'مأخوذ من قياس القطاع (' + Math.round(f) + ' ميغاهرتز) — يمكن تعديله.';
+                    } else if (!freqIn.value) {
+                        if (freqHint) freqHint.textContent = 'لا يوجد قياس للقطاع؛ سيُستخدم 5800 إن تُرك فارغاً. يمكن إدخال التردد يدوياً.';
+                    }
+                }
                 if (sectorInfo) sectorInfo.classList.remove('d-none');
                 if (sectorInfoPlaceholder) sectorInfoPlaceholder.classList.add('d-none');
             }
