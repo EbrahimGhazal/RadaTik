@@ -18,6 +18,8 @@ public sealed class ReceiverCreateMobileViewTests
         Assert.Contains("btnUseMyLocation", map);
         Assert.Contains("invalidateSize", scripts);
         Assert.Contains("fitCoverageInView", scripts);
+        Assert.Contains("renderLosProfileChart", scripts);
+        Assert.Contains("likelyBlocksFresnel", scripts);
         Assert.Contains("--receiver-map-height", text);
         Assert.DoesNotContain("height: 250px", text);
 

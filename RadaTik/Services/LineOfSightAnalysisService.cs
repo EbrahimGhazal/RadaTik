@@ -15,15 +15,22 @@ public interface ILineOfSightAnalysisService
 }
 
 /// <summary>
-/// تحليل تقريبي لخط الرؤية بين نقطتين: عينات تضاريس (Open-Elevation) ومبانٍ من OSM (Overpass) عند توفرها.
+/// تحليل تقريبي لخط الرؤية: تضاريس، انحناء الأرض، منطقة فريسنل، ومبانٍ من OSM بتقاطع المضلعات.
 /// </summary>
 public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
 {
     private const double DefaultSectorAntennaAgl = 12;
     private const double DefaultReceiverAntennaAgl = 6;
-    private const double MinTerrainClearanceM = 2;
-    private const double MaxCrossTrackBuildingM = 45;
-    private const double DefaultGuessBuildingHeightM = 9;
+    private const int MaxBuildingsForElevation = 80;
+    private const int MaxBuildingsReturned = 40;
+    private const int OverpassAroundMeters = 90;
+
+    private static readonly string[] OverpassEndpoints =
+    [
+        "https://overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter",
+        "https://overpass.private.coffee/api/interpreter"
+    ];
 
     private readonly IHttpClientFactory _httpFactory;
     private readonly ILogger<LineOfSightAnalysisService> _logger;
@@ -70,16 +77,25 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
             return new LineOfSightResult { Success = false, ErrorMessage = "إحداثيات غير صالحة." };
         }
 
-        double dist = HaversineMeters(lat1, lon1, lat2, lon2);
+        double dist = LineOfSightMath.HaversineMeters(lat1, lon1, lat2, lon2);
+        double frequencyMhz = LineOfSightMath.NormalizeFrequencyMhz(input.FrequencyMhz);
+        bool frequencyIsDefault = input.FrequencyMhz < 400;
+
         if (dist < 5)
         {
             return new LineOfSightResult
             {
                 Success = true,
                 DistanceMeters = dist,
+                PathClear = true,
                 TerrainClear = true,
+                FresnelClear = true,
                 MinTerrainMarginMeters = 999,
+                MinFresnelMarginMeters = 999,
                 TerrainNote = "المسافة شبه معدومة.",
+                FrequencyMhzUsed = frequencyMhz,
+                FrequencyIsDefault = frequencyIsDefault,
+                EarthCurvatureApplied = true,
                 BuildingsDataAvailable = false
             };
         }
@@ -125,30 +141,53 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
 
         List<LosProfilePoint> profile = new List<LosProfilePoint>();
         double minMargin = double.MaxValue;
+        double minFresnelMargin = double.MaxValue;
         bool terrainBlocked = false;
+        bool fresnelTerrainBlocked = false;
 
         for (int i = 0; i < samples.Count; i++)
         {
             double t = samples[i].T;
+            double dAlong = dist * t;
             double terr = elevations[i];
+            double bulge = LineOfSightMath.EarthBulgeMeters(dAlong, dist);
+            double effective = terr + bulge;
             double line = hStart + t * (hEnd - hStart);
-            double margin = line - terr;
+            double r1 = LineOfSightMath.FirstFresnelRadiusMeters(frequencyMhz, dAlong, dist);
+            double fresnelNeed = LineOfSightMath.FresnelClearanceFraction * r1;
+            double margin = line - effective;
+            double fresnelMargin = margin - fresnelNeed;
             if (margin < minMargin)
             {
                 minMargin = margin;
             }
 
-            if (margin < MinTerrainClearanceM)
+            if (fresnelMargin < minFresnelMargin)
+            {
+                minFresnelMargin = fresnelMargin;
+            }
+
+            if (margin < LineOfSightMath.MinTerrainClearanceM)
             {
                 terrainBlocked = true;
             }
 
+            if (fresnelMargin < 0)
+            {
+                fresnelTerrainBlocked = true;
+            }
+
             profile.Add(new LosProfilePoint
             {
-                DistanceFromStartMeters = dist * t,
+                DistanceFromStartMeters = Math.Round(dAlong, 1),
                 TerrainElevationMslMeters = Math.Round(terr, 2),
+                EarthBulgeMeters = Math.Round(bulge, 2),
+                EffectiveTerrainMslMeters = Math.Round(effective, 2),
                 LineHeightMslMeters = Math.Round(line, 2),
-                MarginMeters = Math.Round(margin, 2)
+                FresnelRadiusMeters = Math.Round(r1, 2),
+                FresnelFloorMslMeters = Math.Round(line - fresnelNeed, 2),
+                MarginMeters = Math.Round(margin, 2),
+                FresnelMarginMeters = Math.Round(fresnelMargin, 2)
             });
         }
 
@@ -157,12 +196,18 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
             minMargin = 0;
         }
 
+        if (minFresnelMargin == double.MaxValue)
+        {
+            minFresnelMargin = 0;
+        }
+
         List<BuildingObstructionInfo> buildingList = new List<BuildingObstructionInfo>();
+        int buildingsConsidered = 0;
         bool buildingsOk = false;
         try
         {
-            buildingList = await AnalyzeBuildingsAsync(
-                lat1, lon1, lat2, lon2, hStart, hEnd, ct);
+            (buildingList, buildingsConsidered) = await AnalyzeBuildingsAsync(
+                lat1, lon1, lat2, lon2, hStart, hEnd, dist, frequencyMhz, ct);
             buildingsOk = true;
         }
         catch (Exception ex)
@@ -171,63 +216,230 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
         }
 
         bool blockedByBuilding = buildingList.Any(b => b.LikelyBlocksLos);
-        string note = terrainBlocked
-            ? "التضاريس قد تحجب خط الرؤية (الهامش الأدنى أقل من المطلوب)."
-            : (blockedByBuilding
-                ? "يوجد مبنى قد يعيق الإشارة وفق البيانات التقريبية (OSM)."
-                : "خط الرؤية فوق التضاريس ضمن النموذج التقريبي.");
+        bool blockedByBuildingFresnel = buildingList.Any(b => b.LikelyBlocksFresnel);
+        bool fresnelClear = !fresnelTerrainBlocked && !blockedByBuildingFresnel;
+        bool pathClear = !terrainBlocked && fresnelClear;
+
+        string note;
+        if (!buildingsOk)
+        {
+            note = terrainBlocked || fresnelTerrainBlocked
+                ? "التضاريس أو منطقة فريسنل قد تحجب المسار. لم تُحمّل بيانات المبانٍ."
+                : "خط الرؤية فوق التضاريس ضمن النموذج التقريبي، لكن بيانات المبانٍ غير متاحة.";
+        }
+        else if (blockedByBuilding)
+        {
+            note = "يوجد مبنى يعترض خط الرؤية الهندسي وفق مضلع OSM وارتفاع تقديري.";
+        }
+        else if (blockedByBuildingFresnel || fresnelTerrainBlocked)
+        {
+            note = "خط الرؤية الهندسي قد يكون مكشوفاً، لكن 60٪ من منطقة فريسنل الأولى غير خالية (تضاريس أو مبنى).";
+        }
+        else if (terrainBlocked)
+        {
+            note = "التضاريس قد تحجب خط الرؤية (الهامش الأدنى أقل من المطلوب).";
+        }
+        else
+        {
+            note = "خط الرؤية ومنطقة فريسنل ضمن النموذج التقريبي فوق التضاريس والمبانٍ المفحوصة.";
+        }
+
+        int measured = buildingList.Count(b => b.HeightSource == BuildingHeightSource.OsmHeight);
+        int estimated = buildingList.Count(b => b.HeightSource != BuildingHeightSource.OsmHeight);
 
         return new LineOfSightResult
         {
             Success = true,
             DistanceMeters = Math.Round(dist, 1),
-            TerrainClear = !terrainBlocked && !blockedByBuilding,
+            PathClear = pathClear,
+            TerrainClear = !terrainBlocked,
+            FresnelClear = fresnelClear,
             MinTerrainMarginMeters = Math.Round(minMargin, 2),
+            MinFresnelMarginMeters = Math.Round(minFresnelMargin, 2),
             TerrainNote = note,
+            FrequencyMhzUsed = Math.Round(frequencyMhz, 1),
+            FrequencyIsDefault = frequencyIsDefault,
+            EarthCurvatureApplied = true,
             BuildingsDataAvailable = buildingsOk,
-            BuildingsConsidered = buildingList.Count,
+            BuildingsConsidered = buildingsConsidered,
+            BuildingsMeasuredHeightCount = measured,
+            BuildingsEstimatedHeightCount = estimated,
             BuildingObstructions = buildingList,
             Profile = profile
         };
     }
 
-    private async Task<List<BuildingObstructionInfo>> AnalyzeBuildingsAsync(
+    private async Task<(List<BuildingObstructionInfo> Buildings, int Considered)> AnalyzeBuildingsAsync(
         double lat1, double lon1, double lat2, double lon2,
         double hStart, double hEnd,
+        double dist,
+        double frequencyMhz,
         CancellationToken ct)
     {
-        double south = Math.Min(lat1, lat2) - 0.015;
-        double north = Math.Max(lat1, lat2) + 0.015;
-        double west = Math.Min(lon1, lon2) - 0.015;
-        double east = Math.Max(lon1, lon2) + 0.015;
+        List<OsmBuildingWay> ways = await FetchOsmBuildingsAlongPathAsync(lat1, lon1, lat2, lon2, ct);
+        if (ways.Count == 0)
+        {
+            return ([], 0);
+        }
+
+        List<(OsmBuildingWay Way, PathPolygonRelation Rel, BuildingHeightEstimate Height)> candidates = [];
+        foreach (OsmBuildingWay way in ways)
+        {
+            PathPolygonRelation rel = LineOfSightMath.RelatePolygonToPath(lat1, lon1, lat2, lon2, way.Ring);
+            if (rel.T is < 0.02 or > 0.98 || double.IsInfinity(rel.DistanceMeters))
+            {
+                continue;
+            }
+
+            double corridor = LineOfSightMath.CorridorMetersAt(frequencyMhz, dist * rel.T, dist);
+            if (!rel.IntersectsPath && rel.DistanceMeters > corridor)
+            {
+                continue;
+            }
+
+            BuildingHeightEstimate height = LineOfSightMath.EstimateBuildingHeight(way.Tags);
+            candidates.Add((way, rel, height));
+        }
+
+        if (candidates.Count == 0)
+        {
+            return ([], 0);
+        }
+
+        candidates.Sort((a, b) => a.Rel.DistanceMeters.CompareTo(b.Rel.DistanceMeters));
+        List<(OsmBuildingWay Way, PathPolygonRelation Rel, BuildingHeightEstimate Height)> top =
+            candidates.Take(MaxBuildingsForElevation).ToList();
+
+        List<(double lat, double lon)> elevPoints = top.Select(c => (c.Rel.ClosestLat, c.Rel.ClosestLon)).ToList();
+        double[] bElev = await FetchElevationsBatchAsync(elevPoints, ct);
+
+        List<BuildingObstructionInfo> scored = new List<BuildingObstructionInfo>();
+        for (int i = 0; i < top.Count; i++)
+        {
+            (OsmBuildingWay way, PathPolygonRelation rel, BuildingHeightEstimate height) = top[i];
+            double g = bElev[i];
+            double roof = g + height.HeightMeters;
+            double line = hStart + rel.T * (hEnd - hStart);
+            double dAlong = dist * rel.T;
+            double r1 = LineOfSightMath.FirstFresnelRadiusMeters(frequencyMhz, dAlong, dist);
+            double fresnelFloor = line - (LineOfSightMath.FresnelClearanceFraction * r1);
+            bool blocksLos = roof > line + LineOfSightMath.GeometricBlockSlackM;
+            bool blocksFresnel = roof > fresnelFloor + LineOfSightMath.GeometricBlockSlackM;
+            way.Tags.TryGetValue("building", out string? buildingType);
+
+            scored.Add(new BuildingObstructionInfo
+            {
+                Lat = Math.Round(rel.ClosestLat, 6),
+                Lon = Math.Round(rel.ClosestLon, 6),
+                EstimatedBuildingHeightMeters = Math.Round(height.HeightMeters, 2),
+                HeightSource = height.Source,
+                HeightConfidence = height.Confidence,
+                BuildingType = string.IsNullOrWhiteSpace(buildingType) ? null : buildingType,
+                GroundElevationMslMeters = Math.Round(g, 2),
+                RoofMslMeters = Math.Round(roof, 2),
+                PathFraction = Math.Round(rel.T, 4),
+                CrossTrackMeters = Math.Round(rel.DistanceMeters, 1),
+                IntersectsPath = rel.IntersectsPath,
+                LineHeightAtPointMslMeters = Math.Round(line, 2),
+                FresnelRadiusMeters = Math.Round(r1, 2),
+                LikelyBlocksLos = blocksLos,
+                LikelyBlocksFresnel = blocksFresnel
+            });
+        }
+
+        scored.Sort((a, b) =>
+        {
+            int blockA = a.LikelyBlocksLos ? 0 : a.LikelyBlocksFresnel ? 1 : 2;
+            int blockB = b.LikelyBlocksLos ? 0 : b.LikelyBlocksFresnel ? 1 : 2;
+            int cmp = blockA.CompareTo(blockB);
+            if (cmp != 0)
+            {
+                return cmp;
+            }
+
+            double spareA = a.LineHeightAtPointMslMeters - a.RoofMslMeters;
+            double spareB = b.LineHeightAtPointMslMeters - b.RoofMslMeters;
+            return spareA.CompareTo(spareB);
+        });
+
+        List<BuildingObstructionInfo> returned = new List<BuildingObstructionInfo>();
+        foreach (BuildingObstructionInfo b in scored)
+        {
+            bool nearMiss = !b.LikelyBlocksFresnel &&
+                            (b.RoofMslMeters + 3) >= (b.LineHeightAtPointMslMeters - LineOfSightMath.FresnelClearanceFraction * b.FresnelRadiusMeters);
+            if (b.LikelyBlocksLos || b.LikelyBlocksFresnel || nearMiss)
+            {
+                returned.Add(b);
+            }
+
+            if (returned.Count >= MaxBuildingsReturned)
+            {
+                break;
+            }
+        }
+
+        List<BuildingObstructionInfo> result = returned.Count > 0 ? returned : scored.Take(8).ToList();
+        return (result, candidates.Count);
+    }
+
+    private async Task<List<OsmBuildingWay>> FetchOsmBuildingsAlongPathAsync(
+        double lat1, double lon1, double lat2, double lon2, CancellationToken ct)
+    {
+        StringBuilder aroundPts = new StringBuilder();
+        const int polySamples = 10;
+        for (int i = 0; i <= polySamples; i++)
+        {
+            double t = i / (double)polySamples;
+            double lat = lat1 + t * (lat2 - lat1);
+            double lon = lon1 + t * (lon2 - lon1);
+            aroundPts.Append(CultureInfo.InvariantCulture, $",{lat},{lon}");
+        }
 
         string query = $"""
             [out:json][timeout:25];
-            (
-              way["building"]({south.ToString(CultureInfo.InvariantCulture)},{west.ToString(CultureInfo.InvariantCulture)},{north.ToString(CultureInfo.InvariantCulture)},{east.ToString(CultureInfo.InvariantCulture)});
-            );
-            out center tags;
+            way["building"](around:{OverpassAroundMeters}{aroundPts});
+            out geom tags;
             """;
 
         HttpClient client = _httpFactory.CreateClient("Overpass");
-        using HttpResponseMessage response = await client.PostAsync(
-            "https://overpass-api.de/api/interpreter",
-            new StringContent("data=" + Uri.EscapeDataString(query), Encoding.UTF8, "application/x-www-form-urlencoded"),
-            ct);
-
-        if (!response.IsSuccessStatusCode)
+        foreach (string endpoint in OverpassEndpoints)
         {
-            return [];
+            try
+            {
+                using HttpResponseMessage response = await client.PostAsync(
+                    endpoint,
+                    new StringContent("data=" + Uri.EscapeDataString(query), Encoding.UTF8, "application/x-www-form-urlencoded"),
+                    ct);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogDebug("Overpass {Endpoint} returned {Status}", endpoint, (int)response.StatusCode);
+                    continue;
+                }
+
+                await using Stream stream = await response.Content.ReadAsStreamAsync(ct);
+                using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+                if (!doc.RootElement.TryGetProperty("elements", out JsonElement elements))
+                {
+                    continue;
+                }
+
+                List<OsmBuildingWay> ways = ParseOsmBuildingWays(elements);
+                _logger.LogDebug("Overpass {Endpoint} returned {Count} building ways", endpoint, ways.Count);
+                return ways;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogDebug(ex, "Overpass endpoint {Endpoint} failed", endpoint);
+            }
         }
 
-        await using Stream stream = await response.Content.ReadAsStreamAsync(ct);
-        using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-        if (!doc.RootElement.TryGetProperty("elements", out JsonElement elements))
-        {
-            return [];
-        }
+        throw new InvalidOperationException("All Overpass endpoints failed.");
+    }
 
-        List<(double lat, double lon, double bldgH, double t, double xtrack)> candidates = new List<(double lat, double lon, double bldgH, double t, double xtrack)>();
+    private static List<OsmBuildingWay> ParseOsmBuildingWays(JsonElement elements)
+    {
+        List<OsmBuildingWay> ways = [];
         foreach (JsonElement el in elements.EnumerateArray())
         {
             if (el.ValueKind != JsonValueKind.Object)
@@ -235,139 +447,52 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
                 continue;
             }
 
-            if (!el.TryGetProperty("center", out JsonElement center))
+            if (!el.TryGetProperty("geometry", out JsonElement geom) || geom.ValueKind != JsonValueKind.Array)
             {
                 continue;
             }
 
-            if (!center.TryGetProperty("lat", out JsonElement latProp) || !center.TryGetProperty("lon", out JsonElement lonProp))
+            List<(double Lat, double Lon)> ring = [];
+            foreach (JsonElement pt in geom.EnumerateArray())
             {
-                continue;
-            }
-
-            double clat = latProp.GetDouble();
-            double clon = lonProp.GetDouble();
-
-            if (!el.TryGetProperty("tags", out JsonElement tags))
-            {
-                continue;
-            }
-
-            double bHeight = ParseBuildingHeightMeters(tags);
-            (double t, double xtrack) = ProjectOntoPath(lat1, lon1, lat2, lon2, clat, clon);
-            if (t is < 0.02 or > 0.98)
-            {
-                continue;
-            }
-
-            if (xtrack > MaxCrossTrackBuildingM)
-            {
-                continue;
-            }
-
-            candidates.Add((clat, clon, bHeight, t, xtrack));
-        }
-
-        if (candidates.Count == 0)
-        {
-            return [];
-        }
-
-        candidates.Sort((a, b) => a.xtrack.CompareTo(b.xtrack));
-        List<(double lat, double lon, double bldgH, double t, double xtrack)> top = candidates.Take(60).ToList();
-
-        List<(double lat, double lon)> elevPoints = top.Select(c => (c.lat, c.lon)).ToList();
-        double[] bElev;
-        try
-        {
-            bElev = await FetchElevationsBatchAsync(elevPoints, ct);
-        }
-        catch
-        {
-            return [];
-        }
-
-        List<BuildingObstructionInfo> result = new List<BuildingObstructionInfo>();
-        for (int i = 0; i < top.Count; i++)
-        {
-            (double lat, double lon, double bldgH, double t, double xtrack) c = top[i];
-            double g = bElev[i];
-            double roof = g + c.bldgH;
-            double line = hStart + c.t * (hEnd - hStart);
-            bool blocks = roof > line + 0.5;
-            result.Add(new BuildingObstructionInfo
-            {
-                Lat = Math.Round(c.lat, 6),
-                Lon = Math.Round(c.lon, 6),
-                EstimatedBuildingHeightMeters = Math.Round(c.bldgH, 2),
-                GroundElevationMslMeters = Math.Round(g, 2),
-                RoofMslMeters = Math.Round(roof, 2),
-                PathFraction = Math.Round(c.t, 4),
-                CrossTrackMeters = Math.Round(c.xtrack, 1),
-                LineHeightAtPointMslMeters = Math.Round(line, 2),
-                LikelyBlocksLos = blocks
-            });
-        }
-
-        return result;
-    }
-
-    private static double ParseBuildingHeightMeters(JsonElement tags)
-    {
-        if (tags.TryGetProperty("height", out JsonElement h))
-        {
-            string? s = h.GetString();
-            if (!string.IsNullOrWhiteSpace(s))
-            {
-                s = s.Replace("m", "", StringComparison.OrdinalIgnoreCase).Trim();
-                if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double v))
+                if (pt.ValueKind != JsonValueKind.Object)
                 {
-                    return Math.Clamp(v, 2, 400);
+                    continue;
+                }
+
+                if (!pt.TryGetProperty("lat", out JsonElement latProp) || !pt.TryGetProperty("lon", out JsonElement lonProp))
+                {
+                    continue;
+                }
+
+                ring.Add((latProp.GetDouble(), lonProp.GetDouble()));
+            }
+
+            if (ring.Count < 2)
+            {
+                continue;
+            }
+
+            Dictionary<string, string> tags = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (el.TryGetProperty("tags", out JsonElement tagsEl) && tagsEl.ValueKind == JsonValueKind.Object)
+            {
+                foreach (JsonProperty p in tagsEl.EnumerateObject())
+                {
+                    if (p.Value.ValueKind == JsonValueKind.String)
+                    {
+                        tags[p.Name] = p.Value.GetString() ?? "";
+                    }
+                    else if (p.Value.ValueKind is JsonValueKind.Number)
+                    {
+                        tags[p.Name] = p.Value.ToString();
+                    }
                 }
             }
+
+            ways.Add(new OsmBuildingWay { Tags = tags, Ring = ring });
         }
 
-        if (tags.TryGetProperty("building:levels", out JsonElement lv))
-        {
-            string? ls = lv.GetString();
-            if (double.TryParse(ls, NumberStyles.Float, CultureInfo.InvariantCulture, out double levels))
-            {
-                return Math.Clamp(levels * 3.2, 3, 200);
-            }
-        }
-
-        return DefaultGuessBuildingHeightM;
-    }
-
-    /// <summary>إسقاط نقطة على المسار: t على [0,1] والمسافة العمودية بالمتر (تقريب مسطح محلي حول المرسل).</summary>
-    private static (double t, double crossM) ProjectOntoPath(
-        double lat1, double lon1, double lat2, double lon2,
-        double plat, double plon)
-    {
-        double ToX(double lat, double lon) => (lon - lon1) * Math.Cos(lat1 * Math.PI / 180) * 111320;
-        double ToY(double lat, double lon) => (lat - lat1) * 111320;
-
-        double bx = ToX(lat2, lon2);
-        double by = ToY(lat2, lon2);
-        double px = ToX(plat, plon);
-        double py = ToY(plat, plon);
-
-        double abx = bx;
-        double aby = by;
-        double ab2 = abx * abx + aby * aby;
-        if (ab2 < 1e-6)
-        {
-            return (0, Math.Sqrt(px * px + py * py));
-        }
-
-        double t = (px * abx + py * aby) / ab2;
-        t = Math.Clamp(t, 0, 1);
-        double projx = t * abx;
-        double projy = t * aby;
-        double dx = px - projx;
-        double dy = py - projy;
-        double cross = Math.Sqrt(dx * dx + dy * dy);
-        return (t, cross);
+        return ways;
     }
 
     private async Task<double[]> FetchElevationsBatchAsync(IReadOnlyList<(double Lat, double Lon)> points, CancellationToken ct)
@@ -407,6 +532,12 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
         return list;
     }
 
+    private sealed class OsmBuildingWay
+    {
+        public Dictionary<string, string> Tags { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+        public List<(double Lat, double Lon)> Ring { get; init; } = [];
+    }
+
     private sealed class OpenElevationLocationDto
     {
         public double latitude { get; init; }
@@ -420,16 +551,4 @@ public sealed class LineOfSightAnalysisService : ILineOfSightAnalysisService
 
     private static bool IsValidLatLng(double lat, double lon) =>
         lat is >= -90 and <= 90 && lon is >= -180 and <= 180;
-
-    private static double HaversineMeters(double lat1, double lon1, double lat2, double lon2)
-    {
-        const double R = 6371000;
-        double dLat = (lat2 - lat1) * Math.PI / 180;
-        double dLon = (lon2 - lon1) * Math.PI / 180;
-        double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180) *
-                Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-        double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-        return R * c;
-    }
 }

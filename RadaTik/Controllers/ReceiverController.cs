@@ -832,7 +832,7 @@ namespace RadaTik.Controllers
             return Json(new { success = true, elevationMeters = Math.Round(elevation.Value, 1) });
         }
 
-        /// <summary>تحليل تقريبي لخط الرؤية فوق التضاريس مع احتساب المبانٍ من OSM عند توفرها.</summary>
+        /// <summary>تحليل تقريبي لخط الرؤية: تضاريس، فريسنل، ومبانٍ من OSM بتقاطع المضلعات.</summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         [RequirePermission("Receivers.Create")]
@@ -859,6 +859,12 @@ namespace RadaTik.Controllers
                 return Json(new { success = false, message = "القطاع غير موجود." });
             }
 
+            int frequencyMhz = await _context.SectorRadioMetricSamples.AsNoTracking()
+                .Where(s => s.SectorId == sector.Id && s.FrequencyMhz != null && s.FrequencyMhz > 100)
+                .OrderByDescending(s => s.CapturedAt)
+                .Select(s => s.FrequencyMhz!.Value)
+                .FirstOrDefaultAsync(ct);
+
             LineOfSightAnalysisInput input = new LineOfSightAnalysisInput
             {
                 SectorLat = sector.Latitude,
@@ -869,7 +875,8 @@ namespace RadaTik.Controllers
                 ReceiverLon = request.ReceiverLongitude,
                 ReceiverTerrainElevationMeters = request.ReceiverElevationMeters,
                 ReceiverAntennaAglMeters = request.ReceiverAntennaHeightAglMeters ?? 0,
-                SampleCount = 48
+                SampleCount = 48,
+                FrequencyMhz = frequencyMhz
             };
 
             LineOfSightResult result = await _lineOfSightAnalysisService.AnalyzeAsync(input, ct);

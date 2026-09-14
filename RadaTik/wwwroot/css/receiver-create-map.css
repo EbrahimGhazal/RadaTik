@@ -188,3 +188,41 @@
         justify-content: center;
     }
 }
+
+.los-profile-wrap {
+    margin: 0.5rem 0 0.75rem;
+    padding: 0.35rem 0.4rem 0.5rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 8px;
+    background: rgba(148, 163, 184, 0.08);
+}
+
+.los-profile-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 210px;
+}
+
+.los-profile-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem 1rem;
+    margin-top: 0.35rem;
+    font-size: 0.78rem;
+    color: inherit;
+}
+
+.los-lg {
+    display: inline-block;
+    width: 14px;
+    height: 3px;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+    border-radius: 1px;
+}
+
+.los-lg-terrain { background: #8d6e4a; height: 8px; width: 10px; }
+.los-lg-los { background: #fd7e14; }
+.los-lg-fresnel { background: #7c3aed; height: 0; border-top: 2px dashed #7c3aed; }
+.los-lg-bldg { background: #dc3545; width: 8px; height: 8px; border-radius: 50%; }

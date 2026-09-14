@@ -139,6 +139,7 @@ internal static class ServiceRegistrationExtensions
         services.AddHttpClient("Overpass", client =>
         {
             client.Timeout = TimeSpan.FromSeconds(90);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("RadatikLOS/1.0");
         });
         services.AddScoped<ILineOfSightAnalysisService, LineOfSightAnalysisService>();
         services.AddMikroTikServices();

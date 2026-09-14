@@ -198,10 +198,10 @@ else if (pendingSectorApprovalsCount > 0)
                     <details class="los-static-notes" id="losStaticNotes">
                         <summary class="los-notes-title"><i class="fas fa-info-circle"></i> ملاحظات مهمة — اقرأ قبل الاعتماد على التحليل</summary>
                         <ul class="los-notes-list">
-                            <li><strong>ما الذي يُحسب؟</strong> مسار تقريبي مستقيم في المستوى بين موقع القطاع (المرسل) وموقع المستقبل، مع مقارنة ارتفاع خط الرؤية بين الهوائيات مع: ارتفاع التضاريس (نموذج خارجي)، ثم المبانٍ المسجّلة في خريطة الشارع المفتوحة إن وُجدت.</li>
-                            <li><strong>دقة النتيجة:</strong> النتيجة <strong>تقديرية</strong> وليست مسحاً ميدانياً. التضاريس من خدمة ارتفاعات عامة؛ المبانٍ قد تكون ناقصة أو بارتفاع غير دقيق؛ لا يُغني عن المعاينة أو قياسات مهنية عند الحاجة.</li>
-                            <li><strong>عند فشل جلب المبانٍ:</strong> يُعرض تحذير في النتيجة، والتحليل يبقى مفيداً لتضاريس المسار فقط.</li>
-                            <li><strong>الخريطة بعد الضغط على «تحليل خط الرؤية»:</strong> خط برتقالي = مسار التحليل؛ دوائر حمراء = مبانٍ يُرجّح أنها أعلى من خط الرؤية عند ذلك الموضع؛ دائرة صفراء = أضيق نقطة تضاريس على المسار (يظهر فقط إذا كان الهامش أقل من حدّ معيّن).</li>
+                            <li><strong>ما الذي يُحسب؟</strong> مسار تقريبي بين هوائي القطاع وهوائي المستقبل، مع: ارتفاع التضاريس، انتفاخ الأرض، 60٪ من منطقة فريسنل الأولى (حسب تردد القطاع إن وُجد وإلا 5.8 غيغاهرتز)، ثم المبانٍ من خريطة الشارع المفتوحة عبر تقاطع مضلع المبنى مع ممر المسار.</li>
+                            <li><strong>دقة النتيجة:</strong> النتيجة <strong>تقديرية</strong> وليست مسحاً ميدانياً. ارتفاع المبنى يُؤخذ من وسم OSM إن وُجد، وإلا من عدد الطوابق، وإلا تقدير حسب نوع المبنى. لا يغني عن المعاينة الميدانية عند الحاجة.</li>
+                            <li><strong>عند فشل جلب المبانٍ:</strong> يُعرض تحذير في النتيجة، والتحليل يبقى مفيداً للتضاريس وفريسنل فقط.</li>
+                            <li><strong>الخريطة بعد التحليل:</strong> خط برتقالي = المسار؛ أحمر = مبنى يعترض خط الرؤية؛ برتقالي غامق = مبنى يدخل منطقة فريسنل؛ أصفر = أضيق هامش على المسار.</li>
                         </ul>
                     </details>
 
@@ -244,7 +244,7 @@ else if (pendingSectorApprovalsCount > 0)
                 <button type="submit" class="btn btn-success">
                     <i class="fas fa-save"></i> حفظ المستقبل
                 </button>
-                <button type="button" class="btn btn-outline-primary" id="btnAnalyzeLos" title="تحليل المسار فوق التضاريس والمباني (بيانات خارجية)">
+                <button type="button" class="btn btn-outline-primary" id="btnAnalyzeLos" title="تحليل المسار: تضاريس + فريسنل + مبانٍ (بيانات خارجية)">
                     <i class="fas fa-mountain"></i> تحليل خط الرؤية
                 </button>
                 <button type="button" class="btn btn-info" id="btnCheckConnection" title="فحص اتصال المستقبل">
@@ -686,6 +686,43 @@ else if (pendingSectorApprovalsCount > 0)
     .los-result-kv dd {
         margin: 0;
     }
+
+    .los-profile-wrap {
+        margin: 0.5rem 0 0.75rem;
+        padding: 0.35rem 0.4rem 0.5rem;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        background: var(--bg-card);
+    }
+
+    .los-profile-svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: 210px;
+    }
+
+    .los-profile-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem 1rem;
+        margin-top: 0.35rem;
+        font-size: var(--font-sm);
+    }
+
+    .los-lg {
+        display: inline-block;
+        width: 14px;
+        height: 3px;
+        margin-left: 0.35rem;
+        vertical-align: middle;
+        border-radius: 1px;
+    }
+
+    .los-lg-terrain { background: #8d6e4a; height: 8px; width: 10px; }
+    .los-lg-los { background: #fd7e14; }
+    .los-lg-fresnel { background: #7c3aed; height: 0; border-top: 2px dashed #7c3aed; }
+    .los-lg-bldg { background: #dc3545; width: 8px; height: 8px; border-radius: 50%; }
 
     @@media (max-width: 991.98px) {
         .receiver-create-page {
