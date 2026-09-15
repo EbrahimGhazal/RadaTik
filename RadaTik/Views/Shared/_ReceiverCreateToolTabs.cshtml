@@ -1,0 +1,51 @@
+@{
+    var showLosNotes = ViewData["ShowLosNotes"] as bool? == true;
+}
+
+<div class="receiver-tool-tabs" role="tablist" aria-label="أدوات المسار">
+    <button type="button" class="receiver-tool-tab is-active" id="tabBtnLos" data-tool-tab="los" role="tab" aria-selected="true" aria-controls="receiverTabLos">
+        <i class="fas fa-mountain"></i> خط الرؤية
+    </button>
+    <button type="button" class="receiver-tool-tab" id="tabBtnCalibrate" data-tool-tab="calibrate" role="tab" aria-selected="false" aria-controls="receiverTabCalibrate">
+        <i class="fas fa-compass"></i> معايرة
+    </button>
+</div>
+
+<div id="receiverTabLos" class="receiver-tool-pane" data-tool-pane="los" role="tabpanel" aria-labelledby="tabBtnLos">
+    @if (showLosNotes)
+    {
+        <details class="los-static-notes" id="losStaticNotes">
+            <summary class="los-notes-title"><i class="fas fa-info-circle"></i> ملاحظات مهمة — اقرأ قبل الاعتماد على التحليل</summary>
+            <ul class="los-notes-list">
+                <li><strong>ما الذي يُحسب؟</strong> مسار تقريبي بين الهوائيين، مع التضاريس، انتفاخ الأرض، 60٪ من فريسنل (حسب التردد المدخل أو قياس القطاع أو 5.8 غيغاهرتز)، ثم المبانٍ والأشجار/الغابات من OSM عبر تقاطع المضلع مع ممر المسار.</li>
+                <li><strong>دقة النتيجة:</strong> النتيجة <strong>تقديرية</strong>. ارتفاع المبنى أو الشجر من وسم OSM إن وُجد، وإلا تقدير حسب النوع. لا يغني عن المعاينة الميدانية.</li>
+                <li><strong>عند فشل جلب OSM:</strong> يُعرض تحذير، والتحليل يبقى مفيداً للتضاريس وفريسنل. الطلبات المتكررة لنفس المسار تُسرَّع من الذاكرة المؤقتة.</li>
+                <li><strong>الخريطة بعد التحليل:</strong> خط برتقالي = المسار؛ أحمر = مبنى يعترض؛ برتقالي = مبنى يدخل فريسنل؛ أخضر = شجر/غابة؛ أصفر = أضيق هامش.</li>
+            </ul>
+        </details>
+    }
+    else
+    {
+        <p class="form-hint mb-2">يحسب المسار فوق التضاريس والمبانٍ والأشجار. اختر القطاع وحدد الموقع ثم اضغط «تحليل خط الرؤية».</p>
+    }
+
+    <div id="losResultPanel" class="los-result-panel d-none" role="region" aria-live="polite">
+        <div class="los-result-header">
+            <h4 class="los-result-title"><i class="fas fa-mountain"></i> نتيجة تحليل خط الرؤية</h4>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnLosResultClose" title="إخفاء النتيجة">×</button>
+        </div>
+        <div id="losResultContent" class="los-result-content"></div>
+    </div>
+</div>
+
+<div id="receiverTabCalibrate" class="receiver-tool-pane d-none" data-tool-pane="calibrate" role="tabpanel" aria-labelledby="tabBtnCalibrate">
+    <p class="form-hint mb-2">
+        من بيانات المرسل (القطاع) ونقطة المستقبل يُحسب <strong>السمت</strong> (الاتجاه الأفقي من الشمال) و<strong>الميل</strong> (الانحراف الرأسي) لكل هوائي، مع مقدار التدوير عن اتجاه القطاع الحالي.
+    </p>
+    <button type="button" class="btn btn-outline-success" id="btnCalibrateAlignment" title="حساب سمت وميل الهوائيين">
+        <i class="fas fa-compass"></i> حساب المعايرة
+    </button>
+    <div id="calibrateResultPanel" class="calibrate-result-panel d-none" role="region" aria-live="polite">
+        <div id="calibrateResultContent"></div>
+    </div>
+</div>

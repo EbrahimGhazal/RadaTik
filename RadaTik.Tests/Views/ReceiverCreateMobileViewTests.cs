@@ -13,6 +13,7 @@ public sealed class ReceiverCreateMobileViewTests
         Assert.Contains("receiver-create-page", text);
         Assert.Contains("<partial name=\"_ReceiverCreateMap\" />", text);
         Assert.Contains("<partial name=\"_ReceiverCreateMapScripts\" />", text);
+        Assert.Contains("<partial name=\"_ReceiverCreateToolTabs\" />", text);
         Assert.Contains("receiver-map-wrap", map);
         Assert.Contains("receiver-map-toolbar", map);
         Assert.Contains("btnUseMyLocation", map);
@@ -23,6 +24,8 @@ public sealed class ReceiverCreateMobileViewTests
         Assert.Contains("losFrequencyMhzInput", scripts);
         Assert.Contains("obstacleKind", scripts);
         Assert.Contains("vegetation", scripts);
+        Assert.Contains("CalibrateAlignment", scripts);
+        Assert.Contains("معايرة", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_ReceiverCreateToolTabs.cshtml")));
         Assert.Contains("id=\"losFrequencyMhzInput\"", text);
         Assert.Contains("--receiver-map-height", text);
         Assert.DoesNotContain("height: 250px", text);
@@ -46,6 +49,7 @@ public sealed class ReceiverCreateMobileViewTests
         Assert.Contains("id=\"sectorSelect\"", text);
         Assert.Contains("id=\"latitudeInput\"", text);
         Assert.Contains("id=\"losFrequencyMhzInput\"", text);
+        Assert.Contains("<partial name=\"_ReceiverCreateToolTabs\" />", text);
         Assert.Contains("id=\"map\"", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_ReceiverCreateMap.cshtml")));
         Assert.Contains("L.map", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_ReceiverCreateMapScripts.cshtml")));
     }

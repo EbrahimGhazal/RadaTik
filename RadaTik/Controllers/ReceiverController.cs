@@ -908,6 +908,92 @@ namespace RadaTik.Controllers
             return Json(new { success = true, analysis = result });
         }
 
+        /// <summary>معايرة محاذاة الهوائيين: سمت وميل المرسل والمستقبل لأفضل إشارة.</summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequirePermission("Receivers.Create")]
+        public async Task<IActionResult> CalibrateAlignment([FromBody] CalibrateAlignmentRequest? request, CancellationToken ct)
+        {
+            if (request == null || request.SectorId <= 0)
+            {
+                return Json(new { success = false, message = "بيانات الطلب غير صالحة." });
+            }
+
+            ApplicationUser? user = await _userManager.GetUserAsync(User);
+            int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+            if (!networkId.HasValue)
+            {
+                return Json(new { success = false, message = "يرجى تحديد شبكة أولاً" });
+            }
+
+            Sector? sector = await _context.Sectors.AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == request.SectorId && s.NetworkId == networkId.Value, ct);
+            if (sector == null)
+            {
+                return Json(new { success = false, message = "القطاع غير موجود." });
+            }
+
+            if (!IsValidLatLng(request.ReceiverLatitude, request.ReceiverLongitude))
+            {
+                return Json(new { success = false, message = "إحداثيات المستقبل غير صالحة." });
+            }
+
+            double? sectorTerrain = sector.ElevationMeters
+                ?? await _lineOfSightAnalysisService.LookupElevationAtAsync(sector.Latitude, sector.Longitude, ct);
+            double? receiverTerrain = request.ReceiverElevationMeters
+                ?? await _lineOfSightAnalysisService.LookupElevationAtAsync(request.ReceiverLatitude, request.ReceiverLongitude, ct);
+
+            if (sectorTerrain == null || receiverTerrain == null)
+            {
+                return Json(new { success = false, message = "تعذر تحديد ارتفاع الأرض. حدد الموقع على الخريطة أو أدخل الارتفاع يدوياً." });
+            }
+
+            double sectorAgl = sector.AntennaHeightAglMeters is > 0 ? sector.AntennaHeightAglMeters.Value : 12;
+            double receiverAgl = request.ReceiverAntennaHeightAglMeters is > 0
+                ? request.ReceiverAntennaHeightAglMeters.Value
+                : 6;
+
+            AntennaAlignmentResult alignment = LineOfSightMath.ComputeAlignment(
+                sector.Latitude,
+                sector.Longitude,
+                sectorTerrain.Value + sectorAgl,
+                sector.Direction,
+                sector.CoverageAngle,
+                request.ReceiverLatitude,
+                request.ReceiverLongitude,
+                receiverTerrain.Value + receiverAgl);
+
+            if (alignment.DistanceMeters < 5)
+            {
+                return Json(new { success = false, message = "المسافة شبه معدومة؛ انقل نقطة المستقبل بعيداً عن المرسل." });
+            }
+
+            return Json(new
+            {
+                success = true,
+                alignment = new
+                {
+                    distanceMeters = Math.Round(alignment.DistanceMeters, 1),
+                    transmitterAzimuthDegrees = Math.Round(alignment.TransmitterAzimuthDegrees, 1),
+                    transmitterElevationDegrees = Math.Round(alignment.TransmitterElevationDegrees, 2),
+                    transmitterAzimuthDeltaDegrees = Math.Round(alignment.TransmitterAzimuthDeltaDegrees, 1),
+                    transmitterCardinal = alignment.TransmitterCardinal,
+                    receiverAzimuthDegrees = Math.Round(alignment.ReceiverAzimuthDegrees, 1),
+                    receiverElevationDegrees = Math.Round(alignment.ReceiverElevationDegrees, 2),
+                    receiverCardinal = alignment.ReceiverCardinal,
+                    currentSectorAzimuthDegrees = Math.Round(alignment.CurrentSectorAzimuthDegrees, 1),
+                    insideCoverageBeam = alignment.InsideCoverageBeam,
+                    coverageHalfAngleDegrees = Math.Round(alignment.CoverageHalfAngleDegrees, 1),
+                    sectorAntennaMslMeters = Math.Round(sectorTerrain.Value + sectorAgl, 1),
+                    receiverAntennaMslMeters = Math.Round(receiverTerrain.Value + receiverAgl, 1),
+                    sectorName = sector.Name
+                }
+            });
+        }
+
+        private static bool IsValidLatLng(double lat, double lon) =>
+            lat is >= -90 and <= 90 && lon is >= -180 and <= 180;
+
         // API: الحصول على معلومات القطاع المحدد (للخريطة)
         [HttpGet]
         [RequirePermission("Receivers.View")]

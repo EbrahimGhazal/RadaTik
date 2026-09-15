@@ -203,23 +203,10 @@ else if (pendingSectorApprovalsCount > 0)
                         </div>
                     </div>
 
-                    <details class="los-static-notes" id="losStaticNotes">
-                        <summary class="los-notes-title"><i class="fas fa-info-circle"></i> ملاحظات مهمة — اقرأ قبل الاعتماد على التحليل</summary>
-                        <ul class="los-notes-list">
-                            <li><strong>ما الذي يُحسب؟</strong> مسار تقريبي بين الهوائيين، مع التضاريس، انتفاخ الأرض، 60٪ من فريسنل (حسب التردد المدخل أو قياس القطاع أو 5.8 غيغاهرتز)، ثم المبانٍ والأشجار/الغابات من OSM عبر تقاطع المضلع مع ممر المسار.</li>
-                            <li><strong>دقة النتيجة:</strong> النتيجة <strong>تقديرية</strong>. ارتفاع المبنى أو الشجر من وسم OSM إن وُجد، وإلا تقدير حسب النوع. لا يغني عن المعاينة الميدانية.</li>
-                            <li><strong>عند فشل جلب OSM:</strong> يُعرض تحذير، والتحليل يبقى مفيداً للتضاريس وفريسنل. الطلبات المتكررة لنفس المسار تُسرَّع من الذاكرة المؤقتة.</li>
-                            <li><strong>الخريطة بعد التحليل:</strong> خط برتقالي = المسار؛ أحمر = مبنى يعترض؛ برتقالي = مبنى يدخل فريسنل؛ أخضر = شجر/غابة؛ أصفر = أضيق هامش.</li>
-                        </ul>
-                    </details>
-
-                    <div id="losResultPanel" class="los-result-panel d-none" role="region" aria-live="polite">
-                        <div class="los-result-header">
-                            <h4 class="los-result-title"><i class="fas fa-mountain"></i> نتيجة تحليل خط الرؤية</h4>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnLosResultClose" title="إخفاء النتيجة">×</button>
-                        </div>
-                        <div id="losResultContent" class="los-result-content"></div>
-                    </div>
+                    @{
+                        ViewData["ShowLosNotes"] = true;
+                    }
+                    <partial name="_ReceiverCreateToolTabs" />
                 </div>
 
                 <!-- القسم الثالث: معلومات إضافية -->
@@ -254,6 +241,9 @@ else if (pendingSectorApprovalsCount > 0)
                 </button>
                 <button type="button" class="btn btn-outline-primary" id="btnAnalyzeLos" title="تحليل المسار: تضاريس + فريسنل + مبانٍ + أشجار">
                     <i class="fas fa-mountain"></i> تحليل خط الرؤية
+                </button>
+                <button type="button" class="btn btn-outline-success" id="btnCalibrateAlignmentAction" title="حساب سمت وميل الهوائيين لأفضل إشارة">
+                    <i class="fas fa-compass"></i> معايرة
                 </button>
                 <button type="button" class="btn btn-info" id="btnCheckConnection" title="فحص اتصال المستقبل">
                     <i class="fas fa-wifi"></i> فحص الاتصال

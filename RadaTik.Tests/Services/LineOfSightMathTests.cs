@@ -165,4 +165,37 @@ public sealed class LineOfSightMathTests
     {
         Assert.True(LineOfSightMath.CorridorMetersAt(5800, 500, 1000) >= 12);
     }
+
+    [Fact]
+    public void InitialBearing_EastwardIsAbout90()
+    {
+        double bearing = LineOfSightMath.InitialBearingDegrees(33.5, 36.30, 33.5, 36.31);
+        Assert.InRange(bearing, 85, 95);
+        double back = LineOfSightMath.InitialBearingDegrees(33.5, 36.31, 33.5, 36.30);
+        Assert.InRange(back, 265, 275);
+    }
+
+    [Fact]
+    public void SignedAngleDelta_WrapsAcrossNorth()
+    {
+        Assert.InRange(LineOfSightMath.SignedAngleDeltaDegrees(350, 10), 19, 21);
+        Assert.InRange(LineOfSightMath.SignedAngleDeltaDegrees(10, 350), -21, -19);
+    }
+
+    [Fact]
+    public void ComputeAlignment_ReceiverDueEast_GivesEastAzimuthAndOppositeWest()
+    {
+        AntennaAlignmentResult a = LineOfSightMath.ComputeAlignment(
+            33.5, 36.30, 112,
+            0,
+            90,
+            33.5, 36.31, 106);
+        Assert.InRange(a.TransmitterAzimuthDegrees, 85, 95);
+        Assert.InRange(a.ReceiverAzimuthDegrees, 265, 275);
+        Assert.InRange(a.TransmitterAzimuthDeltaDegrees, 85, 95);
+        Assert.False(a.InsideCoverageBeam);
+        Assert.True(a.TransmitterElevationDegrees < 0);
+        Assert.True(a.ReceiverElevationDegrees > 0);
+        Assert.Equal("شرق", a.TransmitterCardinal);
+    }
 }

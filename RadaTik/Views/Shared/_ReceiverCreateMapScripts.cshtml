@@ -18,6 +18,7 @@
 
             var getSectorInfoUrl = '@Url.Action("GetSectorInfo", "Receiver", new { area = currentArea })';
             var analyzeLosUrl = '@Url.Action("AnalyzeLineOfSight", "Receiver", new { area = currentArea })';
+            var calibrateAlignmentUrl = '@Url.Action("CalibrateAlignment", "Receiver", new { area = currentArea })';
             var getElevationAtUrl = '@Url.Action("GetElevationAtPoint", "Receiver", new { area = currentArea })';
             var getNextIpUrl = '@Url.Action("GetNextReceiverIP", "Receiver", new { area = currentArea })';
             var sectorServerFilter = document.getElementById('sectorServerFilter');
@@ -73,6 +74,7 @@
             var currentReceiversLayer = null;
             var receiverMarker = null;
             var losAnalysisLayerGroup = null;
+            var calibrationLayerGroup = null;
 
             var sectorsById = {};
             sectors.forEach(function (s) {
@@ -113,6 +115,26 @@
                     map.removeLayer(losAnalysisLayerGroup);
                     losAnalysisLayerGroup = null;
                 }
+            }
+
+            function clearCalibrationOverlay() {
+                if (calibrationLayerGroup) {
+                    map.removeLayer(calibrationLayerGroup);
+                    calibrationLayerGroup = null;
+                }
+            }
+
+            function activateToolTab(name) {
+                document.querySelectorAll('.receiver-tool-tab').forEach(function (btn) {
+                    var on = btn.getAttribute('data-tool-tab') === name;
+                    btn.classList.toggle('is-active', on);
+                    btn.setAttribute('aria-selected', on ? 'true' : 'false');
+                });
+                document.querySelectorAll('.receiver-tool-pane').forEach(function (pane) {
+                    var on = pane.getAttribute('data-tool-pane') === name;
+                    pane.classList.toggle('d-none', !on);
+                });
+                refreshMapLayout();
             }
 
             function heightSourceLabel(source) {
@@ -663,6 +685,7 @@
                 var prev = btn.innerHTML;
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحليل...';
+                activateToolTab('los');
                 clearLosAnalysisOverlay();
                 var panel = document.getElementById('losResultPanel');
                 var content = document.getElementById('losResultContent');
@@ -813,8 +836,195 @@
                 });
             }
 
+            document.querySelectorAll('.receiver-tool-tab').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    activateToolTab(btn.getAttribute('data-tool-tab'));
+                });
+            });
+
+            function formatAzimuthTurn(delta) {
+                var a = Math.abs(Number(delta) || 0);
+                if (a < 0.8) {
+                    return 'المحاذاة الأفقية ضمن أقل من درجة عن الاتجاه المطلوب.';
+                }
+                if (delta > 0) {
+                    return 'أدر يميناً (مع عقارب الساعة) ' + a.toFixed(1) + '°';
+                }
+                return 'أدر يساراً (عكس عقارب الساعة) ' + a.toFixed(1) + '°';
+            }
+
+            function formatTilt(el) {
+                var v = Number(el) || 0;
+                var a = Math.abs(v);
+                if (a < 0.15) {
+                    return 'أبقِ الهوائي أفقياً تقريباً (ميل ≈ 0°).';
+                }
+                if (v > 0) {
+                    return 'ارفع الهوائي للأعلى (uptilt) ' + a.toFixed(2) + '°';
+                }
+                return 'اخفض الهوائي للأسفل (downtilt) ' + a.toFixed(2) + '°';
+            }
+
+            function renderCompassSvg(currentDeg, requiredDeg) {
+                var cur = Number(currentDeg) || 0;
+                var req = Number(requiredDeg) || 0;
+                return '<svg class="calibrate-compass" viewBox="0 0 160 160" role="img" aria-label="بوصلة المعايرة">' +
+                    '<circle cx="80" cy="80" r="62" fill="rgba(15,23,42,0.04)" stroke="rgba(148,163,184,0.55)" stroke-width="2"></circle>' +
+                    '<text x="80" y="22" text-anchor="middle" font-size="11" fill="currentColor">ش</text>' +
+                    '<text x="80" y="154" text-anchor="middle" font-size="11" fill="currentColor">ج</text>' +
+                    '<text x="18" y="84" text-anchor="middle" font-size="11" fill="currentColor">غ</text>' +
+                    '<text x="142" y="84" text-anchor="middle" font-size="11" fill="currentColor">ق</text>' +
+                    '<g transform="rotate(' + cur.toFixed(1) + ' 80 80)">' +
+                    '<line x1="80" y1="80" x2="80" y2="28" stroke="#dc3545" stroke-width="3" stroke-linecap="round"></line>' +
+                    '</g>' +
+                    '<g transform="rotate(' + req.toFixed(1) + ' 80 80)">' +
+                    '<line x1="80" y1="80" x2="80" y2="24" stroke="#198754" stroke-width="3" stroke-linecap="round"></line>' +
+                    '<polygon points="80,18 75,30 85,30" fill="#198754"></polygon>' +
+                    '</g>' +
+                    '<circle cx="80" cy="80" r="4" fill="#334155"></circle>' +
+                    '</svg>' +
+                    '<div class="calibrate-compass-legend"><span class="cal-leg-cur"></span> اتجاه القطاع الحالي &nbsp; <span class="cal-leg-req"></span> السمت المطلوب</div>';
+            }
+
+            function renderCalibrationOnMap(alignment) {
+                clearCalibrationOverlay();
+                if (!selectedSector || !isFinite(selectedSector.latitude) || !isFinite(selectedSector.longitude)) {
+                    return;
+                }
+                var lat1 = parseFloat(latInput.value);
+                var lon1 = parseFloat(lngInput.value);
+                if (!isFinite(lat1) || !isFinite(lon1)) {
+                    return;
+                }
+                calibrationLayerGroup = L.layerGroup();
+                var line = L.polyline([[selectedSector.latitude, selectedSector.longitude], [lat1, lon1]], {
+                    color: '#198754',
+                    weight: 3,
+                    opacity: 0.9,
+                    dashArray: '8,6'
+                });
+                line.bindPopup('مسار المعايرة: سمت المرسل ' + losNum(alignment.transmitterAzimuthDegrees) + '°');
+                calibrationLayerGroup.addLayer(line);
+                calibrationLayerGroup.addTo(map);
+            }
+
+            function calibrateAlignment() {
+                var sectorId = sectorSelect && sectorSelect.value;
+                if (!sectorId) {
+                    showAlert('يرجى اختيار القطاع أولاً', 'warning');
+                    return;
+                }
+                var lat = parseFloat(latInput.value);
+                var lng = parseFloat(lngInput.value);
+                if (!isFinite(lat) || !isFinite(lng)) {
+                    showAlert('يرجى تحديد موقع المستقبل على الخريطة أولاً', 'warning');
+                    return;
+                }
+                activateToolTab('calibrate');
+                var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                var token = tokenInput ? tokenInput.value : '';
+                var elevIn = document.getElementById('receiverElevationInput');
+                var aglIn = document.getElementById('receiverAntennaAglInput');
+                var panel = document.getElementById('calibrateResultPanel');
+                var content = document.getElementById('calibrateResultContent');
+                var btn = document.getElementById('btnCalibrateAlignment');
+                var prev = btn ? btn.innerHTML : '';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحساب...';
+                }
+                panel.classList.remove('d-none');
+                content.innerHTML = '<p class="text-muted mb-0">جارٍ حساب السمت والميل...</p>';
+
+                fetch(calibrateAlignmentUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        sectorId: parseInt(sectorId, 10),
+                        receiverLatitude: lat,
+                        receiverLongitude: lng,
+                        receiverElevationMeters: parseOptionalFloatInput(elevIn),
+                        receiverAntennaHeightAglMeters: parseOptionalFloatInput(aglIn)
+                    })
+                })
+                    .then(function (r) {
+                        if (!r.ok) {
+                            throw new Error('http_' + r.status);
+                        }
+                        return r.json();
+                    })
+                    .then(function (data) {
+                        if (!data || !data.success || !data.alignment) {
+                            content.innerHTML = '<p class="text-danger">' + (data && data.message ? data.message : 'فشل حساب المعايرة') + '</p>';
+                            return;
+                        }
+                        var a = data.alignment;
+                        var beam = a.insideCoverageBeam
+                            ? '<span class="badge-ok">داخل زاوية انتشار القطاع</span>'
+                            : '<span class="badge-warn">خارج زاوية انتشار القطاع — أعد توجيه المرسل أو راجع الموقع</span>';
+                        content.innerHTML =
+                            '<div class="calibrate-summary">' +
+                            '<p class="mb-2">المسافة الجوية <strong>' + losNum(a.distanceMeters, 0) + ' م</strong> بين هوائي ' +
+                            (a.sectorName || 'المرسل') + ' ونقطة المستقبل.</p>' +
+                            '<p class="mb-0">حالة الشعاع: ' + beam + '</p>' +
+                            '</div>' +
+                            '<div class="calibrate-grid">' +
+                            '<article class="calibrate-card">' +
+                            '<h5><i class="fas fa-broadcast-tower"></i> المرسل (القطاع)</h5>' +
+                            renderCompassSvg(a.currentSectorAzimuthDegrees, a.transmitterAzimuthDegrees) +
+                            '<dl class="los-result-kv">' +
+                            '<dt>الاتجاه الحالي:</dt><dd>' + losNum(a.currentSectorAzimuthDegrees) + '°</dd>' +
+                            '<dt>السمت المطلوب:</dt><dd><strong>' + losNum(a.transmitterAzimuthDegrees) + '°</strong> (' + (a.transmitterCardinal || '') + ')</dd>' +
+                            '<dt>الانحراف الأفقي:</dt><dd>' + formatAzimuthTurn(a.transmitterAzimuthDeltaDegrees) +
+                            ' <span class="text-muted">(' + (a.transmitterAzimuthDeltaDegrees > 0 ? '+' : '') + losNum(a.transmitterAzimuthDeltaDegrees) + '°)</span></dd>' +
+                            '<dt>الميل الرأسي:</dt><dd>' + formatTilt(a.transmitterElevationDegrees) +
+                            ' <span class="text-muted">(' + losNum(a.transmitterElevationDegrees, 2) + '°)</span></dd>' +
+                            '</dl>' +
+                            '</article>' +
+                            '<article class="calibrate-card">' +
+                            '<h5><i class="fas fa-wifi"></i> المستقبل</h5>' +
+                            '<dl class="los-result-kv">' +
+                            '<dt>السمت نحو المرسل:</dt><dd><strong>' + losNum(a.receiverAzimuthDegrees) + '°</strong> (' + (a.receiverCardinal || '') + ')</dd>' +
+                            '<dt>الميل الرأسي:</dt><dd>' + formatTilt(a.receiverElevationDegrees) +
+                            ' <span class="text-muted">(' + losNum(a.receiverElevationDegrees, 2) + '°)</span></dd>' +
+                            '<dt>ارتفاع الهوائي:</dt><dd>' + losNum(a.receiverAntennaMslMeters) + ' م عن سطح البحر</dd>' +
+                            '</dl>' +
+                            '<p class="form-hint mb-0 mt-2">وجّه طبق/هوائي المستقبل إلى السمت أعلاه ثم اضبط الميل حتى أعلى إشارة.</p>' +
+                            '</article>' +
+                            '</div>' +
+                            '<p class="form-hint mt-2 mb-0">0° = الشمال الجغرافي، والزيادة مع عقارب الساعة. الميل السالب يعني أن الطرف الآخر أخفض. هذه قيم هندسية تقريبية لأفضل محاذاة.</p>';
+                        renderCalibrationOnMap(a);
+                    })
+                    .catch(function () {
+                        content.innerHTML = '<p class="text-danger">تعذر حساب المعايرة. تحقق من الاتصال أو حاول لاحقاً.</p>';
+                    })
+                    .finally(function () {
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = prev;
+                        }
+                        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    });
+            }
+
+            var btnCalibrateAlignment = document.getElementById('btnCalibrateAlignment');
+            if (btnCalibrateAlignment) {
+                btnCalibrateAlignment.addEventListener('click', calibrateAlignment);
+            }
+            var btnCalibrateAlignmentAction = document.getElementById('btnCalibrateAlignmentAction');
+            if (btnCalibrateAlignmentAction) {
+                btnCalibrateAlignmentAction.addEventListener('click', calibrateAlignment);
+            }
+
             function clearMapLayers() {
                 clearLosAnalysisOverlay();
+                clearCalibrationOverlay();
                 if (currentSectorMarker) { map.removeLayer(currentSectorMarker); currentSectorMarker = null; }
                 if (currentCoverage) { map.removeLayer(currentCoverage); currentCoverage = null; }
                 if (currentDirectionLine) { map.removeLayer(currentDirectionLine); currentDirectionLine = null; }

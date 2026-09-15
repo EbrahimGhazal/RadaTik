@@ -14,6 +14,15 @@ public sealed class AnalyzeLineOfSightRequest
     public double? FrequencyMhz { get; set; }
 }
 
+public sealed class CalibrateAlignmentRequest
+{
+    public int SectorId { get; set; }
+    public double ReceiverLatitude { get; set; }
+    public double ReceiverLongitude { get; set; }
+    public double? ReceiverElevationMeters { get; set; }
+    public double? ReceiverAntennaHeightAglMeters { get; set; }
+}
+
 public sealed class LineOfSightAnalysisInput
 {
     public double SectorLat { get; init; }

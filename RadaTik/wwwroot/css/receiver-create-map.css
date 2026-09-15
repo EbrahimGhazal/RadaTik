@@ -227,3 +227,108 @@
 .los-lg-fresnel { background: #7c3aed; height: 0; border-top: 2px dashed #7c3aed; }
 .los-lg-bldg { background: #dc3545; width: 8px; height: 8px; border-radius: 50%; }
 .los-lg-veg { background: #2f9e44; width: 8px; height: 8px; border-radius: 50%; }
+
+.receiver-tool-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0.85rem 0 0.65rem;
+    padding: 0.25rem;
+    border-radius: 10px;
+    background: rgba(148, 163, 184, 0.14);
+}
+
+.receiver-tool-tab {
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    padding: 0.5rem 0.9rem;
+    min-height: 40px;
+    cursor: pointer;
+    color: inherit;
+    font-weight: 600;
+}
+
+.receiver-tool-tab.is-active {
+    background: var(--primary, #0d6efd);
+    color: #fff;
+}
+
+.receiver-tool-pane {
+    margin-top: 0.25rem;
+}
+
+.calibrate-result-panel {
+    margin-top: 0.75rem;
+}
+
+.calibrate-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+    margin-top: 0.75rem;
+}
+
+.calibrate-card {
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 10px;
+    padding: 0.75rem 0.85rem;
+    background: var(--bg-card, #fff);
+}
+
+.calibrate-card h5 {
+    margin: 0 0 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.calibrate-compass {
+    display: block;
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 0.35rem;
+}
+
+.calibrate-compass-legend {
+    text-align: center;
+    font-size: 0.78rem;
+    margin-bottom: 0.5rem;
+}
+
+.cal-leg-cur,
+.cal-leg-req {
+    display: inline-block;
+    width: 14px;
+    height: 3px;
+    margin-left: 0.25rem;
+    vertical-align: middle;
+}
+
+.cal-leg-cur { background: #dc3545; }
+.cal-leg-req { background: #198754; }
+
+.receiver-create-page .los-result-kv {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+    font-size: 0.9rem;
+}
+
+.receiver-create-page .los-result-kv dt {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-secondary, #64748b);
+}
+
+.receiver-create-page .los-result-kv dd {
+    margin: 0;
+}
+
+.receiver-create-page .badge-ok { color: var(--success, #198754); font-weight: 600; }
+.receiver-create-page .badge-warn { color: var(--danger, #dc3545); font-weight: 600; }
+
+@media (max-width: 767.98px) {
+    .calibrate-grid {
+        grid-template-columns: 1fr;
+    }
+}

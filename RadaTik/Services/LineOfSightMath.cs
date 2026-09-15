@@ -354,6 +354,101 @@ public static class LineOfSightMath
         return Math.Max(12, (r * FresnelClearanceFraction) + 8);
     }
 
+    /// <summary>السمت الابتدائي من النقطة الأولى إلى الثانية (0 = شمال، مع عقارب الساعة).</summary>
+    public static double InitialBearingDegrees(double lat1, double lon1, double lat2, double lon2)
+    {
+        double φ1 = lat1 * Math.PI / 180;
+        double φ2 = lat2 * Math.PI / 180;
+        double Δλ = (lon2 - lon1) * Math.PI / 180;
+        double y = Math.Sin(Δλ) * Math.Cos(φ2);
+        double x = Math.Cos(φ1) * Math.Sin(φ2) - Math.Sin(φ1) * Math.Cos(φ2) * Math.Cos(Δλ);
+        double θ = Math.Atan2(y, x) * 180 / Math.PI;
+        return NormalizeDegrees360(θ);
+    }
+
+    public static double NormalizeDegrees360(double degrees)
+    {
+        double a = degrees % 360;
+        if (a < 0)
+        {
+            a += 360;
+        }
+
+        return a;
+    }
+
+    /// <summary>فرق زاوي موقّع من الاتجاه الحالي إلى المطلوب في المدى [-180, 180]. الموجب = مع عقارب الساعة.</summary>
+    public static double SignedAngleDeltaDegrees(double fromDegrees, double toDegrees)
+    {
+        double d = NormalizeDegrees360(toDegrees) - NormalizeDegrees360(fromDegrees);
+        if (d > 180)
+        {
+            d -= 360;
+        }
+
+        if (d <= -180)
+        {
+            d += 360;
+        }
+
+        return d;
+    }
+
+    /// <summary>زاوية الارتفاع من نقطة إلى أخرى بالدرجات. الموجب = للأعلى، السالب = للأسفل.</summary>
+    public static double ElevationDegrees(double fromHeightMsl, double toHeightMsl, double distanceMeters)
+    {
+        if (distanceMeters < 1)
+        {
+            return 0;
+        }
+
+        return Math.Atan2(toHeightMsl - fromHeightMsl, distanceMeters) * 180 / Math.PI;
+    }
+
+    public static string CardinalArabic(double bearingDegrees)
+    {
+        string[] names =
+        [
+            "شمال", "شمال شرق", "شرق", "جنوب شرق",
+            "جنوب", "جنوب غرب", "غرب", "شمال غرب"
+        ];
+        int i = (int)Math.Round(NormalizeDegrees360(bearingDegrees) / 45.0) % 8;
+        if (i < 0)
+        {
+            i += 8;
+        }
+
+        return names[i];
+    }
+
+    public static AntennaAlignmentResult ComputeAlignment(
+        double sectorLat, double sectorLon, double sectorAntennaMsl, double sectorCurrentAzimuth,
+        double sectorCoverageAngle,
+        double receiverLat, double receiverLon, double receiverAntennaMsl)
+    {
+        double dist = HaversineMeters(sectorLat, sectorLon, receiverLat, receiverLon);
+        double txAz = InitialBearingDegrees(sectorLat, sectorLon, receiverLat, receiverLon);
+        double rxAz = InitialBearingDegrees(receiverLat, receiverLon, sectorLat, sectorLon);
+        double txEl = ElevationDegrees(sectorAntennaMsl, receiverAntennaMsl, dist);
+        double rxEl = ElevationDegrees(receiverAntennaMsl, sectorAntennaMsl, dist);
+        double txDelta = SignedAngleDeltaDegrees(sectorCurrentAzimuth, txAz);
+        double halfBeam = Math.Max(0, sectorCoverageAngle) / 2;
+        bool insideBeam = Math.Abs(txDelta) <= halfBeam + 0.05 || sectorCoverageAngle >= 359.5;
+
+        return new AntennaAlignmentResult(
+            DistanceMeters: dist,
+            TransmitterAzimuthDegrees: txAz,
+            TransmitterElevationDegrees: txEl,
+            TransmitterAzimuthDeltaDegrees: txDelta,
+            TransmitterCardinal: CardinalArabic(txAz),
+            ReceiverAzimuthDegrees: rxAz,
+            ReceiverElevationDegrees: rxEl,
+            ReceiverCardinal: CardinalArabic(rxAz),
+            CurrentSectorAzimuthDegrees: NormalizeDegrees360(sectorCurrentAzimuth),
+            InsideCoverageBeam: insideBeam,
+            CoverageHalfAngleDegrees: halfBeam);
+    }
+
     private static bool TryGetTag(IReadOnlyDictionary<string, string> tags, string key, out string? value)
     {
         foreach (KeyValuePair<string, string> pair in tags)
@@ -541,6 +636,19 @@ public static class LosObstacleKind
     public const string Building = "building";
     public const string Vegetation = "vegetation";
 }
+
+public readonly record struct AntennaAlignmentResult(
+    double DistanceMeters,
+    double TransmitterAzimuthDegrees,
+    double TransmitterElevationDegrees,
+    double TransmitterAzimuthDeltaDegrees,
+    string TransmitterCardinal,
+    double ReceiverAzimuthDegrees,
+    double ReceiverElevationDegrees,
+    string ReceiverCardinal,
+    double CurrentSectorAzimuthDegrees,
+    bool InsideCoverageBeam,
+    double CoverageHalfAngleDegrees);
 
 public static class BuildingHeightConfidence
 {
