@@ -44,6 +44,11 @@ public static partial class RouteMappingExtensions
             pattern: "employee/RequestsManagement/{action=Index}/{id?}",
             defaults: new { area = "CompanyEmployee", controller = "RequestsManagement", action = "Index" });
 
+        app.MapControllerRoute(
+            name: "employee-calibration",
+            pattern: "employee/Calibration/{action=Index}/{id?}",
+            defaults: new { area = "CompanyEmployee", controller = "AntennaCalibration", action = "Index" });
+
         app.MapAreaControllerRoute(
             name: "companyEmployee-area",
             areaName: "CompanyEmployee",

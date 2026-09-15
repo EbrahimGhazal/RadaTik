@@ -185,12 +185,7 @@ public class AntennaCalibrationController : Controller
 
     private string AbsoluteJoinUrl(string code, string role)
     {
-        return Url.Action(
-            nameof(Join),
-            "AntennaCalibration",
-            new { code, role },
-            Request.Scheme,
-            Request.Host.ToString()) ?? $"/networkManager/Calibration/Join?code={code}&role={role}";
+        return $"{Request.Scheme}://{Request.Host}/calibrate/Join?code={Uri.EscapeDataString(code)}&role={Uri.EscapeDataString(role)}";
     }
 
     private async Task<AntennaCalibrationSession> CreateSessionAsync(

@@ -26,6 +26,8 @@ public sealed class AntennaCalibrationViewTests
         Assert.Contains("no-select2", index);
         Assert.Contains("dir=\"ltr\"", index);
         Assert.Contains("select2:select", index);
+        Assert.Contains("/calibrate/Join", File.ReadAllText(FindFile("RadaTik", "Controllers", "AntennaCalibrationController.cs")));
+        Assert.Contains("_CalibrateFieldLayout", File.ReadAllText(FindFile("RadaTik", "Views", "AntennaCalibration", "JoinMissing.cshtml")));
         Assert.Contains("btnResetPeak", index);
         Assert.Contains("PublishOrientation", join);
         Assert.Contains("liveRf", join);
