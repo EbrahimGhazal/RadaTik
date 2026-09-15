@@ -139,6 +139,9 @@
                     startLiveSignalPoll();
                 } else {
                     stopLiveSignalPoll();
+                    if (name !== 'calibrate') {
+                        stopPhoneCompass(false);
+                    }
                 }
                 refreshMapLayout();
             }
@@ -852,6 +855,14 @@
             var livePollTimer = null;
             var livePollInFlight = false;
             var livePeakDbm = null;
+            var phoneCompass = {
+                targetMag: null,
+                heading: null,
+                listening: false,
+                usingIos: false,
+                gotAbsolute: false,
+                wakeLock: null
+            };
 
             function csrfToken() {
                 var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
@@ -1038,6 +1049,225 @@
                     '<div class="calibrate-compass-legend"><span class="cal-leg-cur"></span> اتجاه القطاع الحالي &nbsp; <span class="cal-leg-req"></span> السمت المطلوب</div>';
             }
 
+            function signedHeadingDelta(fromDeg, toDeg) {
+                var d = ((Number(toDeg) || 0) - (Number(fromDeg) || 0)) % 360;
+                if (d > 180) {
+                    d -= 360;
+                }
+                if (d <= -180) {
+                    d += 360;
+                }
+                return d;
+            }
+
+            function normalizeHeading(deg) {
+                var a = (Number(deg) || 0) % 360;
+                return a < 0 ? a + 360 : a;
+            }
+
+            function screenOrientationDeg() {
+                if (screen.orientation && typeof screen.orientation.angle === 'number') {
+                    return screen.orientation.angle;
+                }
+                if (typeof window.orientation === 'number') {
+                    return window.orientation;
+                }
+                return 0;
+            }
+
+            function readMagneticHeading(e) {
+                if (!e) {
+                    return null;
+                }
+                if (typeof e.webkitCompassHeading === 'number' && isFinite(e.webkitCompassHeading)) {
+                    phoneCompass.usingIos = true;
+                    return normalizeHeading(e.webkitCompassHeading);
+                }
+                if (typeof e.alpha !== 'number' || !isFinite(e.alpha)) {
+                    return null;
+                }
+                return normalizeHeading(360 - e.alpha + screenOrientationDeg());
+            }
+
+            function smoothHeading(prev, next) {
+                if (prev == null || !isFinite(prev)) {
+                    return next;
+                }
+                return normalizeHeading(prev + signedHeadingDelta(prev, next) * 0.28);
+            }
+
+            function renderPhoneCompassSvg() {
+                return '<div class="phone-compass-wrap">' +
+                    '<svg id="phoneCompassSvg" class="calibrate-compass phone-compass-svg" viewBox="0 0 180 180" role="img" aria-label="بوصلة الموبايل الحية">' +
+                    '<circle cx="90" cy="90" r="74" fill="rgba(15,23,42,0.05)" stroke="rgba(148,163,184,0.55)" stroke-width="2"></circle>' +
+                    '<g id="phoneCompassRose" transform="rotate(0 90 90)">' +
+                    '<text x="90" y="28" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor">ش</text>' +
+                    '<text x="90" y="164" text-anchor="middle" font-size="13" fill="currentColor">ج</text>' +
+                    '<text x="22" y="95" text-anchor="middle" font-size="13" fill="currentColor">غ</text>' +
+                    '<text x="158" y="95" text-anchor="middle" font-size="13" fill="currentColor">ق</text>' +
+                    '<g id="phoneCompassTarget" transform="rotate(0 90 90)">' +
+                    '<polygon points="90,20 83,36 97,36" fill="#198754"></polygon>' +
+                    '<line x1="90" y1="36" x2="90" y2="90" stroke="#198754" stroke-width="3"></line>' +
+                    '</g>' +
+                    '</g>' +
+                    '<polygon points="90,8 82,28 98,28" fill="#0d6efd"></polygon>' +
+                    '<text x="90" y="48" text-anchor="middle" font-size="10" fill="#0d6efd">أعلى الشاشة</text>' +
+                    '<circle cx="90" cy="90" r="5" fill="#334155"></circle>' +
+                    '</svg>' +
+                    '<div class="calibrate-compass-legend"><span class="cal-leg-phone"></span> اتجاه اللاقط / أعلى الشاشة &nbsp; <span class="cal-leg-req"></span> السمت المطلوب</div>' +
+                    '<button type="button" class="btn btn-light phone-compass-field-close" id="btnPhoneCompassFieldClose">إغلاق الوضع الميداني</button>' +
+                    '</div>';
+            }
+
+            function updatePhoneCompassUi(rawHeading) {
+                var card = document.getElementById('receiverCompassCard');
+                var rose = document.getElementById('phoneCompassRose');
+                var targetMark = document.getElementById('phoneCompassTarget');
+                var headingEl = document.getElementById('phoneHeadingVal');
+                var deltaEl = document.getElementById('phoneDeltaVal');
+                var statusEl = document.getElementById('phoneCompassStatus');
+                var target = phoneCompass.targetMag;
+                if (rawHeading != null && isFinite(rawHeading)) {
+                    phoneCompass.heading = smoothHeading(phoneCompass.heading, rawHeading);
+                }
+                var heading = phoneCompass.heading;
+                if (rose) {
+                    rose.setAttribute('transform', 'rotate(' + (-(heading || 0)).toFixed(1) + ' 90 90)');
+                }
+                if (targetMark && target != null && isFinite(target)) {
+                    targetMark.setAttribute('transform', 'rotate(' + Number(target).toFixed(1) + ' 90 90)');
+                }
+                if (headingEl) {
+                    headingEl.textContent = heading == null ? '—' : losNum(heading) + '°';
+                }
+                if (target != null && heading != null) {
+                    var delta = signedHeadingDelta(heading, target);
+                    var abs = Math.abs(delta);
+                    if (deltaEl) {
+                        deltaEl.textContent = (delta > 0 ? '+' : '') + losNum(delta) + '°';
+                    }
+                    if (card) {
+                        card.classList.toggle('is-aligned', abs <= 4);
+                        card.classList.toggle('is-close', abs > 4 && abs <= 12);
+                    }
+                    if (statusEl) {
+                        if (abs <= 4) {
+                            statusEl.innerHTML = 'محاذى. ثبّت اللاقط ثم أكمل بذروة الإشارة الحية.';
+                        } else if (delta > 0) {
+                            statusEl.textContent = 'أدر اللاقط يميناً (مع عقارب الساعة) ' + abs.toFixed(0) + '°.';
+                        } else {
+                            statusEl.textContent = 'أدر اللاقط يساراً (عكس عقارب الساعة) ' + abs.toFixed(0) + '°.';
+                        }
+                    }
+                }
+            }
+
+            function onPhoneOrientation(e) {
+                if (typeof e.webkitCompassHeading === 'number' && isFinite(e.webkitCompassHeading)) {
+                    phoneCompass.usingIos = true;
+                } else if (phoneCompass.usingIos) {
+                    return;
+                } else if (e.type === 'deviceorientationabsolute') {
+                    phoneCompass.gotAbsolute = true;
+                } else if (phoneCompass.gotAbsolute) {
+                    return;
+                }
+                var heading = readMagneticHeading(e);
+                if (heading == null) {
+                    return;
+                }
+                if (typeof e.webkitCompassAccuracy === 'number' && e.webkitCompassAccuracy > 25) {
+                    var statusEl = document.getElementById('phoneCompassStatus');
+                    if (statusEl) {
+                        statusEl.textContent = 'البوصلة مضطربة قرب المعدن. أبعد الموبايل قليلاً عن جسم اللاقط.';
+                    }
+                }
+                updatePhoneCompassUi(heading);
+            }
+
+            function stopPhoneCompass(resetHeading) {
+                if (phoneCompass.listening) {
+                    window.removeEventListener('deviceorientationabsolute', onPhoneOrientation, true);
+                    window.removeEventListener('deviceorientation', onPhoneOrientation, true);
+                    phoneCompass.listening = false;
+                }
+                if (phoneCompass.wakeLock) {
+                    try {
+                        phoneCompass.wakeLock.release();
+                    } catch (err) { /* ignore */ }
+                    phoneCompass.wakeLock = null;
+                }
+                var card = document.getElementById('receiverCompassCard');
+                if (card) {
+                    card.classList.remove('is-field');
+                }
+                document.body.classList.remove('phone-compass-field-open');
+                if (resetHeading) {
+                    phoneCompass.heading = null;
+                    phoneCompass.usingIos = false;
+                    phoneCompass.gotAbsolute = false;
+                }
+            }
+
+            function requestPhoneWakeLock() {
+                if (!navigator.wakeLock || !navigator.wakeLock.request) {
+                    return;
+                }
+                navigator.wakeLock.request('screen').then(function (lock) {
+                    phoneCompass.wakeLock = lock;
+                }).catch(function () { /* ignore */ });
+            }
+
+            function startPhoneCompassListeners() {
+                stopPhoneCompass(false);
+                window.addEventListener('deviceorientationabsolute', onPhoneOrientation, true);
+                window.addEventListener('deviceorientation', onPhoneOrientation, true);
+                phoneCompass.listening = true;
+                requestPhoneWakeLock();
+                var statusEl = document.getElementById('phoneCompassStatus');
+                if (statusEl) {
+                    statusEl.innerHTML = 'البوصلة تعمل. أعلى الشاشة = اتجاه الإشعاع. أدر حتى يصبح السهم الأخضر عند الأعلى.';
+                }
+            }
+
+            function enablePhoneCompass() {
+                if (phoneCompass.targetMag == null) {
+                    showAlert('احسب المعايرة أولاً لتحديد السمت المطلوب', 'warning');
+                    return;
+                }
+                var Orientation = window.DeviceOrientationEvent;
+                if (!Orientation) {
+                    showAlert('هذا المتصفح لا يدعم بوصلة الموبايل. افتح الصفحة من هاتف عبر https.', 'warning');
+                    return;
+                }
+                if (typeof Orientation.requestPermission === 'function') {
+                    Orientation.requestPermission().then(function (state) {
+                        if (state === 'granted') {
+                            startPhoneCompassListeners();
+                        } else {
+                            showAlert('يلزم السماح بحساس الاتجاه لتشغيل البوصلة الحية', 'warning');
+                        }
+                    }).catch(function () {
+                        showAlert('تعذر تفعيل بوصلة الموبايل', 'danger');
+                    });
+                    return;
+                }
+                startPhoneCompassListeners();
+            }
+
+            function togglePhoneCompassField() {
+                var card = document.getElementById('receiverCompassCard');
+                if (!card) {
+                    return;
+                }
+                var on = !card.classList.contains('is-field');
+                card.classList.toggle('is-field', on);
+                document.body.classList.toggle('phone-compass-field-open', on);
+                if (on && !phoneCompass.listening) {
+                    enablePhoneCompass();
+                }
+            }
+
             function renderCalibrationOnMap(alignment) {
                 clearCalibrationOverlay();
                 if (!selectedSector || !isFinite(selectedSector.latitude) || !isFinite(selectedSector.longitude)) {
@@ -1087,6 +1317,7 @@
                 }
                 lastCalibrateOk = false;
                 stopLiveSignalPoll();
+                stopPhoneCompass(true);
                 if (livePanel) {
                     livePanel.classList.add('d-none');
                 }
@@ -1177,22 +1408,35 @@
                             ' <span class="text-muted">(' + losNum(a.transmitterElevationDegrees, 2) + '° مع انحناء الأرض)</span></dd>' +
                             '</dl>' +
                             '</article>' +
-                            '<article class="calibrate-card">' +
+                            '<article class="calibrate-card calibrate-card--receiver" id="receiverCompassCard">' +
                             '<h5><i class="fas fa-wifi"></i> المستقبل</h5>' +
-                            '<dl class="los-result-kv">' +
+                            renderPhoneCompassSvg() +
+                            '<div class="phone-compass-readout">' +
+                            '<div><span>اتجاه الموبايل</span><strong id="phoneHeadingVal">—</strong></div>' +
+                            '<div><span>المطلوب</span><strong id="phoneTargetVal">' + losNum(a.receiverMagneticAzimuthDegrees) + '°</strong></div>' +
+                            '<div><span>الفرق</span><strong id="phoneDeltaVal">—</strong></div>' +
+                            '</div>' +
+                            '<p id="phoneCompassStatus" class="phone-compass-status">ضع الموبايل على اللاقط بحيث يكون <strong>أعلى الشاشة</strong> باتجاه الإشعاع، ثم فعّل البوصلة.</p>' +
+                            '<div class="phone-compass-actions">' +
+                            '<button type="button" class="btn btn-success" id="btnEnablePhoneCompass"><i class="fas fa-mobile-alt"></i> تفعيل بوصلة الموبايل</button>' +
+                            '<button type="button" class="btn btn-outline-primary" id="btnPhoneCompassField"><i class="fas fa-expand"></i> وضع ميداني</button>' +
+                            '</div>' +
+                            '<dl class="los-result-kv mt-2">' +
                             '<dt>السمت الجغرافي:</dt><dd><strong>' + losNum(a.receiverAzimuthDegrees) + '°</strong> (' + (a.receiverCardinal || '') + ')</dd>' +
                             '<dt>سمت البوصلة:</dt><dd><strong>' + losNum(a.receiverMagneticAzimuthDegrees) + '°</strong></dd>' +
                             '<dt>الميل الرأسي:</dt><dd>' + formatTilt(a.receiverElevationDegrees) +
                             ' <span class="text-muted">(' + losNum(a.receiverElevationDegrees, 2) + '°)</span></dd>' +
                             '<dt>ارتفاع الهوائي:</dt><dd>' + losNum(a.receiverAntennaMslMeters) + ' م عن سطح البحر</dd>' +
                             '</dl>' +
-                            '<p class="form-hint mb-0 mt-2">وجّه الطبق ببوصلة إلى سمت البوصلة، ثم ثبّت عند ذروة الإشارة الحية.</p>' +
                             '</article>' +
                             '</div>' +
                             '<p class="form-hint mt-2 mb-0">0° جغرافي = الشمال الحقيقي. انحراف المغناطيسية الحالي ' + declTxt +
                             '. سمت البوصلة = السمت الجغرافي − الانحراف.</p>';
                         renderCalibrationOnMap(a);
                         lastCalibrateOk = true;
+                        phoneCompass.targetMag = Number(a.receiverMagneticAzimuthDegrees);
+                        phoneCompass.heading = null;
+                        updatePhoneCompassUi(null);
                         resetLivePeak();
                         if (livePanel) {
                             livePanel.classList.remove('d-none');
@@ -1224,6 +1468,27 @@
                 btnCalibrateResetPeak.addEventListener('click', function () {
                     resetLivePeak();
                     pollLiveSignal();
+                });
+            }
+            var calibrateResultPanel = document.getElementById('calibrateResultPanel');
+            if (calibrateResultPanel) {
+                calibrateResultPanel.addEventListener('click', function (ev) {
+                    var enableBtn = ev.target.closest('#btnEnablePhoneCompass');
+                    var fieldBtn = ev.target.closest('#btnPhoneCompassField');
+                    if (enableBtn) {
+                        ev.preventDefault();
+                        enablePhoneCompass();
+                    } else if (fieldBtn) {
+                        ev.preventDefault();
+                        togglePhoneCompassField();
+                    } else if (ev.target.closest('#btnPhoneCompassFieldClose')) {
+                        ev.preventDefault();
+                        var card = document.getElementById('receiverCompassCard');
+                        if (card) {
+                            card.classList.remove('is-field');
+                        }
+                        document.body.classList.remove('phone-compass-field-open');
+                    }
                 });
             }
 

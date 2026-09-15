@@ -306,6 +306,89 @@
 
 .cal-leg-cur { background: #dc3545; }
 .cal-leg-req { background: #198754; }
+.cal-leg-phone {
+    display: inline-block;
+    width: 14px;
+    height: 3px;
+    margin-left: 0.25rem;
+    vertical-align: middle;
+    background: #0d6efd;
+}
+
+.phone-compass-readout {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin: 0.35rem 0 0.55rem;
+}
+
+.phone-compass-readout div {
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 8px;
+    padding: 0.35rem 0.4rem;
+    text-align: center;
+    background: var(--bg-card, #fff);
+}
+
+.phone-compass-readout span {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-secondary, #64748b);
+}
+
+.phone-compass-status {
+    font-size: 0.88rem;
+    margin-bottom: 0.55rem;
+}
+
+.phone-compass-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.phone-compass-field-close {
+    display: none;
+    margin: 0.5rem auto 0;
+}
+
+.calibrate-card--receiver.is-aligned {
+    border-color: #198754;
+    box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.25);
+}
+
+.calibrate-card--receiver.is-close {
+    border-color: #f59e0b;
+}
+
+.calibrate-card--receiver.is-field {
+    position: fixed;
+    inset: 0;
+    z-index: 4200;
+    margin: 0;
+    border-radius: 0;
+    overflow: auto;
+    padding: 1rem 1rem 1.5rem;
+}
+
+.calibrate-card--receiver.is-field .phone-compass-svg {
+    width: min(78vmin, 340px);
+    height: min(78vmin, 340px);
+}
+
+.calibrate-card--receiver.is-field .phone-compass-field-close {
+    display: block;
+}
+
+body.phone-compass-field-open {
+    overflow: hidden;
+}
+
+@media (max-width: 767.98px) {
+    .phone-compass-readout {
+        grid-template-columns: 1fr;
+    }
+}
 
 .calibrate-advice {
     font-weight: 600;

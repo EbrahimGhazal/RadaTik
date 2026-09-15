@@ -28,6 +28,9 @@ public sealed class ReceiverCreateMobileViewTests
         Assert.Contains("CalibrateLiveSignal", scripts);
         Assert.Contains("معايرة", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_ReceiverCreateToolTabs.cshtml")));
         Assert.Contains("إشارة حية", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_ReceiverCreateToolTabs.cshtml")));
+        Assert.Contains("بوصلة الموبايل", scripts);
+        Assert.Contains("webkitCompassHeading", scripts);
+        Assert.Contains("btnEnablePhoneCompass", scripts);
         Assert.Contains("id=\"losFrequencyMhzInput\"", text);
         Assert.Contains("--receiver-map-height", text);
         Assert.DoesNotContain("height: 250px", text);
