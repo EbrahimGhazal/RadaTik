@@ -32,7 +32,7 @@
             <div class="row g-2 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label" for="sectorId">المرسل (القطاع)</label>
-                    <select name="sectorId" id="sectorId" class="form-select" required>
+                    <select name="sectorId" id="sectorId" class="form-select no-select2" required>
                         <option value="">اختر القطاع</option>
                         @foreach (var s in Model.Sectors)
                         {
@@ -42,7 +42,7 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="receiverId">المستقبل المحفوظ</label>
-                    <select name="receiverId" id="receiverId" class="form-select">
+                    <select name="receiverId" id="receiverId" class="form-select no-select2">
                         <option value="">نقطة على الخريطة (غير محفوظة)</option>
                     </select>
                 </div>
@@ -71,7 +71,7 @@
             <input type="hidden" name="receiverLat" id="receiverLat" />
             <input type="hidden" name="receiverLng" id="receiverLng" />
             <p class="small text-muted mt-2 mb-1" id="calPickHint">اختر القطاع ثم انقر على الخريطة لتحديد نقطة غير محفوظة، أو اختر مستقبلاً من القائمة.</p>
-            <div id="calStartMap" class="antenna-cal-pick-map"></div>
+            <div id="calStartMap" class="antenna-cal-pick-map" dir="ltr"></div>
         </div>
     </form>
 
@@ -115,12 +115,20 @@
 
             <div class="antenna-cal-qr-row">
                 <div>
-                    <canvas id="txQr" width="160" height="160"></canvas>
+                    @if (!string.IsNullOrWhiteSpace(Model.TransmitterQrDataUri))
+                    {
+                        <img id="txQr" class="antenna-cal-qr-img" src="@Model.TransmitterQrDataUri" width="168" height="168" alt="QR شاشة المرسل" />
+                    }
                     <div>QR المرسل</div>
+                    <a class="small" href="@Model.TransmitterJoinUrl" target="_blank">افتح شاشة المرسل</a>
                 </div>
                 <div>
-                    <canvas id="rxQr" width="160" height="160"></canvas>
+                    @if (!string.IsNullOrWhiteSpace(Model.ReceiverQrDataUri))
+                    {
+                        <img id="rxQr" class="antenna-cal-qr-img" src="@Model.ReceiverQrDataUri" width="168" height="168" alt="QR شاشة المستقبل" />
+                    }
                     <div>QR المستقبل</div>
+                    <a class="small" href="@Model.ReceiverJoinUrl" target="_blank">افتح شاشة المستقبل</a>
                 </div>
             </div>
 
@@ -182,7 +190,6 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" crossorigin="anonymous"></script>
     <script>
         (function () {
             var form = document.getElementById('calStartForm');
@@ -196,10 +203,19 @@
             var listUrl = form ? form.getAttribute('data-receivers-url') : '';
             var map, rxMarker, txMarker, rxLine;
 
+            function parseOptPoint(opt) {
+                if (!opt) return null;
+                var lat = parseFloat(opt.getAttribute('data-lat'));
+                var lng = parseFloat(opt.getAttribute('data-lng'));
+                if (!isFinite(lat) || !isFinite(lng)) return null;
+                return { lat: lat, lng: lng };
+            }
+
             function setPoint(lat, lng, pan) {
                 if (!latInput || !lngInput || !isFinite(lat) || !isFinite(lng)) return;
                 latInput.value = Number(lat).toFixed(7);
                 lngInput.value = Number(lng).toFixed(7);
+                ensureMap();
                 if (map && window.L) {
                     var ll = L.latLng(lat, lng);
                     if (!rxMarker) {
@@ -207,36 +223,34 @@
                     } else {
                         rxMarker.setLatLng(ll);
                     }
-                    if (pan) map.panTo(ll);
-                    if (txMarker && rxLine) {
-                        rxLine.setLatLngs([txMarker.getLatLng(), ll]);
-                    } else if (txMarker) {
-                        rxLine = L.polyline([txMarker.getLatLng(), ll], { color: '#16a34a', weight: 2 }).addTo(map);
+                    if (pan) map.setView(ll, Math.max(map.getZoom(), 16));
+                    if (txMarker) {
+                        var linePts = [txMarker.getLatLng(), ll];
+                        if (rxLine) rxLine.setLatLngs(linePts);
+                        else rxLine = L.polyline(linePts, { color: '#16a34a', weight: 2 }).addTo(map);
                     }
+                    map.invalidateSize();
                 }
                 var hint = document.getElementById('calPickHint');
                 if (hint) hint.textContent = 'النقطة: ' + Number(lat).toFixed(6) + ' ، ' + Number(lng).toFixed(6);
             }
 
             function sectorLatLng() {
-                if (!sector || !sector.selectedOptions.length) return null;
-                var opt = sector.selectedOptions[0];
-                var lat = parseFloat(opt.getAttribute('data-lat'));
-                var lng = parseFloat(opt.getAttribute('data-lng'));
-                if (!isFinite(lat) || !isFinite(lng)) return null;
-                return { lat: lat, lng: lng };
+                if (!sector) return null;
+                return parseOptPoint(sector.options[sector.selectedIndex]);
             }
 
             function ensureMap() {
                 var el = document.getElementById('calStartMap');
                 if (!el || !window.L || map) return;
-                map = L.map(el, { zoomControl: true }).setView([33.5, 36.3], 11);
+                map = L.map(el, { zoomControl: true, attributionControl: true }).setView([33.5, 36.3], 11);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OSM' }).addTo(map);
                 map.on('click', function (e) {
-                    receiver.value = '';
+                    if (receiver) receiver.value = '';
                     setPoint(e.latlng.lat, e.latlng.lng, false);
                 });
-                setTimeout(function () { map.invalidateSize(); }, 200);
+                setTimeout(function () { if (map) map.invalidateSize(); }, 150);
+                setTimeout(function () { if (map) map.invalidateSize(); }, 600);
             }
 
             function focusSector() {
@@ -245,58 +259,69 @@
                 if (!ll || !map) return;
                 var pos = L.latLng(ll.lat, ll.lng);
                 if (!txMarker) {
-                    txMarker = L.circleMarker(pos, { radius: 8, color: '#2563eb', fillColor: '#3b82f6', fillOpacity: 0.9 }).addTo(map);
+                    txMarker = L.circleMarker(pos, { radius: 9, color: '#1d4ed8', fillColor: '#3b82f6', fillOpacity: 1, weight: 2 }).addTo(map);
                 } else {
                     txMarker.setLatLng(pos);
                 }
-                map.setView(pos, 14);
+                map.setView(pos, 16);
+                map.invalidateSize();
+                setTimeout(function () {
+                    map.invalidateSize();
+                    map.setView(pos, 16);
+                }, 200);
+            }
+
+            function onSectorChange() {
+                focusSector();
+                if (!receiver) return;
+                receiver.innerHTML = '<option value="">نقطة على الخريطة (غير محفوظة)</option>';
+                if (!sector.value) return;
+                fetch(listUrl + '?sectorId=' + encodeURIComponent(sector.value), { credentials: 'same-origin' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (rows) {
+                        (rows || []).forEach(function (row) {
+                            var opt = document.createElement('option');
+                            opt.value = row.id;
+                            opt.textContent = row.name;
+                            opt.setAttribute('data-lat', row.lat);
+                            opt.setAttribute('data-lng', row.lng);
+                            if (row.ip) opt.setAttribute('data-ip', row.ip);
+                            if (row.agl) opt.setAttribute('data-agl', row.agl);
+                            receiver.appendChild(opt);
+                        });
+                    })
+                    .catch(function () { /* keep map point option */ });
+            }
+
+            function onReceiverChange() {
+                var opt = receiver && receiver.options[receiver.selectedIndex];
+                var pt = parseOptPoint(opt);
+                if (!opt || !opt.value || !pt) return;
+                setPoint(pt.lat, pt.lng, true);
+                if (nameInput) nameInput.value = opt.textContent || '';
+                if (ipInput) ipInput.value = opt.getAttribute('data-ip') || '';
+                var agl = parseFloat(opt.getAttribute('data-agl'));
+                if (aglInput && isFinite(agl) && agl > 0) aglInput.value = agl;
+            }
+
+            function bindSelect(el, handler) {
+                if (!el) return;
+                el.addEventListener('change', handler);
+                if (window.jQuery) {
+                    jQuery(el).on('change.calMap select2:select.calMap', handler);
+                }
             }
 
             if (sector && receiver) {
                 ensureMap();
-                sector.addEventListener('change', function () {
-                    focusSector();
-                    receiver.innerHTML = '<option value="">نقطة على الخريطة (غير محفوظة)</option>';
-                    if (!sector.value) return;
-                    fetch(listUrl + '?sectorId=' + encodeURIComponent(sector.value), { credentials: 'same-origin' })
-                        .then(function (r) { return r.json(); })
-                        .then(function (rows) {
-                            (rows || []).forEach(function (row) {
-                                var opt = document.createElement('option');
-                                opt.value = row.id;
-                                opt.textContent = row.name;
-                                opt.setAttribute('data-lat', row.lat);
-                                opt.setAttribute('data-lng', row.lng);
-                                if (row.ip) opt.setAttribute('data-ip', row.ip);
-                                if (row.agl) opt.setAttribute('data-agl', row.agl);
-                                receiver.appendChild(opt);
-                            });
-                        })
-                        .catch(function () { /* keep map point option */ });
-                });
-                receiver.addEventListener('change', function () {
-                    var opt = receiver.selectedOptions[0];
-                    if (!opt || !opt.value) return;
-                    var lat = parseFloat(opt.getAttribute('data-lat'));
-                    var lng = parseFloat(opt.getAttribute('data-lng'));
-                    setPoint(lat, lng, true);
-                    if (nameInput) nameInput.value = opt.textContent || '';
-                    if (ipInput) ipInput.value = opt.getAttribute('data-ip') || '';
-                    var agl = parseFloat(opt.getAttribute('data-agl'));
-                    if (aglInput && isFinite(agl) && agl > 0) aglInput.value = agl;
-                });
+                bindSelect(sector, onSectorChange);
+                bindSelect(receiver, onReceiverChange);
+                if (sector.value) {
+                    onSectorChange();
+                }
             }
 
             var root = document.querySelector('.antenna-cal-session');
-            if (root && window.QRCode && typeof QRCode.toCanvas === 'function') {
-                var txUrl = root.getAttribute('data-tx-url');
-                var rxUrl = root.getAttribute('data-rx-url');
-                var txCanvas = document.getElementById('txQr');
-                var rxCanvas = document.getElementById('rxQr');
-                if (txUrl && txCanvas) QRCode.toCanvas(txCanvas, txUrl, { width: 160, margin: 1 });
-                if (rxUrl && rxCanvas) QRCode.toCanvas(rxCanvas, rxUrl, { width: 160, margin: 1 });
-            }
-
             if (!root || typeof signalR === 'undefined') {
                 return;
             }

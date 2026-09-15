@@ -166,6 +166,8 @@ public class AntennaCalibrationController : Controller
                 vm.Session = _sessions.ToSnapshot(session);
                 vm.TransmitterJoinUrl = AbsoluteJoinUrl(session.Code, "tx");
                 vm.ReceiverJoinUrl = AbsoluteJoinUrl(session.Code, "rx");
+                vm.TransmitterQrDataUri = CalibrationQrCode.PngDataUri(vm.TransmitterJoinUrl);
+                vm.ReceiverQrDataUri = CalibrationQrCode.PngDataUri(vm.ReceiverJoinUrl);
             }
             else
             {

@@ -9,6 +9,8 @@ public sealed class AntennaCalibrationIndexViewModel
     public AntennaCalibrationSnapshot? Session { get; set; }
     public string? TransmitterJoinUrl { get; set; }
     public string? ReceiverJoinUrl { get; set; }
+    public string? TransmitterQrDataUri { get; set; }
+    public string? ReceiverQrDataUri { get; set; }
     public string? ErrorMessage { get; set; }
 }
 

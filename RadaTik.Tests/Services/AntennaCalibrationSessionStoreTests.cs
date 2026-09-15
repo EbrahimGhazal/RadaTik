@@ -83,6 +83,14 @@ public sealed class AntennaCalibrationSessionStoreTests
     }
 
     [Fact]
+    public void QrCode_RendersPngDataUri()
+    {
+        string uri = CalibrationQrCode.PngDataUri("https://radatik.com/networkManager/Calibration/Join?code=ABC123&role=tx");
+        Assert.StartsWith("data:image/png;base64,", uri, StringComparison.Ordinal);
+        Assert.True(uri.Length > 200);
+    }
+
+    [Fact]
     public void PathSnapshot_WarnsWhenTerrainBlocks()
     {
         AntennaCalibrationPathSnapshot path = AntennaCalibrationPathSnapshot.From(new LineOfSightResult

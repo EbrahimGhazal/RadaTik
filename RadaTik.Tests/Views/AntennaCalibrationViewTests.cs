@@ -22,7 +22,10 @@ public sealed class AntennaCalibrationViewTests
         Assert.Contains("btnEnableFieldCompass", join);
         Assert.Contains("antenna-cal-split", index);
         Assert.Contains("calStartMap", index);
-        Assert.Contains("txQr", index);
+        Assert.Contains("antenna-cal-qr-img", index);
+        Assert.Contains("no-select2", index);
+        Assert.Contains("dir=\"ltr\"", index);
+        Assert.Contains("select2:select", index);
         Assert.Contains("btnResetPeak", index);
         Assert.Contains("PublishOrientation", join);
         Assert.Contains("liveRf", join);

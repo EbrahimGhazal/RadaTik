@@ -110,10 +110,20 @@
 }
 
 .antenna-cal-pick-map {
-    height: 240px;
+    height: 280px;
+    width: 100%;
     border-radius: 10px;
     border: 1px solid rgba(148, 163, 184, 0.35);
     margin-top: 0.35rem;
+    direction: ltr;
+    z-index: 1;
+}
+
+.antenna-cal-pick-map .leaflet-container {
+    height: 100%;
+    width: 100%;
+    border-radius: 10px;
+    direction: ltr;
 }
 
 .antenna-cal-qr-row {
@@ -128,10 +138,15 @@
     font-size: 0.85rem;
 }
 
-.antenna-cal-qr-row canvas {
+.antenna-cal-qr-img {
+    display: block;
+    width: 168px;
+    height: 168px;
     background: #fff;
     border-radius: 8px;
-    padding: 6px;
+    padding: 8px;
+    margin: 0 auto 0.35rem;
+    image-rendering: pixelated;
 }
 
 .antenna-cal-path {
