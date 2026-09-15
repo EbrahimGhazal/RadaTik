@@ -54,6 +54,146 @@ public sealed class MikroTikSectorRadioAdapter : ISectorRadioAdapter
         }
     }
 
+    public Task<SectorRadioStationsResult> ReadStationsAsync(
+        Sector sector,
+        MikroTikServer server,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using ITikConnection connection = ConnectionFactory.CreateConnection(TikConnectionType.Api);
+            connection.SendTimeout = MikroTikConnectionSupport.DefaultSendTimeoutMs;
+            connection.ReceiveTimeout = MikroTikConnectionSupport.DefaultReceiveTimeoutMs;
+            connection.Open(server.Host, server.Port, server.User, server.Pass);
+
+            string? interfaceName = GetPreferredWirelessInterface(connection, sector);
+            SectorRadioMetricsResult? monitor = null;
+            if (!string.IsNullOrWhiteSpace(interfaceName))
+            {
+                SectorRadioMetricsResult monitorResult = ReadWirelessMonitor(connection, interfaceName);
+                if (monitorResult.Success)
+                {
+                    monitor = monitorResult;
+                }
+            }
+
+            List<RadioStationSignal> stations = ReadRegistrationTable(connection, interfaceName);
+            return Task.FromResult(new SectorRadioStationsResult
+            {
+                Success = true,
+                StatusMessage = stations.Count > 0
+                    ? "تمت قراءة المحطات المسجّلة على المرسل."
+                    : "لا توجد محطات مسجّلة حالياً على واجهة القطاع.",
+                InterfaceName = interfaceName,
+                FrequencyMhz = monitor?.FrequencyMhz,
+                NoiseFloorDbm = monitor?.NoiseFloorDbm,
+                Stations = stations
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read sector registration table. SectorId={SectorId}, ServerId={ServerId}", sector.Id, server.Id);
+            return Task.FromResult(new SectorRadioStationsResult
+            {
+                Success = false,
+                StatusMessage = "تعذر قراءة جدول التسجيل من MikroTik."
+            });
+        }
+    }
+
+    private static List<RadioStationSignal> ReadRegistrationTable(ITikConnection connection, string? preferredInterface)
+    {
+        string[] commands =
+        [
+            "/interface/wireless/registration-table/print",
+            "/interface/wifi/registration-table/print",
+            "/interface/wifiwave2/registration-table/print"
+        ];
+
+        foreach (string command in commands)
+        {
+            IReadOnlyList<ITikReSentence> rows = MikroTikApiSupport.PrintList(connection, command);
+            if (rows.Count == 0)
+            {
+                continue;
+            }
+
+            List<RadioStationSignal> parsed = rows
+                .Select(ParseRegistrationRow)
+                .Where(s => !string.IsNullOrWhiteSpace(s.MacAddress) || s.SignalDbm.HasValue)
+                .ToList();
+            if (parsed.Count == 0)
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(preferredInterface))
+            {
+                List<RadioStationSignal> onInterface = parsed
+                    .Where(s => MikroTikApiSupport.NamesMatch(s.InterfaceName, preferredInterface))
+                    .ToList();
+                if (onInterface.Count > 0)
+                {
+                    return onInterface;
+                }
+            }
+
+            return parsed;
+        }
+
+        return [];
+    }
+
+    private static RadioStationSignal ParseRegistrationRow(ITikReSentence row)
+    {
+        string mac = FirstNonEmpty(
+            MikroTikApiSupport.GetSafeValue(row, "mac-address"),
+            MikroTikApiSupport.GetSafeValue(row, "mac"));
+        string lastIp = FirstNonEmpty(
+            MikroTikApiSupport.GetSafeValue(row, "last-ip"),
+            MikroTikApiSupport.GetSafeValue(row, "last-ip-address"),
+            MikroTikApiSupport.GetSafeValue(row, "address"));
+        int? signal = ParseDbm(FirstNonEmpty(
+            MikroTikApiSupport.GetSafeValue(row, "signal-strength"),
+            MikroTikApiSupport.GetSafeValue(row, "signal"),
+            MikroTikApiSupport.GetSafeValue(row, "rssi")));
+        int? snr = ParseInt(FirstNonEmpty(
+            MikroTikApiSupport.GetSafeValue(row, "signal-to-noise"),
+            MikroTikApiSupport.GetSafeValue(row, "snr")));
+        int? ccq = ParsePercent(FirstNonEmpty(
+            MikroTikApiSupport.GetSafeValue(row, "tx-ccq"),
+            MikroTikApiSupport.GetSafeValue(row, "rx-ccq"),
+            MikroTikApiSupport.GetSafeValue(row, "ccq")));
+
+        return new RadioStationSignal
+        {
+            MacAddress = string.IsNullOrWhiteSpace(mac) ? null : mac.Trim(),
+            LastIp = string.IsNullOrWhiteSpace(lastIp) ? null : lastIp.Trim(),
+            InterfaceName = NullIfEmpty(MikroTikApiSupport.GetSafeValue(row, "interface")),
+            SignalDbm = signal,
+            SnrDb = snr,
+            CcqPercent = ccq,
+            TxRateMbps = ParseRateMbps(MikroTikApiSupport.GetSafeValue(row, "tx-rate")),
+            RxRateMbps = ParseRateMbps(MikroTikApiSupport.GetSafeValue(row, "rx-rate"))
+        };
+    }
+
+    private static string FirstNonEmpty(params string[] values)
+    {
+        foreach (string value in values)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static string? NullIfEmpty(string value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     private static string? GetPreferredWirelessInterface(ITikConnection connection, Sector sector)
     {
         List<dynamic> rows = ExecuteRadioInterfacesPrintWithFallback(connection);

@@ -8,4 +8,9 @@ public interface ISectorRadioAdapter
         Sector sector,
         MikroTikServer server,
         CancellationToken cancellationToken = default);
+
+    Task<SectorRadioStationsResult> ReadStationsAsync(
+        Sector sector,
+        MikroTikServer server,
+        CancellationToken cancellationToken = default);
 }

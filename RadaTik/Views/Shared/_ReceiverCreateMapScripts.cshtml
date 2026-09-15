@@ -19,6 +19,7 @@
             var getSectorInfoUrl = '@Url.Action("GetSectorInfo", "Receiver", new { area = currentArea })';
             var analyzeLosUrl = '@Url.Action("AnalyzeLineOfSight", "Receiver", new { area = currentArea })';
             var calibrateAlignmentUrl = '@Url.Action("CalibrateAlignment", "Receiver", new { area = currentArea })';
+            var calibrateLiveSignalUrl = '@Url.Action("CalibrateLiveSignal", "Receiver", new { area = currentArea })';
             var getElevationAtUrl = '@Url.Action("GetElevationAtPoint", "Receiver", new { area = currentArea })';
             var getNextIpUrl = '@Url.Action("GetNextReceiverIP", "Receiver", new { area = currentArea })';
             var sectorServerFilter = document.getElementById('sectorServerFilter');
@@ -134,6 +135,11 @@
                     var on = pane.getAttribute('data-tool-pane') === name;
                     pane.classList.toggle('d-none', !on);
                 });
+                if (name === 'calibrate' && lastCalibrateOk) {
+                    startLiveSignalPoll();
+                } else {
+                    stopLiveSignalPoll();
+                }
                 refreshMapLayout();
             }
 
@@ -842,6 +848,152 @@
                 });
             });
 
+            var lastCalibrateOk = false;
+            var livePollTimer = null;
+            var livePollInFlight = false;
+            var livePeakDbm = null;
+
+            function csrfToken() {
+                var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                return tokenInput ? tokenInput.value : '';
+            }
+
+            function formatDbm(v) {
+                return (v == null || !isFinite(Number(v))) ? '—' : (Number(v).toFixed(0) + ' dBm');
+            }
+
+            function stopLiveSignalPoll() {
+                if (livePollTimer) {
+                    clearInterval(livePollTimer);
+                    livePollTimer = null;
+                }
+            }
+
+            function startLiveSignalPoll() {
+                stopLiveSignalPoll();
+                pollLiveSignal();
+                livePollTimer = setInterval(pollLiveSignal, 2500);
+            }
+
+            function resetLivePeak() {
+                livePeakDbm = null;
+                var peakEl = document.getElementById('calLivePeak');
+                if (peakEl) {
+                    peakEl.textContent = '—';
+                }
+            }
+
+            function setLiveText(id, text) {
+                var el = document.getElementById(id);
+                if (el) {
+                    el.textContent = text;
+                }
+            }
+
+            function renderLiveStations(stations) {
+                var list = document.getElementById('calLiveStations');
+                if (!list) {
+                    return;
+                }
+                list.innerHTML = '';
+                (stations || []).forEach(function (s) {
+                    var li = document.createElement('li');
+                    var mac = s.macAddress || 'بدون MAC';
+                    var ip = s.lastIp || 'بدون IP';
+                    li.innerHTML = '<button type="button" class="calibrate-station-pick">' +
+                        '<strong>' + mac + '</strong> · ' + ip +
+                        ' · ' + formatDbm(s.signalDbm) + '</button>';
+                    var btn = li.querySelector('button');
+                    btn.addEventListener('click', function () {
+                        var macIn = document.getElementById('calibrateMacInput');
+                        if (macIn && s.macAddress) {
+                            macIn.value = s.macAddress;
+                        }
+                        resetLivePeak();
+                        pollLiveSignal();
+                    });
+                    list.appendChild(li);
+                });
+            }
+
+            function pollLiveSignal() {
+                if (livePollInFlight) {
+                    return;
+                }
+                var sectorId = sectorSelect && sectorSelect.value;
+                var livePanel = document.getElementById('calibrateLivePanel');
+                if (!sectorId || !livePanel || livePanel.classList.contains('d-none')) {
+                    return;
+                }
+                livePollInFlight = true;
+                var macIn = document.getElementById('calibrateMacInput');
+                fetch(calibrateLiveSignalUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        sectorId: parseInt(sectorId, 10),
+                        receiverIp: ipInput && ipInput.value ? ipInput.value.trim() : '',
+                        macAddress: macIn && macIn.value ? macIn.value.trim() : ''
+                    })
+                })
+                    .then(function (r) {
+                        if (!r.ok) {
+                            throw new Error('http_' + r.status);
+                        }
+                        return r.json();
+                    })
+                    .then(function (data) {
+                        if (!data || !data.success) {
+                            setLiveText('calLiveStatus', (data && data.message) ? data.message : 'تعذر قراءة الإشارة الحية.');
+                            setLiveText('calLiveAdvice', 'الهندسة جاهزة. الإشارة الحية تحتاج وصول MikroTik وظهور اللاقط على القطاع.');
+                            return;
+                        }
+                        var matched = data.matched;
+                        if (matched && matched.signalDbm != null && isFinite(Number(matched.signalDbm))) {
+                            var dbm = Number(matched.signalDbm);
+                            if (livePeakDbm == null || dbm > livePeakDbm) {
+                                livePeakDbm = dbm;
+                            }
+                            setLiveText('calLiveSignal', formatDbm(dbm));
+                            setLiveText('calLivePeak', formatDbm(livePeakDbm));
+                            setLiveText('calLiveSnr', matched.snrDb == null ? '—' : (matched.snrDb + ' dB'));
+                            setLiveText('calLiveCcq', matched.ccqPercent == null ? '—' : (matched.ccqPercent + ' %'));
+                            var delta = livePeakDbm - dbm;
+                            var liveSignalEl = document.getElementById('calLiveSignal');
+                            if (liveSignalEl) {
+                                liveSignalEl.classList.toggle('is-peak', delta <= 1.5);
+                                liveSignalEl.classList.toggle('is-off-peak', delta > 1.5);
+                            }
+                            setLiveText('calLiveStatus', 'مطابقة حسب ' + (data.matchReason === 'mac' ? 'MAC' : data.matchReason === 'ip' ? 'IP' : 'محطة وحيدة') +
+                                (matched.macAddress ? (' · ' + matched.macAddress) : ''));
+                            if (delta <= 1.5) {
+                                setLiveText('calLiveAdvice', 'قريب من الذروة. ثبّت الطبق ثم شدّ البراغي.');
+                            } else {
+                                setLiveText('calLiveAdvice', 'حرّك الطبق ببطء نحو الذروة (' + formatDbm(livePeakDbm) + '). الفرق الحالي ' + delta.toFixed(0) + ' dB.');
+                            }
+                        } else {
+                            setLiveText('calLiveSignal', '—');
+                            setLiveText('calLiveSnr', '—');
+                            setLiveText('calLiveCcq', '—');
+                            setLiveText('calLiveStatus', data.message || 'لا توجد محطة مطابقة بعد.');
+                            setLiveText('calLiveAdvice', 'شغّل اللاقط حتى يظهر في القائمة أدناه، أو أدخل MAC ثم اضغط المحطة لتتبعها.');
+                        }
+                        renderLiveStations(data.stations);
+                    })
+                    .catch(function () {
+                        setLiveText('calLiveStatus', 'تعذر قراءة الإشارة الحية. تحقق من اتصال المرسل.');
+                    })
+                    .finally(function () {
+                        livePollInFlight = false;
+                    });
+            }
+
             function formatAzimuthTurn(delta) {
                 var a = Math.abs(Number(delta) || 0);
                 if (a < 0.8) {
@@ -921,20 +1073,25 @@
                     return;
                 }
                 activateToolTab('calibrate');
-                var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
-                var token = tokenInput ? tokenInput.value : '';
                 var elevIn = document.getElementById('receiverElevationInput');
                 var aglIn = document.getElementById('receiverAntennaAglInput');
+                var freqIn = document.getElementById('losFrequencyMhzInput');
                 var panel = document.getElementById('calibrateResultPanel');
                 var content = document.getElementById('calibrateResultContent');
+                var livePanel = document.getElementById('calibrateLivePanel');
                 var btn = document.getElementById('btnCalibrateAlignment');
                 var prev = btn ? btn.innerHTML : '';
                 if (btn) {
                     btn.disabled = true;
                     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحساب...';
                 }
+                lastCalibrateOk = false;
+                stopLiveSignalPoll();
+                if (livePanel) {
+                    livePanel.classList.add('d-none');
+                }
                 panel.classList.remove('d-none');
-                content.innerHTML = '<p class="text-muted mb-0">جارٍ حساب السمت والميل...</p>';
+                content.innerHTML = '<p class="text-muted mb-0">جارٍ حساب السمت والميل ومراجعة المسار...</p>';
 
                 fetch(calibrateAlignmentUrl, {
                     method: 'POST',
@@ -942,7 +1099,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
-                        'X-CSRF-TOKEN': token,
+                        'X-CSRF-TOKEN': csrfToken(),
                         'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: JSON.stringify({
@@ -950,7 +1107,8 @@
                         receiverLatitude: lat,
                         receiverLongitude: lng,
                         receiverElevationMeters: parseOptionalFloatInput(elevIn),
-                        receiverAntennaHeightAglMeters: parseOptionalFloatInput(aglIn)
+                        receiverAntennaHeightAglMeters: parseOptionalFloatInput(aglIn),
+                        frequencyMhz: parseOptionalFloatInput(freqIn)
                     })
                 })
                     .then(function (r) {
@@ -965,14 +1123,45 @@
                             return;
                         }
                         var a = data.alignment;
+                        var p = data.path;
                         var beam = a.insideCoverageBeam
                             ? '<span class="badge-ok">داخل زاوية انتشار القطاع</span>'
                             : '<span class="badge-warn">خارج زاوية انتشار القطاع — أعد توجيه المرسل أو راجع الموقع</span>';
+                        var pathHtml = '';
+                        if (p) {
+                            var pathBadge = p.pathClear
+                                ? '<span class="badge-ok">مسار مفتوح</span>'
+                                : '<span class="badge-warn">مسار محجوب</span>';
+                            var fresnelBadge = p.fresnelClear
+                                ? '<span class="badge-ok">فريسنل كافٍ</span>'
+                                : '<span class="badge-warn">فريسنل غير كافٍ</span>';
+                            pathHtml =
+                                '<p class="mb-1">جودة المسار: ' + pathBadge + ' · ' + fresnelBadge +
+                                ' · هامش فريسنل ' + losNum(p.minFresnelMarginMeters) + ' م · تردد ' +
+                                losNum(p.frequencyMhzUsed, 0) + ' MHz</p>';
+                            if (p.blockingObstacles > 0) {
+                                pathHtml += '<p class="mb-1 text-danger">عوائق على المسار: ' + p.blockingObstacles + '</p>';
+                            }
+                        } else {
+                            pathHtml = '<p class="mb-1 text-muted">تعذر إرفاق تحليل خط الرؤية؛ الزوايا الهندسية ما زالت صالحة.</p>';
+                        }
+                        var heightNotes = '';
+                        if (a.sectorAglAssumed || a.receiverAglAssumed) {
+                            heightNotes = '<p class="mb-1 text-warning">ارتفاع هوائي مفترض' +
+                                (a.sectorAglAssumed ? ' للمرسل (' + losNum(a.sectorAntennaAglMeters) + ' م)' : '') +
+                                (a.receiverAglAssumed ? ' للمستقبل (' + losNum(a.receiverAntennaAglMeters) + ' م)' : '') +
+                                ' — أدخل الارتفاع الحقيقي لدقة الميل.</p>';
+                        }
+                        var decl = Number(a.magneticDeclinationDegrees) || 0;
+                        var declTxt = (decl >= 0 ? '+' : '') + losNum(decl) + '° (' + (decl >= 0 ? 'شرق' : 'غرب') + ')';
                         content.innerHTML =
                             '<div class="calibrate-summary">' +
                             '<p class="mb-2">المسافة الجوية <strong>' + losNum(a.distanceMeters, 0) + ' م</strong> بين هوائي ' +
                             (a.sectorName || 'المرسل') + ' ونقطة المستقبل.</p>' +
-                            '<p class="mb-0">حالة الشعاع: ' + beam + '</p>' +
+                            '<p class="mb-1">حالة الشعاع: ' + beam + '</p>' +
+                            pathHtml +
+                            heightNotes +
+                            '<p class="calibrate-advice mb-0">' + (a.advice || '') + '</p>' +
                             '</div>' +
                             '<div class="calibrate-grid">' +
                             '<article class="calibrate-card">' +
@@ -980,26 +1169,35 @@
                             renderCompassSvg(a.currentSectorAzimuthDegrees, a.transmitterAzimuthDegrees) +
                             '<dl class="los-result-kv">' +
                             '<dt>الاتجاه الحالي:</dt><dd>' + losNum(a.currentSectorAzimuthDegrees) + '°</dd>' +
-                            '<dt>السمت المطلوب:</dt><dd><strong>' + losNum(a.transmitterAzimuthDegrees) + '°</strong> (' + (a.transmitterCardinal || '') + ')</dd>' +
+                            '<dt>السمت الجغرافي:</dt><dd><strong>' + losNum(a.transmitterAzimuthDegrees) + '°</strong> (' + (a.transmitterCardinal || '') + ')</dd>' +
+                            '<dt>سمت البوصلة:</dt><dd><strong>' + losNum(a.transmitterMagneticAzimuthDegrees) + '°</strong></dd>' +
                             '<dt>الانحراف الأفقي:</dt><dd>' + formatAzimuthTurn(a.transmitterAzimuthDeltaDegrees) +
                             ' <span class="text-muted">(' + (a.transmitterAzimuthDeltaDegrees > 0 ? '+' : '') + losNum(a.transmitterAzimuthDeltaDegrees) + '°)</span></dd>' +
                             '<dt>الميل الرأسي:</dt><dd>' + formatTilt(a.transmitterElevationDegrees) +
-                            ' <span class="text-muted">(' + losNum(a.transmitterElevationDegrees, 2) + '°)</span></dd>' +
+                            ' <span class="text-muted">(' + losNum(a.transmitterElevationDegrees, 2) + '° مع انحناء الأرض)</span></dd>' +
                             '</dl>' +
                             '</article>' +
                             '<article class="calibrate-card">' +
                             '<h5><i class="fas fa-wifi"></i> المستقبل</h5>' +
                             '<dl class="los-result-kv">' +
-                            '<dt>السمت نحو المرسل:</dt><dd><strong>' + losNum(a.receiverAzimuthDegrees) + '°</strong> (' + (a.receiverCardinal || '') + ')</dd>' +
+                            '<dt>السمت الجغرافي:</dt><dd><strong>' + losNum(a.receiverAzimuthDegrees) + '°</strong> (' + (a.receiverCardinal || '') + ')</dd>' +
+                            '<dt>سمت البوصلة:</dt><dd><strong>' + losNum(a.receiverMagneticAzimuthDegrees) + '°</strong></dd>' +
                             '<dt>الميل الرأسي:</dt><dd>' + formatTilt(a.receiverElevationDegrees) +
                             ' <span class="text-muted">(' + losNum(a.receiverElevationDegrees, 2) + '°)</span></dd>' +
                             '<dt>ارتفاع الهوائي:</dt><dd>' + losNum(a.receiverAntennaMslMeters) + ' م عن سطح البحر</dd>' +
                             '</dl>' +
-                            '<p class="form-hint mb-0 mt-2">وجّه طبق/هوائي المستقبل إلى السمت أعلاه ثم اضبط الميل حتى أعلى إشارة.</p>' +
+                            '<p class="form-hint mb-0 mt-2">وجّه الطبق ببوصلة إلى سمت البوصلة، ثم ثبّت عند ذروة الإشارة الحية.</p>' +
                             '</article>' +
                             '</div>' +
-                            '<p class="form-hint mt-2 mb-0">0° = الشمال الجغرافي، والزيادة مع عقارب الساعة. الميل السالب يعني أن الطرف الآخر أخفض. هذه قيم هندسية تقريبية لأفضل محاذاة.</p>';
+                            '<p class="form-hint mt-2 mb-0">0° جغرافي = الشمال الحقيقي. انحراف المغناطيسية الحالي ' + declTxt +
+                            '. سمت البوصلة = السمت الجغرافي − الانحراف.</p>';
                         renderCalibrationOnMap(a);
+                        lastCalibrateOk = true;
+                        resetLivePeak();
+                        if (livePanel) {
+                            livePanel.classList.remove('d-none');
+                        }
+                        startLiveSignalPoll();
                     })
                     .catch(function () {
                         content.innerHTML = '<p class="text-danger">تعذر حساب المعايرة. تحقق من الاتصال أو حاول لاحقاً.</p>';
@@ -1020,6 +1218,13 @@
             var btnCalibrateAlignmentAction = document.getElementById('btnCalibrateAlignmentAction');
             if (btnCalibrateAlignmentAction) {
                 btnCalibrateAlignmentAction.addEventListener('click', calibrateAlignment);
+            }
+            var btnCalibrateResetPeak = document.getElementById('btnCalibrateResetPeak');
+            if (btnCalibrateResetPeak) {
+                btnCalibrateResetPeak.addEventListener('click', function () {
+                    resetLivePeak();
+                    pollLiveSignal();
+                });
             }
 
             function clearMapLayers() {

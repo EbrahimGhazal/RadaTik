@@ -197,5 +197,32 @@ public sealed class LineOfSightMathTests
         Assert.True(a.TransmitterElevationDegrees < 0);
         Assert.True(a.ReceiverElevationDegrees > 0);
         Assert.Equal("شرق", a.TransmitterCardinal);
+        Assert.True(a.EarthCurvatureApplied);
+        Assert.InRange(a.MagneticDeclinationDegrees, 0.5, 12);
+        Assert.InRange(a.TransmitterMagneticAzimuthDegrees, 75, 95);
+    }
+
+    [Fact]
+    public void RadioTakeoff_EqualHeightsOnLongLink_IsDownTilt()
+    {
+        double simple = LineOfSightMath.ElevationDegrees(100, 100, 80_000);
+        double radio = LineOfSightMath.RadioTakeoffDegrees(100, 100, 80_000);
+        Assert.Equal(0, simple, 3);
+        Assert.True(radio < -0.1);
+        Assert.True(radio > -1.5);
+    }
+
+    [Fact]
+    public void MagneticDeclination_DamascusIsEasterly()
+    {
+        double d = MagneticDeclination.EastDegrees(33.513, 36.292, new DateTime(2026, 9, 15, 0, 0, 0, DateTimeKind.Utc));
+        Assert.InRange(d, 1, 12);
+    }
+
+    [Fact]
+    public void BuildAimingAdvice_BlockedPath_WarnsGeometryIsNotEnough()
+    {
+        string advice = LineOfSightMath.BuildAimingAdvice(true, false, false, 2);
+        Assert.Contains("محجوب", advice);
     }
 }

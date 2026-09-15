@@ -21,6 +21,14 @@ public sealed class CalibrateAlignmentRequest
     public double ReceiverLongitude { get; set; }
     public double? ReceiverElevationMeters { get; set; }
     public double? ReceiverAntennaHeightAglMeters { get; set; }
+    public double? FrequencyMhz { get; set; }
+}
+
+public sealed class CalibrateLiveSignalRequest
+{
+    public int SectorId { get; set; }
+    public string? ReceiverIp { get; set; }
+    public string? MacAddress { get; set; }
 }
 
 public sealed class LineOfSightAnalysisInput

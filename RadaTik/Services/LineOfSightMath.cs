@@ -394,7 +394,7 @@ public static class LineOfSightMath
         return d;
     }
 
-    /// <summary>زاوية الارتفاع من نقطة إلى أخرى بالدرجات. الموجب = للأعلى، السالب = للأسفل.</summary>
+    /// <summary>زاوية الارتفاع الهندسية بدون انحناء الأرض. الموجب = للأعلى.</summary>
     public static double ElevationDegrees(double fromHeightMsl, double toHeightMsl, double distanceMeters)
     {
         if (distanceMeters < 1)
@@ -403,6 +403,20 @@ public static class LineOfSightMath
         }
 
         return Math.Atan2(toHeightMsl - fromHeightMsl, distanceMeters) * 180 / Math.PI;
+    }
+
+    /// <summary>
+    /// زاوية الإقلاع الراديوية مع انتفاخ الأرض (k = 4/3). الطرف البعيد يظهر أخفض بمقدار d²/(2kR).
+    /// </summary>
+    public static double RadioTakeoffDegrees(double fromHeightMsl, double toHeightMsl, double distanceMeters)
+    {
+        if (distanceMeters < 1)
+        {
+            return 0;
+        }
+
+        double curvatureDrop = (distanceMeters * distanceMeters) / (2.0 * KFactor * EarthRadiusMeters);
+        return Math.Atan2(toHeightMsl - fromHeightMsl - curvatureDrop, distanceMeters) * 180 / Math.PI;
     }
 
     public static string CardinalArabic(double bearingDegrees)
@@ -424,16 +438,18 @@ public static class LineOfSightMath
     public static AntennaAlignmentResult ComputeAlignment(
         double sectorLat, double sectorLon, double sectorAntennaMsl, double sectorCurrentAzimuth,
         double sectorCoverageAngle,
-        double receiverLat, double receiverLon, double receiverAntennaMsl)
+        double receiverLat, double receiverLon, double receiverAntennaMsl,
+        DateTime? utc = null)
     {
         double dist = HaversineMeters(sectorLat, sectorLon, receiverLat, receiverLon);
         double txAz = InitialBearingDegrees(sectorLat, sectorLon, receiverLat, receiverLon);
         double rxAz = InitialBearingDegrees(receiverLat, receiverLon, sectorLat, sectorLon);
-        double txEl = ElevationDegrees(sectorAntennaMsl, receiverAntennaMsl, dist);
-        double rxEl = ElevationDegrees(receiverAntennaMsl, sectorAntennaMsl, dist);
+        double txEl = RadioTakeoffDegrees(sectorAntennaMsl, receiverAntennaMsl, dist);
+        double rxEl = RadioTakeoffDegrees(receiverAntennaMsl, sectorAntennaMsl, dist);
         double txDelta = SignedAngleDeltaDegrees(sectorCurrentAzimuth, txAz);
         double halfBeam = Math.Max(0, sectorCoverageAngle) / 2;
         bool insideBeam = Math.Abs(txDelta) <= halfBeam + 0.05 || sectorCoverageAngle >= 359.5;
+        double decl = MagneticDeclination.EastDegrees(sectorLat, sectorLon, utc);
 
         return new AntennaAlignmentResult(
             DistanceMeters: dist,
@@ -446,7 +462,36 @@ public static class LineOfSightMath
             ReceiverCardinal: CardinalArabic(rxAz),
             CurrentSectorAzimuthDegrees: NormalizeDegrees360(sectorCurrentAzimuth),
             InsideCoverageBeam: insideBeam,
-            CoverageHalfAngleDegrees: halfBeam);
+            CoverageHalfAngleDegrees: halfBeam,
+            MagneticDeclinationDegrees: decl,
+            TransmitterMagneticAzimuthDegrees: NormalizeDegrees360(txAz - decl),
+            ReceiverMagneticAzimuthDegrees: NormalizeDegrees360(rxAz - decl),
+            EarthCurvatureApplied: true);
+    }
+
+    public static string BuildAimingAdvice(bool insideBeam, bool? pathClear, bool? fresnelClear, int blockingObstacles)
+    {
+        if (insideBeam == false)
+        {
+            return "النقطة خارج زاوية انتشار القطاع. أعد توجيه المرسل أو انقل المستقبل ثم أعد الحساب.";
+        }
+
+        if (pathClear == false || blockingObstacles > 0)
+        {
+            return "وجّه الهوائيين حسب الزوايا، لكن المسار محجوب. الإشارة قد تبقى ضعيفة حتى رفع الهوائي أو إزالة العائق.";
+        }
+
+        if (fresnelClear == false)
+        {
+            return "خط الرؤية مفتوح تقريباً لكن فريسنل غير كافٍ. ثبّت الاتجاه ثم ارفع الهوائي إن أمكن، وأكمل بالمعايرة الحية.";
+        }
+
+        if (pathClear == true && fresnelClear == true)
+        {
+            return "المسار مناسب هندسياً. ثبّت السمت والميل ثم حرّك الطبق ببطء حتى ذروة الإشارة الحية.";
+        }
+
+        return "ثبّت السمت والميل المحسوبين، ثم أكمل المعايرة بقراءة الإشارة الحية من المرسل.";
     }
 
     private static bool TryGetTag(IReadOnlyDictionary<string, string> tags, string key, out string? value)
@@ -648,7 +693,11 @@ public readonly record struct AntennaAlignmentResult(
     string ReceiverCardinal,
     double CurrentSectorAzimuthDegrees,
     bool InsideCoverageBeam,
-    double CoverageHalfAngleDegrees);
+    double CoverageHalfAngleDegrees,
+    double MagneticDeclinationDegrees,
+    double TransmitterMagneticAzimuthDegrees,
+    double ReceiverMagneticAzimuthDegrees,
+    bool EarthCurvatureApplied);
 
 public static class BuildingHeightConfidence
 {
