@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using RadaTik.Constants;
 using RadaTik.Data;
@@ -20,18 +19,18 @@ public sealed class ClientListQueryService(
     IClientRenewalGuardService renewalGuardService,
     IClientPendingApprovalQueryService pendingApprovalQuery,
     IMikroTikPppoeUserService mikroTikPppoe,
-    IMemoryCache memoryCache,
+    IClientLiveConnectionStore liveConnectionStore,
+    IClientLiveConnectionRefreshService liveConnectionRefresh,
     ILogger<ClientListQueryService> logger)
     : ApplicationServiceBase(context), IClientListQueryService
 {
-    private static readonly TimeSpan ConnectedCacheDuration = TimeSpan.FromSeconds(45);
-
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly IPermissionService _permissionService = permissionService;
     private readonly IClientRenewalGuardService _renewalGuard = renewalGuardService;
     private readonly IClientPendingApprovalQueryService _pendingApproval = pendingApprovalQuery;
     private readonly IMikroTikPppoeUserService _mikroTik = mikroTikPppoe;
-    private readonly IMemoryCache _cache = memoryCache;
+    private readonly IClientLiveConnectionStore _liveConnectionStore = liveConnectionStore;
+    private readonly IClientLiveConnectionRefreshService _liveConnectionRefresh = liveConnectionRefresh;
     private readonly ILogger<ClientListQueryService> _logger = logger;
 
     public async Task<ClientIndexPageModel> BuildIndexPageAsync(
@@ -103,10 +102,10 @@ public sealed class ClientListQueryService(
         HashSet<int> connectedIds = [];
         bool connectionsReady = false;
         if (connectionScopeId.HasValue &&
-            _cache.TryGetValue(ConnectedCacheKey(connectionScopeId.Value), out HashSet<int>? cached) &&
-            cached != null)
+            _liveConnectionStore.TryGetCompanySnapshot(connectionScopeId.Value, out CompanyLiveConnectionSnapshot? cached) &&
+            cached is { Ready: true })
         {
-            connectedIds = cached;
+            connectedIds = cached.ConnectedClientIds;
             connectionsReady = true;
         }
 
@@ -143,72 +142,49 @@ public sealed class ClientListQueryService(
         bool forceRefresh = false,
         CancellationToken ct = default)
     {
+        ClientLiveConnectionStatus status = await GetLiveConnectionStatusAsync(networkId, forceRefresh, ct);
+        return status.ConnectedClientIds;
+    }
+
+    public async Task<ClientLiveConnectionStatus> GetLiveConnectionStatusAsync(
+        int networkId,
+        bool forceRefresh = false,
+        CancellationToken ct = default)
+    {
         List<int> companyNetworkIds = await PricingChargeHelper.GetCompanyScopeNetworkIdsForSelectedAsync(
             Db,
             networkId,
             ct);
         int cacheScopeId = companyNetworkIds.Count > 0 ? companyNetworkIds[0] : networkId;
-        string cacheKey = ConnectedCacheKey(cacheScopeId);
+
         if (!forceRefresh &&
-            _cache.TryGetValue(cacheKey, out HashSet<int>? cached) &&
-            cached != null)
+            _liveConnectionStore.TryGetCompanySnapshot(cacheScopeId, out CompanyLiveConnectionSnapshot? cached) &&
+            cached is { Ready: true })
         {
-            return cached;
+            return ToStatus(cached);
         }
 
-        List<Client> clients = await Db.Clients
-            .AsNoTracking()
-            .Where(c =>
-                c.NetworkId.HasValue
-                && companyNetworkIds.Contains(c.NetworkId.Value)
-                && c.UserName != null)
-            .Select(c => new Client
-            {
-                Id = c.Id,
-                UserName = c.UserName,
-                MikroTikServerId = c.MikroTikServerId,
-                IsActive = c.IsActive
-            })
-            .ToListAsync(ct);
+        TimeSpan waitBudget = forceRefresh
+            ? ClientLiveConnectionRefreshService.ForceRefreshWaitBudget
+            : ClientLiveConnectionRefreshService.RequestWaitBudget;
+        await _liveConnectionRefresh.RefreshCompanyAsync(networkId, forceRefresh, waitBudget, ct);
 
-        HashSet<int> serverIds = await Db.MikroTikServers
-            .AsNoTracking()
-            .Where(s => s.NetworkId.HasValue && companyNetworkIds.Contains(s.NetworkId.Value))
-            .Select(s => s.Id)
-            .ToHashSetAsync(ct);
-        foreach (int assignedServerId in clients
-            .Where(c => c.MikroTikServerId.HasValue)
-            .Select(c => c.MikroTikServerId!.Value))
+        if (_liveConnectionStore.TryGetCompanySnapshot(cacheScopeId, out CompanyLiveConnectionSnapshot? snapshot) &&
+            snapshot != null)
         {
-            serverIds.Add(assignedServerId);
+            return ToStatus(snapshot);
         }
 
-        HashSet<int> connectedIds = await ResolveConnectedClientIdsAsync(serverIds, clients, ct);
-        _cache.Set(cacheKey, connectedIds, ConnectedCacheDuration);
-        return connectedIds;
+        return new ClientLiveConnectionStatus { Ready = false, ConnectedClientIds = [] };
     }
 
-    private static string ConnectedCacheKey(int companyScopeId) => $"clients.connected.company.{companyScopeId}";
-
-    /// <summary>
-    /// يحدد المتصلين فعلياً عبر جلسات /ppp/active على كل سيرفرات MikroTik للشركة.
-    /// </summary>
-    private async Task<HashSet<int>> ResolveConnectedClientIdsAsync(
-        IReadOnlyCollection<int> serverIds,
-        IReadOnlyList<Client> clients,
-        CancellationToken ct)
-    {
-        IReadOnlyDictionary<int, IReadOnlyList<string>> namesByServer =
-            await _mikroTik.GetActivePppSessionNamesByServerAsync(serverIds, ct);
-
-        Dictionary<int, IReadOnlyCollection<string>> activeNamesByServer = namesByServer.ToDictionary(
-            pair => pair.Key,
-            pair => (IReadOnlyCollection<string>)pair.Value.Select(ClientLiveConnectionMatcher.NormalizeUserName)
-                .Where(name => name.Length > 0)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase));
-
-        return ClientLiveConnectionMatcher.Match(clients, activeNamesByServer);
-    }
+    private static ClientLiveConnectionStatus ToStatus(CompanyLiveConnectionSnapshot snapshot) =>
+        new()
+        {
+            Ready = snapshot.Ready,
+            ConnectedClientIds = snapshot.ConnectedClientIds,
+            CapturedAt = snapshot.CapturedAt
+        };
 
     public async Task<ClientDetailsPageModel> BuildDetailsPageAsync(
         int clientId,

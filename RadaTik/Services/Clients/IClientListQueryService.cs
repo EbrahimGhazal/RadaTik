@@ -13,9 +13,14 @@ public interface IClientListQueryService
         CancellationToken ct = default);
 
     /// <summary>
-    /// يجلب معرّفات المشتركين المتصلين حالياً من MikroTik (مع تخزين مؤقت قصير).
+    /// يجلب معرّفات المشتركين المتصلين حالياً من اللقطة المخزّنة (مع تحديث خلفي).
     /// </summary>
     Task<HashSet<int>> GetLiveConnectedClientIdsAsync(
+        int networkId,
+        bool forceRefresh = false,
+        CancellationToken ct = default);
+
+    Task<ClientLiveConnectionStatus> GetLiveConnectionStatusAsync(
         int networkId,
         bool forceRefresh = false,
         CancellationToken ct = default);

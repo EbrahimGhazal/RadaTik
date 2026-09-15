@@ -66,6 +66,11 @@ public sealed class MikroTikUsersFacade(MikroTikUserService users, MikroTikUserI
         CancellationToken ct = default) =>
         _users.GetActivePppSessionNamesByServerAsync(serverIds, ct);
 
+    public Task<IReadOnlyList<PppActiveSessionQueryResult>> QueryActivePppSessionNamesByServerAsync(
+        IReadOnlyCollection<int> serverIds,
+        CancellationToken ct = default) =>
+        _users.QueryActivePppSessionNamesByServerAsync(serverIds, ct);
+
     public Task<List<Client>> GetAllPPPoEUsers(int serverId) =>
         _users.GetAllPPPoEUsers(serverId);
 

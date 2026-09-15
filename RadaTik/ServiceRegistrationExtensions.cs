@@ -102,6 +102,10 @@ internal static class ServiceRegistrationExtensions
         services.AddScoped<ICompanyFinancialHelper, CompanyFinancialService>();
         services.AddScoped<Services.Clients.IClientMikroTikLifecycleService, Services.Clients.ClientMikroTikLifecycleService>();
         services.AddScoped<Services.Clients.IClientProvisioningService, Services.Clients.ClientProvisioningService>();
+        services.AddSingleton<Services.Clients.IClientLiveConnectionStore, Services.Clients.ClientLiveConnectionStore>();
+        services.AddScoped<Services.Clients.ClientLiveConnectionRefreshService>();
+        services.AddScoped<Services.Clients.IClientLiveConnectionRefreshService>(sp =>
+            sp.GetRequiredService<Services.Clients.ClientLiveConnectionRefreshService>());
         services.AddScoped<Services.Clients.IClientListQueryService, Services.Clients.ClientListQueryService>();
         services.AddScoped<Services.Clients.IClientPendingApprovalQueryService, Services.Clients.ClientPendingApprovalQueryService>();
         services.AddScoped<Services.Clients.IClientFormViewDataService, Services.Clients.ClientFormViewDataService>();
@@ -182,6 +186,7 @@ internal static class ServiceRegistrationExtensions
         services.AddHostedService<PayrollMonthEndBackgroundService>();
         services.AddHostedService<SectorRadioMetricsWorkerService>();
         services.AddHostedService<SectorRadioMetricsSchedulerService>();
+        services.AddHostedService<Services.Clients.ClientLiveConnectionBackgroundService>();
         return services;
     }
 

@@ -1284,6 +1284,7 @@
         }
 
         let connectionStatusLoading = false;
+        let connectionStatusRetries = 0;
         function loadConnectionStatus(forceRefresh) {
             if (connectionStatusLoading) {
                 return;
@@ -1304,12 +1305,21 @@
                     return r.json();
                 })
                 .then(data => {
-                    if (data && data.success) {
+                    if (data && data.success && data.ready) {
+                        connectionStatusRetries = 0;
                         applyConnectedIds(data.connectedIds || []);
+                        return;
+                    }
+                    if (connectionStatusRetries < 8) {
+                        connectionStatusRetries++;
+                        setTimeout(function () { loadConnectionStatus(false); }, 1500);
                     }
                 })
                 .catch(() => {
-                    // اترك شارات «جاري التحقق» أو الحالة السابقة
+                    if (connectionStatusRetries < 8) {
+                        connectionStatusRetries++;
+                        setTimeout(function () { loadConnectionStatus(false); }, 1500);
+                    }
                 })
                 .finally(() => {
                     connectionStatusLoading = false;

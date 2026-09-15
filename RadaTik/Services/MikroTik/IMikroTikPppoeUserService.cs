@@ -50,6 +50,13 @@ public interface IMikroTikPppoeUserService
         IReadOnlyCollection<int> serverIds,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// قراءة سريعة لجلسات /ppp/active مع تمييز النجاح/الفشل لكل راوتر.
+    /// </summary>
+    Task<IReadOnlyList<PppActiveSessionQueryResult>> QueryActivePppSessionNamesByServerAsync(
+        IReadOnlyCollection<int> serverIds,
+        CancellationToken ct = default);
+
     Task<List<Client>> GetAllPPPoEUsers(int serverId);
 
     Task<bool> DisconnectActiveUser(int serverId, string username);

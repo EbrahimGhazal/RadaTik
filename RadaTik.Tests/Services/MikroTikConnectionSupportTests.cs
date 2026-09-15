@@ -17,6 +17,12 @@ public sealed class MikroTikConnectionSupportTests
     }
 
     [Fact]
+    public void TryReachTcp_ReturnsFalseForUnreachablePort()
+    {
+        Assert.False(MikroTikConnectionSupport.TryReachTcp("127.0.0.1", 1, timeoutMs: 400));
+    }
+
+    [Fact]
     public void IsHardConnectFailure_IgnoresUnrelatedErrors()
     {
         Exception ex = new InvalidOperationException("profile missing on device");

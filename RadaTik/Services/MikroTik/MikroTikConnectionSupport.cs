@@ -14,12 +14,65 @@ public sealed class MikroTikConnectionSupport(ILogger<MikroTikConnectionSupport>
     /// <summary>مهلة استقبال ردود API بالمللي ثانية.</summary>
     public const int DefaultReceiveTimeoutMs = 8_000;
 
+    /// <summary>مهلة TCP قصيرة لمسار قراءة /ppp/active.</summary>
+    public const int QuickConnectTimeoutMs = 3_000;
+
+    /// <summary>مهلة إرسال قصيرة لمسار قراءة الجلسات.</summary>
+    public const int QuickSendTimeoutMs = 4_000;
+
+    /// <summary>مهلة استقبال قصيرة لمسار قراءة الجلسات.</summary>
+    public const int QuickReceiveTimeoutMs = 4_000;
+
+    /// <summary>سقف انتظار قراءة راوتر واحد بما فيها فتح الاتصال.</summary>
+    public const int QuickReadDeadlineMs = 5_000;
+
     /// <summary>عدد محاولات فتح الاتصال للعمليات التفاعلية (إضافة/مزامنة).</summary>
     public const int DefaultConnectRetries = 2;
 
     private readonly ILogger<MikroTikConnectionSupport> _logger = logger;
 
-    public ITikConnection CreateConnectionWithRetry(MikroTikServer server, int maxRetries = DefaultConnectRetries)
+    public ITikConnection CreateQuickReadConnection(MikroTikServer server)
+    {
+        if (!TryReachTcp(server.Host, server.Port, QuickConnectTimeoutMs))
+        {
+            throw new TimeoutException(
+                $"تعذر الوصول إلى {server.Host}:{server.Port} خلال {QuickConnectTimeoutMs}ms");
+        }
+
+        return CreateConnectionWithRetry(
+            server,
+            maxRetries: 1,
+            verifyWithResourcePrint: false,
+            sendTimeoutMs: QuickSendTimeoutMs,
+            receiveTimeoutMs: QuickReceiveTimeoutMs);
+    }
+
+    public static bool TryReachTcp(string host, int port, int timeoutMs)
+    {
+        if (string.IsNullOrWhiteSpace(host) || port <= 0 || timeoutMs <= 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            using TcpClient client = new();
+            using CancellationTokenSource cts = new(timeoutMs);
+            client.ConnectAsync(host, port, cts.Token).AsTask().GetAwaiter().GetResult();
+            return client.Connected;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public ITikConnection CreateConnectionWithRetry(
+        MikroTikServer server,
+        int maxRetries = DefaultConnectRetries,
+        bool verifyWithResourcePrint = true,
+        int sendTimeoutMs = DefaultSendTimeoutMs,
+        int receiveTimeoutMs = DefaultReceiveTimeoutMs)
     {
         if (maxRetries < 1)
         {
@@ -40,22 +93,25 @@ public sealed class MikroTikConnectionSupport(ILogger<MikroTikConnectionSupport>
                     attempt,
                     maxRetries);
 
-                connection = OpenConnectionWithTimeouts(server);
+                connection = OpenConnectionWithTimeouts(server, sendTimeoutMs, receiveTimeoutMs);
 
-                try
+                if (verifyWithResourcePrint)
                 {
-                    ITikCommand testCmd = connection.CreateCommand("/system/resource/print");
-                    testCmd.ExecuteList();
-                }
-                catch (Exception testEx) when (
-                    MikroTikApiSupport.IsEmptyResponse(testEx)
-                    || testEx.Message.Contains("permission", StringComparison.OrdinalIgnoreCase)
-                    || testEx.Message.Contains("not enough", StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogDebug(
-                        testEx,
-                        "تم تسجيل الدخول إلى {Host} لكن أمر الفحص غير متاح — يُتابع الاتصال",
-                        server.Host);
+                    try
+                    {
+                        ITikCommand testCmd = connection.CreateCommand("/system/resource/print");
+                        testCmd.ExecuteList();
+                    }
+                    catch (Exception testEx) when (
+                        MikroTikApiSupport.IsEmptyResponse(testEx)
+                        || testEx.Message.Contains("permission", StringComparison.OrdinalIgnoreCase)
+                        || testEx.Message.Contains("not enough", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogDebug(
+                            testEx,
+                            "تم تسجيل الدخول إلى {Host} لكن أمر الفحص غير متاح — يُتابع الاتصال",
+                            server.Host);
+                    }
                 }
 
                 return connection;
@@ -101,7 +157,7 @@ public sealed class MikroTikConnectionSupport(ILogger<MikroTikConnectionSupport>
             try
             {
                 // لا نضاعف المحاولات: فتح اتصال واحد لكل محاولة عملية.
-                connection = CreateConnectionWithRetry(server, maxRetries: 1);
+                connection = CreateConnectionWithRetry(server, maxRetries: 1, verifyWithResourcePrint: true);
                 T result = operation(connection);
                 connection.Dispose();
                 return result;
@@ -132,11 +188,14 @@ public sealed class MikroTikConnectionSupport(ILogger<MikroTikConnectionSupport>
         throw new InvalidOperationException($"فشلت العملية بعد {maxRetries} محاولات", lastException);
     }
 
-    private static ITikConnection OpenConnectionWithTimeouts(MikroTikServer server)
+    private static ITikConnection OpenConnectionWithTimeouts(
+        MikroTikServer server,
+        int sendTimeoutMs = DefaultSendTimeoutMs,
+        int receiveTimeoutMs = DefaultReceiveTimeoutMs)
     {
         ITikConnection connection = ConnectionFactory.CreateConnection(TikConnectionType.Api);
-        connection.SendTimeout = DefaultSendTimeoutMs;
-        connection.ReceiveTimeout = DefaultReceiveTimeoutMs;
+        connection.SendTimeout = sendTimeoutMs;
+        connection.ReceiveTimeout = receiveTimeoutMs;
         connection.Open(server.Host, server.Port, server.User, server.Pass);
         return connection;
     }

@@ -67,14 +67,16 @@ namespace RadaTik.Controllers
 
             try
             {
-                HashSet<int> connectedIds = await _app.ListQuery.GetLiveConnectedClientIdsAsync(
+                ClientLiveConnectionStatus status = await _app.ListQuery.GetLiveConnectionStatusAsync(
                     networkId.Value,
                     forceRefresh);
                 return Json(new
                 {
                     success = true,
-                    connectedIds = connectedIds.ToArray(),
-                    connectedCount = connectedIds.Count
+                    ready = status.Ready,
+                    connectedIds = status.ConnectedClientIds.ToArray(),
+                    connectedCount = status.ConnectedClientIds.Count,
+                    capturedAt = status.CapturedAt
                 });
             }
             catch (Exception ex)

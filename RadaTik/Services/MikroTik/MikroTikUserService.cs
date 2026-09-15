@@ -1137,43 +1137,70 @@ public sealed class MikroTikUserService(
         IReadOnlyCollection<int> serverIds,
         CancellationToken ct = default)
     {
+        IReadOnlyList<PppActiveSessionQueryResult> results =
+            await QueryActivePppSessionNamesByServerAsync(serverIds, ct);
+        return results.ToDictionary(result => result.ServerId, result => result.Names);
+    }
+
+    public async Task<IReadOnlyList<PppActiveSessionQueryResult>> QueryActivePppSessionNamesByServerAsync(
+        IReadOnlyCollection<int> serverIds,
+        CancellationToken ct = default)
+    {
         if (serverIds.Count == 0)
         {
-            return new Dictionary<int, IReadOnlyList<string>>();
+            return [];
         }
 
         List<int> distinctIds = serverIds.Distinct().ToList();
         List<MikroTikServer> servers = await _context.MikroTikServers
             .AsNoTracking()
-            .Where(s => distinctIds.Contains(s.Id))
+            .Where(s => s.IsActive && distinctIds.Contains(s.Id))
             .ToListAsync(ct);
 
-        ConcurrentDictionary<int, IReadOnlyList<string>> namesByServer = new();
-
-        await Task.WhenAll(servers.Select(server => Task.Run(() =>
+        ConcurrentBag<PppActiveSessionQueryResult> results = [];
+        using SemaphoreSlim gate = new(8);
+        await Task.WhenAll(servers.Select(async server =>
         {
-            ct.ThrowIfCancellationRequested();
+            await gate.WaitAsync(ct);
             try
             {
-                namesByServer[server.Id] = ReadActiveSessionNames(server);
+                results.Add(await ReadActiveSessionNamesQuickAsync(server, ct));
             }
-            catch (Exception ex)
+            finally
             {
-                _logger.LogWarning(
-                    ex,
-                    "تعذر جلب جلسات /ppp/active من السيرفر {ServerId} ({Host})",
-                    server.Id,
-                    server.Host);
-                namesByServer[server.Id] = [];
+                gate.Release();
             }
-        }, ct)));
+        }));
 
-        return namesByServer;
+        return results.ToList();
     }
 
-    private IReadOnlyList<string> ReadActiveSessionNames(MikroTikServer server)
+    private async Task<PppActiveSessionQueryResult> ReadActiveSessionNamesQuickAsync(
+        MikroTikServer server,
+        CancellationToken ct)
     {
-        using ITikConnection connection = _connection.CreateConnectionWithRetry(server);
+        try
+        {
+            Task<IReadOnlyList<string>> read = Task.Run(() => ReadActiveSessionNamesQuick(server), ct);
+            IReadOnlyList<string> names = await read.WaitAsync(
+                TimeSpan.FromMilliseconds(MikroTikConnectionSupport.QuickReadDeadlineMs),
+                ct);
+            return new PppActiveSessionQueryResult(server.Id, names, Succeeded: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "تعذر جلب جلسات /ppp/active من السيرفر {ServerId} ({Host})",
+                server.Id,
+                server.Host);
+            return new PppActiveSessionQueryResult(server.Id, [], Succeeded: false);
+        }
+    }
+
+    private IReadOnlyList<string> ReadActiveSessionNamesQuick(MikroTikServer server)
+    {
+        using ITikConnection connection = _connection.CreateQuickReadConnection(server);
         IReadOnlyList<ITikReSentence> rows = MikroTikApiSupport.PrintList(connection, "/ppp/active/print", "name");
         List<string> names = [];
         foreach (ITikReSentence row in rows)
