@@ -267,6 +267,86 @@ namespace RadaTik.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("RadaTik.Models.AntennaCalibrationSessionRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AlignmentJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("LastActivityUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("NetworkId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PathJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("ReceiverAntennaMsl")
+                        .HasColumnType("float");
+
+                    b.Property<int?>("ReceiverId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReceiverIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<double>("ReceiverLatitude")
+                        .HasColumnType("float");
+
+                    b.Property<double>("ReceiverLongitude")
+                        .HasColumnType("float");
+
+                    b.Property<string>("ReceiverMac")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("ReceiverName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<double>("SectorAntennaMsl")
+                        .HasColumnType("float");
+
+                    b.Property<int>("SectorId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SectorName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("ExpiresAtUtc");
+
+                    b.HasIndex("NetworkId", "LastActivityUtc");
+
+                    b.ToTable("AntennaCalibrationSessions", (string)null);
+                });
+
             modelBuilder.Entity("RadaTik.Models.AuditLog", b =>
                 {
                     b.Property<int>("Id")

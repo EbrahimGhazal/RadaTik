@@ -280,6 +280,11 @@ public static partial class RouteMappingExtensions
             defaults: new { area = "CompanyAdmin", controller = "Receiver", action = "Index" });
 
         app.MapControllerRoute(
+            name: "networkManager-calibration",
+            pattern: "networkManager/Calibration/{action=Index}/{id?}",
+            defaults: new { area = "CompanyAdmin", controller = "AntennaCalibration", action = "Index" });
+
+        app.MapControllerRoute(
             name: "networkManager-collectionpoints",
             pattern: "networkManager/CollectionPoints/{action=Index}/{id?}",
             defaults: new { area = "CompanyAdmin", controller = "CollectionPoints", action = "Index" });

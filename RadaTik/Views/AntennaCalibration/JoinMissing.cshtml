@@ -1,0 +1,12 @@
+@{
+    ViewData["Title"] = "الجلسة غير موجودة";
+    var area = ViewContext.RouteData.Values["area"]?.ToString();
+    Layout = area == "CompanyEmployee"
+        ? "~/Areas/CompanyEmployee/Views/Shared/_Layout.cshtml"
+        : "~/Areas/CompanyAdmin/Views/Shared/_Layout.cshtml";
+}
+
+<div class="antenna-cal-page p-4">
+    <div class="alert alert-warning">انتهت جلسة المعايرة أو الرمز غير صحيح. اطلب رمزاً جديداً من شاشة المعايرة.</div>
+    <a class="btn btn-primary" asp-action="Index">العودة للمعايرة</a>
+</div>

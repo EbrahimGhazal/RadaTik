@@ -1,0 +1,394 @@
+@model RadaTik.ViewModels.Calibration.AntennaCalibrationIndexViewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "معايرة";
+    var area = ViewContext.RouteData.Values["area"]?.ToString();
+    Layout = area == "CompanyEmployee"
+        ? "~/Areas/CompanyEmployee/Views/Shared/_Layout.cshtml"
+        : "~/Areas/CompanyAdmin/Views/Shared/_Layout.cshtml";
+    string sectorsJson = JsonSerializer.Serialize(Model.Sectors);
+}
+
+<div class="antenna-cal-page">
+    <div class="page-header mb-3">
+        <div class="page-header-content">
+            <div>
+                <h1 class="h4 mb-1"><i class="fas fa-compass text-success"></i> معايرة الهوائيين</h1>
+                <p class="text-muted mb-0">جلسة حية: بوصلة على الطرفين + خط رؤية + إشارة MikroTik. كل فني يلصق موبايله على هوائيّه.</p>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-warning">@Model.ErrorMessage</div>
+    }
+
+    <form method="post" asp-action="Start" class="antenna-cal-start card mb-3"
+          data-receivers-url="@Url.Action("ReceiversForSector", "AntennaCalibration")"
+          id="calStartForm">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label" for="sectorId">المرسل (القطاع)</label>
+                    <select name="sectorId" id="sectorId" class="form-select" required>
+                        <option value="">اختر القطاع</option>
+                        @foreach (var s in Model.Sectors)
+                        {
+                            <option value="@s.Id" data-lat="@s.Lat.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-lng="@s.Lon.ToString(System.Globalization.CultureInfo.InvariantCulture)">@s.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="receiverId">المستقبل المحفوظ</label>
+                    <select name="receiverId" id="receiverId" class="form-select">
+                        <option value="">نقطة على الخريطة (غير محفوظة)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="receiverAgl">ارتفاع اللاقط م</label>
+                    <input type="number" step="0.1" min="1" max="80" class="form-control" name="receiverAgl" id="receiverAgl" value="6" />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100">بدء الجلسة</button>
+                </div>
+            </div>
+            <div class="row g-2 mt-2">
+                <div class="col-md-4">
+                    <label class="form-label" for="receiverName">اسم النقطة</label>
+                    <input class="form-control" name="receiverName" id="receiverName" placeholder="نقطة ميدانية" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="receiverIp">IP المستقبل (لربط الإشارة)</label>
+                    <input class="form-control" name="receiverIp" id="receiverIp" placeholder="اختياري" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="receiverMac">MAC المستقبل</label>
+                    <input class="form-control" name="receiverMac" id="receiverMac" placeholder="اختياري" />
+                </div>
+            </div>
+            <input type="hidden" name="receiverLat" id="receiverLat" />
+            <input type="hidden" name="receiverLng" id="receiverLng" />
+            <p class="small text-muted mt-2 mb-1" id="calPickHint">اختر القطاع ثم انقر على الخريطة لتحديد نقطة غير محفوظة، أو اختر مستقبلاً من القائمة.</p>
+            <div id="calStartMap" class="antenna-cal-pick-map"></div>
+        </div>
+    </form>
+
+    @if (Model.RecentSessions.Count > 0 && Model.Session == null)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="h6">جلسات ما زالت سارية (تبقى بعد إعادة التشغيل)</h2>
+                <ul class="mb-0">
+                    @foreach (var r in Model.RecentSessions)
+                    {
+                        <li>
+                            <a asp-action="Index" asp-route-code="@r.Code">@r.Code</a>
+                            · @r.SectorName ← → @r.ReceiverName
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+
+    @if (Model.Session != null)
+    {
+        var s = Model.Session;
+        <div class="antenna-cal-session" data-code="@s.Code" data-tx-url="@Model.TransmitterJoinUrl" data-rx-url="@Model.ReceiverJoinUrl">
+            <div class="antenna-cal-session-bar">
+                <div>
+                    رمز الجلسة <strong class="antenna-cal-code">@s.Code</strong>
+                    · المسافة @s.DistanceMeters.ToString("0") م
+                    · انحراف المغناطيسية @(s.MagneticDeclinationDegrees >= 0 ? "+" : "")@s.MagneticDeclinationDegrees.ToString("0.0")°
+                    @if (!s.SavedReceiver)
+                    {
+                        <span class="badge text-bg-info">نقطة غير محفوظة</span>
+                    }
+                </div>
+                <div class="antenna-cal-links">
+                    <a class="btn btn-sm btn-outline-primary" href="@Model.TransmitterJoinUrl" target="_blank">شاشة المرسل</a>
+                    <a class="btn btn-sm btn-outline-success" href="@Model.ReceiverJoinUrl" target="_blank">شاشة المستقبل</a>
+                </div>
+            </div>
+
+            <div class="antenna-cal-qr-row">
+                <div>
+                    <canvas id="txQr" width="160" height="160"></canvas>
+                    <div>QR المرسل</div>
+                </div>
+                <div>
+                    <canvas id="rxQr" width="160" height="160"></canvas>
+                    <div>QR المستقبل</div>
+                </div>
+            </div>
+
+            <p id="calPath" class="antenna-cal-path @(s.Path.Analyzed && !s.Path.PathClear ? "is-blocked" : "")">@s.Path.Summary</p>
+            <p id="calAdvice" class="antenna-cal-advice">@s.Advice</p>
+            <p id="calMutual" class="mb-2"></p>
+
+            <section class="antenna-cal-radio" id="calRadio">
+                <div class="antenna-cal-radio-head">
+                    <h2><i class="fas fa-broadcast-tower"></i> إشارة المرسل الحية</h2>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnResetPeak">تصفير القمة</button>
+                </div>
+                <div class="antenna-cal-metrics">
+                    <div><span>RSSI</span><strong id="rfSignal">—</strong></div>
+                    <div><span>أفضل قمة</span><strong id="rfPeak">—</strong></div>
+                    <div><span>SNR</span><strong id="rfSnr">—</strong></div>
+                    <div><span>CCQ</span><strong id="rfCcq">—</strong></div>
+                    <div><span>Noise</span><strong id="rfNoise">—</strong></div>
+                    <div><span>المطابقة</span><strong id="rfMatch">—</strong></div>
+                </div>
+                <p id="rfStatus" class="antenna-cal-status">@s.Radio.Status</p>
+            </section>
+
+            <div class="antenna-cal-split">
+                <section class="antenna-cal-pane" data-side="tx">
+                    <h2><i class="fas fa-broadcast-tower"></i> المرسل · @s.SectorName</h2>
+                    <partial name="_CalibratePhonePlacementTx" />
+                    <div class="antenna-cal-metrics">
+                        <div><span>السمت المطلوب</span><strong>@s.TransmitterTarget.AzimuthMagnetic.ToString("0.0")° بوصلة</strong></div>
+                        <div><span>الميل المطلوب</span><strong>@s.TransmitterTarget.Elevation.ToString("0.00")°</strong></div>
+                        <div><span>السمت الحي</span><strong id="txAzLive">—</strong></div>
+                        <div><span>الميل الحي</span><strong id="txElLive">—</strong></div>
+                        <div><span>فرق أفقي</span><strong id="txAzDelta">—</strong></div>
+                        <div><span>فرق عمودي</span><strong id="txElDelta">—</strong></div>
+                    </div>
+                    <p id="txWarn" class="antenna-cal-metal-warn d-none">البوصلة مشوّشة — أبعد المعدن/المغناطيس.</p>
+                    <p id="txStatus" class="antenna-cal-status">بانتظار موبايل المرسل</p>
+                </section>
+                <section class="antenna-cal-pane" data-side="rx">
+                    <h2><i class="fas fa-satellite-dish"></i> المستقبل · @s.ReceiverName</h2>
+                    <partial name="_CalibratePhonePlacementRx" />
+                    <div class="antenna-cal-metrics">
+                        <div><span>السمت المطلوب</span><strong>@s.ReceiverTarget.AzimuthMagnetic.ToString("0.0")° بوصلة</strong></div>
+                        <div><span>الميل المطلوب</span><strong>@s.ReceiverTarget.Elevation.ToString("0.00")°</strong></div>
+                        <div><span>السمت الحي</span><strong id="rxAzLive">—</strong></div>
+                        <div><span>الميل الحي</span><strong id="rxElLive">—</strong></div>
+                        <div><span>فرق أفقي</span><strong id="rxAzDelta">—</strong></div>
+                        <div><span>فرق عمودي</span><strong id="rxElDelta">—</strong></div>
+                    </div>
+                    <p id="rxWarn" class="antenna-cal-metal-warn d-none">البوصلة مشوّشة — أبعد المعدن/المغناطيس.</p>
+                    <p id="rxStatus" class="antenna-cal-status">بانتظار موبايل المستقبل</p>
+                </section>
+            </div>
+        </div>
+    }
+</div>
+
+<script type="application/json" id="calSectorsJson">@Html.Raw(sectorsJson)</script>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" crossorigin="anonymous"></script>
+    <script>
+        (function () {
+            var form = document.getElementById('calStartForm');
+            var sector = document.getElementById('sectorId');
+            var receiver = document.getElementById('receiverId');
+            var latInput = document.getElementById('receiverLat');
+            var lngInput = document.getElementById('receiverLng');
+            var nameInput = document.getElementById('receiverName');
+            var ipInput = document.getElementById('receiverIp');
+            var aglInput = document.getElementById('receiverAgl');
+            var listUrl = form ? form.getAttribute('data-receivers-url') : '';
+            var map, rxMarker, txMarker, rxLine;
+
+            function setPoint(lat, lng, pan) {
+                if (!latInput || !lngInput || !isFinite(lat) || !isFinite(lng)) return;
+                latInput.value = Number(lat).toFixed(7);
+                lngInput.value = Number(lng).toFixed(7);
+                if (map && window.L) {
+                    var ll = L.latLng(lat, lng);
+                    if (!rxMarker) {
+                        rxMarker = L.marker(ll).addTo(map);
+                    } else {
+                        rxMarker.setLatLng(ll);
+                    }
+                    if (pan) map.panTo(ll);
+                    if (txMarker && rxLine) {
+                        rxLine.setLatLngs([txMarker.getLatLng(), ll]);
+                    } else if (txMarker) {
+                        rxLine = L.polyline([txMarker.getLatLng(), ll], { color: '#16a34a', weight: 2 }).addTo(map);
+                    }
+                }
+                var hint = document.getElementById('calPickHint');
+                if (hint) hint.textContent = 'النقطة: ' + Number(lat).toFixed(6) + ' ، ' + Number(lng).toFixed(6);
+            }
+
+            function sectorLatLng() {
+                if (!sector || !sector.selectedOptions.length) return null;
+                var opt = sector.selectedOptions[0];
+                var lat = parseFloat(opt.getAttribute('data-lat'));
+                var lng = parseFloat(opt.getAttribute('data-lng'));
+                if (!isFinite(lat) || !isFinite(lng)) return null;
+                return { lat: lat, lng: lng };
+            }
+
+            function ensureMap() {
+                var el = document.getElementById('calStartMap');
+                if (!el || !window.L || map) return;
+                map = L.map(el, { zoomControl: true }).setView([33.5, 36.3], 11);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OSM' }).addTo(map);
+                map.on('click', function (e) {
+                    receiver.value = '';
+                    setPoint(e.latlng.lat, e.latlng.lng, false);
+                });
+                setTimeout(function () { map.invalidateSize(); }, 200);
+            }
+
+            function focusSector() {
+                ensureMap();
+                var ll = sectorLatLng();
+                if (!ll || !map) return;
+                var pos = L.latLng(ll.lat, ll.lng);
+                if (!txMarker) {
+                    txMarker = L.circleMarker(pos, { radius: 8, color: '#2563eb', fillColor: '#3b82f6', fillOpacity: 0.9 }).addTo(map);
+                } else {
+                    txMarker.setLatLng(pos);
+                }
+                map.setView(pos, 14);
+            }
+
+            if (sector && receiver) {
+                ensureMap();
+                sector.addEventListener('change', function () {
+                    focusSector();
+                    receiver.innerHTML = '<option value="">نقطة على الخريطة (غير محفوظة)</option>';
+                    if (!sector.value) return;
+                    fetch(listUrl + '?sectorId=' + encodeURIComponent(sector.value), { credentials: 'same-origin' })
+                        .then(function (r) { return r.json(); })
+                        .then(function (rows) {
+                            (rows || []).forEach(function (row) {
+                                var opt = document.createElement('option');
+                                opt.value = row.id;
+                                opt.textContent = row.name;
+                                opt.setAttribute('data-lat', row.lat);
+                                opt.setAttribute('data-lng', row.lng);
+                                if (row.ip) opt.setAttribute('data-ip', row.ip);
+                                if (row.agl) opt.setAttribute('data-agl', row.agl);
+                                receiver.appendChild(opt);
+                            });
+                        })
+                        .catch(function () { /* keep map point option */ });
+                });
+                receiver.addEventListener('change', function () {
+                    var opt = receiver.selectedOptions[0];
+                    if (!opt || !opt.value) return;
+                    var lat = parseFloat(opt.getAttribute('data-lat'));
+                    var lng = parseFloat(opt.getAttribute('data-lng'));
+                    setPoint(lat, lng, true);
+                    if (nameInput) nameInput.value = opt.textContent || '';
+                    if (ipInput) ipInput.value = opt.getAttribute('data-ip') || '';
+                    var agl = parseFloat(opt.getAttribute('data-agl'));
+                    if (aglInput && isFinite(agl) && agl > 0) aglInput.value = agl;
+                });
+            }
+
+            var root = document.querySelector('.antenna-cal-session');
+            if (root && window.QRCode && typeof QRCode.toCanvas === 'function') {
+                var txUrl = root.getAttribute('data-tx-url');
+                var rxUrl = root.getAttribute('data-rx-url');
+                var txCanvas = document.getElementById('txQr');
+                var rxCanvas = document.getElementById('rxQr');
+                if (txUrl && txCanvas) QRCode.toCanvas(txCanvas, txUrl, { width: 160, margin: 1 });
+                if (rxUrl && rxCanvas) QRCode.toCanvas(rxCanvas, rxUrl, { width: 160, margin: 1 });
+            }
+
+            if (!root || typeof signalR === 'undefined') {
+                return;
+            }
+            var code = root.getAttribute('data-code');
+            var connection = new signalR.HubConnectionBuilder().withUrl('/hubs/calibration').withAutomaticReconnect().build();
+            function fmt(v, d) {
+                return (v == null || !isFinite(Number(v))) ? '—' : Number(v).toFixed(d == null ? 1 : d) + '°';
+            }
+            function signed(v) {
+                if (v == null || !isFinite(Number(v))) return '—';
+                var n = Number(v);
+                return (n > 0 ? '+' : '') + n.toFixed(1) + '°';
+            }
+            function setText(id, t) {
+                var el = document.getElementById(id);
+                if (el) el.textContent = t;
+            }
+            function applySide(prefix, live, pane) {
+                setText(prefix + 'AzLive', fmt(live.azimuth));
+                setText(prefix + 'ElLive', fmt(live.elevation, 2));
+                setText(prefix + 'AzDelta', signed(live.azimuthDelta));
+                setText(prefix + 'ElDelta', signed(live.elevationDelta));
+                var warn = document.getElementById(prefix + 'Warn');
+                if (warn) warn.classList.toggle('d-none', !live.compassUnstable);
+                var st = document.getElementById(prefix + 'Status');
+                if (!live.connected) {
+                    st.textContent = 'غير متصل';
+                    pane.classList.remove('is-ok', 'is-live');
+                    return;
+                }
+                pane.classList.add('is-live');
+                pane.classList.toggle('is-ok', live.horizontalAligned && live.verticalAligned);
+                if (live.compassUnstable) {
+                    st.textContent = 'تشويش بوصلة — أبعد المعدن ثم أعد اللصق';
+                } else if (live.horizontalAligned && live.verticalAligned) {
+                    st.textContent = 'محاذى أفقياً وعمودياً';
+                } else if (!live.poseValid) {
+                    st.textContent = 'الصق الموبايل على وجه الإشعاع والشاشة نحو الطرف الآخر';
+                } else {
+                    var bits = [];
+                    if (!live.horizontalAligned) bits.push('أفقي ' + signed(live.azimuthDelta));
+                    if (!live.verticalAligned) bits.push('عمودي ' + signed(live.elevationDelta));
+                    st.textContent = bits.join(' · ');
+                }
+            }
+            function applyRadio(radio) {
+                if (!radio) return;
+                var box = document.getElementById('calRadio');
+                if (box) {
+                    box.classList.toggle('is-live', !!radio.available);
+                    box.classList.toggle('is-stale', !!radio.stale);
+                    box.classList.toggle('is-peak', radio.available && radio.signalDbm != null && radio.peakSignalDbm != null && radio.signalDbm === radio.peakSignalDbm);
+                }
+                setText('rfSignal', radio.signalDbm == null ? '—' : radio.signalDbm + ' dBm');
+                setText('rfPeak', radio.peakSignalDbm == null ? '—' : radio.peakSignalDbm + ' dBm');
+                setText('rfSnr', radio.snrDb == null ? '—' : radio.snrDb + ' dB');
+                setText('rfCcq', radio.ccqPercent == null ? '—' : radio.ccqPercent + ' %');
+                setText('rfNoise', radio.noiseFloorDbm == null ? '—' : radio.noiseFloorDbm + ' dBm');
+                var match = radio.matchReason || '';
+                if (radio.macAddress) match += (match ? ' · ' : '') + radio.macAddress;
+                else if (radio.lastIp) match += (match ? ' · ' : '') + radio.lastIp;
+                setText('rfMatch', match || '—');
+                setText('rfStatus', radio.status || '');
+            }
+            connection.on('sessionUpdated', function (snap) {
+                if (!snap) return;
+                var advice = document.getElementById('calAdvice');
+                if (advice) advice.textContent = snap.advice || '';
+                var path = document.getElementById('calPath');
+                if (path && snap.path) {
+                    path.textContent = snap.path.summary || '';
+                    path.classList.toggle('is-blocked', !!(snap.path.analyzed && !snap.path.pathClear));
+                }
+                var mutual = document.getElementById('calMutual');
+                if (mutual) {
+                    mutual.textContent = snap.mutualFacing ? 'الهوائيان ينظران لبعضهما أفقياً.' : '';
+                    mutual.className = snap.mutualFacing ? 'mb-2 text-success fw-bold' : 'mb-2';
+                }
+                applySide('tx', snap.transmitterLive, document.querySelector('[data-side="tx"]'));
+                applySide('rx', snap.receiverLive, document.querySelector('[data-side="rx"]'));
+                applyRadio(snap.radio);
+            });
+            var resetBtn = document.getElementById('btnResetPeak');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function () {
+                    if (connection.state === 'Connected') {
+                        connection.invoke('ResetPeak', code).catch(function () {});
+                    }
+                });
+            }
+            connection.start().then(function () { return connection.invoke('JoinMonitor', code); })
+                .catch(function () { /* keep static snapshot */ });
+        })();
+    </script>
+}

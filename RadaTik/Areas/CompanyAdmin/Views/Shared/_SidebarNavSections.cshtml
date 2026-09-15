@@ -69,7 +69,7 @@
         or "SubscriberInstallationPricing" or "SubscriberInstallationInvoices" or "PrivateSubscriberSetup"
         or "ClientPresence";
     var supportOpen = controller is "RequestsManagement" or "EmployeeServiceApprovals" or "MaintenanceInvoices" or "MaintenancePricing";
-    var infraOpen = controller is "Network" or "Profile" or "MikroTikServers" or "MikroTikTraffic" or "Sector" or "Receiver";
+    var infraOpen = controller is "Network" or "Profile" or "MikroTikServers" or "MikroTikTraffic" or "Sector" or "Receiver" or "AntennaCalibration";
     var mikrotikOpen = controller is "MikroTikServers" or "MikroTikTraffic";
     var sectorsOpen = controller == "Sector";
     var financeOpen = controller is "Wallet" or "ClientWalletTopUpRequests" or "CashBox" or "Receipts"
@@ -344,6 +344,13 @@
                        asp-route="networkManager-receiver" asp-route-action="Index" asp-route-id="">
                         <span class="nav-icon"><i class="fas fa-satellite-dish"></i></span>
                         <span>المستقبلات</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(controller == "AntennaCalibration" ? "active" : "")"
+                       asp-route="networkManager-calibration" asp-route-action="Index" asp-route-id="">
+                        <span class="nav-icon"><i class="fas fa-compass"></i></span>
+                        <span>معايرة</span>
                     </a>
                 </li>
             }

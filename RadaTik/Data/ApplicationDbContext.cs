@@ -95,6 +95,7 @@ namespace RadaTik.Data
         public DbSet<PublicSiteCounter> PublicSiteCounters { get; set; }
         public DbSet<CompanySocialLink> CompanySocialLinks { get; set; }
         public DbSet<CompanyComplaintContact> CompanyComplaintContacts { get; set; }
+        public DbSet<AntennaCalibrationSessionRecord> AntennaCalibrationSessions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

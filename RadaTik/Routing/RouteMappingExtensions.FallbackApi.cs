@@ -16,5 +16,6 @@ public static partial class RouteMappingExtensions
 
         app.MapControllers();
         app.MapHub<TrafficHub>("/hubs/traffic");
+        app.MapHub<AntennaCalibrationHub>("/hubs/calibration");
     }
 }

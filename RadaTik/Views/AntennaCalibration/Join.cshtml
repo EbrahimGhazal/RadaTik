@@ -1,0 +1,142 @@
+@model RadaTik.ViewModels.Calibration.AntennaCalibrationJoinViewModel
+@{
+    Layout = "~/Views/Shared/_CalibrateFieldLayout.cshtml";
+    ViewData["Title"] = Model.Title;
+    var target = Model.IsTransmitter ? Model.Snapshot.TransmitterTarget : Model.Snapshot.ReceiverTarget;
+}
+
+<div class="calibrate-field-page" data-code="@Model.Code" data-role="@Model.Role">
+    <header class="calibrate-field-head">
+        <h1>@Model.Title</h1>
+        <p>@Model.EndpointName ← → @Model.OtherName · رمز @Model.Code</p>
+    </header>
+
+    <div class="calibrate-field-figure">
+        @if (Model.IsTransmitter)
+        {
+            <partial name="_CalibratePhonePlacementTx" />
+        }
+        else
+        {
+            <partial name="_CalibratePhonePlacementRx" />
+        }
+        <p class="calibrate-field-caption">الصق ظهر الموبايل على وجه الإشعاع، والشاشة نحو الطرف الآخر. لا تلصق على المعدن أو المغناطيس.</p>
+    </div>
+
+    <p id="metalWarn" class="antenna-cal-metal-warn d-none">البوصلة مشوّشة. أبعد الموبايل عن الصينية المعدنية/المغناطيس ثم أعد اللصق.</p>
+    <p id="pathNote" class="calibrate-field-path">@Model.Snapshot.Path.Summary</p>
+
+    <div class="antenna-cal-metrics">
+        <div><span>سمت البوصلة المطلوب</span><strong>@target.AzimuthMagnetic.ToString("0.0")°</strong></div>
+        <div><span>الميل المطلوب</span><strong>@target.Elevation.ToString("0.00")°</strong></div>
+        <div><span>السمت الحي</span><strong id="liveAz">—</strong></div>
+        <div><span>الميل الحي</span><strong id="liveEl">—</strong></div>
+        <div><span>RSSI</span><strong id="liveRf">—</strong></div>
+        <div><span>أفضل قمة</span><strong id="livePeak">—</strong></div>
+    </div>
+    <p id="liveHint" class="antenna-cal-status">اضغط تفعيل بعد اللصق كما في الرسم. أبقِ الشاشة مضاءة.</p>
+    <p id="liveDelta" class="calibrate-field-delta"></p>
+    <button type="button" class="btn btn-success btn-lg w-100" id="btnEnableFieldCompass">
+        <i class="fas fa-mobile-alt"></i> فهمت — تفعيل البوصلة
+    </button>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js" crossorigin="anonymous"></script>
+    <script>
+        (function () {
+            var page = document.querySelector('.calibrate-field-page');
+            if (!page || typeof signalR === 'undefined') return;
+            var code = page.getAttribute('data-code');
+            var role = page.getAttribute('data-role');
+            var connection = new signalR.HubConnectionBuilder().withUrl('/hubs/calibration').withAutomaticReconnect().build();
+            var publishing = false;
+            var lastSent = 0;
+            var wakeLock = null;
+
+            function setText(id, t) {
+                var el = document.getElementById(id);
+                if (el) el.textContent = t;
+            }
+
+            function keepAwake() {
+                if (!navigator.wakeLock || !navigator.wakeLock.request) return;
+                navigator.wakeLock.request('screen').then(function (lock) {
+                    wakeLock = lock;
+                    lock.addEventListener('release', function () { wakeLock = null; });
+                }).catch(function () {});
+            }
+
+            document.addEventListener('visibilitychange', function () {
+                if (document.visibilityState === 'visible' && publishing) keepAwake();
+            });
+
+            connection.on('sessionUpdated', function (snap) {
+                if (!snap) return;
+                var live = role === 'tx' ? snap.transmitterLive : snap.receiverLive;
+                if (!live) return;
+                setText('liveAz', live.azimuth == null ? '—' : Number(live.azimuth).toFixed(1) + '°');
+                setText('liveEl', live.elevation == null ? '—' : Number(live.elevation).toFixed(2) + '°');
+                var warn = document.getElementById('metalWarn');
+                if (warn) warn.classList.toggle('d-none', !live.compassUnstable);
+                if (snap.path) setText('pathNote', snap.path.summary || '');
+                if (snap.radio) {
+                    setText('liveRf', snap.radio.signalDbm == null ? '—' : snap.radio.signalDbm + ' dBm');
+                    setText('livePeak', snap.radio.peakSignalDbm == null ? '—' : snap.radio.peakSignalDbm + ' dBm');
+                    page.classList.toggle('is-rf-peak', !!(snap.radio.available && snap.radio.signalDbm != null && snap.radio.signalDbm === snap.radio.peakSignalDbm));
+                }
+                var hint = document.getElementById('liveHint');
+                var delta = document.getElementById('liveDelta');
+                page.classList.toggle('is-ok', live.horizontalAligned && live.verticalAligned);
+                if (live.compassUnstable) {
+                    hint.textContent = 'تشويش بوصلة. أبعد المعدن ثم أعد اللصق.';
+                    delta.textContent = '';
+                } else if (live.horizontalAligned && live.verticalAligned) {
+                    hint.textContent = snap.radio && snap.radio.available
+                        ? 'محاذى. حرّك ببطء حول قمة الإشارة ثم ثبّت.'
+                        : 'محاذى. ثبّت الهوائي.';
+                    delta.textContent = '';
+                } else {
+                    hint.textContent = 'حرّك الهوائي ببطء مع بقاء الموبايل ملصوقاً.';
+                    var az = live.azimuthDelta == null ? '' : ('أفقي ' + (live.azimuthDelta > 0 ? 'يمين +' : 'يسار ') + Math.abs(live.azimuthDelta).toFixed(1) + '°');
+                    var el = live.elevationDelta == null ? '' : ('عمودي ' + (live.elevationDelta > 0 ? 'ارفع +' : 'اخفض ') + Math.abs(live.elevationDelta).toFixed(2) + '°');
+                    delta.textContent = [az, el].filter(Boolean).join(' · ');
+                }
+            });
+
+            function publish(e) {
+                if (!publishing || connection.state !== 'Connected') return;
+                var now = Date.now();
+                if (now - lastSent < 120) return;
+                lastSent = now;
+                var alpha = e.alpha, beta = e.beta, gamma = e.gamma;
+                if (typeof alpha !== 'number' || typeof beta !== 'number' || typeof gamma !== 'number') return;
+                var acc = (typeof e.webkitCompassAccuracy === 'number') ? e.webkitCompassAccuracy : null;
+                connection.invoke('PublishOrientation', code, role, alpha, beta, gamma, !!e.absolute, acc).catch(function () {});
+            }
+
+            function startSensors() {
+                window.addEventListener('deviceorientationabsolute', publish, true);
+                window.addEventListener('deviceorientation', publish, true);
+                keepAwake();
+                setText('liveHint', 'البوصلة تعمل. أبقِ الموبايل ملصوقاً كما في الرسم.');
+            }
+
+            document.getElementById('btnEnableFieldCompass').addEventListener('click', function () {
+                var Orientation = window.DeviceOrientationEvent;
+                publishing = true;
+                if (Orientation && typeof Orientation.requestPermission === 'function') {
+                    Orientation.requestPermission().then(function (state) {
+                        if (state === 'granted') startSensors();
+                        else setText('liveHint', 'يلزم السماح بحساس الاتجاه.');
+                    }).catch(function () { setText('liveHint', 'تعذر تفعيل الحساس.'); });
+                } else {
+                    startSensors();
+                }
+            });
+
+            connection.start().then(function () { return connection.invoke('JoinField', code, role); })
+                .catch(function () { setText('liveHint', 'تعذر الاتصال بالجلسة. تحقق من الشبكة.'); });
+        })();
+    </script>
+}
