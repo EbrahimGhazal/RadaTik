@@ -26,6 +26,8 @@ public sealed class ClientsIndexColumnPickerTests
         Assert.Contains("CLIENTS_PAGE_LENGTH_DEFAULT = -1", text);
         Assert.Contains("readSavedClientsPageLength", text);
         Assert.Contains("length.dt", text);
+        Assert.Contains("data-details-url", text);
+        Assert.Contains("bindClientsRowDetailsNavigation", text);
     }
 
     [Fact]
@@ -51,6 +53,9 @@ public sealed class ClientsIndexColumnPickerTests
         Assert.Contains("clientsSelectedCountChip", view);
         Assert.Contains("للتأكيد اكتب كلمة", view);
         Assert.Contains("BulkDeleteSelectedJson", view);
+        Assert.Contains("data-details-url", view);
+        Assert.Contains("bindClientsRowDetailsNavigation", view);
+        Assert.Contains(".clients-select-cell, .clients-actions-cell, .action-buttons", view);
     }
 
     [Fact]
@@ -64,6 +69,8 @@ public sealed class ClientsIndexColumnPickerTests
         Assert.Contains("clients-bulk-actions", css);
         Assert.DoesNotContain("content: \"تحديد\";", css);
         Assert.DoesNotContain("position: absolute !important", css);
+        Assert.Contains("tr.client-row[data-details-url]", css);
+        Assert.Contains("cursor: pointer", css);
     }
 
     [Fact]

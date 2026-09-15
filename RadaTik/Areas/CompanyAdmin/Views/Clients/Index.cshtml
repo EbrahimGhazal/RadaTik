@@ -479,6 +479,8 @@
 
                         <tr class="client-row"
                             data-client-id="@item.Id"
+                            data-details-url="@Url.Action("Details", new { id = item.Id })"
+                            title="انقر لعرض التفاصيل"
                             data-client-name="@(item.Name ?? item.UserName ?? ("#" + item.Id))"
                             data-search="@($"{item.Name} {item.PhoneNumber} {item.UserName} {dbAccount} {item.SID} {item.MikroTikServer?.Name} {item.Receiver?.Name} {senderName} {profileName}".Trim())"
                             data-active="@item.IsActive.ToString().ToLower()"
@@ -1285,6 +1287,35 @@
 
         let connectionStatusLoading = false;
         let connectionStatusRetries = 0;
+        function bindClientsRowDetailsNavigation() {
+            const table = document.getElementById('clientsTable');
+            if (!table || table.dataset.detailsNavBound === '1') {
+                return;
+            }
+            table.dataset.detailsNavBound = '1';
+            table.addEventListener('click', function (e) {
+                const target = e.target;
+                if (!(target instanceof Element)) {
+                    return;
+                }
+                if (target.closest('a, button, input, select, textarea, label, form, .clients-select-cell, .clients-actions-cell, .action-buttons')) {
+                    return;
+                }
+                const row = target.closest('tr.client-row');
+                if (!row) {
+                    return;
+                }
+                const url = row.getAttribute('data-details-url');
+                if (!url) {
+                    return;
+                }
+                if (e.ctrlKey || e.metaKey) {
+                    window.open(url, '_blank');
+                    return;
+                }
+                window.location.href = url;
+            });
+        }
         function loadConnectionStatus(forceRefresh) {
             if (connectionStatusLoading) {
                 return;
@@ -1917,6 +1948,7 @@
 
             initClientsTableIfDesktop();
             applyColumnVisibility();
+            bindClientsRowDetailsNavigation();
             loadConnectionStatus(false);
 
             const mobileSearchInput = document.getElementById('clientsMobileSearchInput');

@@ -414,6 +414,8 @@
 
                         <tr class="client-row"
                             data-client-id="@item.Id"
+                            data-details-url="@(canDetails ? Url.Action("Details", new { id = item.Id }) : null)"
+                            title="@(canDetails ? "انقر لعرض التفاصيل" : null)"
                             data-active="@item.IsActive.ToString().ToLower()"
                             data-pending="@isPendingApproval.ToString().ToLower()"
                             data-duplicate="@item.IsCrossServerDuplicate.ToString().ToLower()"
@@ -827,6 +829,36 @@
             loadConnectionStatus(true);
         }
 
+        function bindClientsRowDetailsNavigation() {
+            const table = document.getElementById('clientsTable');
+            if (!table || table.dataset.detailsNavBound === '1') {
+                return;
+            }
+            table.dataset.detailsNavBound = '1';
+            table.addEventListener('click', function (e) {
+                const target = e.target;
+                if (!(target instanceof Element)) {
+                    return;
+                }
+                if (target.closest('a, button, input, select, textarea, label, form, .clients-select-cell, .clients-actions-cell, .action-buttons')) {
+                    return;
+                }
+                const row = target.closest('tr.client-row');
+                if (!row) {
+                    return;
+                }
+                const url = row.getAttribute('data-details-url');
+                if (!url) {
+                    return;
+                }
+                if (e.ctrlKey || e.metaKey) {
+                    window.open(url, '_blank');
+                    return;
+                }
+                window.location.href = url;
+            });
+        }
+
         function applyConnectedIds(connectedIds) {
             const connectedSet = new Set((connectedIds || []).map(String));
             let connectedCount = 0;
@@ -1056,6 +1088,7 @@
             $('#clientsTable').on('length.dt', function (e, settings, len) {
                 persistClientsPageLength(len);
             });
+            bindClientsRowDetailsNavigation();
             loadConnectionStatus(false);
         });
     </script>

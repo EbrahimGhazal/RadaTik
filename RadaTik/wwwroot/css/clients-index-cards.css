@@ -255,3 +255,13 @@ html body .radtk-surface .radtk-page-clients-index #clientsTable tbody tr.client
     overflow: hidden !important;
     pointer-events: none !important;
 }
+
+html body .radtk-page-clients-index #clientsTable tbody tr.client-row[data-details-url],
+html body .radtk-page-emp-clients-index #clientsTable tbody tr.client-row[data-details-url] {
+    cursor: pointer;
+}
+
+html body .radtk-page-clients-index #clientsTable tbody tr.client-row[data-details-url]:hover,
+html body .radtk-page-emp-clients-index #clientsTable tbody tr.client-row[data-details-url]:hover {
+    background-color: rgba(37, 99, 235, 0.06);
+}
