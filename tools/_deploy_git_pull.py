@@ -1,26 +1,58 @@
 import os
 import sys
 import time
+from pathlib import Path
+
 import paramiko
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 HOST = "186.240.159.216"
-PASSWORD = os.environ["RADATIK_SSH_PASS"]
+USER = "root"
+KEY_PATH = Path.home() / ".ssh" / "radatik_deploy"
 
 
-def main():
+def connect():
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    if KEY_PATH.exists():
+        try:
+            client.connect(
+                HOST,
+                username=USER,
+                key_filename=str(KEY_PATH),
+                timeout=30,
+                allow_agent=False,
+                look_for_keys=False,
+            )
+            print(f"auth=ssh-key ({KEY_PATH.name})")
+            return client
+        except Exception as ex:
+            print(f"ssh-key auth failed: {ex}")
+
+    password = os.environ.get("RADATIK_SSH_PASS")
+    if not password:
+        raise SystemExit(
+            "No SSH key auth and RADATIK_SSH_PASS is unset. "
+            f"Install key at {KEY_PATH} or set RADATIK_SSH_PASS once."
+        )
+
     client.connect(
         HOST,
-        username="root",
-        password=PASSWORD,
+        username=USER,
+        password=password,
         timeout=30,
         allow_agent=False,
         look_for_keys=False,
     )
+    print("auth=password (fallback)")
+    return client
+
+
+def main():
+    client = connect()
 
     def run(cmd, timeout=900):
         print(f"\n$ {cmd}")
