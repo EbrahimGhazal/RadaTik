@@ -76,10 +76,89 @@
 
 .calibrate-place-svg {
     width: 100%;
-    max-width: 360px;
+    max-width: 440px;
     height: auto;
     display: block;
     margin: 0 auto;
+}
+
+.calibrate-field-steps {
+    list-style: none;
+    margin: 0.75rem 0 0.5rem;
+    padding: 0;
+}
+
+.calibrate-field-steps li {
+    display: flex;
+    gap: 0.55rem;
+    align-items: flex-start;
+    margin-bottom: 0.4rem;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+.calibrate-field-steps strong {
+    flex: 0 0 1.6rem;
+    height: 1.6rem;
+    border-radius: 999px;
+    background: #22c55e;
+    color: #052e16;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+}
+
+.calibrate-steer {
+    margin: 0.75rem 0;
+    padding: 0.75rem;
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.calibrate-steer-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.steer-chip {
+    flex: 1;
+    text-align: center;
+    font-size: 1.35rem;
+    font-weight: 800;
+    padding: 0.7rem 0.4rem;
+    border-radius: 12px;
+    background: rgba(30, 41, 59, 0.8);
+    color: #94a3b8;
+    opacity: 0.45;
+}
+
+.steer-chip.is-active {
+    opacity: 1;
+    background: #f59e0b;
+    color: #111827;
+}
+
+.steer-chip.is-ok {
+    opacity: 1;
+    background: #22c55e;
+    color: #052e16;
+}
+
+.calibrate-steer-deg {
+    margin: 0;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+.calibrate-field-caption {
+    font-size: 1rem;
+    font-weight: 600;
 }
 
 .calibrate-field-body {

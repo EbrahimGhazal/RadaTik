@@ -20,11 +20,26 @@
         {
             <partial name="_CalibratePhonePlacementRx" />
         }
+        <partial name="_CalibrateFieldSteps" />
         <p class="calibrate-field-caption">الصق ظهر الموبايل على وجه الإشعاع، والشاشة نحو الطرف الآخر. لا تلصق على المعدن أو المغناطيس.</p>
     </div>
 
     <p id="metalWarn" class="antenna-cal-metal-warn d-none">البوصلة مشوّشة. أبعد الموبايل عن الصينية المعدنية/المغناطيس ثم أعد اللصق.</p>
     <p id="pathNote" class="calibrate-field-path">@Model.Snapshot.Path.Summary</p>
+
+    <div class="calibrate-steer" id="steerBox" aria-live="polite">
+        <div class="calibrate-steer-row" dir="ltr">
+            <span class="steer-chip" id="steerLeft">يسار</span>
+            <span class="steer-chip is-ok d-none" id="steerAzOk">أفقي جاهز</span>
+            <span class="steer-chip" id="steerRight">يمين</span>
+        </div>
+        <div class="calibrate-steer-row">
+            <span class="steer-chip" id="steerUp">ارفع</span>
+            <span class="steer-chip is-ok d-none" id="steerElOk">عمودي جاهز</span>
+            <span class="steer-chip" id="steerDown">اخفض</span>
+        </div>
+        <p class="calibrate-steer-deg" id="steerDeg">الأسهم تظهر بعد تفعيل البوصلة</p>
+    </div>
 
     <div class="antenna-cal-metrics">
         <div><span>سمت البوصلة المطلوب</span><strong>@target.AzimuthMagnetic.ToString("0.0")°</strong></div>
@@ -34,7 +49,7 @@
         <div><span>RSSI</span><strong id="liveRf">—</strong></div>
         <div><span>أفضل قمة</span><strong id="livePeak">—</strong></div>
     </div>
-    <p id="liveHint" class="antenna-cal-status">اضغط تفعيل بعد اللصق كما في الرسم. أبقِ الشاشة مضاءة.</p>
+    <p id="liveHint" class="antenna-cal-status">الصق كما في الرسم الصحيح ثم اضغط تفعيل. أبقِ الشاشة مضاءة.</p>
     <p id="liveDelta" class="calibrate-field-delta"></p>
     <button type="button" class="btn btn-success btn-lg w-100" id="btnEnableFieldCompass">
         <i class="fas fa-mobile-alt"></i> فهمت — تفعيل البوصلة
@@ -42,7 +57,7 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js" crossorigin="anonymous"></script>
+    <script src="~/lib/signalr/signalr.min.js" asp-append-version="true"></script>
     <script>
         (function () {
             var page = document.querySelector('.calibrate-field-page');
@@ -53,6 +68,7 @@
             var publishing = false;
             var lastSent = 0;
             var wakeLock = null;
+            var samples = [];
 
             function setText(id, t) {
                 var el = document.getElementById(id);
@@ -71,6 +87,62 @@
                 if (document.visibilityState === 'visible' && publishing) keepAwake();
             });
 
+            function circularMean(values) {
+                var x = 0, y = 0, i;
+                for (i = 0; i < values.length; i++) {
+                    var r = values[i] * Math.PI / 180;
+                    x += Math.cos(r);
+                    y += Math.sin(r);
+                }
+                var a = Math.atan2(y, x) * 180 / Math.PI;
+                return a < 0 ? a + 360 : a;
+            }
+
+            function mean(values) {
+                var s = 0, i;
+                for (i = 0; i < values.length; i++) s += values[i];
+                return s / values.length;
+            }
+
+            function setActive(id, on) {
+                var el = document.getElementById(id);
+                if (el) el.classList.toggle('is-active', !!on);
+            }
+
+            function setHidden(id, hidden) {
+                var el = document.getElementById(id);
+                if (el) el.classList.toggle('d-none', !!hidden);
+            }
+
+            function applySteer(live) {
+                var azOk = !!live.horizontalAligned;
+                var elOk = !!live.verticalAligned;
+                var az = live.azimuthDelta;
+                var el = live.elevationDelta;
+                setHidden('steerAzOk', !azOk);
+                setHidden('steerLeft', azOk || !(az < -0.8));
+                setHidden('steerRight', azOk || !(az > 0.8));
+                setHidden('steerElOk', !elOk);
+                setHidden('steerUp', elOk || !(el > 0.4));
+                setHidden('steerDown', elOk || !(el < -0.4));
+                setActive('steerLeft', !azOk && az < -0.8);
+                setActive('steerRight', !azOk && az > 0.8);
+                setActive('steerUp', !elOk && el > 0.4);
+                setActive('steerDown', !elOk && el < -0.4);
+                if (live.compassUnstable) {
+                    setText('steerDeg', 'أبعد المعدن ثم أعد اللصق');
+                    return;
+                }
+                if (azOk && elOk) {
+                    setText('steerDeg', 'الاتجاه جاهز. راقب قمة RSSI ثم ثبّت');
+                    return;
+                }
+                var bits = [];
+                if (!azOk && az != null) bits.push((az > 0 ? 'يمين ' : 'يسار ') + Math.abs(az).toFixed(0) + '°');
+                if (!elOk && el != null) bits.push((el > 0 ? 'ارفع ' : 'اخفض ') + Math.abs(el).toFixed(1) + '°');
+                setText('steerDeg', bits.join(' · ') || 'حرّك ببطء');
+            }
+
             connection.on('sessionUpdated', function (snap) {
                 if (!snap) return;
                 var live = role === 'tx' ? snap.transmitterLive : snap.receiverLive;
@@ -88,6 +160,7 @@
                 var hint = document.getElementById('liveHint');
                 var delta = document.getElementById('liveDelta');
                 page.classList.toggle('is-ok', live.horizontalAligned && live.verticalAligned);
+                applySteer(live);
                 if (live.compassUnstable) {
                     hint.textContent = 'تشويش بوصلة. أبعد المعدن ثم أعد اللصق.';
                     delta.textContent = '';
@@ -98,28 +171,37 @@
                     delta.textContent = '';
                 } else {
                     hint.textContent = 'حرّك الهوائي ببطء مع بقاء الموبايل ملصوقاً.';
-                    var az = live.azimuthDelta == null ? '' : ('أفقي ' + (live.azimuthDelta > 0 ? 'يمين +' : 'يسار ') + Math.abs(live.azimuthDelta).toFixed(1) + '°');
-                    var el = live.elevationDelta == null ? '' : ('عمودي ' + (live.elevationDelta > 0 ? 'ارفع +' : 'اخفض ') + Math.abs(live.elevationDelta).toFixed(2) + '°');
-                    delta.textContent = [az, el].filter(Boolean).join(' · ');
+                    delta.textContent = '';
                 }
             });
 
             function publish(e) {
                 if (!publishing || connection.state !== 'Connected') return;
-                var now = Date.now();
-                if (now - lastSent < 120) return;
-                lastSent = now;
                 var alpha = e.alpha, beta = e.beta, gamma = e.gamma;
                 if (typeof alpha !== 'number' || typeof beta !== 'number' || typeof gamma !== 'number') return;
+                samples.push({ a: alpha, b: beta, g: gamma });
+                if (samples.length > 6) samples.shift();
+                var now = Date.now();
+                if (now - lastSent < 140) return;
+                lastSent = now;
                 var acc = (typeof e.webkitCompassAccuracy === 'number') ? e.webkitCompassAccuracy : null;
-                connection.invoke('PublishOrientation', code, role, alpha, beta, gamma, !!e.absolute, acc).catch(function () {});
+                connection.invoke(
+                    'PublishOrientation',
+                    code,
+                    role,
+                    circularMean(samples.map(function (s) { return s.a; })),
+                    mean(samples.map(function (s) { return s.b; })),
+                    mean(samples.map(function (s) { return s.g; })),
+                    !!e.absolute,
+                    acc
+                ).catch(function () {});
             }
 
             function startSensors() {
                 window.addEventListener('deviceorientationabsolute', publish, true);
                 window.addEventListener('deviceorientation', publish, true);
                 keepAwake();
-                setText('liveHint', 'البوصلة تعمل. أبقِ الموبايل ملصوقاً كما في الرسم.');
+                setText('liveHint', 'البوصلة تعمل. أبقِ الموبايل ملصوقاً كما في الرسم الصحيح.');
             }
 
             document.getElementById('btnEnableFieldCompass').addEventListener('click', function () {

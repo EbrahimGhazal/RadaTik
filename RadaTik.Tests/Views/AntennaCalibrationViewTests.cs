@@ -34,6 +34,13 @@ public sealed class AntennaCalibrationViewTests
         Assert.Contains("metalWarn", join);
         Assert.Contains("ظهر الموبايل على القطاع", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_CalibratePhonePlacementTx.cshtml")));
         Assert.Contains("ظهر الموبايل على اللاقط", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_CalibratePhonePlacementRx.cshtml")));
+        Assert.Contains("صحيح", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_CalibratePhonePlacementTx.cshtml")));
+        Assert.Contains("خطأ", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_CalibratePhonePlacementRx.cshtml")));
+        Assert.Contains("_CalibrateFieldSteps", join);
+        Assert.Contains("steerBox", join);
+        Assert.Contains("~/lib/signalr/signalr.min.js", join);
+        Assert.Contains("circularMean", join);
+        Assert.True(File.Exists(FindFile("RadaTik", "wwwroot", "lib", "signalr", "signalr.min.js")));
     }
 
     private static string FindFile(params string[] relativeParts)

@@ -132,6 +132,8 @@
                 </div>
             </div>
 
+            <partial name="_CalibrateFieldSteps" />
+
             <p id="calPath" class="antenna-cal-path @(s.Path.Analyzed && !s.Path.PathClear ? "is-blocked" : "")">@s.Path.Summary</p>
             <p id="calAdvice" class="antenna-cal-advice">@s.Advice</p>
             <p id="calMutual" class="mb-2"></p>
@@ -189,7 +191,7 @@
 <script type="application/json" id="calSectorsJson">@Html.Raw(sectorsJson)</script>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js" crossorigin="anonymous"></script>
+    <script src="~/lib/signalr/signalr.min.js" asp-append-version="true"></script>
     <script>
         (function () {
             var form = document.getElementById('calStartForm');
