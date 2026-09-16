@@ -17,6 +17,7 @@ public sealed class AntennaCalibrationViewTests
     {
         string join = File.ReadAllText(FindFile("RadaTik", "Views", "AntennaCalibration", "Join.cshtml"));
         string index = File.ReadAllText(FindFile("RadaTik", "Views", "AntennaCalibration", "Index.cshtml"));
+        string sim = File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_CalibratePhonePlacementSim.cshtml"));
         Assert.Contains("_CalibratePhonePlacementTx", join);
         Assert.Contains("_CalibratePhonePlacementRx", join);
         Assert.Contains("btnEnableFieldCompass", join);
@@ -32,15 +33,19 @@ public sealed class AntennaCalibrationViewTests
         Assert.Contains("PublishOrientation", join);
         Assert.Contains("liveRf", join);
         Assert.Contains("metalWarn", join);
-        Assert.Contains("ظهر الموبايل على القطاع", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_CalibratePhonePlacementTx.cshtml")));
-        Assert.Contains("ظهر الموبايل على اللاقط", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_CalibratePhonePlacementRx.cshtml")));
-        Assert.Contains("صحيح", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_CalibratePhonePlacementTx.cshtml")));
-        Assert.Contains("خطأ", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_CalibratePhonePlacementRx.cshtml")));
+        Assert.Contains("_CalibratePhonePlacementSim", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_CalibratePhonePlacementTx.cshtml")));
+        Assert.Contains("_CalibratePhonePlacementSim", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_CalibratePhonePlacementRx.cshtml")));
+        Assert.Contains("litebeam.png", sim);
+        Assert.Contains("phone.png", sim);
+        Assert.Contains("cal-sim-play", sim);
         Assert.Contains("_CalibrateFieldSteps", join);
         Assert.Contains("steerBox", join);
         Assert.Contains("~/lib/signalr/signalr.min.js", join);
+        Assert.Contains("antenna-calibration-sim.js", join);
         Assert.Contains("circularMean", join);
         Assert.True(File.Exists(FindFile("RadaTik", "wwwroot", "lib", "signalr", "signalr.min.js")));
+        Assert.True(File.Exists(FindFile("RadaTik", "wwwroot", "img", "calibration", "litebeam.png")));
+        Assert.True(File.Exists(FindFile("RadaTik", "wwwroot", "img", "calibration", "phone.png")));
     }
 
     private static string FindFile(params string[] relativeParts)

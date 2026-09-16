@@ -1,32 +1,4 @@
-<svg class="calibrate-place-svg" viewBox="0 0 420 310" role="img" aria-label="الصق ظهر الموبايل على وجه إشعاع القطاع والشاشة نحو المستقبل">
-    <rect x="8" y="8" width="404" height="232" rx="16" fill="#0b1220" stroke="#334155" stroke-width="2" />
-    <text x="210" y="32" text-anchor="middle" fill="#93c5fd" font-size="16" font-weight="700">المرسل · القطاع</text>
-
-    <!-- Sector panel, slight perspective -->
-    <polygon points="46,78 148,62 148,168 46,188" fill="#64748b" stroke="#cbd5e1" stroke-width="2" />
-    <polygon points="148,62 168,78 168,184 148,168" fill="#475569" />
-    <text x="97" y="128" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">وجه الإشعاع</text>
-
-    <!-- Phone back against panel, screen toward far end -->
-    <rect x="78" y="86" width="58" height="108" rx="10" fill="#020617" stroke="#38bdf8" stroke-width="3" />
-    <rect x="86" y="98" width="42" height="72" rx="4" fill="#e2e8f0" />
-    <circle cx="107" cy="182" r="4" fill="#334155" />
-    <text x="107" y="138" text-anchor="middle" fill="#0f172a" font-size="12" font-weight="700">شاشة</text>
-    <text x="107" y="214" text-anchor="middle" fill="#7dd3fc" font-size="12">الظهر على القطاع</text>
-
-    <!-- Beam toward receiver -->
-    <polygon points="188,118 268,98 268,154" fill="#22c55e" />
-    <text x="288" y="122" fill="#86efac" font-size="15" font-weight="700">نحو المستقبل</text>
-    <text x="288" y="144" fill="#bbf7d0" font-size="12">الشاشة تنظر للتغطية</text>
-
-    <text x="210" y="228" text-anchor="middle" fill="#e2e8f0" font-size="14" font-weight="700">ظهر الموبايل على القطاع · الشاشة تنظر للتغطية</text>
-
-    <!-- Wrong vs right strip -->
-    <rect x="8" y="248" width="196" height="54" rx="12" fill="#052e16" stroke="#22c55e" stroke-width="2" />
-    <text x="106" y="270" text-anchor="middle" fill="#86efac" font-size="13" font-weight="700">صحيح</text>
-    <text x="106" y="290" text-anchor="middle" fill="#bbf7d0" font-size="11">الظهر على الوجه الأمامي</text>
-
-    <rect x="216" y="248" width="196" height="54" rx="12" fill="#450a0a" stroke="#ef4444" stroke-width="2" />
-    <text x="314" y="270" text-anchor="middle" fill="#fca5a5" font-size="13" font-weight="700">خطأ</text>
-    <text x="314" y="290" text-anchor="middle" fill="#fecaca" font-size="11">على المعدن أو الشاشة للخلف</text>
-</svg>
+@{
+    ViewData["CalibrateRole"] = "tx";
+}
+<partial name="_CalibratePhonePlacementSim" />
