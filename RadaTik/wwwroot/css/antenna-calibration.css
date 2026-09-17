@@ -547,8 +547,126 @@
     border-color: #22c55e;
 }
 
+.calibrate-workflow-badge {
+    margin: 0.35rem 0 0;
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(34, 197, 94, 0.2);
+    color: #bbf7d0;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.calibrate-expected-hint {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    margin: 0.35rem 0 0.6rem;
+}
+
+.calibrate-rf-meta {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+    margin-bottom: 0.55rem;
+}
+
+.calibrate-rf-meta span {
+    display: block;
+    font-size: 0.72rem;
+    color: #bbf7d0;
+}
+
+.calibrate-rf-meta strong {
+    color: #fff;
+    font-size: 0.95rem;
+}
+
+.calibrate-peak-lock {
+    margin: 0 0 0.55rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 10px;
+    background: #166534;
+    color: #fff;
+    text-align: center;
+    font-weight: 800;
+}
+
+.calibrate-field-page.is-peak-locked {
+    box-shadow: inset 0 0 0 4px #22c55e;
+}
+
+.calibrate-pro-stages {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+    margin: 0.75rem 0 0.4rem;
+}
+
+.calibrate-pro-stage {
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: rgba(15, 23, 42, 0.55);
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 0.55rem 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.calibrate-pro-stage.is-active {
+    border-color: #22c55e;
+    background: rgba(22, 101, 52, 0.55);
+    color: #fff;
+}
+
+.calibrate-pro-stage-hint {
+    text-align: center;
+    font-size: 0.86rem;
+    color: #bbf7d0;
+    margin: 0 0 0.75rem;
+}
+
+.antenna-cal-workflow-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.55rem;
+    margin-bottom: 0.85rem;
+}
+
+.antenna-cal-workflow-tab {
+    text-align: right;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: #fff;
+    border-radius: 12px;
+    padding: 0.7rem 0.75rem;
+    cursor: pointer;
+}
+
+.antenna-cal-workflow-tab strong {
+    display: block;
+    margin-bottom: 0.15rem;
+}
+
+.antenna-cal-workflow-tab span {
+    display: block;
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.antenna-cal-workflow-tab.is-active {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.18);
+    background: #f0fdf4;
+}
+
 @media (max-width: 900px) {
     .antenna-cal-split {
+        grid-template-columns: 1fr;
+    }
+
+    .antenna-cal-workflow-tabs,
+    .calibrate-pro-stages {
         grid-template-columns: 1fr;
     }
 }

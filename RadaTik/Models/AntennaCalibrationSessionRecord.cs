@@ -18,6 +18,8 @@ public sealed class AntennaCalibrationSessionRecord
     public double ReceiverAntennaMsl { get; set; }
     public string AlignmentJson { get; set; } = "{}";
     public string? PathJson { get; set; }
+    /// <summary>quick | signal | pro</summary>
+    public string Workflow { get; set; } = "signal";
     public DateTime CreatedAtUtc { get; set; }
     public DateTime LastActivityUtc { get; set; }
     public DateTime ExpiresAtUtc { get; set; }

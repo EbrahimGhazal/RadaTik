@@ -146,7 +146,54 @@ public sealed class AntennaCalibrationSessionStoreTests
         Assert.Contains("التضاريس", advice, StringComparison.Ordinal);
     }
 
-    private static AntennaCalibrationSession Sample(string code, string? ip)
+    [Fact]
+    public void ApplyRadio_LocksPeakAfterNearHold()
+    {
+        AntennaCalibrationSessionStore store = new();
+        AntennaCalibrationSession session = store.Create(Sample("PRO001", "10.1.2.3", AntennaCalibrationWorkflow.Pro));
+        SectorRadioStationsResult radio = new()
+        {
+            Success = true,
+            StatusMessage = "ok",
+            InterfaceName = "wlan1",
+            NoiseFloorDbm = -95,
+            FrequencyMhz = 5800,
+            Stations =
+            [
+                new RadioStationSignal
+                {
+                    MacAddress = "AA:BB:CC:DD:EE:FF",
+                    LastIp = "10.1.2.3",
+                    InterfaceName = "wlan1",
+                    SignalDbm = -58,
+                    SnrDb = 36,
+                    CcqPercent = 95
+                }
+            ]
+        };
+
+        DateTime t0 = DateTime.UtcNow;
+        Assert.True(store.TryApplyRadio(session.Code, radio, t0));
+        AntennaCalibrationSnapshot early = store.ToSnapshot(store.Get(session.Code)!);
+        Assert.Equal(AntennaCalibrationWorkflow.Pro, early.Workflow);
+        Assert.True(early.Radio.NearPeak);
+        Assert.False(early.Radio.PeakLocked);
+
+        store.TryApplyRadio(session.Code, radio, t0.AddSeconds(3.2));
+        AntennaCalibrationSnapshot locked = store.ToSnapshot(store.Get(session.Code)!);
+        Assert.True(locked.Radio.PeakLocked);
+        Assert.Contains("قفل قمة", locked.Advice, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Workflow_NormalizesAliases()
+    {
+        Assert.Equal(AntennaCalibrationWorkflow.Quick, AntennaCalibrationWorkflow.Normalize("compass"));
+        Assert.Equal(AntennaCalibrationWorkflow.Pro, AntennaCalibrationWorkflow.Normalize("professional"));
+        Assert.Equal(AntennaCalibrationWorkflow.Signal, AntennaCalibrationWorkflow.Normalize(null));
+    }
+
+    private static AntennaCalibrationSession Sample(string code, string? ip, string workflow = AntennaCalibrationWorkflow.Signal)
     {
         AntennaAlignmentResult alignment = LineOfSightMath.ComputeAlignment(
             33.50, 36.30, 820, 90, 90,
@@ -163,7 +210,8 @@ public sealed class AntennaCalibrationSessionStoreTests
             ReceiverIp = ip,
             Alignment = alignment,
             SectorAntennaMsl = 820,
-            ReceiverAntennaMsl = 790
+            ReceiverAntennaMsl = 790,
+            Workflow = workflow
         };
     }
 }

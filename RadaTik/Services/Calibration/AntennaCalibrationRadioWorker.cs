@@ -11,7 +11,8 @@ namespace RadaTik.Services.Calibration;
 /// <summary>يقرأ إشارة MikroTik لكل جلسة معايرة نشطة ويبث القمة عبر SignalR.</summary>
 public sealed class AntennaCalibrationRadioWorker : BackgroundService
 {
-    private static readonly TimeSpan Tick = TimeSpan.FromSeconds(2.5);
+    private static readonly TimeSpan NormalTick = TimeSpan.FromSeconds(2.5);
+    private static readonly TimeSpan ProTick = TimeSpan.FromSeconds(1.0);
     private static readonly TimeSpan HotIdle = TimeSpan.FromMinutes(20);
 
     private readonly IServiceScopeFactory _scopeFactory;
@@ -43,16 +44,13 @@ public sealed class AntennaCalibrationRadioWorker : BackgroundService
             _logger.LogDebug(ex, "Calibration hydrate on start skipped.");
         }
 
-        using PeriodicTimer timer = new(Tick);
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                if (!await timer.WaitForNextTickAsync(stoppingToken))
-                {
-                    break;
-                }
-
+                IReadOnlyList<AntennaCalibrationSession> hot = _sessions.ListHot(HotIdle);
+                bool anyPro = hot.Any(s => AntennaCalibrationWorkflow.IsPro(s.Workflow));
+                await Task.Delay(anyPro ? ProTick : NormalTick, stoppingToken);
                 await PollHotSessionsAsync(stoppingToken);
                 if (Interlocked.Increment(ref _persistTicks) % 12 == 0)
                 {
@@ -116,7 +114,8 @@ public sealed class AntennaCalibrationRadioWorker : BackgroundService
             foreach (AntennaCalibrationSession session in group)
             {
                 bool changed = _sessions.TryApplyRadio(session.Code, radio, now);
-                if (!changed)
+                // المسار الاحترافي يُحدَّث باستمرار لالتقاط قفل القمة بعد ثبات 3 ثوانٍ.
+                if (!changed && !AntennaCalibrationWorkflow.IsPro(session.Workflow))
                 {
                     continue;
                 }

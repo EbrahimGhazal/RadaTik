@@ -14,7 +14,7 @@
         <div class="page-header-content">
             <div>
                 <h1 class="h4 mb-1"><i class="fas fa-compass text-success"></i> معايرة الهوائيين</h1>
-                <p class="text-muted mb-0">جلسة حية: بوصلة على الطرفين + خط رؤية + إشارة MikroTik. كل فني يلصق موبايله على هوائيّه.</p>
+                <p class="text-muted mb-0">اختر أسلوب المعايرة، ثم أنشئ جلسة حية للطرفين مع خط رؤية وإشارة MikroTik.</p>
             </div>
         </div>
     </div>
@@ -29,6 +29,22 @@
           id="calStartForm">
         @Html.AntiForgeryToken()
         <div class="card-body">
+            <div class="antenna-cal-workflow-tabs" role="tablist" aria-label="أسلوب المعايرة">
+                <button type="button" class="antenna-cal-workflow-tab" data-workflow="quick" role="tab" aria-selected="false">
+                    <strong>تقريبي</strong>
+                    <span>بوصلة للتقريب السريع</span>
+                </button>
+                <button type="button" class="antenna-cal-workflow-tab is-active" data-workflow="signal" role="tab" aria-selected="true">
+                    <strong>قمة إشارة</strong>
+                    <span>RSSI يومي دقيق</span>
+                </button>
+                <button type="button" class="antenna-cal-workflow-tab" data-workflow="pro" role="tab" aria-selected="false">
+                    <strong>احترافي</strong>
+                    <span>مراحل Az→El + قفل قمة</span>
+                </button>
+            </div>
+            <input type="hidden" name="workflow" id="calWorkflow" value="signal" />
+            <p class="small text-muted mb-2" id="calWorkflowHint">الافتراضي: مراقبة الإشارة حتى أعلى RSSI ثم التثبيت. مناسب لمعظم التركيبات.</p>
             <div class="row g-2 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label" for="sectorId">المرسل (القطاع)</label>
@@ -86,6 +102,7 @@
                         <li>
                             <a asp-action="Index" asp-route-code="@r.Code">@r.Code</a>
                             · @r.SectorName ← → @r.ReceiverName
+                            · <span class="text-muted">@RadaTik.Services.Calibration.AntennaCalibrationWorkflow.DisplayName(r.Workflow)</span>
                         </li>
                     }
                 </ul>
@@ -100,6 +117,7 @@
             <div class="antenna-cal-session-bar">
                 <div>
                     رمز الجلسة <strong class="antenna-cal-code">@s.Code</strong>
+                    · <span class="badge text-bg-success">@s.WorkflowLabel</span>
                     · المسافة @s.DistanceMeters.ToString("0") م
                     · انحراف المغناطيسية @(s.MagneticDeclinationDegrees >= 0 ? "+" : "")@s.MagneticDeclinationDegrees.ToString("0.0")°
                     @if (!s.SavedReceiver)
@@ -196,6 +214,25 @@
     <script>
         (function () {
             var form = document.getElementById('calStartForm');
+            var workflowInput = document.getElementById('calWorkflow');
+            var workflowHint = document.getElementById('calWorkflowHint');
+            var workflowHints = {
+                quick: 'تقريبي: البوصلة تساعد على التوجيه الأولي فقط. القفل النهائي يبقى بقمة الإشارة.',
+                signal: 'الافتراضي: مراقبة الإشارة حتى أعلى RSSI ثم التثبيت. مناسب لمعظم التركيبات.',
+                pro: 'احترافي: مسح أفقي ثم عمودي، قفل قمة ذكي، وSNR/CCQ. الأفضل للضبط النهائي الدقيق.'
+            };
+            document.querySelectorAll('.antenna-cal-workflow-tab').forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    var w = tab.getAttribute('data-workflow') || 'signal';
+                    document.querySelectorAll('.antenna-cal-workflow-tab').forEach(function (t) {
+                        var on = t === tab;
+                        t.classList.toggle('is-active', on);
+                        t.setAttribute('aria-selected', on ? 'true' : 'false');
+                    });
+                    if (workflowInput) workflowInput.value = w;
+                    if (workflowHint) workflowHint.textContent = workflowHints[w] || workflowHints.signal;
+                });
+            });
             var sector = document.getElementById('sectorId');
             var receiver = document.getElementById('receiverId');
             var latInput = document.getElementById('receiverLat');

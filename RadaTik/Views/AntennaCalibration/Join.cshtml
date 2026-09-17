@@ -1,20 +1,38 @@
 @model RadaTik.ViewModels.Calibration.AntennaCalibrationJoinViewModel
+@using RadaTik.Services.Calibration
 @{
     Layout = "~/Views/Shared/_CalibrateFieldLayout.cshtml";
     ViewData["Title"] = Model.Title;
     var target = Model.IsTransmitter ? Model.Snapshot.TransmitterTarget : Model.Snapshot.ReceiverTarget;
+    var workflow = AntennaCalibrationWorkflow.Normalize(Model.Workflow);
+    var isPro = AntennaCalibrationWorkflow.IsPro(workflow);
+    var isQuick = AntennaCalibrationWorkflow.IsQuick(workflow);
+    var defaultMode = AntennaCalibrationWorkflow.DefaultFieldMode(workflow);
 }
 
-<div class="calibrate-field-page" data-code="@Model.Code" data-role="@Model.Role" data-mode="signal">
+<div class="calibrate-field-page workflow-@workflow" data-code="@Model.Code" data-role="@Model.Role" data-workflow="@workflow" data-mode="@defaultMode">
     <header class="calibrate-field-head">
         <h1>@Model.Title</h1>
         <p>@Model.EndpointName ← → @Model.OtherName · رمز @Model.Code</p>
+        <p class="calibrate-workflow-badge">@Model.WorkflowLabel</p>
     </header>
 
-    <div class="calibrate-mode-switch" role="group" aria-label="وضع المعايرة">
-        <button type="button" class="btn btn-sm btn-success is-active" id="modeSignal" data-mode="signal">إشارة فقط (أدق)</button>
-        <button type="button" class="btn btn-sm btn-outline-light" id="modeCompass" data-mode="compass">بوصلة تقريبية</button>
-    </div>
+    @if (!isPro)
+    {
+        <div class="calibrate-mode-switch" role="group" aria-label="وضع المعايرة">
+            <button type="button" class="btn btn-sm @(defaultMode == "signal" ? "btn-success is-active" : "btn-outline-light")" id="modeSignal" data-mode="signal">إشارة فقط (أدق)</button>
+            <button type="button" class="btn btn-sm @(defaultMode == "compass" ? "btn-success is-active" : "btn-outline-light")" id="modeCompass" data-mode="compass">بوصلة تقريبية</button>
+        </div>
+    }
+    else
+    {
+        <div class="calibrate-pro-stages" id="proStages" role="tablist" aria-label="مراحل المعايرة الاحترافية">
+            <button type="button" class="calibrate-pro-stage is-active" data-stage="az" id="stageAz">1 · أفقي</button>
+            <button type="button" class="calibrate-pro-stage" data-stage="el" id="stageEl">2 · عمودي</button>
+            <button type="button" class="calibrate-pro-stage" data-stage="lock" id="stageLock">3 · قفل القمة</button>
+        </div>
+        <p class="calibrate-pro-stage-hint" id="proStageHint">المرحلة 1: ثبّت الميل، وحرّك السمت ببطء حتى أعلى RSSI ثم انتقل للعمودي.</p>
+    }
 
     <div class="calibrate-field-figure">
         @if (Model.IsTransmitter)
@@ -25,12 +43,28 @@
         {
             <partial name="_CalibratePhonePlacementRx" />
         }
-        <partial name="_CalibrateFieldSteps" />
-        <p class="calibrate-field-caption">الصق ظهر الموبايل على الظهر الخلفي للصحن، والشاشة نحو الفني. القفل النهائي بقمة الإشارة وليس بدرجة البوصلة.</p>
+        @if (isPro)
+        {
+            <ol class="calibrate-field-steps">
+                <li><strong>1</strong> الصق ظهر الموبايل على ظهر الصحن.</li>
+                <li><strong>2</strong> امسح أفقياً حتى القمة ثم ثبّت السمت.</li>
+                <li><strong>3</strong> امسح عمودياً حتى القمة ثم انتظر قفل القمة.</li>
+            </ol>
+            <p class="calibrate-field-caption">مسار احترافي: محور واحد في كل مرة. القفل النهائي بعد ثبات القمة ~3 ثوانٍ.</p>
+        }
+        else
+        {
+            <partial name="_CalibrateFieldSteps" />
+            <p class="calibrate-field-caption">الصق ظهر الموبايل على الظهر الخلفي للصحن، والشاشة نحو الفني. القفل النهائي بقمة الإشارة وليس بدرجة البوصلة.</p>
+        }
     </div>
 
     <p id="metalWarn" class="antenna-cal-metal-warn d-none">البوصلة مشوّشة قرب المعدن. استخدم وضع إشارة فقط.</p>
     <p id="pathNote" class="calibrate-field-path">@Model.Snapshot.Path.Summary</p>
+    @if (!string.IsNullOrWhiteSpace(Model.Snapshot.ExpectedSignalHint))
+    {
+        <p id="expectedHint" class="calibrate-expected-hint">@Model.Snapshot.ExpectedSignalHint</p>
+    }
 
     <section class="calibrate-rf-panel" id="rfPanel">
         <div class="calibrate-rf-big">
@@ -43,15 +77,24 @@
                 <strong id="livePeak">—</strong>
             </div>
         </div>
+        @if (isPro)
+        {
+            <div class="calibrate-rf-meta">
+                <div><span>SNR</span><strong id="liveSnr">—</strong></div>
+                <div><span>أفضل SNR</span><strong id="livePeakSnr">—</strong></div>
+                <div><span>CCQ</span><strong id="liveCcq">—</strong></div>
+            </div>
+        }
         <div class="calibrate-rf-meter" aria-hidden="true">
             <div class="calibrate-rf-meter-fill" id="rfMeterFill"></div>
             <div class="calibrate-rf-meter-peak" id="rfMeterPeak"></div>
         </div>
-        <p id="rfHint" class="calibrate-rf-hint">حرّك الهوائي ببطء جداً. عندما يصل الرقم للقمة ثبّت البراغي.</p>
+        <p id="peakLockBanner" class="calibrate-peak-lock d-none">قفل قمة مستقر — ثبّت البراغي الآن</p>
+        <p id="rfHint" class="calibrate-rf-hint">@(isPro ? "ابدأ بالمرحلة الأفقية وحرّك ببطء جداً." : "حرّك الهوائي ببطء جداً. عندما يصل الرقم للقمة ثبّت البراغي.")</p>
         <button type="button" class="btn btn-outline-warning btn-sm w-100" id="btnResetPeakField">تصفير القمة</button>
     </section>
 
-    <div class="calibrate-steer" id="steerBox" aria-live="polite">
+    <div class="calibrate-steer @(defaultMode == "signal" && !isQuick ? "d-none" : "")" id="steerBox" aria-live="polite">
         <p class="calibrate-steer-note">أسهم البوصلة تقريبية ومن منظور الفني خلف الصحن.</p>
         <div class="calibrate-steer-row" dir="ltr">
             <span class="steer-chip" id="steerLeft">يسار</span>
@@ -66,19 +109,32 @@
         <p class="calibrate-steer-deg" id="steerDeg">فعّل البوصلة إن أردت التقريب</p>
     </div>
 
-    <div class="antenna-cal-metrics" id="compassMetrics">
+    <div class="antenna-cal-metrics @(defaultMode == "signal" && !isQuick ? "d-none" : "")" id="compassMetrics">
         <div><span>سمت مطلوب (تقريبي)</span><strong>@target.AzimuthMagnetic.ToString("0.0")°</strong></div>
         <div><span>ميل مطلوب</span><strong>@target.Elevation.ToString("0.00")°</strong></div>
         <div><span>السمت الحي</span><strong id="liveAz">—</strong></div>
         <div><span>الميل الحي</span><strong id="liveEl">—</strong></div>
     </div>
-    <p id="liveHint" class="antenna-cal-status">الوضع الافتراضي: إشارة فقط. ابدأ المراقبة ثم حرّك حتى القمة.</p>
+    <p id="liveHint" class="antenna-cal-status">
+        @if (isPro)
+        {
+            @:مسار احترافي: ابدأ مراقبة الإشارة ثم امسح أفقياً.
+        }
+        else if (isQuick)
+        {
+            @:مسار تقريبي: فعّل البوصلة للتقريب ثم اقفل على قمة RSSI.
+        }
+        else
+        {
+            @:الوضع الافتراضي: إشارة فقط. ابدأ المراقبة ثم حرّك حتى القمة.
+        }
+    </p>
     <p id="liveDelta" class="calibrate-field-delta"></p>
 
-    <button type="button" class="btn btn-success btn-lg w-100" id="btnStartSignal">
-        <i class="fas fa-broadcast-tower"></i> بدء مراقبة الإشارة
+    <button type="button" class="btn btn-success btn-lg w-100 @(defaultMode == "compass" ? "d-none" : "")" id="btnStartSignal">
+        <i class="fas fa-broadcast-tower"></i> @(isPro ? "بدء المعايرة الاحترافية" : "بدء مراقبة الإشارة")
     </button>
-    <button type="button" class="btn btn-outline-light btn-lg w-100 mt-2 d-none" id="btnEnableFieldCompass">
+    <button type="button" class="btn btn-outline-light btn-lg w-100 mt-2 @(defaultMode == "compass" ? "" : "d-none")" id="btnEnableFieldCompass">
         <i class="fas fa-mobile-alt"></i> تفعيل البوصلة التقريبية
     </button>
 </div>
@@ -92,14 +148,18 @@
             if (!page || typeof signalR === 'undefined') return;
             var code = page.getAttribute('data-code');
             var role = page.getAttribute('data-role');
+            var workflow = page.getAttribute('data-workflow') || 'signal';
+            var isPro = workflow === 'pro';
             var connection = new signalR.HubConnectionBuilder().withUrl('/hubs/calibration').withAutomaticReconnect().build();
             var publishing = false;
             var lastSent = 0;
             var wakeLock = null;
             var samples = [];
-            var mode = 'signal';
+            var mode = page.getAttribute('data-mode') || 'signal';
+            var proStage = 'az';
             var lastRf = null;
             var lastPeak = null;
+            var vibratedLock = false;
 
             function setText(id, t) {
                 var el = document.getElementById(id);
@@ -107,18 +167,31 @@
             }
 
             function setMode(next) {
+                if (isPro) {
+                    mode = 'signal';
+                    page.setAttribute('data-mode', 'signal');
+                    return;
+                }
                 mode = next;
                 page.setAttribute('data-mode', mode);
                 page.classList.toggle('mode-signal', mode === 'signal');
                 page.classList.toggle('mode-compass', mode === 'compass');
-                document.getElementById('modeSignal').classList.toggle('is-active', mode === 'signal');
-                document.getElementById('modeSignal').classList.toggle('btn-success', mode === 'signal');
-                document.getElementById('modeSignal').classList.toggle('btn-outline-light', mode !== 'signal');
-                document.getElementById('modeCompass').classList.toggle('is-active', mode === 'compass');
-                document.getElementById('modeCompass').classList.toggle('btn-success', mode === 'compass');
-                document.getElementById('modeCompass').classList.toggle('btn-outline-light', mode !== 'compass');
-                document.getElementById('btnEnableFieldCompass').classList.toggle('d-none', mode !== 'compass');
-                document.getElementById('btnStartSignal').classList.toggle('d-none', mode !== 'signal');
+                var ms = document.getElementById('modeSignal');
+                var mc = document.getElementById('modeCompass');
+                if (ms) {
+                    ms.classList.toggle('is-active', mode === 'signal');
+                    ms.classList.toggle('btn-success', mode === 'signal');
+                    ms.classList.toggle('btn-outline-light', mode !== 'signal');
+                }
+                if (mc) {
+                    mc.classList.toggle('is-active', mode === 'compass');
+                    mc.classList.toggle('btn-success', mode === 'compass');
+                    mc.classList.toggle('btn-outline-light', mode !== 'compass');
+                }
+                var btnC = document.getElementById('btnEnableFieldCompass');
+                var btnS = document.getElementById('btnStartSignal');
+                if (btnC) btnC.classList.toggle('d-none', mode !== 'compass');
+                if (btnS) btnS.classList.toggle('d-none', mode !== 'signal');
                 document.getElementById('steerBox').classList.toggle('d-none', mode === 'signal');
                 document.getElementById('compassMetrics').classList.toggle('d-none', mode === 'signal');
                 if (mode === 'signal') {
@@ -127,6 +200,19 @@
                 } else {
                     setText('liveHint', 'البوصلة تقريبية قرب المعدن. فعّلها للتقريب ثم اقفل على قمة RSSI.');
                 }
+            }
+
+            function setProStage(stage) {
+                proStage = stage;
+                document.querySelectorAll('.calibrate-pro-stage').forEach(function (el) {
+                    el.classList.toggle('is-active', el.getAttribute('data-stage') === stage);
+                });
+                var hints = {
+                    az: 'المرحلة 1: ثبّت الميل، وحرّك السمت ببطء حتى أعلى RSSI ثم انتقل للعمودي.',
+                    el: 'المرحلة 2: ثبّت السمت، وحرّك الميل ببطء حتى أعلى RSSI ثم انتقل لقفل القمة.',
+                    lock: 'المرحلة 3: لا تحرّك كثيراً. انتظر قفل القمة المستقر ثم ثبّت البراغي.'
+                };
+                setText('proStageHint', hints[stage] || hints.az);
             }
 
             function keepAwake() {
@@ -168,7 +254,6 @@
                 if (el) el.classList.toggle('d-none', !!hidden);
             }
 
-            // من منظور الفني خلف الصحن: نعكس أسهم التوجيه عن فرق السمت/الميل الهندسي.
             function applySteer(live) {
                 var azOk = !!live.horizontalAligned;
                 var elOk = !!live.verticalAligned;
@@ -199,7 +284,6 @@
             }
 
             function updateRfMeter(signal, peak) {
-                // نطاق عملي تقريباً من -90 إلى -40 dBm
                 function pct(v) {
                     if (v == null || !isFinite(v)) return 0;
                     return Math.max(0, Math.min(100, ((Number(v) + 90) / 50) * 100));
@@ -210,19 +294,57 @@
                 if (peakMark) peakMark.style.left = pct(peak) + '%';
             }
 
+            function buzzLock() {
+                if (vibratedLock) return;
+                vibratedLock = true;
+                try {
+                    if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+                } catch (e) {}
+            }
+
             connection.on('sessionUpdated', function (snap) {
                 if (!snap) return;
                 var live = role === 'tx' ? snap.transmitterLive : snap.receiverLive;
                 if (snap.path) setText('pathNote', snap.path.summary || '');
+                if (snap.expectedSignalHint) setText('expectedHint', snap.expectedSignalHint);
                 if (snap.radio) {
                     lastRf = snap.radio.signalDbm;
                     lastPeak = snap.radio.peakSignalDbm;
                     setText('liveRf', lastRf == null ? '—' : lastRf + ' dBm');
                     setText('livePeak', lastPeak == null ? '—' : lastPeak + ' dBm');
+                    if (isPro) {
+                        setText('liveSnr', snap.radio.snrDb == null ? '—' : snap.radio.snrDb + ' dB');
+                        setText('livePeakSnr', snap.radio.peakSnrDb == null ? '—' : snap.radio.peakSnrDb + ' dB');
+                        setText('liveCcq', snap.radio.ccqPercent == null ? '—' : snap.radio.ccqPercent + '%');
+                    }
                     updateRfMeter(lastRf, lastPeak);
+                    var nearPeak = !!snap.radio.nearPeak;
+                    var peakLocked = !!snap.radio.peakLocked;
                     var atPeak = !!(snap.radio.available && lastRf != null && lastPeak != null && lastRf >= lastPeak - 1);
-                    page.classList.toggle('is-rf-peak', atPeak);
-                    if (mode === 'signal') {
+                    page.classList.toggle('is-rf-peak', nearPeak || atPeak);
+                    page.classList.toggle('is-peak-locked', peakLocked);
+                    var lockBanner = document.getElementById('peakLockBanner');
+                    if (lockBanner) lockBanner.classList.toggle('d-none', !peakLocked);
+                    if (peakLocked) buzzLock();
+                    else vibratedLock = false;
+
+                    if (isPro) {
+                        if (peakLocked) {
+                            setText('rfHint', 'قفل قمة مستقر. ثبّت البراغي ثم أعد التحقق.');
+                            setText('liveHint', 'تم القفل. لا تحرّك الهوائي أثناء الربط.');
+                            setProStage('lock');
+                        } else if (nearPeak) {
+                            setText('rfHint', 'قرب القمة — ثبّت قليلاً حتى يظهر قفل القمة.');
+                            setText('liveHint', proStage === 'az'
+                                ? 'قرب قمة أفقية. انتقل للمرحلة العمودية إن استقرت.'
+                                : 'قرب القمة. انتظر القفل أو صحّح بلمسة خفيفة.');
+                        } else {
+                            setText('rfHint', proStage === 'az'
+                                ? 'امسح السمت ببطء. لا تغيّر الميل الآن.'
+                                : (proStage === 'el' ? 'امسح الميل ببطء. لا تغيّر السمت الآن.' : 'حافظ على الوضع وراقب القمة.'));
+                            setText('liveHint', 'احترافي: محور واحد في كل مرة.');
+                        }
+                    } else if (mode === 'signal') {
                         setText('rfHint', atPeak
                             ? 'عند القمة أو قربها. ثبّت البراغي الآن.'
                             : 'حرّك ببطء جداً. الهدف الوصول لرقم القمة ثم التثبيت.');
@@ -278,34 +400,52 @@
                 setText('liveHint', 'البوصلة تعمل للتقريب. القفل النهائي بقمة RSSI.');
             }
 
-            document.getElementById('modeSignal').addEventListener('click', function () { setMode('signal'); });
-            document.getElementById('modeCompass').addEventListener('click', function () { setMode('compass'); });
+            var modeSignalBtn = document.getElementById('modeSignal');
+            var modeCompassBtn = document.getElementById('modeCompass');
+            if (modeSignalBtn) modeSignalBtn.addEventListener('click', function () { setMode('signal'); });
+            if (modeCompassBtn) modeCompassBtn.addEventListener('click', function () { setMode('compass'); });
+
+            document.querySelectorAll('.calibrate-pro-stage').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    setProStage(btn.getAttribute('data-stage') || 'az');
+                });
+            });
 
             document.getElementById('btnStartSignal').addEventListener('click', function () {
                 keepAwake();
-                setText('liveHint', 'مراقبة الإشارة فعّالة. حرّك ببطء حتى القمة.');
-            });
-
-            document.getElementById('btnEnableFieldCompass').addEventListener('click', function () {
-                var Orientation = window.DeviceOrientationEvent;
-                publishing = true;
-                if (Orientation && typeof Orientation.requestPermission === 'function') {
-                    Orientation.requestPermission().then(function (state) {
-                        if (state === 'granted') startSensors();
-                        else setText('liveHint', 'يلزم السماح بحساس الاتجاه.');
-                    }).catch(function () { setText('liveHint', 'تعذر تفعيل الحساس.'); });
+                if (isPro) {
+                    setProStage(proStage || 'az');
+                    setText('liveHint', 'المعايرة الاحترافية فعّالة. امسح المحور الحالي ببطء.');
                 } else {
-                    startSensors();
+                    setText('liveHint', 'مراقبة الإشارة فعّالة. حرّك ببطء حتى القمة.');
                 }
             });
 
+            var btnCompass = document.getElementById('btnEnableFieldCompass');
+            if (btnCompass) {
+                btnCompass.addEventListener('click', function () {
+                    var Orientation = window.DeviceOrientationEvent;
+                    publishing = true;
+                    if (Orientation && typeof Orientation.requestPermission === 'function') {
+                        Orientation.requestPermission().then(function (state) {
+                            if (state === 'granted') startSensors();
+                            else setText('liveHint', 'يلزم السماح بحساس الاتجاه.');
+                        }).catch(function () { setText('liveHint', 'تعذر تفعيل الحساس.'); });
+                    } else {
+                        startSensors();
+                    }
+                });
+            }
+
             document.getElementById('btnResetPeakField').addEventListener('click', function () {
+                vibratedLock = false;
                 if (connection.state === 'Connected') {
                     connection.invoke('ResetPeak', code).catch(function () {});
                 }
             });
 
-            setMode('signal');
+            setMode(mode);
+            if (isPro) setProStage('az');
             connection.start().then(function () { return connection.invoke('JoinField', code, role); })
                 .catch(function () { setText('liveHint', 'تعذر الاتصال بالجلسة. تحقق من الشبكة.'); });
         })();

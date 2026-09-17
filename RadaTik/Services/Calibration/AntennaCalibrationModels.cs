@@ -18,6 +18,8 @@ public sealed class AntennaCalibrationSession
     public required double SectorAntennaMsl { get; init; }
     public required double ReceiverAntennaMsl { get; init; }
     public AntennaCalibrationPathSnapshot Path { get; init; } = AntennaCalibrationPathSnapshot.Unavailable();
+    /// <summary>quick | signal | pro — يُختار عند بدء الجلسة.</summary>
+    public string Workflow { get; init; } = AntennaCalibrationWorkflow.Signal;
     public DateTime CreatedAtUtc { get; init; } = DateTime.UtcNow;
     public DateTime LastActivityUtc { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresAtUtc { get; init; } = DateTime.UtcNow.AddHours(4);
@@ -55,26 +57,39 @@ public sealed class AntennaCalibrationRadioState
     public string? MacAddress { get; set; }
     public string? LastIp { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
+    public DateTime? NearPeakSinceUtc { get; set; }
 
-    public AntennaCalibrationRadioSnapshot ToSnapshot() => new()
+    public AntennaCalibrationRadioSnapshot ToSnapshot(DateTime? utcNow = null)
     {
-        Available = Available,
-        Stale = Stale,
-        Status = Status,
-        MatchReason = MatchReason,
-        SignalDbm = SignalDbm,
-        PeakSignalDbm = PeakSignalDbm,
-        SnrDb = SnrDb,
-        PeakSnrDb = PeakSnrDb,
-        CcqPercent = CcqPercent,
-        TxRateMbps = TxRateMbps,
-        RxRateMbps = RxRateMbps,
-        NoiseFloorDbm = NoiseFloorDbm,
-        FrequencyMhz = FrequencyMhz,
-        MacAddress = MacAddress,
-        LastIp = LastIp,
-        UpdatedAtUtc = UpdatedAtUtc
-    };
+        DateTime now = utcNow ?? DateTime.UtcNow;
+        bool nearPeak = SignalDbm is int live
+            && PeakSignalDbm is int peak
+            && live >= peak - 2;
+        bool peakLocked = nearPeak
+            && NearPeakSinceUtc is DateTime since
+            && now - since >= TimeSpan.FromSeconds(3);
+        return new AntennaCalibrationRadioSnapshot
+        {
+            Available = Available,
+            Stale = Stale,
+            Status = Status,
+            MatchReason = MatchReason,
+            SignalDbm = SignalDbm,
+            PeakSignalDbm = PeakSignalDbm,
+            SnrDb = SnrDb,
+            PeakSnrDb = PeakSnrDb,
+            CcqPercent = CcqPercent,
+            TxRateMbps = TxRateMbps,
+            RxRateMbps = RxRateMbps,
+            NoiseFloorDbm = NoiseFloorDbm,
+            FrequencyMhz = FrequencyMhz,
+            MacAddress = MacAddress,
+            LastIp = LastIp,
+            UpdatedAtUtc = UpdatedAtUtc,
+            NearPeak = nearPeak,
+            PeakLocked = peakLocked
+        };
+    }
 }
 
 public sealed class AntennaCalibrationPathSnapshot
@@ -145,8 +160,11 @@ public sealed class AntennaCalibrationSnapshot
     public required string SectorName { get; init; }
     public required string ReceiverName { get; init; }
     public required bool SavedReceiver { get; init; }
+    public required string Workflow { get; init; }
+    public required string WorkflowLabel { get; init; }
     public required double DistanceMeters { get; init; }
     public required double MagneticDeclinationDegrees { get; init; }
+    public string? ExpectedSignalHint { get; init; }
     public required AntennaCalibrationTargetSnapshot TransmitterTarget { get; init; }
     public required AntennaCalibrationTargetSnapshot ReceiverTarget { get; init; }
     public required AntennaCalibrationLiveSnapshot TransmitterLive { get; init; }
@@ -198,6 +216,8 @@ public sealed class AntennaCalibrationRadioSnapshot
     public string? MacAddress { get; init; }
     public string? LastIp { get; init; }
     public DateTime? UpdatedAtUtc { get; init; }
+    public required bool NearPeak { get; init; }
+    public required bool PeakLocked { get; init; }
 }
 
 public sealed class AntennaCalibrationSessionListItem
@@ -205,5 +225,6 @@ public sealed class AntennaCalibrationSessionListItem
     public required string Code { get; init; }
     public required string SectorName { get; init; }
     public required string ReceiverName { get; init; }
+    public required string Workflow { get; init; }
     public required DateTime CreatedAtUtc { get; init; }
 }

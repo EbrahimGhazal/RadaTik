@@ -16,6 +16,7 @@ public sealed class AntennaCalibrationSessionRecordConfiguration : IEntityTypeCo
         entity.Property(e => e.ReceiverIp).HasMaxLength(64);
         entity.Property(e => e.ReceiverMac).HasMaxLength(32);
         entity.Property(e => e.AlignmentJson).IsRequired();
+        entity.Property(e => e.Workflow).HasMaxLength(20).IsRequired();
         entity.HasIndex(e => e.Code).IsUnique();
         entity.HasIndex(e => new { e.NetworkId, e.LastActivityUtc });
         entity.HasIndex(e => e.ExpiresAtUtc);

@@ -24,5 +24,7 @@ public sealed class AntennaCalibrationJoinViewModel
     public required string Title { get; init; }
     public required string EndpointName { get; init; }
     public required string OtherName { get; init; }
+    public required string Workflow { get; init; }
+    public required string WorkflowLabel { get; init; }
     public required AntennaCalibrationSnapshot Snapshot { get; init; }
 }

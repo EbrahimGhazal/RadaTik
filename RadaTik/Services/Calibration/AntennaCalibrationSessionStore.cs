@@ -102,6 +102,7 @@ public sealed class AntennaCalibrationSessionStore : IAntennaCalibrationSessionS
                 Code = s.Code,
                 SectorName = s.SectorName,
                 ReceiverName = s.ReceiverName,
+                Workflow = AntennaCalibrationWorkflow.Normalize(s.Workflow),
                 CreatedAtUtc = s.CreatedAtUtc
             })
             .ToList();
@@ -189,6 +190,7 @@ public sealed class AntennaCalibrationSessionStore : IAntennaCalibrationSessionS
 
         session.Radio.PeakSignalDbm = session.Radio.SignalDbm;
         session.Radio.PeakSnrDb = session.Radio.SnrDb;
+        session.Radio.NearPeakSinceUtc = null;
         session.LastActivityUtc = DateTime.UtcNow;
         return true;
     }
@@ -210,6 +212,7 @@ public sealed class AntennaCalibrationSessionStore : IAntennaCalibrationSessionS
             state.Status = string.IsNullOrWhiteSpace(radio.StatusMessage)
                 ? "تعذر قراءة جدول التسجيل من المرسل."
                 : radio.StatusMessage;
+            state.NearPeakSinceUtc = null;
             return previous != SnapshotKey(state);
         }
 
@@ -234,6 +237,7 @@ public sealed class AntennaCalibrationSessionStore : IAntennaCalibrationSessionS
             state.CcqPercent = null;
             state.TxRateMbps = null;
             state.RxRateMbps = null;
+            state.NearPeakSinceUtc = null;
             state.Status = string.IsNullOrWhiteSpace(session.ReceiverIp) && string.IsNullOrWhiteSpace(session.ReceiverMac)
                 ? "حدد IP أو MAC للمستقبل لربط الإشارة، أو اترك محطة واحدة على الواجهة."
                 : "لم تُطابق محطة للمستقبل بعد. تحقق من IP/MAC أو أن الجهاز مرتبط بالمرسل.";
@@ -258,6 +262,18 @@ public sealed class AntennaCalibrationSessionStore : IAntennaCalibrationSessionS
         if (station.SnrDb is int snr && (state.PeakSnrDb is null || snr > state.PeakSnrDb))
         {
             state.PeakSnrDb = snr;
+        }
+
+        bool nearPeak = state.SignalDbm is int live
+            && state.PeakSignalDbm is int peak
+            && live >= peak - 2;
+        if (nearPeak)
+        {
+            state.NearPeakSinceUtc ??= utcNow;
+        }
+        else
+        {
+            state.NearPeakSinceUtc = null;
         }
 
         state.Status = "إشارة حية من جدول تسجيل المرسل.";
@@ -346,8 +362,9 @@ public sealed class AntennaCalibrationSessionStore : IAntennaCalibrationSessionS
             && session.Receiver.AzimuthDegrees.HasValue
             && PhoneBoresightMath.MutualAzimuthAligned(session.Transmitter.AzimuthDegrees.Value, session.Receiver.AzimuthDegrees.Value);
         bool geometryLocked = tx.HorizontalAligned && tx.VerticalAligned && rx.HorizontalAligned && rx.VerticalAligned;
-        AntennaCalibrationRadioSnapshot radio = session.Radio.ToSnapshot();
-        if (radio.UpdatedAtUtc is DateTime updated && DateTime.UtcNow - updated > TimeSpan.FromSeconds(20))
+        DateTime now = session.Radio.UpdatedAtUtc ?? DateTime.UtcNow;
+        AntennaCalibrationRadioSnapshot radio = session.Radio.ToSnapshot(now);
+        if (radio.UpdatedAtUtc is DateTime updated && now - updated > TimeSpan.FromSeconds(20))
         {
             radio = new AntennaCalibrationRadioSnapshot
             {
@@ -366,18 +383,24 @@ public sealed class AntennaCalibrationSessionStore : IAntennaCalibrationSessionS
                 FrequencyMhz = radio.FrequencyMhz,
                 MacAddress = radio.MacAddress,
                 LastIp = radio.LastIp,
-                UpdatedAtUtc = radio.UpdatedAtUtc
+                UpdatedAtUtc = radio.UpdatedAtUtc,
+                NearPeak = radio.NearPeak,
+                PeakLocked = radio.PeakLocked
             };
         }
 
+        string workflow = AntennaCalibrationWorkflow.Normalize(session.Workflow);
         return new AntennaCalibrationSnapshot
         {
             Code = session.Code,
             SectorName = session.SectorName,
             ReceiverName = session.ReceiverName,
             SavedReceiver = session.ReceiverId.HasValue,
+            Workflow = workflow,
+            WorkflowLabel = AntennaCalibrationWorkflow.DisplayName(workflow),
             DistanceMeters = a.DistanceMeters,
             MagneticDeclinationDegrees = a.MagneticDeclinationDegrees,
+            ExpectedSignalHint = BuildExpectedSignalHint(a.DistanceMeters),
             TransmitterTarget = new AntennaCalibrationTargetSnapshot
             {
                 AzimuthTrue = a.TransmitterAzimuthDegrees,
@@ -501,6 +524,7 @@ public sealed class AntennaCalibrationSessionStore : IAntennaCalibrationSessionS
         ReceiverAntennaMsl = session.ReceiverAntennaMsl,
         AlignmentJson = JsonSerializer.Serialize(session.Alignment, JsonOptions),
         PathJson = JsonSerializer.Serialize(session.Path, JsonOptions),
+        Workflow = AntennaCalibrationWorkflow.Normalize(session.Workflow),
         CreatedAtUtc = session.CreatedAtUtc,
         LastActivityUtc = session.LastActivityUtc,
         ExpiresAtUtc = session.ExpiresAtUtc
@@ -531,6 +555,7 @@ public sealed class AntennaCalibrationSessionStore : IAntennaCalibrationSessionS
                 SectorAntennaMsl = row.SectorAntennaMsl,
                 ReceiverAntennaMsl = row.ReceiverAntennaMsl,
                 Path = path,
+                Workflow = AntennaCalibrationWorkflow.Normalize(row.Workflow),
                 CreatedAtUtc = row.CreatedAtUtc,
                 LastActivityUtc = row.LastActivityUtc,
                 ExpiresAtUtc = row.ExpiresAtUtc
@@ -573,8 +598,15 @@ public sealed class AntennaCalibrationSessionStore : IAntennaCalibrationSessionS
     private static string NormalizeRole(string? role) =>
         string.Equals(role, "tx", StringComparison.OrdinalIgnoreCase) ? "tx" : "rx";
 
-    private static string SnapshotKey(AntennaCalibrationRadioState state) =>
-        string.Join('|',
+    private static string SnapshotKey(AntennaCalibrationRadioState state)
+    {
+        bool nearPeak = state.SignalDbm is int live
+            && state.PeakSignalDbm is int peak
+            && live >= peak - 2;
+        bool peakLocked = nearPeak
+            && state.NearPeakSinceUtc is DateTime since
+            && (state.UpdatedAtUtc ?? DateTime.UtcNow) - since >= TimeSpan.FromSeconds(3);
+        return string.Join('|',
             state.Available,
             state.Status,
             state.MatchReason,
@@ -584,7 +616,26 @@ public sealed class AntennaCalibrationSessionStore : IAntennaCalibrationSessionS
             state.PeakSnrDb,
             state.CcqPercent,
             state.MacAddress,
-            state.LastIp);
+            state.LastIp,
+            nearPeak,
+            peakLocked,
+            state.NearPeakSinceUtc?.Ticks);
+    }
+
+    private static string? BuildExpectedSignalHint(double distanceMeters)
+    {
+        if (distanceMeters < 50)
+        {
+            return "مسافة قصيرة: القمة عادة قوية. إن بقيت ضعيفة تحقق من الاستقطاب والمسار.";
+        }
+
+        if (distanceMeters < 1500)
+        {
+            return $"مسافة {distanceMeters:0} م: اضبط على أعلى RSSI. ضعف كبير عن المعتاد غالباً عائق أو توجيه بعيد.";
+        }
+
+        return $"مسافة {distanceMeters:0} م: تحرّك أبطأ وراقب القمة وSNR. المسارات الطويلة أكثر حساسية للفريسنل.";
+    }
 
     private void PruneMemory()
     {
@@ -625,6 +676,11 @@ public static class AntennaCalibrationAdvice
             return session.Path.Summary;
         }
 
+        if (radio.Available && radio.PeakLocked)
+        {
+            return $"قفل قمة مستقر ({radio.SignalDbm} dBm). ثبّت البراغي الآن ثم أعد التحقق بعد التثبيت.";
+        }
+
         if (geometryLocked)
         {
             if (radio.Available && radio.SignalDbm is int signal)
@@ -638,15 +694,31 @@ public static class AntennaCalibrationAdvice
 
         if (!session.Transmitter.Connected && !session.Receiver.Connected)
         {
+            if (AntennaCalibrationWorkflow.IsPro(session.Workflow))
+            {
+                return "مسار احترافي: الصق الموبايل على ظهر الصحن، ابدأ المراقبة، ثم امسح أفقياً ثم عمودياً حتى قفل القمة.";
+            }
+
+            if (AntennaCalibrationWorkflow.IsQuick(session.Workflow))
+            {
+                return "مسار تقريبي: فعّل البوصلة للتقريب ثم ثبّت عند قمة RSSI.";
+            }
+
             return "افتح شاشة الميدان، الصق الموبايل على ظهر الصحن، وفضّل وضع «إشارة فقط» لقمة RSSI. البوصلة تقريبية فقط.";
         }
 
         if (radio.Available && radio.SignalDbm is int liveSignal)
         {
             string peak = radio.PeakSignalDbm is int p ? $" · قمة {p} dBm" : "";
-            if (radio.PeakSignalDbm is int peakVal && liveSignal >= peakVal - 1)
+            string snr = radio.SnrDb is int s ? $" · SNR {s} dB" : "";
+            if (radio.NearPeak)
             {
-                return $"قرب القمة ({liveSignal} dBm{peak}). ثبّت عند أفضل قيمة ثم اربط البراغي.";
+                return $"قرب القمة ({liveSignal} dBm{peak}{snr}). ثبّت عند أفضل قيمة ثم اربط البراغي.";
+            }
+
+            if (AntennaCalibrationWorkflow.IsPro(session.Workflow))
+            {
+                return $"احترافي: راقب {liveSignal} dBm{peak}{snr}. امسح محوراً واحداً ببطء حتى القمة ثم انتقل للمحور التالي.";
             }
 
             return $"راقب الإشارة الحية {liveSignal} dBm{peak}. حرّك ببطء جداً حتى تصل للقمة ثم ثبّت.";

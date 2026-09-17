@@ -53,6 +53,7 @@ public class AntennaCalibrationController : Controller
         [FromForm] string? receiverName,
         [FromForm] string? receiverIp,
         [FromForm] string? receiverMac,
+        [FromForm] string? workflow,
         CancellationToken ct)
     {
         ApplicationUser? user = await _userManager.GetUserAsync(User);
@@ -75,6 +76,7 @@ public class AntennaCalibrationController : Controller
                 receiverName,
                 receiverIp,
                 receiverMac,
+                workflow,
                 ct);
             return RedirectToAction(nameof(Index), new { code = session.Code });
         }
@@ -104,6 +106,8 @@ public class AntennaCalibrationController : Controller
             Title = normalized == "tx" ? "معايرة المرسل" : "معايرة المستقبل",
             EndpointName = normalized == "tx" ? session.SectorName : session.ReceiverName,
             OtherName = normalized == "tx" ? session.ReceiverName : session.SectorName,
+            Workflow = AntennaCalibrationWorkflow.Normalize(session.Workflow),
+            WorkflowLabel = AntennaCalibrationWorkflow.DisplayName(session.Workflow),
             Snapshot = snapshot
         };
         return View("~/Views/AntennaCalibration/Join.cshtml", vm);
@@ -198,6 +202,7 @@ public class AntennaCalibrationController : Controller
         string? receiverName,
         string? receiverIp,
         string? receiverMac,
+        string? workflow,
         CancellationToken ct)
     {
         Sector? sector = await _context.Sectors.AsNoTracking()
@@ -294,7 +299,8 @@ public class AntennaCalibrationController : Controller
             Alignment = alignment,
             SectorAntennaMsl = sectorTerrain.Value + sectorAgl,
             ReceiverAntennaMsl = receiverTerrain.Value + rxAgl,
-            Path = path
+            Path = path,
+            Workflow = AntennaCalibrationWorkflow.Normalize(workflow)
         };
         return _sessions.Create(session);
     }
