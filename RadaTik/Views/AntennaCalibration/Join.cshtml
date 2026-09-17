@@ -5,11 +5,16 @@
     var target = Model.IsTransmitter ? Model.Snapshot.TransmitterTarget : Model.Snapshot.ReceiverTarget;
 }
 
-<div class="calibrate-field-page" data-code="@Model.Code" data-role="@Model.Role">
+<div class="calibrate-field-page" data-code="@Model.Code" data-role="@Model.Role" data-mode="signal">
     <header class="calibrate-field-head">
         <h1>@Model.Title</h1>
         <p>@Model.EndpointName ← → @Model.OtherName · رمز @Model.Code</p>
     </header>
+
+    <div class="calibrate-mode-switch" role="group" aria-label="وضع المعايرة">
+        <button type="button" class="btn btn-sm btn-success is-active" id="modeSignal" data-mode="signal">إشارة فقط (أدق)</button>
+        <button type="button" class="btn btn-sm btn-outline-light" id="modeCompass" data-mode="compass">بوصلة تقريبية</button>
+    </div>
 
     <div class="calibrate-field-figure">
         @if (Model.IsTransmitter)
@@ -21,38 +26,60 @@
             <partial name="_CalibratePhonePlacementRx" />
         }
         <partial name="_CalibrateFieldSteps" />
-        <p class="calibrate-field-caption">الصق ظهر الموبايل على وجه الإشعاع، والشاشة نحو الطرف الآخر. لا تلصق على المعدن أو المغناطيس.</p>
+        <p class="calibrate-field-caption">الصق ظهر الموبايل على الظهر الخلفي للصحن، والشاشة نحو الفني. القفل النهائي بقمة الإشارة وليس بدرجة البوصلة.</p>
     </div>
 
-    <p id="metalWarn" class="antenna-cal-metal-warn d-none">البوصلة مشوّشة. أبعد الموبايل عن الصينية المعدنية/المغناطيس ثم أعد اللصق.</p>
+    <p id="metalWarn" class="antenna-cal-metal-warn d-none">البوصلة مشوّشة قرب المعدن. استخدم وضع إشارة فقط.</p>
     <p id="pathNote" class="calibrate-field-path">@Model.Snapshot.Path.Summary</p>
 
+    <section class="calibrate-rf-panel" id="rfPanel">
+        <div class="calibrate-rf-big">
+            <div>
+                <span>RSSI الآن</span>
+                <strong id="liveRf">—</strong>
+            </div>
+            <div>
+                <span>أفضل قمة</span>
+                <strong id="livePeak">—</strong>
+            </div>
+        </div>
+        <div class="calibrate-rf-meter" aria-hidden="true">
+            <div class="calibrate-rf-meter-fill" id="rfMeterFill"></div>
+            <div class="calibrate-rf-meter-peak" id="rfMeterPeak"></div>
+        </div>
+        <p id="rfHint" class="calibrate-rf-hint">حرّك الهوائي ببطء جداً. عندما يصل الرقم للقمة ثبّت البراغي.</p>
+        <button type="button" class="btn btn-outline-warning btn-sm w-100" id="btnResetPeakField">تصفير القمة</button>
+    </section>
+
     <div class="calibrate-steer" id="steerBox" aria-live="polite">
+        <p class="calibrate-steer-note">أسهم البوصلة تقريبية ومن منظور الفني خلف الصحن.</p>
         <div class="calibrate-steer-row" dir="ltr">
             <span class="steer-chip" id="steerLeft">يسار</span>
-            <span class="steer-chip is-ok d-none" id="steerAzOk">أفقي جاهز</span>
+            <span class="steer-chip is-ok d-none" id="steerAzOk">أفقي قريب</span>
             <span class="steer-chip" id="steerRight">يمين</span>
         </div>
         <div class="calibrate-steer-row">
             <span class="steer-chip" id="steerUp">ارفع</span>
-            <span class="steer-chip is-ok d-none" id="steerElOk">عمودي جاهز</span>
+            <span class="steer-chip is-ok d-none" id="steerElOk">عمودي قريب</span>
             <span class="steer-chip" id="steerDown">اخفض</span>
         </div>
-        <p class="calibrate-steer-deg" id="steerDeg">الأسهم تظهر بعد تفعيل البوصلة</p>
+        <p class="calibrate-steer-deg" id="steerDeg">فعّل البوصلة إن أردت التقريب</p>
     </div>
 
-    <div class="antenna-cal-metrics">
-        <div><span>سمت البوصلة المطلوب</span><strong>@target.AzimuthMagnetic.ToString("0.0")°</strong></div>
-        <div><span>الميل المطلوب</span><strong>@target.Elevation.ToString("0.00")°</strong></div>
+    <div class="antenna-cal-metrics" id="compassMetrics">
+        <div><span>سمت مطلوب (تقريبي)</span><strong>@target.AzimuthMagnetic.ToString("0.0")°</strong></div>
+        <div><span>ميل مطلوب</span><strong>@target.Elevation.ToString("0.00")°</strong></div>
         <div><span>السمت الحي</span><strong id="liveAz">—</strong></div>
         <div><span>الميل الحي</span><strong id="liveEl">—</strong></div>
-        <div><span>RSSI</span><strong id="liveRf">—</strong></div>
-        <div><span>أفضل قمة</span><strong id="livePeak">—</strong></div>
     </div>
-    <p id="liveHint" class="antenna-cal-status">الصق كما في الرسم الصحيح ثم اضغط تفعيل. أبقِ الشاشة مضاءة.</p>
+    <p id="liveHint" class="antenna-cal-status">الوضع الافتراضي: إشارة فقط. ابدأ المراقبة ثم حرّك حتى القمة.</p>
     <p id="liveDelta" class="calibrate-field-delta"></p>
-    <button type="button" class="btn btn-success btn-lg w-100" id="btnEnableFieldCompass">
-        <i class="fas fa-mobile-alt"></i> فهمت — تفعيل البوصلة
+
+    <button type="button" class="btn btn-success btn-lg w-100" id="btnStartSignal">
+        <i class="fas fa-broadcast-tower"></i> بدء مراقبة الإشارة
+    </button>
+    <button type="button" class="btn btn-outline-light btn-lg w-100 mt-2 d-none" id="btnEnableFieldCompass">
+        <i class="fas fa-mobile-alt"></i> تفعيل البوصلة التقريبية
     </button>
 </div>
 
@@ -70,10 +97,36 @@
             var lastSent = 0;
             var wakeLock = null;
             var samples = [];
+            var mode = 'signal';
+            var lastRf = null;
+            var lastPeak = null;
 
             function setText(id, t) {
                 var el = document.getElementById(id);
                 if (el) el.textContent = t;
+            }
+
+            function setMode(next) {
+                mode = next;
+                page.setAttribute('data-mode', mode);
+                page.classList.toggle('mode-signal', mode === 'signal');
+                page.classList.toggle('mode-compass', mode === 'compass');
+                document.getElementById('modeSignal').classList.toggle('is-active', mode === 'signal');
+                document.getElementById('modeSignal').classList.toggle('btn-success', mode === 'signal');
+                document.getElementById('modeSignal').classList.toggle('btn-outline-light', mode !== 'signal');
+                document.getElementById('modeCompass').classList.toggle('is-active', mode === 'compass');
+                document.getElementById('modeCompass').classList.toggle('btn-success', mode === 'compass');
+                document.getElementById('modeCompass').classList.toggle('btn-outline-light', mode !== 'compass');
+                document.getElementById('btnEnableFieldCompass').classList.toggle('d-none', mode !== 'compass');
+                document.getElementById('btnStartSignal').classList.toggle('d-none', mode !== 'signal');
+                document.getElementById('steerBox').classList.toggle('d-none', mode === 'signal');
+                document.getElementById('compassMetrics').classList.toggle('d-none', mode === 'signal');
+                if (mode === 'signal') {
+                    publishing = false;
+                    setText('liveHint', 'وضع إشارة فقط: حرّك ببطء وراقب RSSI حتى القمة ثم ثبّت.');
+                } else {
+                    setText('liveHint', 'البوصلة تقريبية قرب المعدن. فعّلها للتقريب ثم اقفل على قمة RSSI.');
+                }
             }
 
             function keepAwake() {
@@ -85,7 +138,7 @@
             }
 
             document.addEventListener('visibilitychange', function () {
-                if (document.visibilityState === 'visible' && publishing) keepAwake();
+                if (document.visibilityState === 'visible') keepAwake();
             });
 
             function circularMean(values) {
@@ -115,11 +168,12 @@
                 if (el) el.classList.toggle('d-none', !!hidden);
             }
 
+            // من منظور الفني خلف الصحن: نعكس أسهم التوجيه عن فرق السمت/الميل الهندسي.
             function applySteer(live) {
                 var azOk = !!live.horizontalAligned;
                 var elOk = !!live.verticalAligned;
-                var az = live.azimuthDelta;
-                var el = live.elevationDelta;
+                var az = live.azimuthDelta == null ? null : -Number(live.azimuthDelta);
+                var el = live.elevationDelta == null ? null : -Number(live.elevationDelta);
                 setHidden('steerAzOk', !azOk);
                 setHidden('steerLeft', azOk || !(az < -0.8));
                 setHidden('steerRight', azOk || !(az > 0.8));
@@ -131,11 +185,11 @@
                 setActive('steerUp', !elOk && el > 0.4);
                 setActive('steerDown', !elOk && el < -0.4);
                 if (live.compassUnstable) {
-                    setText('steerDeg', 'أبعد المعدن ثم أعد اللصق');
+                    setText('steerDeg', 'تشويش · انتقل لإشارة فقط');
                     return;
                 }
                 if (azOk && elOk) {
-                    setText('steerDeg', 'الاتجاه جاهز. راقب قمة RSSI ثم ثبّت');
+                    setText('steerDeg', 'تقريب جاهز · اقفل على قمة RSSI');
                     return;
                 }
                 var bits = [];
@@ -144,40 +198,59 @@
                 setText('steerDeg', bits.join(' · ') || 'حرّك ببطء');
             }
 
+            function updateRfMeter(signal, peak) {
+                // نطاق عملي تقريباً من -90 إلى -40 dBm
+                function pct(v) {
+                    if (v == null || !isFinite(v)) return 0;
+                    return Math.max(0, Math.min(100, ((Number(v) + 90) / 50) * 100));
+                }
+                var fill = document.getElementById('rfMeterFill');
+                var peakMark = document.getElementById('rfMeterPeak');
+                if (fill) fill.style.width = pct(signal) + '%';
+                if (peakMark) peakMark.style.left = pct(peak) + '%';
+            }
+
             connection.on('sessionUpdated', function (snap) {
                 if (!snap) return;
                 var live = role === 'tx' ? snap.transmitterLive : snap.receiverLive;
+                if (snap.path) setText('pathNote', snap.path.summary || '');
+                if (snap.radio) {
+                    lastRf = snap.radio.signalDbm;
+                    lastPeak = snap.radio.peakSignalDbm;
+                    setText('liveRf', lastRf == null ? '—' : lastRf + ' dBm');
+                    setText('livePeak', lastPeak == null ? '—' : lastPeak + ' dBm');
+                    updateRfMeter(lastRf, lastPeak);
+                    var atPeak = !!(snap.radio.available && lastRf != null && lastPeak != null && lastRf >= lastPeak - 1);
+                    page.classList.toggle('is-rf-peak', atPeak);
+                    if (mode === 'signal') {
+                        setText('rfHint', atPeak
+                            ? 'عند القمة أو قربها. ثبّت البراغي الآن.'
+                            : 'حرّك ببطء جداً. الهدف الوصول لرقم القمة ثم التثبيت.');
+                        setText('liveHint', atPeak
+                            ? 'ممتاز: قرب قمة الإشارة. ثبّت.'
+                            : 'راقب RSSI فقط. لا تعتمد على درجة البوصلة.');
+                    }
+                }
                 if (!live) return;
                 setText('liveAz', live.azimuth == null ? '—' : Number(live.azimuth).toFixed(1) + '°');
                 setText('liveEl', live.elevation == null ? '—' : Number(live.elevation).toFixed(2) + '°');
                 var warn = document.getElementById('metalWarn');
-                if (warn) warn.classList.toggle('d-none', !live.compassUnstable);
-                if (snap.path) setText('pathNote', snap.path.summary || '');
-                if (snap.radio) {
-                    setText('liveRf', snap.radio.signalDbm == null ? '—' : snap.radio.signalDbm + ' dBm');
-                    setText('livePeak', snap.radio.peakSignalDbm == null ? '—' : snap.radio.peakSignalDbm + ' dBm');
-                    page.classList.toggle('is-rf-peak', !!(snap.radio.available && snap.radio.signalDbm != null && snap.radio.signalDbm === snap.radio.peakSignalDbm));
-                }
-                var hint = document.getElementById('liveHint');
-                var delta = document.getElementById('liveDelta');
-                page.classList.toggle('is-ok', live.horizontalAligned && live.verticalAligned);
-                applySteer(live);
-                if (live.compassUnstable) {
-                    hint.textContent = 'تشويش بوصلة. أبعد المعدن ثم أعد اللصق.';
-                    delta.textContent = '';
-                } else if (live.horizontalAligned && live.verticalAligned) {
-                    hint.textContent = snap.radio && snap.radio.available
-                        ? 'محاذى. حرّك ببطء حول قمة الإشارة ثم ثبّت.'
-                        : 'محاذى. ثبّت الهوائي.';
-                    delta.textContent = '';
-                } else {
-                    hint.textContent = 'حرّك الهوائي ببطء مع بقاء الموبايل ملصوقاً.';
-                    delta.textContent = '';
+                if (warn) warn.classList.toggle('d-none', mode !== 'compass' || !live.compassUnstable);
+                page.classList.toggle('is-ok', mode === 'compass' && live.horizontalAligned && live.verticalAligned);
+                if (mode === 'compass') {
+                    applySteer(live);
+                    if (live.compassUnstable) {
+                        setText('liveHint', 'تشويش بوصلة. انتقل لإشارة فقط.');
+                    } else if (live.horizontalAligned && live.verticalAligned) {
+                        setText('liveHint', 'تقريب بوصلة جاهز. أكمل بقمة RSSI ثم ثبّت.');
+                    } else {
+                        setText('liveHint', 'تقريب بالبوصلة فقط. القفل النهائي بالإشارة.');
+                    }
                 }
             });
 
             function publish(e) {
-                if (!publishing || connection.state !== 'Connected') return;
+                if (mode !== 'compass' || !publishing || connection.state !== 'Connected') return;
                 var alpha = e.alpha, beta = e.beta, gamma = e.gamma;
                 if (typeof alpha !== 'number' || typeof beta !== 'number' || typeof gamma !== 'number') return;
                 samples.push({ a: alpha, b: beta, g: gamma });
@@ -202,8 +275,16 @@
                 window.addEventListener('deviceorientationabsolute', publish, true);
                 window.addEventListener('deviceorientation', publish, true);
                 keepAwake();
-                setText('liveHint', 'البوصلة تعمل. أبقِ الموبايل ملصوقاً كما في الرسم الصحيح.');
+                setText('liveHint', 'البوصلة تعمل للتقريب. القفل النهائي بقمة RSSI.');
             }
+
+            document.getElementById('modeSignal').addEventListener('click', function () { setMode('signal'); });
+            document.getElementById('modeCompass').addEventListener('click', function () { setMode('compass'); });
+
+            document.getElementById('btnStartSignal').addEventListener('click', function () {
+                keepAwake();
+                setText('liveHint', 'مراقبة الإشارة فعّالة. حرّك ببطء حتى القمة.');
+            });
 
             document.getElementById('btnEnableFieldCompass').addEventListener('click', function () {
                 var Orientation = window.DeviceOrientationEvent;
@@ -218,6 +299,13 @@
                 }
             });
 
+            document.getElementById('btnResetPeakField').addEventListener('click', function () {
+                if (connection.state === 'Connected') {
+                    connection.invoke('ResetPeak', code).catch(function () {});
+                }
+            });
+
+            setMode('signal');
             connection.start().then(function () { return connection.invoke('JoinField', code, role); })
                 .catch(function () { setText('liveHint', 'تعذر الاتصال بالجلسة. تحقق من الشبكة.'); });
         })();

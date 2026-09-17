@@ -35,9 +35,12 @@ public sealed class AntennaCalibrationViewTests
         Assert.Contains("metalWarn", join);
         Assert.Contains("_CalibratePhonePlacementSim", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_CalibratePhonePlacementTx.cshtml")));
         Assert.Contains("_CalibratePhonePlacementSim", File.ReadAllText(FindFile("RadaTik", "Views", "Shared", "_CalibratePhonePlacementRx.cshtml")));
-        Assert.Contains("litebeam.png", sim);
-        Assert.Contains("phone.png", sim);
-        Assert.Contains("cal-sim-play", sim);
+        Assert.Contains("ظهر الصحن", sim);
+        Assert.Contains("modeSignal", join);
+        Assert.Contains("btnStartSignal", join);
+        Assert.Contains("calibrate-rf-panel", join);
+        Assert.Contains("ToAntennaBoresightFromDishBack", File.ReadAllText(FindFile("RadaTik", "Hubs", "AntennaCalibrationHub.cs")));
+        Assert.Contains("HorizontalAlignToleranceDegrees", File.ReadAllText(FindFile("RadaTik", "Services", "PhoneBoresightMath.cs")));
         Assert.Contains("_CalibrateFieldSteps", join);
         Assert.Contains("steerBox", join);
         Assert.Contains("~/lib/signalr/signalr.min.js", join);

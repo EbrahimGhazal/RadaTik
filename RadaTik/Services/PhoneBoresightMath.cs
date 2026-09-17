@@ -1,11 +1,18 @@
 namespace RadaTik.Services;
 
 /// <summary>
-/// اتجاه إشعاع الهوائي من موبايل ملصوق عليه: ناظم الشاشة (+Z نحو المستخدم) وفق W3C DeviceOrientation.
+/// اتجاه إشعاع الهوائي من موبايل وفق W3C DeviceOrientation.
+/// الوضع المعتمد ميدانياً: ظهر الموبايل على <b>الظهر الخلفي للصحن</b>، والشاشة نحو الفني (عكس اتجاه الإشعاع).
 /// الإطار الأرضي: X شرق، Y شمال، Z أعلى. السمت 0 = شمال مع عقارب الساعة.
 /// </summary>
 public static class PhoneBoresightMath
 {
+    /// <summary>تسامح أفقي أوسع لأن المعدن يشوّش البوصلة؛ القفل النهائي بقمة RSSI.</summary>
+    public const double HorizontalAlignToleranceDegrees = 10;
+
+    /// <summary>تسامح عمودي أوسع؛ الميل أدق من السمت عادة.</summary>
+    public const double VerticalAlignToleranceDegrees = 5;
+
     public static PhoneBoresightPose FromDeviceOrientation(double alphaDegrees, double betaDegrees, double gammaDegrees)
     {
         double a = alphaDegrees * Math.PI / 180.0;
@@ -18,6 +25,7 @@ public static class PhoneBoresightMath
         double cg = Math.Cos(g);
         double sg = Math.Sin(g);
 
+        // ناظم الشاشة (+Z نحو المستخدم / الشاشة).
         double east = (sb * ca) + (cb * sg * sa);
         double north = (sb * sa) - (cb * sg * ca);
         double up = cg * cb;
@@ -36,6 +44,23 @@ public static class PhoneBoresightMath
 
         double elevation = Math.Atan2(up, horizontal) * 180.0 / Math.PI;
         return new PhoneBoresightPose(azimuth, elevation, true);
+    }
+
+    /// <summary>
+    /// يحوّل اتجاه ناظم الشاشة إلى اتجاه إشعاع الهوائي عندما يكون الموبايل على ظهر الصحن
+    /// والشاشة نحو الفني (عكس الحزمة).
+    /// </summary>
+    public static PhoneBoresightPose ToAntennaBoresightFromDishBack(PhoneBoresightPose screenNormalPose)
+    {
+        if (!screenNormalPose.AzimuthValid)
+        {
+            return screenNormalPose with { ElevationDegrees = -screenNormalPose.ElevationDegrees };
+        }
+
+        return new PhoneBoresightPose(
+            LineOfSightMath.NormalizeDegrees360(screenNormalPose.AzimuthDegrees + 180),
+            -screenNormalPose.ElevationDegrees,
+            true);
     }
 
     public static double ToMagneticAzimuth(double trueOrRawAzimuth, double declinationEastDegrees, bool fromTrueNorth)

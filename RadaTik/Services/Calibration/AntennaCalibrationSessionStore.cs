@@ -560,8 +560,8 @@ public sealed class AntennaCalibrationSessionStore : IAntennaCalibrationSessionS
             Elevation = live.ElevationDegrees,
             AzimuthDelta = azDelta,
             ElevationDelta = elDelta,
-            HorizontalAligned = azDelta is double dAz && Math.Abs(dAz) <= 5,
-            VerticalAligned = elDelta is double dEl && Math.Abs(dEl) <= 2.5,
+            HorizontalAligned = azDelta is double dAz && Math.Abs(dAz) <= PhoneBoresightMath.HorizontalAlignToleranceDegrees,
+            VerticalAligned = elDelta is double dEl && Math.Abs(dEl) <= PhoneBoresightMath.VerticalAlignToleranceDegrees,
             AccuracyDegrees = live.AccuracyDegrees,
             CompassUnstable = PhoneBoresightMath.CompassUnstable(live.AccuracyDegrees)
         };
@@ -636,21 +636,32 @@ public static class AntennaCalibrationAdvice
             return "الطرفان محاذيان هندسياً. ثبّت البراغي ثم راقب قمة الإشارة.";
         }
 
-        if (tx.CompassUnstable || rx.CompassUnstable)
-        {
-            return "البوصلة مشوّشة (معدن/مغناطيس قريب). أبعد الموبايل عن الصينية المعدنية ثم أعد اللصق.";
-        }
-
         if (!session.Transmitter.Connected && !session.Receiver.Connected)
         {
-            return "افتح شاشة الميدان من الرمز أو QR، والصق الهاتف كما في الرسم، ثم فعّل البوصلة.";
+            return "افتح شاشة الميدان، الصق الموبايل على ظهر الصحن، وفضّل وضع «إشارة فقط» لقمة RSSI. البوصلة تقريبية فقط.";
+        }
+
+        if (radio.Available && radio.SignalDbm is int liveSignal)
+        {
+            string peak = radio.PeakSignalDbm is int p ? $" · قمة {p} dBm" : "";
+            if (radio.PeakSignalDbm is int peakVal && liveSignal >= peakVal - 1)
+            {
+                return $"قرب القمة ({liveSignal} dBm{peak}). ثبّت عند أفضل قيمة ثم اربط البراغي.";
+            }
+
+            return $"راقب الإشارة الحية {liveSignal} dBm{peak}. حرّك ببطء جداً حتى تصل للقمة ثم ثبّت.";
+        }
+
+        if (tx.CompassUnstable || rx.CompassUnstable)
+        {
+            return "البوصلة مشوّشة قرب المعدن. انتقل لوضع «إشارة فقط» واصطد قمة RSSI.";
         }
 
         if (session.Path.Analyzed && !session.Path.FresnelClear)
         {
-            return session.Path.Summary + " اضبط الأفقي أولاً حتى يخضر، ثم الميل.";
+            return session.Path.Summary + " البوصلة تقريبية؛ اعتمد قمة الإشارة للقفل النهائي.";
         }
 
-        return "اضبط الأفقي أولاً حتى يخضر، ثم الميل العمودي. المعدن القريب يشوّش البوصلة.";
+        return "البوصلة للتقريب فقط. الأفضل: وضع إشارة فقط وحرّك حتى أعلى RSSI ثم ثبّت.";
     }
 }

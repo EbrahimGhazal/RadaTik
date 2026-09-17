@@ -43,11 +43,12 @@ public sealed class AntennaCalibrationHub(IAntennaCalibrationSessionStore sessio
         AntennaCalibrationSession session = RequireSession(code);
         string normalized = NormalizeRole(role);
         PhoneBoresightPose pose = PhoneBoresightMath.FromDeviceOrientation(alpha, beta, gamma);
+        PhoneBoresightPose dishBack = PhoneBoresightMath.ToAntennaBoresightFromDishBack(pose);
         double az = PhoneBoresightMath.ToMagneticAzimuth(
-            pose.AzimuthDegrees,
+            dishBack.AzimuthDegrees,
             session.Alignment.MagneticDeclinationDegrees,
             fromTrueNorth: @absolute);
-        PhoneBoresightPose magnetic = pose with { AzimuthDegrees = az };
+        PhoneBoresightPose magnetic = dishBack with { AzimuthDegrees = az };
         if (!sessions.TryUpdatePose(session.Code, normalized, magnetic, Context.ConnectionId, accuracy))
         {
             throw new HubException("تعذر تحديث وضع الهوائي.");

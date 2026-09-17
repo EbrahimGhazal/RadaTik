@@ -36,6 +36,16 @@ public sealed class PhoneBoresightMathTests
         Assert.InRange(mag, 84.5, 85.5);
     }
 
+    [Fact]
+    public void DishBackPlacement_FlipsAzimuth180AndNegatesElevation()
+    {
+        PhoneBoresightPose screen = new(90, 10, true);
+        PhoneBoresightPose beam = PhoneBoresightMath.ToAntennaBoresightFromDishBack(screen);
+        Assert.InRange(beam.AzimuthDegrees, 269.5, 270.5);
+        Assert.InRange(beam.ElevationDegrees, -10.5, -9.5);
+        Assert.True(beam.AzimuthValid);
+    }
+
     [Theory]
     [InlineData(null, false)]
     [InlineData(8.0, false)]
