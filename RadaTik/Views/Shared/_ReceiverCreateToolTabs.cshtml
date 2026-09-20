@@ -2,16 +2,7 @@
     var showLosNotes = ViewData["ShowLosNotes"] as bool? == true;
 }
 
-<div class="receiver-tool-tabs" role="tablist" aria-label="أدوات المسار">
-    <button type="button" class="receiver-tool-tab is-active" id="tabBtnLos" data-tool-tab="los" role="tab" aria-selected="true" aria-controls="receiverTabLos">
-        <i class="fas fa-mountain"></i> خط الرؤية
-    </button>
-    <button type="button" class="receiver-tool-tab" id="tabBtnCalibrate" data-tool-tab="calibrate" role="tab" aria-selected="false" aria-controls="receiverTabCalibrate">
-        <i class="fas fa-compass"></i> معايرة
-    </button>
-</div>
-
-<div id="receiverTabLos" class="receiver-tool-pane" data-tool-pane="los" role="tabpanel" aria-labelledby="tabBtnLos">
+<div id="receiverTabLos" class="receiver-tool-pane" data-tool-pane="los" role="region" aria-label="خط الرؤية">
     @if (showLosNotes)
     {
         <details class="los-static-notes" id="losStaticNotes">
@@ -35,35 +26,5 @@
             <button type="button" class="btn btn-sm btn-outline-secondary" id="btnLosResultClose" title="إخفاء النتيجة">×</button>
         </div>
         <div id="losResultContent" class="los-result-content"></div>
-    </div>
-</div>
-
-<div id="receiverTabCalibrate" class="receiver-tool-pane d-none" data-tool-pane="calibrate" role="tabpanel" aria-labelledby="tabBtnCalibrate">
-    <p class="form-hint mb-2">
-        يحسب السمت والميل مع انحناء الأرض وبوصلة الموقع، ويراجع خط الرؤية، ثم يقرأ <strong>الإشارة الحية</strong> من المرسل. على كرت المستقبل بوصلة موبايل حية: ضع الهاتف على اللاقط وأعلى الشاشة باتجاه الإشعاع.
-    </p>
-    <div class="calibrate-mac-row mb-2">
-        <label class="form-label mb-1" for="calibrateMacInput">MAC اللاقط (اختياري)</label>
-        <input id="calibrateMacInput" class="form-control" type="text" inputmode="text" autocomplete="off" placeholder="AA:BB:CC:DD:EE:FF — إن ظهر على الهواء" />
-    </div>
-    <button type="button" class="btn btn-outline-success" id="btnCalibrateAlignment" title="حساب سمت وميل الهوائيين ومراجعة المسار">
-        <i class="fas fa-compass"></i> حساب المعايرة
-    </button>
-    <div id="calibrateResultPanel" class="calibrate-result-panel d-none" role="region" aria-live="polite">
-        <div id="calibrateResultContent"></div>
-    </div>
-    <div id="calibrateLivePanel" class="calibrate-live-panel d-none" role="region" aria-live="polite">
-        <h5><i class="fas fa-signal"></i> إشارة حية من المرسل</h5>
-        <p class="form-hint">شغّل اللاقط وحرّك الطبق ببطء يميناً/يساراً ثم أعلى/أسفل. ثبّت عند أعلى قراءة.</p>
-        <div class="calibrate-live-metrics">
-            <div><span>الحالية</span><strong id="calLiveSignal">—</strong></div>
-            <div><span>الذروة</span><strong id="calLivePeak">—</strong></div>
-            <div><span>SNR</span><strong id="calLiveSnr">—</strong></div>
-            <div><span>CCQ</span><strong id="calLiveCcq">—</strong></div>
-        </div>
-        <p id="calLiveStatus" class="form-hint mb-1"></p>
-        <p id="calLiveAdvice" class="mb-2"></p>
-        <ul id="calLiveStations" class="calibrate-station-list"></ul>
-        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCalibrateResetPeak">إعادة ضبط الذروة</button>
     </div>
 </div>

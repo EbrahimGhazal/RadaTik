@@ -7,11 +7,6 @@ public static partial class RouteMappingExtensions
     private static void MapFallbackAndApiRoutes(this WebApplication app)
     {
         app.MapControllerRoute(
-            name: "calibration-field-join",
-            pattern: "calibrate/Join",
-            defaults: new { controller = "AntennaCalibration", action = "Join" });
-
-        app.MapControllerRoute(
             name: "areas",
             pattern: "{area:exists}/{controller=Dashboard}/{action=Index}/{id?}");
 
@@ -21,6 +16,5 @@ public static partial class RouteMappingExtensions
 
         app.MapControllers();
         app.MapHub<TrafficHub>("/hubs/traffic");
-        app.MapHub<AntennaCalibrationHub>("/hubs/calibration");
     }
 }

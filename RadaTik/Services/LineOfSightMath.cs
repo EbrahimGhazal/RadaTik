@@ -483,15 +483,15 @@ public static class LineOfSightMath
 
         if (fresnelClear == false)
         {
-            return "خط الرؤية مفتوح تقريباً لكن فريسنل غير كافٍ. ثبّت الاتجاه ثم ارفع الهوائي إن أمكن، وأكمل بالمعايرة الحية.";
+            return "خط الرؤية مفتوح تقريباً لكن فريسنل غير كافٍ. ثبّت الاتجاه ثم ارفع الهوائي إن أمكن.";
         }
 
         if (pathClear == true && fresnelClear == true)
         {
-            return "المسار مناسب هندسياً. ثبّت السمت والميل ثم حرّك الطبق ببطء حتى ذروة الإشارة الحية.";
+            return "المسار مناسب هندسياً.";
         }
 
-        return "ثبّت السمت والميل المحسوبين، ثم أكمل المعايرة بقراءة الإشارة الحية من المرسل.";
+        return "راجع السمت والميل المحسوبين مع المسار على الخريطة.";
     }
 
     private static bool TryGetTag(IReadOnlyDictionary<string, string> tags, string key, out string? value)

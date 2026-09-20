@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using RadaTik.Constants;
 using RadaTik.Data;
 using RadaTik.Models;
@@ -11,7 +10,6 @@ using RadaTik.Helpers;
 using RadaTik.Security;
 using RadaTik.Services.PricingPreview;
 using RadaTik.Services;
-using RadaTik.Services.SectorRadio;
 using RadaTik.ViewModels;
 using System.Linq;
 using System.Threading.Tasks;
@@ -29,25 +27,19 @@ namespace RadaTik.Controllers
         private readonly IUsageBasedSubscriptionChargeService _usageChargeService;
         private readonly ICreatePricingPreviewService _pricingPreviewService;
         private readonly ILineOfSightAnalysisService _lineOfSightAnalysisService;
-        private readonly ISectorRadioAdapter _sectorRadioAdapter;
-        private readonly IMemoryCache _memoryCache;
 
         public ReceiverController(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
             IUsageBasedSubscriptionChargeService usageChargeService,
             ICreatePricingPreviewService pricingPreviewService,
-            ILineOfSightAnalysisService lineOfSightAnalysisService,
-            ISectorRadioAdapter sectorRadioAdapter,
-            IMemoryCache memoryCache)
+            ILineOfSightAnalysisService lineOfSightAnalysisService)
         {
             _context = context;
             _userManager = userManager;
             _usageChargeService = usageChargeService;
             _pricingPreviewService = pricingPreviewService;
             _lineOfSightAnalysisService = lineOfSightAnalysisService;
-            _sectorRadioAdapter = sectorRadioAdapter;
-            _memoryCache = memoryCache;
         }
 
         // GET: Receiver
@@ -894,236 +886,6 @@ namespace RadaTik.Controllers
             return Json(new { success = true, analysis = result });
         }
 
-        /// <summary>معايرة محاذاة الهوائيين: سمت وميل + جودة المسار لأفضل إشارة.</summary>
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [RequirePermission("Receivers.Create")]
-        public async Task<IActionResult> CalibrateAlignment([FromBody] CalibrateAlignmentRequest? request, CancellationToken ct)
-        {
-            if (request == null || request.SectorId <= 0)
-            {
-                return Json(new { success = false, message = "بيانات الطلب غير صالحة." });
-            }
-
-            ApplicationUser? user = await _userManager.GetUserAsync(User);
-            int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
-            if (!networkId.HasValue)
-            {
-                return Json(new { success = false, message = "يرجى تحديد شبكة أولاً" });
-            }
-
-            Sector? sector = await _context.Sectors.AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Id == request.SectorId && s.NetworkId == networkId.Value, ct);
-            if (sector == null)
-            {
-                return Json(new { success = false, message = "القطاع غير موجود." });
-            }
-
-            if (!IsValidLatLng(request.ReceiverLatitude, request.ReceiverLongitude))
-            {
-                return Json(new { success = false, message = "إحداثيات المستقبل غير صالحة." });
-            }
-
-            bool sectorAglAssumed = !(sector.AntennaHeightAglMeters is > 0);
-            bool receiverAglAssumed = !(request.ReceiverAntennaHeightAglMeters is > 0);
-            double sectorAgl = sectorAglAssumed ? 12 : sector.AntennaHeightAglMeters!.Value;
-            double receiverAgl = receiverAglAssumed ? 6 : request.ReceiverAntennaHeightAglMeters!.Value;
-
-            (double frequencyMhz, string frequencySource) = await ResolveLosFrequencyAsync(sector.Id, request.FrequencyMhz, ct);
-
-            LineOfSightAnalysisInput losInput = new LineOfSightAnalysisInput
-            {
-                SectorLat = sector.Latitude,
-                SectorLon = sector.Longitude,
-                SectorTerrainElevationMeters = sector.ElevationMeters,
-                SectorAntennaAglMeters = sectorAgl,
-                ReceiverLat = request.ReceiverLatitude,
-                ReceiverLon = request.ReceiverLongitude,
-                ReceiverTerrainElevationMeters = request.ReceiverElevationMeters,
-                ReceiverAntennaAglMeters = receiverAgl,
-                SampleCount = 48,
-                FrequencyMhz = frequencyMhz,
-                FrequencySource = frequencySource
-            };
-
-            LineOfSightResult? los = null;
-            try
-            {
-                LineOfSightResult analyzed = await _lineOfSightAnalysisService.AnalyzeAsync(losInput, ct);
-                if (analyzed.Success)
-                {
-                    los = analyzed;
-                }
-            }
-            catch
-            {
-                los = null;
-            }
-
-            double? sectorTerrain = sector.ElevationMeters
-                ?? los?.Profile.FirstOrDefault()?.TerrainElevationMslMeters
-                ?? await _lineOfSightAnalysisService.LookupElevationAtAsync(sector.Latitude, sector.Longitude, ct);
-            double? receiverTerrain = request.ReceiverElevationMeters
-                ?? (los is { Profile.Count: > 0 } ? los.Profile[^1].TerrainElevationMslMeters : (double?)null)
-                ?? await _lineOfSightAnalysisService.LookupElevationAtAsync(request.ReceiverLatitude, request.ReceiverLongitude, ct);
-
-            if (sectorTerrain == null || receiverTerrain == null)
-            {
-                return Json(new { success = false, message = "تعذر تحديد ارتفاع الأرض. حدد الموقع على الخريطة أو أدخل الارتفاع يدوياً." });
-            }
-
-            AntennaAlignmentResult alignment = LineOfSightMath.ComputeAlignment(
-                sector.Latitude,
-                sector.Longitude,
-                sectorTerrain.Value + sectorAgl,
-                sector.Direction,
-                sector.CoverageAngle,
-                request.ReceiverLatitude,
-                request.ReceiverLongitude,
-                receiverTerrain.Value + receiverAgl);
-
-            if (alignment.DistanceMeters < 5)
-            {
-                return Json(new { success = false, message = "المسافة شبه معدومة؛ انقل نقطة المستقبل بعيداً عن المرسل." });
-            }
-
-            int blockingObstacles = los?.BuildingObstructions.Count(b => b.LikelyBlocksLos || b.LikelyBlocksFresnel) ?? 0;
-            string advice = LineOfSightMath.BuildAimingAdvice(
-                alignment.InsideCoverageBeam,
-                los?.PathClear,
-                los?.FresnelClear,
-                blockingObstacles);
-
-            return Json(new
-            {
-                success = true,
-                alignment = new
-                {
-                    distanceMeters = Math.Round(alignment.DistanceMeters, 1),
-                    transmitterAzimuthDegrees = Math.Round(alignment.TransmitterAzimuthDegrees, 1),
-                    transmitterElevationDegrees = Math.Round(alignment.TransmitterElevationDegrees, 2),
-                    transmitterAzimuthDeltaDegrees = Math.Round(alignment.TransmitterAzimuthDeltaDegrees, 1),
-                    transmitterCardinal = alignment.TransmitterCardinal,
-                    transmitterMagneticAzimuthDegrees = Math.Round(alignment.TransmitterMagneticAzimuthDegrees, 1),
-                    receiverAzimuthDegrees = Math.Round(alignment.ReceiverAzimuthDegrees, 1),
-                    receiverElevationDegrees = Math.Round(alignment.ReceiverElevationDegrees, 2),
-                    receiverCardinal = alignment.ReceiverCardinal,
-                    receiverMagneticAzimuthDegrees = Math.Round(alignment.ReceiverMagneticAzimuthDegrees, 1),
-                    magneticDeclinationDegrees = Math.Round(alignment.MagneticDeclinationDegrees, 1),
-                    currentSectorAzimuthDegrees = Math.Round(alignment.CurrentSectorAzimuthDegrees, 1),
-                    insideCoverageBeam = alignment.InsideCoverageBeam,
-                    coverageHalfAngleDegrees = Math.Round(alignment.CoverageHalfAngleDegrees, 1),
-                    earthCurvatureApplied = alignment.EarthCurvatureApplied,
-                    sectorAntennaMslMeters = Math.Round(sectorTerrain.Value + sectorAgl, 1),
-                    receiverAntennaMslMeters = Math.Round(receiverTerrain.Value + receiverAgl, 1),
-                    sectorAntennaAglMeters = sectorAgl,
-                    receiverAntennaAglMeters = receiverAgl,
-                    sectorAglAssumed,
-                    receiverAglAssumed,
-                    sectorName = sector.Name,
-                    advice
-                },
-                path = los == null ? null : new
-                {
-                    pathClear = los.PathClear,
-                    terrainClear = los.TerrainClear,
-                    fresnelClear = los.FresnelClear,
-                    minFresnelMarginMeters = Math.Round(los.MinFresnelMarginMeters, 1),
-                    frequencyMhzUsed = Math.Round(los.FrequencyMhzUsed, 0),
-                    frequencySource = los.FrequencySource,
-                    blockingObstacles,
-                    vegetationConsidered = los.VegetationConsidered
-                }
-            });
-        }
-
-        /// <summary>قراءة إشارة المحطة المسجّلة على المرسل أثناء توجيه الطبق.</summary>
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [RequirePermission("Receivers.Create")]
-        public async Task<IActionResult> CalibrateLiveSignal([FromBody] CalibrateLiveSignalRequest? request, CancellationToken ct)
-        {
-            if (request == null || request.SectorId <= 0)
-            {
-                return Json(new { success = false, message = "بيانات الطلب غير صالحة." });
-            }
-
-            ApplicationUser? user = await _userManager.GetUserAsync(User);
-            int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
-            if (!networkId.HasValue)
-            {
-                return Json(new { success = false, message = "يرجى تحديد شبكة أولاً" });
-            }
-
-            Sector? sector = await _context.Sectors.AsNoTracking()
-                .Include(s => s.MikroTikServer)
-                .FirstOrDefaultAsync(s => s.Id == request.SectorId && s.NetworkId == networkId.Value, ct);
-            if (sector == null)
-            {
-                return Json(new { success = false, message = "القطاع غير موجود." });
-            }
-
-            if (sector.MikroTikServer == null || !sector.MikroTikServer.IsActive)
-            {
-                return Json(new { success = false, message = "خادم MikroTik غير متاح لهذا القطاع." });
-            }
-
-            string cacheKey = "calibrate-live:" + sector.Id;
-            if (!_memoryCache.TryGetValue(cacheKey, out SectorRadioStationsResult? radio) || radio == null)
-            {
-                radio = await _sectorRadioAdapter.ReadStationsAsync(sector, sector.MikroTikServer, ct);
-                _memoryCache.Set(cacheKey, radio, TimeSpan.FromSeconds(2));
-            }
-
-            if (!radio.Success)
-            {
-                return Json(new { success = false, message = radio.StatusMessage });
-            }
-
-            RadioStationMatch? match = RadioStationMatcher.Pick(
-                radio.Stations,
-                request.ReceiverIp,
-                request.MacAddress,
-                radio.InterfaceName ?? sector.RadioInterfaceName);
-
-            List<object> stations = radio.Stations
-                .OrderByDescending(s => s.SignalDbm ?? int.MinValue)
-                .Take(8)
-                .Select(s => (object)new
-                {
-                    macAddress = s.MacAddress,
-                    lastIp = s.LastIp,
-                    interfaceName = s.InterfaceName,
-                    signalDbm = s.SignalDbm,
-                    snrDb = s.SnrDb,
-                    ccqPercent = s.CcqPercent,
-                    txRateMbps = s.TxRateMbps,
-                    rxRateMbps = s.RxRateMbps
-                })
-                .ToList();
-
-            return Json(new
-            {
-                success = true,
-                message = radio.StatusMessage,
-                interfaceName = radio.InterfaceName,
-                frequencyMhz = radio.FrequencyMhz,
-                noiseFloorDbm = radio.NoiseFloorDbm,
-                matchReason = match?.Reason,
-                matched = match == null ? null : new
-                {
-                    macAddress = match.Station.MacAddress,
-                    lastIp = match.Station.LastIp,
-                    interfaceName = match.Station.InterfaceName,
-                    signalDbm = match.Station.SignalDbm,
-                    snrDb = match.Station.SnrDb,
-                    ccqPercent = match.Station.CcqPercent,
-                    txRateMbps = match.Station.TxRateMbps,
-                    rxRateMbps = match.Station.RxRateMbps
-                },
-                stations
-            });
-        }
 
         private async Task<(double Mhz, string Source)> ResolveLosFrequencyAsync(
             int sectorId,
