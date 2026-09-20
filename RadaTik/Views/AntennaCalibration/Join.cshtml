@@ -1,0 +1,137 @@
+@model RadaTik.ViewModels.Calibration.CalibrationJoinViewModel
+@using System.Text.Json
+@using RadaTik.Services.Calibration
+@{
+    Layout = "~/Views/Shared/_CalibrateFieldLayout.cshtml";
+    ViewData["Title"] = Model.Title;
+    var sc = Model.Scenario;
+    var aim = CalibrationOptionValues.NormalizeAim(sc.AimMode);
+    var display = CalibrationOptionValues.NormalizeDisplay(sc.DisplayMode);
+    var snap = Model.Snapshot;
+    var target = Model.IsTransmitter ? snap.TransmitterTarget : snap.ReceiverTarget;
+    var live = Model.IsTransmitter ? snap.TransmitterLive : snap.ReceiverLive;
+    var boot = new
+    {
+        code = Model.Code,
+        role = Model.Role,
+        aim,
+        display,
+        needsRadio = sc.NeedsRadio && !Model.IsTransmitter,
+        needsCompass = sc.NeedsCompass,
+        showSnr = sc.ShowSnrCcq,
+        showGeometry = sc.ShowGeometryTargets,
+        showLos = sc.ShowLosHint,
+        success = CalibrationOptionValues.NormalizeSuccess(sc.SuccessMode),
+        peakHold = sc.PeakHoldSeconds,
+        minDbm = sc.MinSignalDbm,
+        targetAz = target.AzimuthMagnetic,
+        targetEl = target.Elevation,
+        distance = snap.DistanceMeters,
+        scenarioName = sc.Name
+    };
+}
+
+<link rel="stylesheet" href="~/css/antenna-calibration.css" asp-append-version="true" />
+
+<div class="calibrate-field-page"
+     id="calField"
+     data-boot='@Html.Raw(JsonSerializer.Serialize(boot))'
+     data-aim="@aim"
+     data-display="@display">
+    <header class="calibrate-field-head">
+        <div class="calibrate-field-kicker">@sc.Name · @CalibrationOptionValues.AimLabel(aim)</div>
+        <h1>@Model.Title</h1>
+        <p>@Model.EndpointName ← → @Model.OtherName · @snap.DistanceMeters.ToString("0") م</p>
+    </header>
+
+    @if (sc.ShowLosHint)
+    {
+        <p class="calibrate-field-path @(snap.PathClear ? "" : "is-blocked")" id="cfPath">@snap.PathSummary</p>
+    }
+
+    <p class="calibrate-field-advice" id="cfAdvice">@snap.Advice</p>
+
+    @if (sc.NeedsRadio && !Model.IsTransmitter)
+    {
+        <section class="calibrate-hero-signal" id="cfSignalHero">
+            <div class="calibrate-hero-label">الإشارة الآن</div>
+            <div class="calibrate-hero-value" id="cfSignal">@(snap.Radio.SignalDbm?.ToString() ?? "—")</div>
+            <div class="calibrate-hero-unit">dBm</div>
+            @if (display != CalibrationOptionValues.DisplayCurrent)
+            {
+                <div class="calibrate-peak-row">
+                    <span>أفضل قمة</span>
+                    <strong id="cfPeak">@(snap.Radio.PeakSignalDbm?.ToString() ?? "—")</strong>
+                    <span>dBm</span>
+                </div>
+            }
+            @if (sc.ShowSnrCcq)
+            {
+                <div class="calibrate-extra-metrics">
+                    <div><span>SNR</span><strong id="cfSnr">@(snap.Radio.SnrDb?.ToString() ?? "—")</strong></div>
+                    <div><span>CCQ</span><strong id="cfCcq">@(snap.Radio.CcqPercent?.ToString() ?? "—")</strong></div>
+                </div>
+            }
+            <div class="calibrate-success-badge" id="cfSuccess" hidden>جاهز للربط</div>
+            <p class="calibrate-field-status" id="cfRadioStatus">@snap.Radio.Status</p>
+        </section>
+    }
+
+    @if (aim == CalibrationOptionValues.AimPro && sc.NeedsRadio && !Model.IsTransmitter)
+    {
+        <ol class="calibrate-pro-steps" id="cfProSteps">
+            <li class="is-active" data-step="h">1) امسح أفقياً ببطء حتى أعلى رقم</li>
+            <li data-step="v">2) ثبّت الأفق ثم اضبط الميل</li>
+            <li data-step="lock">3) انتظر ثبات القمة ثم اربط</li>
+        </ol>
+    }
+
+    @if (sc.ShowGeometryTargets || sc.NeedsCompass)
+    {
+        <section class="calibrate-geometry" id="cfGeometry">
+            <div class="calibrate-geo-grid">
+                <div>
+                    <span>السمت المطلوب</span>
+                    <strong>@target.AzimuthMagnetic.ToString("0.0")°</strong>
+                    <small>@target.Cardinal</small>
+                </div>
+                <div>
+                    <span>الميل المطلوب</span>
+                    <strong>@target.Elevation.ToString("0.00")°</strong>
+                </div>
+                <div>
+                    <span>السمت الحي</span>
+                    <strong id="cfAzLive">@(live.Azimuth?.ToString("0.0") ?? "—")°</strong>
+                </div>
+                <div>
+                    <span>الميل الحي</span>
+                    <strong id="cfElLive">@(live.Elevation?.ToString("0.00") ?? "—")°</strong>
+                </div>
+            </div>
+            @if (display == CalibrationOptionValues.DisplaySteer || aim is CalibrationOptionValues.AimCompass or CalibrationOptionValues.AimGeometry or CalibrationOptionValues.AimPro)
+            {
+                <div class="calibrate-steer" id="cfSteer">
+                    <div class="calibrate-steer-az" id="cfSteerAz">—
+                    </div>
+                    <div class="calibrate-steer-el" id="cfSteerEl">—
+                    </div>
+                </div>
+            }
+            <p class="calibrate-field-status" id="cfPoseStatus">فعّل حساسات الاتجاه لبدء التوجيه.</p>
+            <button type="button" class="btn btn-success w-100 mb-2" id="cfEnableMotion">تفعيل البوصلة / الميل</button>
+        </section>
+    }
+
+    <footer class="calibrate-field-foot">
+        <span>رمز الجلسة <strong>@Model.Code</strong></span>
+        @if (!Model.IsTransmitter && sc.NeedsRadio)
+        {
+            <button type="button" class="btn btn-sm btn-outline-light" id="cfResetPeak">تصفير القمة</button>
+        }
+    </footer>
+</div>
+
+@section Scripts {
+    <script src="~/lib/signalr/signalr.min.js" asp-append-version="true"></script>
+    <script src="~/js/antenna-calibration-field.js" asp-append-version="true"></script>
+}

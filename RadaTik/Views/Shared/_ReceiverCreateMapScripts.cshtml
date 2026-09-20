@@ -1139,6 +1139,27 @@
                 onSectorChosen();
             }
             refreshMapLayout();
+
+            var calBtn = document.getElementById('btnStartCalibration');
+            if (calBtn) {
+                var calBase = calBtn.getAttribute('href') || '';
+                function syncCalibrationLink() {
+                    try {
+                        var url = new URL(calBase, window.location.origin);
+                        var sid = sectorSelect && sectorSelect.value;
+                        if (sid) url.searchParams.set('sectorId', sid);
+                        else url.searchParams.delete('sectorId');
+                        var latEl = document.getElementById('Latitude') || document.querySelector('[name="Latitude"]');
+                        var lngEl = document.getElementById('Longitude') || document.querySelector('[name="Longitude"]');
+                        // Prefill only sector; point is chosen on calibration map.
+                        calBtn.setAttribute('href', url.pathname + url.search);
+                    } catch (e) { /* keep base href */ }
+                }
+                if (sectorSelect) {
+                    sectorSelect.addEventListener('change', syncCalibrationLink);
+                }
+                syncCalibrationLink();
+            }
             } /* bootReceiverMap */
 
             if (document.readyState === 'loading') {

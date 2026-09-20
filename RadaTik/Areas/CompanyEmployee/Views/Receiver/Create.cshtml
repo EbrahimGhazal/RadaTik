@@ -185,6 +185,11 @@
                 <button type="button" class="btn btn-outline-primary action-btn" id="btnAnalyzeLos" title="تحليل خط الرؤية (تضاريس + فريسنل + مبانٍ + أشجار)">
                     <i class="fas fa-mountain"></i> تحليل خط الرؤية
                 </button>
+                <a class="btn btn-outline-success action-btn" id="btnStartCalibration"
+                   asp-route="employee-calibration" asp-route-action="Index"
+                   title="بدء جلسة معايرة ميدانية">
+                    <i class="fas fa-crosshairs"></i> معايرة
+                </a>
                 <a asp-action="Index" class="btn btn-outline-secondary action-btn">إلغاء</a>
             </div>
         </form>

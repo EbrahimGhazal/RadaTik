@@ -1,0 +1,389 @@
+@model RadaTik.ViewModels.Calibration.CalibrationIndexViewModel
+@using System.Text.Json
+@using RadaTik.Services.Calibration
+@{
+    ViewData["Title"] = "معايرة";
+    var area = ViewContext.RouteData.Values["area"]?.ToString();
+    Layout = area == "CompanyEmployee"
+        ? "~/Areas/CompanyEmployee/Views/Shared/_Layout.cshtml"
+        : "~/Areas/CompanyAdmin/Views/Shared/_Layout.cshtml";
+    string sectorsJson = JsonSerializer.Serialize(Model.Sectors);
+    int defaultScenarioId = Model.PrefillScenarioId
+        ?? Model.Scenarios.FirstOrDefault(s => s.IsDefault)?.Id
+        ?? Model.Scenarios.FirstOrDefault()?.Id
+        ?? 0;
+}
+
+<div class="antenna-cal-page">
+    <div class="page-header mb-3">
+        <div class="page-header-content d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <h1 class="h4 mb-1"><i class="fas fa-crosshairs text-success"></i> معايرة الهوائي</h1>
+                <p class="text-muted mb-0">اختر سيناريو محفوظاً، أنشئ جلسة، وافتح QR للفني. الفني يرى شاشة جاهزة بدون اختيارات.</p>
+            </div>
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Scenarios">
+                <i class="fas fa-sliders-h"></i> إدارة السيناريوهات
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-warning">@Model.ErrorMessage</div>
+    }
+
+    <form method="post" asp-action="Start" class="antenna-cal-start card mb-3"
+          data-receivers-url="@Url.Action("ReceiversForSector", "AntennaCalibration")"
+          id="calStartForm">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="row g-2 align-items-end mb-2">
+                <div class="col-md-6">
+                    <label class="form-label" for="scenarioId">سيناريو المعايرة</label>
+                    <select name="scenarioId" id="scenarioId" class="form-select no-select2" required>
+                        @foreach (var sc in Model.Scenarios)
+                        {
+                            <option value="@sc.Id"
+                                    selected="@(sc.Id == defaultScenarioId)"
+                                    data-crew="@sc.CrewMode"
+                                    data-aim="@sc.AimMode"
+                                    data-success="@sc.SuccessMode"
+                                    data-require="@sc.RequireIpOrMac.ToString().ToLowerInvariant()">
+                                @sc.Name @(sc.IsDefault ? "(افتراضي)" : "")
+                            </option>
+                        }
+                    </select>
+                    <p class="small text-muted mb-0 mt-1" id="scenarioHint">
+                        @{
+                            var selected = Model.Scenarios.FirstOrDefault(s => s.Id == defaultScenarioId);
+                        }
+                        @(selected?.Description ?? "اختر سيناريو يناسب حالة التركيب.")
+                    </p>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="sectorId">المرسل (القطاع)</label>
+                    <select name="sectorId" id="sectorId" class="form-select no-select2" required>
+                        <option value="">اختر القطاع</option>
+                        @foreach (var s in Model.Sectors)
+                        {
+                            <option value="@s.Id"
+                                    selected="@(Model.PrefillSectorId == s.Id)"
+                                    data-lat="@s.Lat.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                    data-lng="@s.Lon.ToString(System.Globalization.CultureInfo.InvariantCulture)">@s.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="receiverId">المستقبل</label>
+                    <select name="receiverId" id="receiverId" class="form-select no-select2">
+                        <option value="">نقطة على الخريطة</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label" for="receiverAgl">ارتفاع اللاقط م</label>
+                    <input type="number" step="0.1" min="1" max="80" class="form-control" name="receiverAgl" id="receiverAgl" value="6" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="receiverName">اسم النقطة</label>
+                    <input class="form-control" name="receiverName" id="receiverName" placeholder="نقطة ميدانية" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="receiverIp">IP المستقبل</label>
+                    <input class="form-control" name="receiverIp" id="receiverIp" placeholder="لربط الإشارة" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="receiverMac">MAC</label>
+                    <input class="form-control" name="receiverMac" id="receiverMac" placeholder="اختياري" />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100">بدء الجلسة</button>
+                </div>
+            </div>
+            <input type="hidden" name="receiverLat" id="receiverLat" />
+            <input type="hidden" name="receiverLng" id="receiverLng" />
+            <p class="small text-muted mt-2 mb-1" id="calPickHint">اختر القطاع ثم انقر على الخريطة أو اختر مستقبلاً محفوظاً.</p>
+            <div id="calStartMap" class="antenna-cal-pick-map" dir="ltr"></div>
+        </div>
+    </form>
+
+    @if (Model.RecentSessions.Count > 0 && Model.Session == null)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="h6">جلسات سارية</h2>
+                <ul class="mb-0">
+                    @foreach (var r in Model.RecentSessions)
+                    {
+                        <li>
+                            <a asp-action="Index" asp-route-code="@r.Code">@r.Code</a>
+                            · @r.SectorName ← → @r.ReceiverName
+                            · <span class="text-muted">@r.ScenarioName</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+
+    @if (Model.Session != null)
+    {
+        var s = Model.Session;
+        <div class="antenna-cal-session" data-code="@s.Code">
+            <div class="antenna-cal-session-bar">
+                <div>
+                    رمز الجلسة <strong class="antenna-cal-code">@s.Code</strong>
+                    · <span class="badge text-bg-success">@s.ScenarioLabel</span>
+                    · @CalibrationOptionValues.CrewLabel(s.Scenario.CrewMode)
+                    · @CalibrationOptionValues.AimLabel(s.Scenario.AimMode)
+                    · @s.DistanceMeters.ToString("0") م
+                </div>
+                <div class="antenna-cal-links">
+                    @if (s.Scenario.IsDual)
+                    {
+                        <a class="btn btn-sm btn-outline-primary" href="@Model.TransmitterJoinUrl" target="_blank">شاشة المرسل</a>
+                    }
+                    <a class="btn btn-sm btn-outline-success" href="@Model.ReceiverJoinUrl" target="_blank">شاشة المستقبل</a>
+                </div>
+            </div>
+
+            <div class="antenna-cal-qr-row">
+                @if (s.Scenario.IsDual)
+                {
+                    <div>
+                        @if (!string.IsNullOrWhiteSpace(Model.TransmitterQrDataUri))
+                        {
+                            <img class="antenna-cal-qr-img" src="@Model.TransmitterQrDataUri" width="168" height="168" alt="QR المرسل" />
+                        }
+                        <div>QR المرسل</div>
+                    </div>
+                }
+                <div>
+                    @if (!string.IsNullOrWhiteSpace(Model.ReceiverQrDataUri))
+                    {
+                        <img class="antenna-cal-qr-img" src="@Model.ReceiverQrDataUri" width="168" height="168" alt="QR المستقبل" />
+                    }
+                    <div>QR المستقبل / الفني</div>
+                </div>
+            </div>
+
+            <p id="calPath" class="antenna-cal-path @(s.PathClear ? "" : "is-blocked")">@s.PathSummary</p>
+            <p id="calAdvice" class="antenna-cal-advice">@s.Advice</p>
+
+            <section class="antenna-cal-radio" id="calRadio">
+                <div class="antenna-cal-radio-head">
+                    <h2><i class="fas fa-broadcast-tower"></i> الإشارة الحية</h2>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnResetPeak">تصفير القمة</button>
+                </div>
+                <div class="antenna-cal-metrics">
+                    <div><span>RSSI</span><strong id="rfSignal">—</strong></div>
+                    <div><span>أفضل قمة</span><strong id="rfPeak">—</strong></div>
+                    <div><span>SNR</span><strong id="rfSnr">—</strong></div>
+                    <div><span>CCQ</span><strong id="rfCcq">—</strong></div>
+                    <div><span>النتيجة</span><strong id="rfSuccess">—</strong></div>
+                    <div><span>المطابقة</span><strong id="rfMatch">—</strong></div>
+                </div>
+                <p id="rfStatus" class="antenna-cal-status">@s.Radio.Status</p>
+            </section>
+
+            <div class="antenna-cal-split">
+                <section class="antenna-cal-pane" data-side="tx">
+                    <h2>المرسل · @s.SectorName</h2>
+                    <div class="antenna-cal-metrics">
+                        <div><span>سمت مطلوب</span><strong>@s.TransmitterTarget.AzimuthMagnetic.ToString("0.0")°</strong></div>
+                        <div><span>ميل مطلوب</span><strong>@s.TransmitterTarget.Elevation.ToString("0.00")°</strong></div>
+                        <div><span>السمت الحي</span><strong id="txAzLive">—</strong></div>
+                        <div><span>الميل الحي</span><strong id="txElLive">—</strong></div>
+                    </div>
+                    <p id="txStatus" class="antenna-cal-status">@(s.Scenario.IsDual ? "بانتظار موبايل المرسل" : "غير مطلوب في هذا السيناريو")</p>
+                </section>
+                <section class="antenna-cal-pane" data-side="rx">
+                    <h2>المستقبل · @s.ReceiverName</h2>
+                    <div class="antenna-cal-metrics">
+                        <div><span>سمت مطلوب</span><strong>@s.ReceiverTarget.AzimuthMagnetic.ToString("0.0")°</strong></div>
+                        <div><span>ميل مطلوب</span><strong>@s.ReceiverTarget.Elevation.ToString("0.00")°</strong></div>
+                        <div><span>السمت الحي</span><strong id="rxAzLive">—</strong></div>
+                        <div><span>الميل الحي</span><strong id="rxElLive">—</strong></div>
+                    </div>
+                    <p id="rxStatus" class="antenna-cal-status">بانتظار موبايل الفني</p>
+                </section>
+            </div>
+        </div>
+    }
+</div>
+
+<script type="application/json" id="calSectorsJson">@Html.Raw(sectorsJson)</script>
+<script type="application/json" id="calScenarioMeta">@Html.Raw(JsonSerializer.Serialize(Model.Scenarios.Select(s => new { s.Id, s.Description, s.RequireIpOrMac, aim = CalibrationOptionValues.AimLabel(s.AimMode), crew = CalibrationOptionValues.CrewLabel(s.CrewMode), success = CalibrationOptionValues.SuccessLabel(s.SuccessMode, s.MinSignalDbm, s.PeakHoldSeconds) })))</script>
+
+@section Scripts {
+    <script src="~/lib/signalr/signalr.min.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            var form = document.getElementById('calStartForm');
+            var scenario = document.getElementById('scenarioId');
+            var scenarioHint = document.getElementById('scenarioHint');
+            var meta = [];
+            try { meta = JSON.parse(document.getElementById('calScenarioMeta').textContent || '[]'); } catch (e) { meta = []; }
+            function refreshScenarioHint() {
+                if (!scenario || !scenarioHint) return;
+                var id = parseInt(scenario.value, 10);
+                var row = meta.find(function (m) { return m.id === id; });
+                if (!row) return;
+                scenarioHint.textContent = (row.description || '') + ' · ' + row.crew + ' · ' + row.aim + ' · ' + row.success;
+            }
+            if (scenario) scenario.addEventListener('change', refreshScenarioHint);
+            refreshScenarioHint();
+
+            var sector = document.getElementById('sectorId');
+            var receiver = document.getElementById('receiverId');
+            var latInput = document.getElementById('receiverLat');
+            var lngInput = document.getElementById('receiverLng');
+            var nameInput = document.getElementById('receiverName');
+            var ipInput = document.getElementById('receiverIp');
+            var aglInput = document.getElementById('receiverAgl');
+            var listUrl = form ? form.getAttribute('data-receivers-url') : '';
+            var map, rxMarker, txMarker, rxLine;
+            var prefillReceiverId = @(Model.PrefillReceiverId?.ToString() ?? "null");
+
+            function parseOptPoint(opt) {
+                if (!opt) return null;
+                var lat = parseFloat(opt.getAttribute('data-lat'));
+                var lng = parseFloat(opt.getAttribute('data-lng'));
+                if (!isFinite(lat) || !isFinite(lng)) return null;
+                return { lat: lat, lng: lng };
+            }
+            function setPoint(lat, lng, pan) {
+                if (!latInput || !lngInput || !isFinite(lat) || !isFinite(lng)) return;
+                latInput.value = Number(lat).toFixed(7);
+                lngInput.value = Number(lng).toFixed(7);
+                ensureMap();
+                if (map && window.L) {
+                    var ll = L.latLng(lat, lng);
+                    if (!rxMarker) rxMarker = L.marker(ll).addTo(map);
+                    else rxMarker.setLatLng(ll);
+                    if (pan) map.setView(ll, Math.max(map.getZoom(), 16));
+                    if (txMarker) {
+                        var linePts = [txMarker.getLatLng(), ll];
+                        if (rxLine) rxLine.setLatLngs(linePts);
+                        else rxLine = L.polyline(linePts, { color: '#16a34a', weight: 2 }).addTo(map);
+                    }
+                }
+                var hint = document.getElementById('calPickHint');
+                if (hint) hint.textContent = 'النقطة: ' + Number(lat).toFixed(6) + ' ، ' + Number(lng).toFixed(6);
+            }
+            function sectorLatLng() {
+                return sector ? parseOptPoint(sector.options[sector.selectedIndex]) : null;
+            }
+            function ensureMap() {
+                var el = document.getElementById('calStartMap');
+                if (!el || !window.L || map) return;
+                map = L.map(el, { zoomControl: true }).setView([33.5, 36.3], 11);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OSM' }).addTo(map);
+                map.on('click', function (e) {
+                    if (receiver) receiver.value = '';
+                    setPoint(e.latlng.lat, e.latlng.lng, false);
+                });
+                setTimeout(function () { if (map) map.invalidateSize(); }, 200);
+            }
+            function focusSector() {
+                ensureMap();
+                var ll = sectorLatLng();
+                if (!ll || !map) return;
+                var pos = L.latLng(ll.lat, ll.lng);
+                if (!txMarker) txMarker = L.circleMarker(pos, { radius: 9, color: '#1d4ed8', fillColor: '#3b82f6', fillOpacity: 1, weight: 2 }).addTo(map);
+                else txMarker.setLatLng(pos);
+                map.setView(pos, 16);
+            }
+            function onSectorChange() {
+                focusSector();
+                if (!receiver) return;
+                receiver.innerHTML = '<option value="">نقطة على الخريطة</option>';
+                if (!sector.value) return;
+                fetch(listUrl + '?sectorId=' + encodeURIComponent(sector.value), { credentials: 'same-origin' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (rows) {
+                        (rows || []).forEach(function (row) {
+                            var opt = document.createElement('option');
+                            opt.value = row.id;
+                            opt.textContent = row.name;
+                            opt.setAttribute('data-lat', row.lat);
+                            opt.setAttribute('data-lng', row.lng);
+                            if (row.ip) opt.setAttribute('data-ip', row.ip);
+                            if (row.agl) opt.setAttribute('data-agl', row.agl);
+                            if (prefillReceiverId && String(row.id) === String(prefillReceiverId)) opt.selected = true;
+                            receiver.appendChild(opt);
+                        });
+                        if (receiver.value) onReceiverChange();
+                    });
+            }
+            function onReceiverChange() {
+                var opt = receiver && receiver.options[receiver.selectedIndex];
+                var pt = parseOptPoint(opt);
+                if (!opt || !opt.value || !pt) return;
+                setPoint(pt.lat, pt.lng, true);
+                if (nameInput) nameInput.value = opt.textContent || '';
+                if (ipInput) ipInput.value = opt.getAttribute('data-ip') || '';
+                var agl = parseFloat(opt.getAttribute('data-agl'));
+                if (aglInput && isFinite(agl) && agl > 0) aglInput.value = agl;
+            }
+            if (sector && receiver) {
+                ensureMap();
+                sector.addEventListener('change', onSectorChange);
+                receiver.addEventListener('change', onReceiverChange);
+                if (sector.value) onSectorChange();
+            }
+
+            var root = document.querySelector('.antenna-cal-session');
+            if (!root || typeof signalR === 'undefined') return;
+            var code = root.getAttribute('data-code');
+            var connection = new signalR.HubConnectionBuilder().withUrl('/hubs/calibration').withAutomaticReconnect().build();
+            function setText(id, t) { var el = document.getElementById(id); if (el) el.textContent = t; }
+            function fmt(v, d) { return (v == null || !isFinite(Number(v))) ? '—' : Number(v).toFixed(d == null ? 1 : d) + '°'; }
+            function applySide(prefix, live, pane) {
+                setText(prefix + 'AzLive', fmt(live.azimuth));
+                setText(prefix + 'ElLive', fmt(live.elevation, 2));
+                var st = document.getElementById(prefix + 'Status');
+                if (!live.connected) { st.textContent = 'غير متصل'; pane.classList.remove('is-ok', 'is-live'); return; }
+                pane.classList.add('is-live');
+                pane.classList.toggle('is-ok', live.horizontalAligned && live.verticalAligned);
+                st.textContent = (live.horizontalAligned && live.verticalAligned) ? 'محاذى' : 'جارٍ التوجيه';
+            }
+            function applyRadio(radio) {
+                if (!radio) return;
+                var box = document.getElementById('calRadio');
+                if (box) {
+                    box.classList.toggle('is-live', !!radio.available);
+                    box.classList.toggle('is-peak', !!radio.successMet);
+                }
+                setText('rfSignal', radio.signalDbm == null ? '—' : radio.signalDbm + ' dBm');
+                setText('rfPeak', radio.peakSignalDbm == null ? '—' : radio.peakSignalDbm + ' dBm');
+                setText('rfSnr', radio.snrDb == null ? '—' : radio.snrDb + ' dB');
+                setText('rfCcq', radio.ccqPercent == null ? '—' : radio.ccqPercent + ' %');
+                setText('rfSuccess', radio.successMet ? 'جاهز للربط' : (radio.nearPeak ? 'قرب القمة' : '—'));
+                var match = radio.matchReason || '';
+                if (radio.macAddress) match += (match ? ' · ' : '') + radio.macAddress;
+                else if (radio.lastIp) match += (match ? ' · ' : '') + radio.lastIp;
+                setText('rfMatch', match || '—');
+                setText('rfStatus', radio.status || '');
+            }
+            connection.on('sessionUpdated', function (snap) {
+                if (!snap) return;
+                setText('calAdvice', snap.advice || '');
+                var path = document.getElementById('calPath');
+                if (path) {
+                    path.textContent = snap.pathSummary || '';
+                    path.classList.toggle('is-blocked', !snap.pathClear);
+                }
+                applySide('tx', snap.transmitterLive, document.querySelector('[data-side="tx"]'));
+                applySide('rx', snap.receiverLive, document.querySelector('[data-side="rx"]'));
+                applyRadio(snap.radio);
+            });
+            var resetBtn = document.getElementById('btnResetPeak');
+            if (resetBtn) resetBtn.addEventListener('click', function () {
+                if (connection.state === 'Connected') connection.invoke('ResetPeak', code).catch(function () {});
+            });
+            connection.start().then(function () { return connection.invoke('JoinMonitor', code); }).catch(function () {});
+        })();
+    </script>
+}

@@ -1,0 +1,90 @@
+@model IReadOnlyList<RadaTik.Models.CalibrationScenario>
+@using RadaTik.Services.Calibration
+@{
+    ViewData["Title"] = "سيناريوهات المعايرة";
+    var area = ViewContext.RouteData.Values["area"]?.ToString();
+    Layout = area == "CompanyEmployee"
+        ? "~/Areas/CompanyEmployee/Views/Shared/_Layout.cshtml"
+        : "~/Areas/CompanyAdmin/Views/Shared/_Layout.cshtml";
+}
+
+<div class="antenna-cal-page">
+    <div class="page-header mb-3">
+        <div class="page-header-content d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <h1 class="h4 mb-1"><i class="fas fa-sliders-h text-success"></i> سيناريوهات المعايرة</h1>
+                <p class="text-muted mb-0">قوالب جاهزة لكل شبكة. الفني يفتح QR فقط — بدون اختيارات في الميدان.</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-outline-secondary btn-sm" asp-action="Index">العودة للمعايرة</a>
+                <a class="btn btn-success btn-sm" asp-action="EditScenario"><i class="fas fa-plus"></i> سيناريو جديد</a>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>الاسم</th>
+                            <th>الطاقم</th>
+                            <th>التوجيه</th>
+                            <th>النجاح</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.Count == 0)
+                    {
+                        <tr><td colspan="5" class="text-muted text-center py-4">لا توجد سيناريوهات.</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var s in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@s.Name</strong>
+                                    @if (s.IsDefault) { <span class="badge text-bg-success">افتراضي</span> }
+                                    <div class="small text-muted">@s.Description</div>
+                                </td>
+                                <td>@CalibrationOptionValues.CrewLabel(s.CrewMode)</td>
+                                <td>@CalibrationOptionValues.AimLabel(s.AimMode)</td>
+                                <td>@CalibrationOptionValues.SuccessLabel(s.SuccessMode, s.MinSignalDbm, s.PeakHoldSeconds)</td>
+                                <td class="text-nowrap">
+                                    <a class="btn btn-sm btn-outline-primary" asp-action="EditScenario" asp-route-id="@s.Id">تعديل</a>
+                                    <a class="btn btn-sm btn-success" asp-action="Index" asp-route-scenarioId="@s.Id">بدء</a>
+                                    @if (!s.IsDefault)
+                                    {
+                                        <form method="post" asp-action="SetDefaultScenario" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@s.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">افتراضي</button>
+                                        </form>
+                                    }
+                                    <form method="post" asp-action="DeleteScenario" class="d-inline" onsubmit="return confirm('حذف هذا السيناريو؟');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@s.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">حذف</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

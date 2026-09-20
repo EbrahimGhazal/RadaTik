@@ -1,0 +1,378 @@
+/* Antenna calibration — manager + field */
+
+.antenna-cal-page .antenna-cal-pick-map {
+    height: 280px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #dbe3ea);
+    margin-top: .35rem;
+    z-index: 1;
+}
+
+.antenna-cal-session-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: .85rem 1rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #0f766e, #166534);
+    color: #f0fdf4;
+}
+
+.antenna-cal-code {
+    letter-spacing: .08em;
+    font-variant-numeric: tabular-nums;
+}
+
+.antenna-cal-qr-row {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.antenna-cal-qr-row > div {
+    text-align: center;
+    font-size: .9rem;
+    color: var(--text-muted, #64748b);
+}
+
+.antenna-cal-qr-img {
+    display: block;
+    margin: 0 auto .4rem;
+    border-radius: 10px;
+    background: #fff;
+    padding: .4rem;
+    border: 1px solid #e2e8f0;
+}
+
+.antenna-cal-path {
+    padding: .65rem .85rem;
+    border-radius: 10px;
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.antenna-cal-path.is-blocked {
+    background: #fff7ed;
+    color: #9a3412;
+    border-color: #fdba74;
+}
+
+.antenna-cal-advice {
+    font-weight: 600;
+    color: var(--text-primary, #0f172a);
+}
+
+.antenna-cal-radio,
+.antenna-cal-pane {
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 14px;
+    padding: 1rem;
+    background: var(--bg-card, #fff);
+    margin-bottom: 1rem;
+}
+
+.antenna-cal-radio.is-live {
+    border-color: #34d399;
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, .18);
+}
+
+.antenna-cal-radio.is-peak {
+    background: linear-gradient(180deg, #ecfdf5, #fff);
+}
+
+.antenna-cal-radio-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: .75rem;
+}
+
+.antenna-cal-radio-head h2,
+.antenna-cal-pane h2 {
+    font-size: 1rem;
+    margin: 0;
+}
+
+.antenna-cal-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: .65rem;
+}
+
+.antenna-cal-metrics > div {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: .55rem .65rem;
+}
+
+.antenna-cal-metrics span {
+    display: block;
+    font-size: .75rem;
+    color: #64748b;
+}
+
+.antenna-cal-metrics strong {
+    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.antenna-cal-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .antenna-cal-split { grid-template-columns: 1fr; }
+}
+
+.antenna-cal-pane.is-live { border-color: #60a5fa; }
+.antenna-cal-pane.is-ok { border-color: #22c55e; background: #f0fdf4; }
+.antenna-cal-status { margin: .65rem 0 0; color: #64748b; font-size: .9rem; }
+
+.antenna-cal-template-card {
+    border: 1px solid #d1fae5;
+    background: linear-gradient(180deg, #f0fdf4, #fff);
+}
+
+/* —— Field phone —— */
+.calibrate-field-body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+        radial-gradient(1200px 500px at 80% -10%, rgba(34, 197, 94, .18), transparent 55%),
+        linear-gradient(165deg, #0b1220 0%, #102a24 45%, #0f172a 100%);
+    color: #e2e8f0;
+    font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+.calibrate-field-page {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 1rem 1rem 5rem;
+}
+
+.calibrate-field-head h1 {
+    font-size: 1.45rem;
+    margin: .2rem 0 .35rem;
+    color: #f8fafc;
+}
+
+.calibrate-field-kicker {
+    font-size: .78rem;
+    letter-spacing: .04em;
+    color: #86efac;
+    text-transform: none;
+}
+
+.calibrate-field-head p,
+.calibrate-field-advice,
+.calibrate-field-status {
+    color: #94a3b8;
+    margin: 0 0 .75rem;
+}
+
+.calibrate-field-advice {
+    color: #bbf7d0;
+    font-weight: 600;
+}
+
+.calibrate-field-path {
+    padding: .55rem .7rem;
+    border-radius: 10px;
+    background: rgba(16, 185, 129, .12);
+    border: 1px solid rgba(52, 211, 153, .35);
+    color: #a7f3d0;
+    font-size: .9rem;
+}
+
+.calibrate-field-path.is-blocked {
+    background: rgba(251, 146, 60, .12);
+    border-color: rgba(251, 146, 60, .4);
+    color: #fdba74;
+}
+
+.calibrate-hero-signal {
+    text-align: center;
+    padding: 1.25rem 1rem 1rem;
+    border-radius: 18px;
+    background: rgba(15, 23, 42, .55);
+    border: 1px solid rgba(148, 163, 184, .25);
+    margin-bottom: 1rem;
+    backdrop-filter: blur(8px);
+}
+
+.calibrate-hero-signal.is-peak {
+    border-color: #4ade80;
+    box-shadow: 0 0 0 1px rgba(74, 222, 128, .35), 0 12px 40px rgba(16, 185, 129, .2);
+}
+
+.calibrate-hero-label { color: #94a3b8; font-size: .85rem; }
+.calibrate-hero-value {
+    font-size: 4.2rem;
+    line-height: 1;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #f8fafc;
+    margin: .25rem 0;
+}
+.calibrate-hero-unit { color: #86efac; margin-bottom: .5rem; }
+
+.calibrate-peak-row {
+    display: flex;
+    justify-content: center;
+    gap: .4rem;
+    align-items: baseline;
+    color: #cbd5e1;
+    font-size: .95rem;
+}
+
+.calibrate-peak-row strong {
+    font-size: 1.35rem;
+    color: #4ade80;
+    font-variant-numeric: tabular-nums;
+}
+
+.calibrate-extra-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+    margin-top: .85rem;
+}
+
+.calibrate-extra-metrics > div {
+    background: rgba(30, 41, 59, .7);
+    border-radius: 10px;
+    padding: .45rem;
+}
+
+.calibrate-extra-metrics span {
+    display: block;
+    font-size: .72rem;
+    color: #94a3b8;
+}
+
+.calibrate-success-badge {
+    margin-top: .85rem;
+    display: inline-block;
+    padding: .45rem 1rem;
+    border-radius: 999px;
+    background: #16a34a;
+    color: #fff;
+    font-weight: 700;
+}
+
+.calibrate-pro-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem;
+}
+
+.calibrate-pro-steps li {
+    padding: .55rem .75rem;
+    border-radius: 10px;
+    margin-bottom: .4rem;
+    background: rgba(30, 41, 59, .55);
+    border: 1px solid transparent;
+    color: #94a3b8;
+}
+
+.calibrate-pro-steps li.is-active {
+    border-color: #38bdf8;
+    color: #e0f2fe;
+}
+
+.calibrate-pro-steps li.is-done {
+    border-color: #4ade80;
+    color: #bbf7d0;
+}
+
+.calibrate-geometry {
+    border-radius: 16px;
+    padding: 1rem;
+    background: rgba(15, 23, 42, .5);
+    border: 1px solid rgba(148, 163, 184, .22);
+    margin-bottom: 1rem;
+}
+
+.calibrate-geo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .55rem;
+    margin-bottom: .75rem;
+}
+
+.calibrate-geo-grid > div {
+    background: rgba(30, 41, 59, .65);
+    border-radius: 10px;
+    padding: .5rem .6rem;
+}
+
+.calibrate-geo-grid span {
+    display: block;
+    font-size: .72rem;
+    color: #94a3b8;
+}
+
+.calibrate-geo-grid strong {
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.calibrate-geo-grid small {
+    display: block;
+    color: #67e8f9;
+}
+
+.calibrate-steer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+    margin-bottom: .75rem;
+}
+
+.calibrate-steer-az,
+.calibrate-steer-el {
+    text-align: center;
+    padding: .85rem .5rem;
+    border-radius: 12px;
+    background: rgba(2, 6, 23, .45);
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.calibrate-steer .is-ok {
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, .45);
+}
+
+.calibrate-steer .is-left,
+.calibrate-steer .is-up { color: #38bdf8; }
+
+.calibrate-steer .is-right,
+.calibrate-steer .is-down { color: #fbbf24; }
+
+.calibrate-field-foot {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .75rem;
+    padding: .75rem 1rem calc(.75rem + env(safe-area-inset-bottom));
+    background: rgba(2, 6, 23, .88);
+    border-top: 1px solid rgba(148, 163, 184, .2);
+    backdrop-filter: blur(10px);
+    max-width: 480px;
+    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+}

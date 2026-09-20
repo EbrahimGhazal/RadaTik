@@ -242,6 +242,11 @@ else if (pendingSectorApprovalsCount > 0)
                 <button type="button" class="btn btn-outline-primary" id="btnAnalyzeLos" title="تحليل المسار: تضاريس + فريسنل + مبانٍ + أشجار">
                     <i class="fas fa-mountain"></i> تحليل خط الرؤية
                 </button>
+                <a class="btn btn-outline-success" id="btnStartCalibration"
+                   asp-route="networkManager-calibration" asp-route-action="Index"
+                   title="بدء جلسة معايرة ميدانية لهذا القطاع/النقطة">
+                    <i class="fas fa-crosshairs"></i> معايرة
+                </a>
                 <button type="button" class="btn btn-info" id="btnCheckConnection" title="فحص اتصال المستقبل">
                     <i class="fas fa-wifi"></i> فحص الاتصال
                 </button>

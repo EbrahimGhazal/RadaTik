@@ -1,0 +1,129 @@
+@model RadaTik.ViewModels.Calibration.CalibrationScenarioEditViewModel
+@using RadaTik.Services.Calibration
+@{
+    ViewData["Title"] = Model.Id > 0 ? "تعديل سيناريو" : "سيناريو جديد";
+    var area = ViewContext.RouteData.Values["area"]?.ToString();
+    Layout = area == "CompanyEmployee"
+        ? "~/Areas/CompanyEmployee/Views/Shared/_Layout.cshtml"
+        : "~/Areas/CompanyAdmin/Views/Shared/_Layout.cshtml";
+}
+
+<div class="antenna-cal-page">
+    <div class="page-header mb-3">
+        <div class="page-header-content d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <h1 class="h4 mb-1"><i class="fas fa-sliders-h text-success"></i> @ViewData["Title"]</h1>
+                <p class="text-muted mb-0">كل خيار هنا يحدد ما يراه الفني بعد مسح QR — بدون قوائم في الميدان.</p>
+            </div>
+            <a class="btn btn-outline-secondary btn-sm" asp-action="Scenarios">العودة للقائمة</a>
+        </div>
+    </div>
+
+    <form method="post" asp-action="SaveScenario" class="card">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="Name">الاسم</label>
+                    <input class="form-control" asp-for="Name" required maxlength="80" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="SortOrder">الترتيب</label>
+                    <input type="number" class="form-control" asp-for="SortOrder" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label" asp-for="Description">الوصف للمدير</label>
+                    <textarea class="form-control" asp-for="Description" rows="2" maxlength="240"></textarea>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="CrewMode">الطاقم</label>
+                    <select class="form-select no-select2" asp-for="CrewMode">
+                        <option value="@CalibrationOptionValues.CrewSolo">فني واحد (عند المستقبل)</option>
+                        <option value="@CalibrationOptionValues.CrewDual">فنيان (مرسل + مستقبل)</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="AimMode">طريقة التوجيه</label>
+                    <select class="form-select no-select2" asp-for="AimMode">
+                        <option value="@CalibrationOptionValues.AimSignal">قمة إشارة فقط (الأبسط والأدق للربط)</option>
+                        <option value="@CalibrationOptionValues.AimCompass">بوصلة للتقريب ثم إشارة</option>
+                        <option value="@CalibrationOptionValues.AimGeometry">سمت/ميل هندسي فقط</option>
+                        <option value="@CalibrationOptionValues.AimPro">احترافي: مسح أفقي ثم عمودي</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" asp-for="DisplayMode">عرض الشاشة</label>
+                    <select class="form-select no-select2" asp-for="DisplayMode">
+                        <option value="@CalibrationOptionValues.DisplayPeak">رقم حالي + أفضل قمة</option>
+                        <option value="@CalibrationOptionValues.DisplayCurrent">الرقم الحالي فقط</option>
+                        <option value="@CalibrationOptionValues.DisplaySteer">أسهم توجيه</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" asp-for="SuccessMode">شرط النجاح</label>
+                    <select class="form-select no-select2" asp-for="SuccessMode">
+                        <option value="@CalibrationOptionValues.SuccessPeak">أعلى قمة ظهرت</option>
+                        <option value="@CalibrationOptionValues.SuccessHold">قفل بعد ثبات قرب القمة</option>
+                        <option value="@CalibrationOptionValues.SuccessMinDbm">حد أدنى dBm</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" asp-for="AuthMode">الدخول للجلسة</label>
+                    <select class="form-select no-select2" asp-for="AuthMode">
+                        <option value="@CalibrationOptionValues.AuthQr">QR مجهول (موصى به)</option>
+                        <option value="@CalibrationOptionValues.AuthLogin">يتطلب تسجيل دخول</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" asp-for="MinSignalDbm">حد أدنى dBm (اختياري)</label>
+                    <input type="number" class="form-control" asp-for="MinSignalDbm" placeholder="-65" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" asp-for="PeakHoldSeconds">ثواني ثبات القمة</label>
+                    <input type="number" class="form-control" asp-for="PeakHoldSeconds" min="1" max="15" />
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="form-check">
+                        <input class="form-check-input" asp-for="IsDefault" />
+                        <label class="form-check-label" asp-for="IsDefault">افتراضي للشبكة</label>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" asp-for="RequireIpOrMac" />
+                                <label class="form-check-label" asp-for="RequireIpOrMac">يتطلب IP أو MAC لربط الإشارة</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" asp-for="ShowSnrCcq" />
+                                <label class="form-check-label" asp-for="ShowSnrCcq">إظهار SNR / CCQ</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" asp-for="ShowLosHint" />
+                                <label class="form-check-label" asp-for="ShowLosHint">تلميح خط الرؤية</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" asp-for="ShowGeometryTargets" />
+                                <label class="form-check-label" asp-for="ShowGeometryTargets">إظهار السمت/الميل المحسوب</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer d-flex gap-2 justify-content-end">
+            <a class="btn btn-outline-secondary" asp-action="Scenarios">إلغاء</a>
+            <button type="submit" class="btn btn-success">حفظ السيناريو</button>
+        </div>
+    </form>
+</div>

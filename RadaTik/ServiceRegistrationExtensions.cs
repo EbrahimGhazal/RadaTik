@@ -13,6 +13,7 @@ using RadaTik.Services.SystemAdminPricing;
 using RadaTik.Helpers;
 using RadaTik.Services.Traffic;
 using RadaTik.Services.PublicStats;
+using RadaTik.Services.Calibration;
 
 namespace RadaTik;
 
@@ -146,6 +147,8 @@ internal static class ServiceRegistrationExtensions
             client.DefaultRequestHeaders.UserAgent.ParseAdd("RadatikLOS/1.0");
         });
         services.AddScoped<ILineOfSightAnalysisService, LineOfSightAnalysisService>();
+        services.AddSingleton<ICalibrationSessionStore, CalibrationSessionStore>();
+        services.AddScoped<ICalibrationScenarioService, CalibrationScenarioService>();
         services.AddMikroTikServices();
         services.AddScoped<IRequestNotificationService, RequestNotificationService>();
         services.AddScoped<Services.Auth.ILoginIdentityResolver, Services.Auth.LoginIdentityResolver>();
@@ -208,6 +211,7 @@ internal static class ServiceRegistrationExtensions
         services.AddScoped<MikroTikTrafficSnapshotReader>();
         services.AddHostedService<TrafficBroadcastWorker>();
         services.AddHostedService<TrafficStatisticsSamplerWorker>();
+        services.AddHostedService<CalibrationRadioWorker>();
         return services;
     }
 }

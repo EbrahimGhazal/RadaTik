@@ -1683,6 +1683,189 @@ namespace RadaTik.Migrations
                     b.ToTable("WarehouseStocktakeLines", (string)null);
                 });
 
+            modelBuilder.Entity("RadaTik.Models.CalibrationScenario", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AimMode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("AuthMode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CrewMode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(240)
+                        .HasColumnType("nvarchar(240)");
+
+                    b.Property<string>("DisplayMode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("MinSignalDbm")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("NetworkId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PeakHoldSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("RequireIpOrMac")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowGeometryTargets")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowLosHint")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowSnrCcq")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SuccessMode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NetworkId", "IsDefault");
+
+                    b.HasIndex("NetworkId", "Name");
+
+                    b.ToTable("CalibrationScenarios", (string)null);
+                });
+
+            modelBuilder.Entity("RadaTik.Models.CalibrationSessionRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AlignmentJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("LastActivityUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("NetworkId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("PathClear")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PathSummary")
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<double>("ReceiverAntennaMsl")
+                        .HasColumnType("float");
+
+                    b.Property<int?>("ReceiverId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReceiverIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<double>("ReceiverLatitude")
+                        .HasColumnType("float");
+
+                    b.Property<double>("ReceiverLongitude")
+                        .HasColumnType("float");
+
+                    b.Property<string>("ReceiverMac")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("ReceiverName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int?>("ScenarioId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ScenarioJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ScenarioName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<double>("SectorAntennaMsl")
+                        .HasColumnType("float");
+
+                    b.Property<int>("SectorId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SectorName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("ExpiresAtUtc");
+
+                    b.HasIndex("NetworkId", "LastActivityUtc");
+
+                    b.ToTable("CalibrationSessions", (string)null);
+                });
+
             modelBuilder.Entity("RadaTik.Models.CashBox", b =>
                 {
                     b.Property<int>("Id")

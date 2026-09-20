@@ -185,6 +185,8 @@ public sealed class AreaIsolationMiddleware(RequestDelegate _next, ILogger<AreaI
             "/Account",
             "/Sector",
             "/Receiver",
+            "/Calibration",
+            "/AntennaCalibration",
             "/RequestsManagement",
             "/Clients",
             "/Network"
