@@ -79,7 +79,7 @@ public sealed class AntennaCalibrationSessionStoreTests
         session = store.Create(session);
         AntennaCalibrationSnapshot snap = store.ToSnapshot(session);
         Assert.False(snap.SavedReceiver);
-        Assert.Contains("افتح شاشة الميدان", snap.Advice, StringComparison.Ordinal);
+        Assert.Contains("افتح شاشة الموبايل", snap.Advice, StringComparison.Ordinal);
     }
 
     [Fact]

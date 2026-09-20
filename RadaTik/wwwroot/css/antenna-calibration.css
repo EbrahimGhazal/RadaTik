@@ -627,6 +627,61 @@
     margin: 0 0 0.75rem;
 }
 
+.calibrate-tech-card,
+.calibrate-field-page .calibrate-tech-card {
+    margin: 0 0 1rem;
+    padding: 0.85rem 0.85rem 0.85rem 1.1rem;
+    border-radius: 12px;
+    background: #ecfdf5;
+    border: 1px solid #86efac;
+    color: #14532d;
+    font-weight: 700;
+}
+
+.calibrate-field-page .calibrate-tech-card {
+    background: rgba(22, 101, 52, 0.45);
+    border-color: rgba(74, 222, 128, 0.55);
+    color: #ecfdf5;
+}
+
+.calibrate-tech-card li + li {
+    margin-top: 0.35rem;
+}
+
+.antenna-cal-advanced,
+.calibrate-more-tools {
+    margin: 0 0 1rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(248, 250, 252, 0.7);
+}
+
+.calibrate-more-tools {
+    background: rgba(15, 23, 42, 0.45);
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+.antenna-cal-advanced summary,
+.calibrate-more-tools summary {
+    cursor: pointer;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.calibrate-more-tools summary {
+    color: #cbd5e1;
+}
+
+.antenna-cal-advanced .antenna-cal-workflow-tabs {
+    margin-top: 0.75rem;
+}
+
+.calibrate-field-page.workflow-signal .calibrate-rf-big strong {
+    font-size: 2.35rem;
+    line-height: 1.1;
+}
+
 .antenna-cal-workflow-tabs {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

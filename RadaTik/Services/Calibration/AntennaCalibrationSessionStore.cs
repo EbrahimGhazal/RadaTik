@@ -704,7 +704,7 @@ public static class AntennaCalibrationAdvice
                 return "مسار تقريبي: فعّل البوصلة للتقريب ثم ثبّت عند قمة RSSI.";
             }
 
-            return "افتح شاشة الميدان، الصق الموبايل على ظهر الصحن، وفضّل وضع «إشارة فقط» لقمة RSSI. البوصلة تقريبية فقط.";
+            return "افتح شاشة الموبايل، ابدأ المراقبة، حرّك حتى أعلى رقم، ثم اربط.";
         }
 
         if (radio.Available && radio.SignalDbm is int liveSignal)

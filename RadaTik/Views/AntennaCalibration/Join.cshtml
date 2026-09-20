@@ -14,17 +14,19 @@
     <header class="calibrate-field-head">
         <h1>@Model.Title</h1>
         <p>@Model.EndpointName ← → @Model.OtherName · رمز @Model.Code</p>
-        <p class="calibrate-workflow-badge">@Model.WorkflowLabel</p>
+        <p class="calibrate-workflow-badge">@(isPro || isQuick ? Model.WorkflowLabel : "حرّك حتى أعلى رقم ثم اربط")</p>
     </header>
 
-    @if (!isPro)
+    @if (!isPro && !isQuick)
     {
-        <div class="calibrate-mode-switch" role="group" aria-label="وضع المعايرة">
-            <button type="button" class="btn btn-sm @(defaultMode == "signal" ? "btn-success is-active" : "btn-outline-light")" id="modeSignal" data-mode="signal">إشارة فقط (أدق)</button>
-            <button type="button" class="btn btn-sm @(defaultMode == "compass" ? "btn-success is-active" : "btn-outline-light")" id="modeCompass" data-mode="compass">بوصلة تقريبية</button>
-        </div>
+        <ol class="calibrate-tech-card">
+            <li>اضغط بدء مراقبة الإشارة.</li>
+            <li>حرّك الصحن ببطء حتى أعلى رقم.</li>
+            <li>اربط البراغي.</li>
+        </ol>
     }
-    else
+
+    @if (isPro)
     {
         <div class="calibrate-pro-stages" id="proStages" role="tablist" aria-label="مراحل المعايرة الاحترافية">
             <button type="button" class="calibrate-pro-stage is-active" data-stage="az" id="stageAz">1 · أفقي</button>
@@ -32,38 +34,6 @@
             <button type="button" class="calibrate-pro-stage" data-stage="lock" id="stageLock">3 · قفل القمة</button>
         </div>
         <p class="calibrate-pro-stage-hint" id="proStageHint">المرحلة 1: ثبّت الميل، وحرّك السمت ببطء حتى أعلى RSSI ثم انتقل للعمودي.</p>
-    }
-
-    <div class="calibrate-field-figure">
-        @if (Model.IsTransmitter)
-        {
-            <partial name="_CalibratePhonePlacementTx" />
-        }
-        else
-        {
-            <partial name="_CalibratePhonePlacementRx" />
-        }
-        @if (isPro)
-        {
-            <ol class="calibrate-field-steps">
-                <li><strong>1</strong> الصق ظهر الموبايل على ظهر الصحن.</li>
-                <li><strong>2</strong> امسح أفقياً حتى القمة ثم ثبّت السمت.</li>
-                <li><strong>3</strong> امسح عمودياً حتى القمة ثم انتظر قفل القمة.</li>
-            </ol>
-            <p class="calibrate-field-caption">مسار احترافي: محور واحد في كل مرة. القفل النهائي بعد ثبات القمة ~3 ثوانٍ.</p>
-        }
-        else
-        {
-            <partial name="_CalibrateFieldSteps" />
-            <p class="calibrate-field-caption">الصق ظهر الموبايل على الظهر الخلفي للصحن، والشاشة نحو الفني. القفل النهائي بقمة الإشارة وليس بدرجة البوصلة.</p>
-        }
-    </div>
-
-    <p id="metalWarn" class="antenna-cal-metal-warn d-none">البوصلة مشوّشة قرب المعدن. استخدم وضع إشارة فقط.</p>
-    <p id="pathNote" class="calibrate-field-path">@Model.Snapshot.Path.Summary</p>
-    @if (!string.IsNullOrWhiteSpace(Model.Snapshot.ExpectedSignalHint))
-    {
-        <p id="expectedHint" class="calibrate-expected-hint">@Model.Snapshot.ExpectedSignalHint</p>
     }
 
     <section class="calibrate-rf-panel" id="rfPanel">
@@ -89,10 +59,69 @@
             <div class="calibrate-rf-meter-fill" id="rfMeterFill"></div>
             <div class="calibrate-rf-meter-peak" id="rfMeterPeak"></div>
         </div>
-        <p id="peakLockBanner" class="calibrate-peak-lock d-none">قفل قمة مستقر — ثبّت البراغي الآن</p>
-        <p id="rfHint" class="calibrate-rf-hint">@(isPro ? "ابدأ بالمرحلة الأفقية وحرّك ببطء جداً." : "حرّك الهوائي ببطء جداً. عندما يصل الرقم للقمة ثبّت البراغي.")</p>
+        <p id="peakLockBanner" class="calibrate-peak-lock d-none">الرقم ثابت على القمة — اربط البراغي الآن</p>
+        <p id="rfHint" class="calibrate-rf-hint">@(isPro ? "ابدأ بالمرحلة الأفقية وحرّك ببطء جداً." : "حرّك ببطء. عندما يتساوى الرقمان اربط.")</p>
         <button type="button" class="btn btn-outline-warning btn-sm w-100" id="btnResetPeakField">تصفير القمة</button>
     </section>
+
+    <button type="button" class="btn btn-success btn-lg w-100 @(defaultMode == "compass" ? "d-none" : "")" id="btnStartSignal">
+        <i class="fas fa-broadcast-tower"></i> @(isPro ? "بدء المعايرة الاحترافية" : "بدء مراقبة الإشارة")
+    </button>
+
+    @if (!isPro)
+    {
+        <details class="calibrate-more-tools" @(isQuick ? "open" : null)>
+            <summary>بوصلة أو لصق الموبايل (اختياري)</summary>
+            <div class="calibrate-mode-switch" role="group" aria-label="وضع المعايرة">
+                <button type="button" class="btn btn-sm @(defaultMode == "signal" ? "btn-success is-active" : "btn-outline-light")" id="modeSignal" data-mode="signal">إشارة فقط (أدق)</button>
+                <button type="button" class="btn btn-sm @(defaultMode == "compass" ? "btn-success is-active" : "btn-outline-light")" id="modeCompass" data-mode="compass">بوصلة تقريبية</button>
+            </div>
+            <div class="calibrate-field-figure">
+                @if (Model.IsTransmitter)
+                {
+                    <partial name="_CalibratePhonePlacementTx" />
+                }
+                else
+                {
+                    <partial name="_CalibratePhonePlacementRx" />
+                }
+                <partial name="_CalibrateFieldSteps" />
+                <p class="calibrate-field-caption">الموبايل للمشاهدة فقط. لا تعتمد على البوصلة.</p>
+            </div>
+            <button type="button" class="btn btn-outline-light btn-lg w-100 mt-2 @(defaultMode == "compass" ? "" : "d-none")" id="btnEnableFieldCompass">
+                <i class="fas fa-mobile-alt"></i> تفعيل البوصلة التقريبية
+            </button>
+        </details>
+    }
+    else
+    {
+        <div class="calibrate-field-figure">
+            @if (Model.IsTransmitter)
+            {
+                <partial name="_CalibratePhonePlacementTx" />
+            }
+            else
+            {
+                <partial name="_CalibratePhonePlacementRx" />
+            }
+            <ol class="calibrate-field-steps">
+                <li><strong>1</strong> الصق ظهر الموبايل على ظهر الصحن.</li>
+                <li><strong>2</strong> امسح أفقياً حتى القمة ثم ثبّت السمت.</li>
+                <li><strong>3</strong> امسح عمودياً حتى القمة ثم انتظر قفل القمة.</li>
+            </ol>
+            <p class="calibrate-field-caption">مسار احترافي: محور واحد في كل مرة. القفل النهائي بعد ثبات القمة ~3 ثوانٍ.</p>
+        </div>
+        <button type="button" class="btn btn-outline-light btn-lg w-100 mt-2 d-none" id="btnEnableFieldCompass">
+            <i class="fas fa-mobile-alt"></i> تفعيل البوصلة التقريبية
+        </button>
+    }
+
+    <p id="metalWarn" class="antenna-cal-metal-warn d-none">البوصلة مشوّشة قرب المعدن. استخدم وضع إشارة فقط.</p>
+    <p id="pathNote" class="calibrate-field-path">@Model.Snapshot.Path.Summary</p>
+    @if (!string.IsNullOrWhiteSpace(Model.Snapshot.ExpectedSignalHint))
+    {
+        <p id="expectedHint" class="calibrate-expected-hint">@Model.Snapshot.ExpectedSignalHint</p>
+    }
 
     <div class="calibrate-steer @(defaultMode == "signal" && !isQuick ? "d-none" : "")" id="steerBox" aria-live="polite">
         <p class="calibrate-steer-note">أسهم البوصلة تقريبية ومن منظور الفني خلف الصحن.</p>
@@ -126,17 +155,10 @@
         }
         else
         {
-            @:الوضع الافتراضي: إشارة فقط. ابدأ المراقبة ثم حرّك حتى القمة.
+            @:اضغط بدء مراقبة الإشارة، حرّك حتى أعلى رقم، ثم اربط.
         }
     </p>
     <p id="liveDelta" class="calibrate-field-delta"></p>
-
-    <button type="button" class="btn btn-success btn-lg w-100 @(defaultMode == "compass" ? "d-none" : "")" id="btnStartSignal">
-        <i class="fas fa-broadcast-tower"></i> @(isPro ? "بدء المعايرة الاحترافية" : "بدء مراقبة الإشارة")
-    </button>
-    <button type="button" class="btn btn-outline-light btn-lg w-100 mt-2 @(defaultMode == "compass" ? "" : "d-none")" id="btnEnableFieldCompass">
-        <i class="fas fa-mobile-alt"></i> تفعيل البوصلة التقريبية
-    </button>
 </div>
 
 @section Scripts {
@@ -196,9 +218,9 @@
                 document.getElementById('compassMetrics').classList.toggle('d-none', mode === 'signal');
                 if (mode === 'signal') {
                     publishing = false;
-                    setText('liveHint', 'وضع إشارة فقط: حرّك ببطء وراقب RSSI حتى القمة ثم ثبّت.');
+                    setText('liveHint', 'حرّك ببطء حتى أعلى رقم ثم اربط.');
                 } else {
-                    setText('liveHint', 'البوصلة تقريبية قرب المعدن. فعّلها للتقريب ثم اقفل على قمة RSSI.');
+                    setText('liveHint', 'البوصلة للتقريب فقط. اربط عند أعلى رقم إشارة.');
                 }
             }
 
@@ -346,11 +368,11 @@
                         }
                     } else if (mode === 'signal') {
                         setText('rfHint', atPeak
-                            ? 'عند القمة أو قربها. ثبّت البراغي الآن.'
-                            : 'حرّك ببطء جداً. الهدف الوصول لرقم القمة ثم التثبيت.');
+                            ? 'الرقمان متساويان. اربط البراغي الآن.'
+                            : 'حرّك ببطء حتى يتساوى الرقمان.');
                         setText('liveHint', atPeak
-                            ? 'ممتاز: قرب قمة الإشارة. ثبّت.'
-                            : 'راقب RSSI فقط. لا تعتمد على درجة البوصلة.');
+                            ? 'اربط البراغي.'
+                            : 'حرّك حتى أعلى رقم.');
                     }
                 }
                 if (!live) return;
@@ -417,7 +439,7 @@
                     setProStage(proStage || 'az');
                     setText('liveHint', 'المعايرة الاحترافية فعّالة. امسح المحور الحالي ببطء.');
                 } else {
-                    setText('liveHint', 'مراقبة الإشارة فعّالة. حرّك ببطء حتى القمة.');
+                    setText('liveHint', 'حرّك حتى أعلى رقم ثم اربط.');
                 }
             });
 

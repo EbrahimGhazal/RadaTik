@@ -13,8 +13,8 @@
     <div class="page-header mb-3">
         <div class="page-header-content">
             <div>
-                <h1 class="h4 mb-1"><i class="fas fa-compass text-success"></i> معايرة الهوائيين</h1>
-                <p class="text-muted mb-0">اختر أسلوب المعايرة، ثم أنشئ جلسة حية للطرفين مع خط رؤية وإشارة MikroTik.</p>
+                <h1 class="h4 mb-1"><i class="fas fa-broadcast-tower text-success"></i> معايرة الهوائي</h1>
+                <p class="text-muted mb-0">طريقة واحدة للفني: افتح الجلسة على الموبايل، حرّك الصحن حتى أعلى رقم، ثم اربط.</p>
             </div>
         </div>
     </div>
@@ -29,22 +29,30 @@
           id="calStartForm">
         @Html.AntiForgeryToken()
         <div class="card-body">
-            <div class="antenna-cal-workflow-tabs" role="tablist" aria-label="أسلوب المعايرة">
-                <button type="button" class="antenna-cal-workflow-tab" data-workflow="quick" role="tab" aria-selected="false">
-                    <strong>تقريبي</strong>
-                    <span>بوصلة للتقريب السريع</span>
-                </button>
-                <button type="button" class="antenna-cal-workflow-tab is-active" data-workflow="signal" role="tab" aria-selected="true">
-                    <strong>قمة إشارة</strong>
-                    <span>RSSI يومي دقيق</span>
-                </button>
-                <button type="button" class="antenna-cal-workflow-tab" data-workflow="pro" role="tab" aria-selected="false">
-                    <strong>احترافي</strong>
-                    <span>مراحل Az→El + قفل قمة</span>
-                </button>
-            </div>
+            <ol class="calibrate-tech-card">
+                <li>اختر القطاع والمستقبل ثم اضغط بدء الجلسة.</li>
+                <li>امسح QR المستقبل على موبايل الفني.</li>
+                <li>حرّك الصحن ببطء حتى أعلى رقم، ثم اربط البراغي.</li>
+            </ol>
+            <details class="antenna-cal-advanced">
+                <summary>أساليب أخرى (اختياري)</summary>
+                <div class="antenna-cal-workflow-tabs" role="tablist" aria-label="أسلوب المعايرة">
+                    <button type="button" class="antenna-cal-workflow-tab is-active" data-workflow="signal" role="tab" aria-selected="true">
+                        <strong>قمة إشارة</strong>
+                        <span>الطريقة اليومية</span>
+                    </button>
+                    <button type="button" class="antenna-cal-workflow-tab" data-workflow="quick" role="tab" aria-selected="false">
+                        <strong>تقريبي</strong>
+                        <span>بوصلة للاقتراب فقط</span>
+                    </button>
+                    <button type="button" class="antenna-cal-workflow-tab" data-workflow="pro" role="tab" aria-selected="false">
+                        <strong>احترافي</strong>
+                        <span>مراحل أفقية ثم عمودية</span>
+                    </button>
+                </div>
+                <p class="small text-muted mb-2" id="calWorkflowHint">قمة إشارة هي الافتراضية. لا تحتاج اختيار أسلوب في العمل اليومي.</p>
+            </details>
             <input type="hidden" name="workflow" id="calWorkflow" value="signal" />
-            <p class="small text-muted mb-2" id="calWorkflowHint">الافتراضي: مراقبة الإشارة حتى أعلى RSSI ثم التثبيت. مناسب لمعظم التركيبات.</p>
             <div class="row g-2 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label" for="sectorId">المرسل (القطاع)</label>
@@ -217,9 +225,9 @@
             var workflowInput = document.getElementById('calWorkflow');
             var workflowHint = document.getElementById('calWorkflowHint');
             var workflowHints = {
-                quick: 'تقريبي: البوصلة تساعد على التوجيه الأولي فقط. القفل النهائي يبقى بقمة الإشارة.',
-                signal: 'الافتراضي: مراقبة الإشارة حتى أعلى RSSI ثم التثبيت. مناسب لمعظم التركيبات.',
-                pro: 'احترافي: مسح أفقي ثم عمودي، قفل قمة ذكي، وSNR/CCQ. الأفضل للضبط النهائي الدقيق.'
+                quick: 'تقريبي: بوصلة للاقتراب فقط، ثم اربط عند أعلى رقم.',
+                signal: 'قمة إشارة: حرّك ببطء حتى أعلى رقم ثم اربط.',
+                pro: 'احترافي: امسح يمين/يسار ثم أعلى/أسفل، وانتظر ثبات الرقم.'
             };
             document.querySelectorAll('.antenna-cal-workflow-tab').forEach(function (tab) {
                 tab.addEventListener('click', function () {
