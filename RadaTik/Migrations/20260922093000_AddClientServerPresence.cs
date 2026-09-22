@@ -12,6 +12,7 @@ namespace RadaTik.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // SQL Server: لا يمكن ADD COLUMN ثم استخدامه في نفس الدفعة — افصل الدفعات.
             migrationBuilder.Sql(
                 """
                 IF COL_LENGTH(N'dbo.Clients', N'ActiveServingServerId') IS NULL
@@ -19,7 +20,10 @@ namespace RadaTik.Migrations
                     ALTER TABLE [dbo].[Clients]
                         ADD [ActiveServingServerId] int NULL;
                 END
+                """);
 
+            migrationBuilder.Sql(
+                """
                 IF NOT EXISTS (
                     SELECT 1 FROM sys.foreign_keys
                     WHERE name = N'FK_Clients_MikroTikServers_ActiveServingServerId')
@@ -39,7 +43,10 @@ namespace RadaTik.Migrations
                     CREATE INDEX [IX_Clients_ActiveServingServerId]
                         ON [dbo].[Clients] ([ActiveServingServerId]);
                 END
+                """);
 
+            migrationBuilder.Sql(
+                """
                 IF OBJECT_ID(N'dbo.ClientServerPresences', N'U') IS NULL
                 BEGIN
                     CREATE TABLE [dbo].[ClientServerPresences] (
@@ -60,8 +67,10 @@ namespace RadaTik.Migrations
                     CREATE INDEX [IX_ClientServerPresences_MikroTikServerId]
                         ON [dbo].[ClientServerPresences] ([MikroTikServerId]);
                 END
+                """);
 
-                -- برج أساسي لكل مشترك له سيرفر
+            migrationBuilder.Sql(
+                """
                 INSERT INTO [dbo].[ClientServerPresences] ([ClientId], [MikroTikServerId], [Role], [CreatedAtUtc])
                 SELECT c.[Id], c.[MikroTikServerId], 0, SYSUTCDATETIME()
                 FROM [dbo].[Clients] c
@@ -69,8 +78,10 @@ namespace RadaTik.Migrations
                   AND NOT EXISTS (
                       SELECT 1 FROM [dbo].[ClientServerPresences] p
                       WHERE p.[ClientId] = c.[Id] AND p.[MikroTikServerId] = c.[MikroTikServerId]);
+                """);
 
-                -- ربط التكرارات القديمة: نفس UserName على سيرفر آخر → حضور Standby على السجل صاحب أكبر رصيد / الأقدم
+            migrationBuilder.Sql(
+                """
                 ;WITH Ranked AS (
                     SELECT
                         c.[Id],
@@ -106,8 +117,10 @@ namespace RadaTik.Migrations
                 WHERE NOT EXISTS (
                     SELECT 1 FROM [dbo].[ClientServerPresences] p
                     WHERE p.[ClientId] = s.KeeperId AND p.[MikroTikServerId] = s.SiblingServerId);
+                """);
 
-                -- فعّل السيرفر الحالي للكيبير = سيرفر أحدث نسخة مكررة إن وُجدت، وإلا البرج الأساسي
+            migrationBuilder.Sql(
+                """
                 ;WITH Ranked AS (
                     SELECT
                         c.[Id],
@@ -152,7 +165,10 @@ namespace RadaTik.Migrations
                 """
                 IF OBJECT_ID(N'dbo.ClientServerPresences', N'U') IS NOT NULL
                     DROP TABLE [dbo].[ClientServerPresences];
+                """);
 
+            migrationBuilder.Sql(
+                """
                 IF EXISTS (
                     SELECT 1 FROM sys.foreign_keys
                     WHERE name = N'FK_Clients_MikroTikServers_ActiveServingServerId')
@@ -163,7 +179,10 @@ namespace RadaTik.Migrations
                     WHERE name = N'IX_Clients_ActiveServingServerId'
                       AND object_id = OBJECT_ID(N'dbo.Clients'))
                     DROP INDEX [IX_Clients_ActiveServingServerId] ON [dbo].[Clients];
+                """);
 
+            migrationBuilder.Sql(
+                """
                 IF COL_LENGTH(N'dbo.Clients', N'ActiveServingServerId') IS NOT NULL
                     ALTER TABLE [dbo].[Clients] DROP COLUMN [ActiveServingServerId];
                 """);
