@@ -55,12 +55,14 @@ public sealed class ClientSelfRenewalService(
             client.LastRenewalDate = DateTime.Now.Date;
             client.LastUpdated = DateTime.Now;
 
-            if (client.MikroTikServerId.HasValue && !string.IsNullOrEmpty(client.UserName))
+            if (!string.IsNullOrEmpty(client.UserName))
             {
-                await mikroTikPppoe.RenewPPPoESubscription(
-                    client.UserName,
-                    client.MikroTikServerId.Value,
-                    client.AccountExpirationDate.Value);
+                await ClientServerPresenceHelper.RenewExpirationOnAllServersAsync(
+                    Db,
+                    mikroTikPppoe,
+                    client,
+                    client.AccountExpirationDate.Value,
+                    ct);
             }
 
             await Db.SaveChangesAsync(ct);

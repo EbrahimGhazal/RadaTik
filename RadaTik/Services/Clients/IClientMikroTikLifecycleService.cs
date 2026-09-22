@@ -60,8 +60,8 @@ public interface IClientMikroTikLifecycleService
 
     /// <summary>
     /// نقل أو نسخ حسابات المشتركين إلى برج جديد.
-    /// النقل يضيف الحساب على السيرفر المطلوب ثم يحذفه من البرج القديم ويحدّث قاعدة البيانات.
-    /// النسخ يضيف الحساب على البرج الجديد ويبقي المشتركين على البرج القديم.
+    /// النقل يضيف الحساب على السيرفر المطلوب ثم يحذفه من البرج السابق ويحدّث قاعدة البيانات.
+    /// النسخ يضيف الحساب على البرج الجديد ويربط حضوراً احتياطياً دون إنشاء صف مشترك مكرر.
     /// </summary>
     Task<BulkCopyAccountsToServerResult> BulkCopyAccountsToServerAsync(
         int networkId,
@@ -69,5 +69,14 @@ public interface IClientMikroTikLifecycleService
         IReadOnlyList<int>? clientIds,
         bool applyToAllInNetwork,
         bool removeFromSource = true,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// إعادة السيرفر الفعّال إلى البرج الأساسي، مع خيار حذف الحسابات الاحتياطية من MikroTik.
+    /// </summary>
+    Task<ClientOperationOutcome> EndFailoverAsync(
+        int clientId,
+        int networkId,
+        bool removeStandbyAccounts = true,
         CancellationToken ct = default);
 }

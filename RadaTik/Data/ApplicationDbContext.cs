@@ -18,6 +18,7 @@ namespace RadaTik.Data
         public DbSet<SectorRadioMetricSample> SectorRadioMetricSamples { get; set; }
         public DbSet<SectorRadioEvent> SectorRadioEvents { get; set; }
         public DbSet<Client> Clients { get; set; }
+        public DbSet<ClientServerPresence> ClientServerPresences { get; set; }
         public DbSet<MikroTikServer> MikroTikServers { get; set; }
         public DbSet<Profile> Profiles { get; set; }
         public DbSet<CompanyProfileCatalog> CompanyProfileCatalogs { get; set; }

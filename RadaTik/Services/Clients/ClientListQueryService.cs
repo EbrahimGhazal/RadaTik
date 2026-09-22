@@ -49,6 +49,9 @@ public sealed class ClientListQueryService(
             .Include(c => c.Receiver)
                 .ThenInclude(r => r!.Sector)
             .Include(c => c.MikroTikServer)
+            .Include(c => c.ActiveServingServer)
+            .Include(c => c.ServerPresences)
+                .ThenInclude(p => p.MikroTikServer)
             .Include(c => c.Profile);
 
         List<int> companyNetworkIds = [];
@@ -212,6 +215,9 @@ public sealed class ClientListQueryService(
         Client? client = await Db.Clients
             .Include(c => c.Receiver)
             .Include(c => c.MikroTikServer)
+            .Include(c => c.ActiveServingServer)
+            .Include(c => c.ServerPresences)
+                .ThenInclude(p => p.MikroTikServer)
             .Include(c => c.Profile)
             .FirstOrDefaultAsync(m => m.Id == clientId, ct);
 

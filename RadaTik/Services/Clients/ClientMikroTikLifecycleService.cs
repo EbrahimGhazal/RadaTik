@@ -40,15 +40,15 @@ public sealed class ClientMikroTikLifecycleService(
             return ClientOperationOutcome.NotFoundClient();
         }
 
-        if (!client.MikroTikServerId.HasValue || string.IsNullOrEmpty(client.UserName))
+        if (string.IsNullOrEmpty(client.UserName))
         {
-            return ClientOperationOutcome.Fail("لا يمكن تجميد الحساب: لم يتم تحديد خادم المايكروتك أو اسم المستخدم");
+            return ClientOperationOutcome.Fail("لا يمكن تجميد الحساب: لم يتم تحديد اسم المستخدم");
         }
 
         try
         {
-            await _mikroTik.FreezeAccount(client.MikroTikServerId.Value, client.UserName);
-            return ClientOperationOutcome.Success("تم تجميد الإنترنت للمشترك على المايكروتك فقط");
+            await FreezeOnAllPresenceServersAsync(client, freeze: true, ct);
+            return ClientOperationOutcome.Success("تم تجميد الإنترنت للمشترك على كل السيرفرات التي فيها حضور");
         }
         catch (Exception ex)
         {
@@ -64,15 +64,15 @@ public sealed class ClientMikroTikLifecycleService(
             return ClientOperationOutcome.NotFoundClient();
         }
 
-        if (!client.MikroTikServerId.HasValue || string.IsNullOrEmpty(client.UserName))
+        if (string.IsNullOrEmpty(client.UserName))
         {
-            return ClientOperationOutcome.Fail("لا يمكن تفعيل الحساب: لم يتم تحديد خادم المايكروتك أو اسم المستخدم");
+            return ClientOperationOutcome.Fail("لا يمكن تفعيل الحساب: لم يتم تحديد اسم المستخدم");
         }
 
         try
         {
-            await _mikroTik.UnfreezeAccount(client.MikroTikServerId.Value, client.UserName);
-            return ClientOperationOutcome.Success("تم تفعيل الحساب بنجاح");
+            await FreezeOnAllPresenceServersAsync(client, freeze: false, ct);
+            return ClientOperationOutcome.Success("تم تفعيل الحساب على كل السيرفرات التي فيها حضور");
         }
         catch (Exception ex)
         {
@@ -93,12 +93,9 @@ public sealed class ClientMikroTikLifecycleService(
             DateTime baseDate = client.AccountExpirationDate?.Date ?? DateTime.Now.Date;
             DateTime newExpirationDate = baseDate.AddMonths(1).AddDays(-1);
 
-            if (client.MikroTikServerId.HasValue && !string.IsNullOrWhiteSpace(client.UserName))
+            if (!string.IsNullOrWhiteSpace(client.UserName))
             {
-                await _mikroTik.RenewPPPoESubscription(
-                    client.UserName,
-                    client.MikroTikServerId.Value,
-                    newExpirationDate);
+                await RenewOnAllPresenceServersAsync(client, newExpirationDate, ct);
             }
 
             client.AccountExpirationDate = newExpirationDate;
@@ -143,17 +140,14 @@ public sealed class ClientMikroTikLifecycleService(
             return ClientOperationOutcome.Fail("يجب تحديد تاريخ انتهاء الصلاحية أو عدد الأيام للتجديد");
         }
 
-        if (!client.MikroTikServerId.HasValue || string.IsNullOrEmpty(client.UserName))
+        if (string.IsNullOrEmpty(client.UserName))
         {
-            return ClientOperationOutcome.Fail("لا يمكن التجديد: لم يتم تحديد خادم المايكروتك أو اسم المستخدم");
+            return ClientOperationOutcome.Fail("لا يمكن التجديد: لم يتم تحديد اسم المستخدم");
         }
 
         try
         {
-            await _mikroTik.RenewPPPoESubscription(
-                client.UserName,
-                client.MikroTikServerId.Value,
-                newExpirationDate);
+            await RenewOnAllPresenceServersAsync(client, newExpirationDate, ct);
 
             client.AccountExpirationDate = newExpirationDate;
             client.LastRenewalDate = DateTime.Now.Date;
@@ -178,18 +172,18 @@ public sealed class ClientMikroTikLifecycleService(
             return ClientOperationOutcome.NotFoundClient();
         }
 
-        if (!client.MikroTikServerId.HasValue || string.IsNullOrEmpty(client.UserName))
+        if (string.IsNullOrEmpty(client.UserName))
         {
-            return ClientOperationOutcome.Fail("لا يمكن التجديد: لم يتم تحديد خادم المايكروتك أو اسم المستخدم");
+            return ClientOperationOutcome.Fail("لا يمكن التجديد: لم يتم تحديد اسم المستخدم");
         }
 
         try
         {
-            await _mikroTik.RenewSubscriptionTo8thNextMonth(client.UserName, client.MikroTikServerId.Value);
-
             DateTime today = DateTime.Now;
             DateTime nextMonth = today.AddMonths(1);
             DateTime renewalDate = new(nextMonth.Year, nextMonth.Month, 8);
+
+            await RenewOnAllPresenceServersAsync(client, renewalDate, ct);
 
             client.AccountExpirationDate = renewalDate;
             client.LastRenewalDate = DateTime.Now.Date;
@@ -241,10 +235,7 @@ public sealed class ClientMikroTikLifecycleService(
 
         try
         {
-            await _mikroTik.RenewPPPoESubscription(
-                client.UserName,
-                client.MikroTikServerId.Value,
-                newExpirationDate);
+            await RenewOnAllPresenceServersAsync(client, newExpirationDate, ct);
 
             client.AccountExpirationDate = newExpirationDate;
             client.LastRenewalDate = DateTime.Now.Date;
@@ -497,33 +488,29 @@ public sealed class ClientMikroTikLifecycleService(
 
             if (placedIds.Count > 0)
             {
-                DateTime now = DateTime.Now;
-                List<Client> toReassign = await Db.Clients
-                    .Where(c => c.NetworkId == networkId && placedIds.Contains(c.Id))
-                    .ToListAsync(ct);
-
-                foreach (Client client in toReassign)
-                {
-                    client.MikroTikServerId = targetServerId;
-                    client.LastUpdated = now;
-                }
-
-                await Db.SaveChangesAsync(ct);
-                reassigned = toReassign.Count;
+                await ClientServerPresenceHelper.SyncHomePresenceAfterMoveAsync(
+                    Db,
+                    networkId,
+                    targetServerId,
+                    placedIds,
+                    ct);
+                reassigned = placedIds.Count;
             }
         }
         else if (placedIds.Count > 0)
         {
-            cloned = await ClonePlacedClientsToTargetAsync(
+            // نسخ failover: حضور Standby + ActiveServingServerId بدون صف Client مكرر
+            cloned = await ClientServerPresenceHelper.LinkFailoverPresenceAsync(
+                Db,
                 networkId,
                 targetServerId,
-                clients.Where(c => placedIds.Contains(c.Id)).ToList(),
+                placedIds,
                 ct);
         }
 
         string message = removeFromSource
-            ? $"تم نقل الحسابات إلى البرج الجديد: أُضيف {copyResult.AddedCount}، موجود مسبقاً {copyResult.SkippedExistingCount}، حُذف من القديم {removedFromOld}، حُدّث في قاعدة البيانات {reassigned}، غير مكتمل {copyResult.SkippedInvalidCount}، فشل {copyResult.FailedCount}."
-            : $"تم نسخ الحسابات إلى البرج الجديد دون حذف المشتركين: أُضيف {copyResult.AddedCount}، موجود مسبقاً {copyResult.SkippedExistingCount}، أُنشئ في قاعدة البيانات {cloned}، بقي الأصل على البرج القديم، غير مكتمل {copyResult.SkippedInvalidCount}، فشل {copyResult.FailedCount}.";
+            ? $"تم نقل الحسابات إلى البرج الجديد: أُضيف {copyResult.AddedCount}، موجود مسبقاً {copyResult.SkippedExistingCount}، حُذف من السابق {removedFromOld}، حُدّث في قاعدة البيانات {reassigned}، غير مكتمل {copyResult.SkippedInvalidCount}، فشل {copyResult.FailedCount}."
+            : $"تم تجهيز النسخ الاحتياطي دون تكرار المشترك: أُضيف {copyResult.AddedCount} على MikroTik، موجود مسبقاً {copyResult.SkippedExistingCount}، رُبط حضور {cloned} مشتركاً على البرج الاحتياطي (محفظة وبوابة واحدة)، غير مكتمل {copyResult.SkippedInvalidCount}، فشل {copyResult.FailedCount}.";
 
         return BulkCopyAccountsToServerResult.Ok(
             clients.Count,
@@ -538,94 +525,104 @@ public sealed class ClientMikroTikLifecycleService(
             cloned);
     }
 
-    private async Task<int> ClonePlacedClientsToTargetAsync(
+    public async Task<ClientOperationOutcome> EndFailoverAsync(
+        int clientId,
         int networkId,
-        int targetServerId,
-        List<Client> placedSources,
+        bool removeStandbyAccounts = true,
+        CancellationToken ct = default) =>
+        await ClientServerPresenceHelper.EndFailoverAsync(
+            Db,
+            _mikroTik,
+            clientId,
+            networkId,
+            removeStandbyAccounts,
+            ct);
+
+    private async Task RenewOnAllPresenceServersAsync(
+        Client client,
+        DateTime newExpirationDate,
         CancellationToken ct)
     {
-        HashSet<string> existingOnTarget = (await Db.Clients
-                .AsNoTracking()
-                .Where(c =>
-                    c.NetworkId == networkId
-                    && c.MikroTikServerId == targetServerId
-                    && c.UserName != null)
-                .Select(c => c.UserName!)
-                .ToListAsync(ct))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        DateTime now = DateTime.Now;
-        List<Client> clones = [];
-        HashSet<int> sourceIdsToMark = [];
-
-        foreach (Client source in placedSources)
+        if (string.IsNullOrWhiteSpace(client.UserName))
         {
-            string? userName = source.UserName?.Trim();
-            if (string.IsNullOrWhiteSpace(userName) || existingOnTarget.Contains(userName))
+            return;
+        }
+
+        IReadOnlyList<int> serverIds = await ClientServerPresenceHelper.GetPppoeServerIdsAsync(
+            Db,
+            client.Id,
+            client.MikroTikServerId,
+            client.ActiveServingServerId,
+            ct);
+
+        if (serverIds.Count == 0)
+        {
+            return;
+        }
+
+        List<string> errors = [];
+        foreach (int serverId in serverIds)
+        {
+            try
             {
-                continue;
+                await _mikroTik.RenewPPPoESubscription(client.UserName, serverId, newExpirationDate);
             }
-
-            clones.Add(CloneClientForTargetServer(source, targetServerId, now));
-            existingOnTarget.Add(userName);
-            sourceIdsToMark.Add(source.Id);
+            catch (Exception ex)
+            {
+                errors.Add($"سيرفر {serverId}: {ex.Message}");
+            }
         }
 
-        if (clones.Count == 0 && sourceIdsToMark.Count == 0)
+        if (errors.Count == serverIds.Count)
         {
-            return 0;
+            throw new InvalidOperationException(string.Join("؛ ", errors.Take(3)));
         }
-
-        if (clones.Count > 0)
-        {
-            Db.Clients.AddRange(clones);
-        }
-
-        List<Client> originals = await Db.Clients
-            .Where(c => c.NetworkId == networkId && sourceIdsToMark.Contains(c.Id))
-            .ToListAsync(ct);
-        foreach (Client original in originals)
-        {
-            original.IsCrossServerDuplicate = true;
-            original.LastUpdated = now;
-        }
-
-        await Db.SaveChangesAsync(ct);
-        return clones.Count;
     }
 
-    private static Client CloneClientForTargetServer(Client source, int targetServerId, DateTime now) =>
-        new()
+    private async Task FreezeOnAllPresenceServersAsync(Client client, bool freeze, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(client.UserName))
         {
-            Name = source.Name,
-            SID = source.SID,
-            UserName = source.UserName,
-            Password = source.Password,
-            ProfileId = source.ProfileId,
-            ProfileName = source.ProfileName,
-            PhoneNumber = source.PhoneNumber,
-            TelegramChatId = source.TelegramChatId,
-            ResidenceAddress = source.ResidenceAddress,
-            Latitude = source.Latitude,
-            Longitude = source.Longitude,
-            IsActive = source.IsActive,
-            ReceiverId = source.ReceiverId,
-            Service = source.Service,
-            Address = source.Address,
-            PowerSource = source.PowerSource,
-            Building = source.Building,
-            Floor = source.Floor,
-            MikroTikServerId = targetServerId,
-            IsCrossServerDuplicate = true,
-            NetworkId = source.NetworkId,
-            ServiceStartDate = source.ServiceStartDate,
-            AccountExpirationDate = source.AccountExpirationDate,
-            LastRenewalDate = source.LastRenewalDate,
-            AccountCurrency = source.AccountCurrency,
-            Balance = 0,
-            CreatedDate = now,
-            LastUpdated = now
-        };
+            throw new InvalidOperationException("اسم المستخدم غير محدد");
+        }
+
+        IReadOnlyList<int> serverIds = await ClientServerPresenceHelper.GetPppoeServerIdsAsync(
+            Db,
+            client.Id,
+            client.MikroTikServerId,
+            client.ActiveServingServerId,
+            ct);
+
+        if (serverIds.Count == 0)
+        {
+            throw new InvalidOperationException("لم يتم تحديد خادم المايكروتك");
+        }
+
+        List<string> errors = [];
+        foreach (int serverId in serverIds)
+        {
+            try
+            {
+                if (freeze)
+                {
+                    await _mikroTik.FreezeAccount(serverId, client.UserName);
+                }
+                else
+                {
+                    await _mikroTik.UnfreezeAccount(serverId, client.UserName);
+                }
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"سيرفر {serverId}: {ex.Message}");
+            }
+        }
+
+        if (errors.Count == serverIds.Count)
+        {
+            throw new InvalidOperationException(string.Join("؛ ", errors.Take(3)));
+        }
+    }
 
     private async Task FillMissingProfileNamesAsync(List<Client> clients, CancellationToken ct)
     {

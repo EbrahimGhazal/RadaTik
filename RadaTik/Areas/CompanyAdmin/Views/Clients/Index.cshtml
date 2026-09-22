@@ -1,5 +1,6 @@
 <div class="radtk-page-clients-index">
 @model IEnumerable<RadaTik.Models.Client>
+@using RadaTik.Models
 @using RadaTik.Services.Clients
 
 @{
@@ -9,7 +10,7 @@
     var totalClients = Model.Count();
     var activeClients = Model.Count(c => c.IsActive);
     var inactiveClients = Model.Count(c => !c.IsActive);
-    var duplicateClients = Model.Count(c => c.IsCrossServerDuplicate);
+    var duplicateClients = Model.Count(c => c.HasMultiServerPresence || c.IsCrossServerDuplicate);
     var vipClients = Model.Count(c => c.IsVip);
 
     // حساب مجموع السرعات (بالميجابت) — تنزيل ورفع (الرفع الناقص = التنزيل)
@@ -88,7 +89,7 @@
 <div class="operational-page clients-list-page">
     @{
         ViewBag.OperationalHeroIcon = "fas fa-users";
-        ViewBag.OperationalHeroSubtitle = $"إجمالي {totalClients} مشترك — نشط {activeClients} — مكرر {duplicateClients} — VIP {vipClients}";
+        ViewBag.OperationalHeroSubtitle = $"إجمالي {totalClients} مشترك — نشط {activeClients} — متعدد السيرفرات {duplicateClients} — VIP {vipClients}";
     }
     <partial name="_OperationalSysHero" />
     <div class="page-actions-toolbar clients-page-toolbar d-flex flex-wrap gap-2 mb-3 justify-content-end">
@@ -234,11 +235,11 @@
         </div>
     </button>
 
-    <button type="button" class="stat-item stat-duplicate is-filter" data-filter="duplicate" onclick="filterByStatus('duplicate')" title="الحسابات المكررة عبر سيرفرات MikroTik ضمن الشبكة">
-        <div class="stat-icon-mini"><i class="fas fa-clone"></i></div>
+    <button type="button" class="stat-item stat-duplicate is-filter" data-filter="duplicate" onclick="filterByStatus('duplicate')" title="مشتركون لهم حساب PPPoE على أكثر من سيرفر (Failover)">
+        <div class="stat-icon-mini"><i class="fas fa-network-wired"></i></div>
         <div class="stat-data">
             <span class="stat-number">@duplicateClients</span>
-            <span class="stat-label">مكرر</span>
+            <span class="stat-label">متعدد السيرفرات</span>
         </div>
     </button>
 
@@ -314,8 +315,8 @@
                     <span class="filter-btn__label">معطل</span>
                     <span class="filter-count">@inactiveClients</span>
                 </button>
-                <button class="filter-btn filter-btn--duplicate" onclick="filterByStatus('duplicate')" data-filter="duplicate" title="الحسابات المكررة عبر سيرفرات MikroTik ضمن الشبكة">
-                    <span class="filter-btn__label">مكرر</span>
+                <button class="filter-btn filter-btn--duplicate" onclick="filterByStatus('duplicate')" data-filter="duplicate" title="مشتركون لهم حساب على أكثر من سيرفر">
+                    <span class="filter-btn__label">متعدد السيرفرات</span>
                     <span class="filter-count">@duplicateClients</span>
                 </button>
                 <button class="filter-btn filter-btn--vip" onclick="filterByStatus('vip')" data-filter="vip" title="المشتركون المميزون (VIP)">
@@ -359,7 +360,7 @@
                     <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="speed" checked /> السرعة</label>
                     <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="server" checked /> السيرفر</label>
                     <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="serverAccount" checked /> الحساب في السيرفر</label>
-                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="duplicate" checked /> مكرر</label>
+                    <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="duplicate" checked /> حضور متعدد</label>
                     <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="dbAccount" /> الحساب في قاعدة البيانات</label>
                     <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="startDate" /> تاريخ بدء الصلاحية</label>
                     <label class="dropdown-item"><input type="checkbox" class="column-toggle" data-col="endDate" checked /> تاريخ انتهاء الصلاحية</label>
@@ -428,7 +429,7 @@
                         <th data-col="speed">السرعة</th>
                         <th data-col="server">السيرفر</th>
                         <th data-col="serverAccount">الحساب في السيرفر</th>
-                        <th data-col="duplicate">مكرر</th>
+                        <th data-col="duplicate">حضور</th>
                         <th data-col="dbAccount">الحساب في قاعدة البيانات</th>
                         <th data-col="startDate">تاريخ بدء الصلاحية</th>
                         <th data-col="endDate">تاريخ انتهاء الصلاحية</th>
@@ -485,7 +486,7 @@
                             data-search="@($"{item.Name} {item.PhoneNumber} {item.UserName} {dbAccount} {item.SID} {item.MikroTikServer?.Name} {item.Receiver?.Name} {senderName} {profileName}".Trim())"
                             data-active="@item.IsActive.ToString().ToLower()"
                             data-pending="@isPendingApproval.ToString().ToLower()"
-                            data-duplicate="@item.IsCrossServerDuplicate.ToString().ToLower()"
+                            data-duplicate="@((item.HasMultiServerPresence || item.IsCrossServerDuplicate).ToString().ToLower())"
                             data-vip="@item.IsVip.ToString().ToLower()"
                             data-connected="@isConnected.ToString().ToLower()"
                             data-speed="@downloadSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)"
@@ -553,11 +554,39 @@
                                 </div>
                             </td>
                             <td data-col="server" data-label="السيرفر">
-                                @if (item.MikroTikServer != null)
+                                @{
+                                    var homeServer = item.MikroTikServer;
+                                    var activeServer = item.ActiveServingServer
+                                        ?? (item.ActiveServingServerId == item.MikroTikServerId ? item.MikroTikServer : null);
+                                    var standbyNames = item.ServerPresences
+                                        .Where(p => p.Role == ClientServerPresenceRole.Standby && p.MikroTikServer != null)
+                                        .Select(p => p.MikroTikServer!.Name)
+                                        .Distinct()
+                                        .ToList();
+                                    bool failoverActive = item.ActiveServingServerId.HasValue
+                                        && item.MikroTikServerId.HasValue
+                                        && item.ActiveServingServerId.Value != item.MikroTikServerId.Value;
+                                }
+                                @if (activeServer != null || homeServer != null)
                                 {
-                                    <span class="badge badge-primary" title="@item.MikroTikServer.Host">
-                                        <i class="fas fa-server"></i> @item.MikroTikServer.Name
-                                    </span>
+                                    <div class="d-flex flex-column gap-1">
+                                        <span class="badge @(failoverActive ? "bg-success" : "badge-primary")" title="@(activeServer?.Host ?? homeServer?.Host)">
+                                            <i class="fas fa-broadcast-tower"></i>
+                                            فعّال: @(activeServer?.Name ?? homeServer?.Name)
+                                        </span>
+                                        @if (failoverActive && homeServer != null)
+                                        {
+                                            <span class="badge bg-secondary" title="البرج الأساسي / المنزل">
+                                                <i class="fas fa-home"></i> أساسي: @homeServer.Name
+                                            </span>
+                                        }
+                                        @if (standbyNames.Count > 0)
+                                        {
+                                            <span class="badge bg-info text-dark" title="نسخ احتياطي على MikroTik">
+                                                <i class="fas fa-copy"></i> احتياطي: @string.Join("، ", standbyNames)
+                                            </span>
+                                        }
+                                    </div>
                                 }
                                 else
                                 {
@@ -567,11 +596,11 @@
                             <td data-col="serverAccount" data-label="الحساب في السيرفر">
                                 <code class="text-nowrap">@item.UserName</code>
                             </td>
-                            <td data-col="duplicate" data-label="مكرر" class="@(item.IsCrossServerDuplicate ? null : "clients-card-hide-empty")" data-order="@(item.IsCrossServerDuplicate ? 1 : 0)">
-                                @if (item.IsCrossServerDuplicate)
+                            <td data-col="duplicate" data-label="حضور" class="@((item.HasMultiServerPresence || item.IsCrossServerDuplicate) ? null : "clients-card-hide-empty")" data-order="@((item.HasMultiServerPresence || item.IsCrossServerDuplicate) ? 1 : 0)">
+                                @if (item.HasMultiServerPresence || item.IsCrossServerDuplicate)
                                 {
-                                    <span class="badge bg-warning text-dark" title="نفس الحساب موجود على سيرفر MikroTik آخر ضمن الشبكة">
-                                        <i class="fas fa-clone"></i> مكرر
+                                    <span class="badge bg-info text-dark" title="حساب PPPoE موجود على أكثر من سيرفر — سجل مشترك واحد للمحفظة والبوابة">
+                                        <i class="fas fa-network-wired"></i> متعدد السيرفرات
                                     </span>
                                 }
                                 else
@@ -1125,7 +1154,7 @@
                 'inactive': 'المعطلين:',
                 'connected': 'المتصلين:',
                 'disconnected': 'غير المتصلين:',
-                'duplicate': 'المكررين:',
+                'duplicate': 'متعددو السيرفرات:',
                 'vip': 'VIP:'
             };
             if (speedLabel) {
@@ -2151,14 +2180,14 @@
                 if (titleText) titleText.textContent = isCopy ? 'نسخ الحسابات إلى برج جديد' : 'نقل الحسابات إلى برج جديد';
                 if (help) {
                     help.textContent = isCopy
-                        ? 'تُقرأ بيانات الحسابات من قاعدة البيانات وتُضاف إلى البرج الجديد، مع الإبقاء على المشتركين في البرج القديم دون حذف. يجب أن يكون البروفايل منشوراً على البرج الجديد مسبقاً.'
-                        : 'تُقرأ بيانات الحسابات من قاعدة البيانات وتُضاف إلى البرج الجديد، ثم يُحدَّث سيرفر المشترك في قاعدة البيانات، ويُحذف الحساب من البرج القديم إن وُجد. يجب أن يكون البروفايل منشوراً على البرج الجديد مسبقاً.';
+                        ? 'يُضاف حساب PPPoE إلى البرج الاحتياطي ويُربَط حضوراً لنفس المشترك (بدون صف مكرر). المحفظة والبوابة تبقى واحدة، ويُعيَّن السيرفر الفعّال إلى البرج الجديد. يجب أن يكون البروفايل منشوراً على البرج الجديد مسبقاً.'
+                        : 'تُقرأ بيانات الحسابات من قاعدة البيانات وتُضاف إلى البرج الجديد، ثم يُحدَّث سيرفر المشترك في قاعدة البيانات، ويُحذف الحساب من البرج السابق إن وُجد. يجب أن يكون البروفايل منشوراً على البرج الجديد مسبقاً.';
                 }
                 if (warning) {
                     warning.className = isCopy ? 'alert alert-info small mb-0' : 'alert alert-warning small mb-0';
                     warning.innerHTML = isCopy
-                        ? '<i class="fas fa-copy"></i> هذا نسخ وليس نقلاً: الحساب يُضاف إلى البرج الجديد ويبقى المشترك في البرج القديم.'
-                        : '<i class="fas fa-exclamation-triangle"></i> هذا نقل وليس نسخاً: الحساب ينتقل إلى البرج الجديد ويُحذف من القديم.';
+                        ? '<i class="fas fa-copy"></i> نسخ احتياطي (Failover): حساب على MikroTik + حضور Standby — مشترك واحد في النظام.'
+                        : '<i class="fas fa-exclamation-triangle"></i> هذا نقل وليس نسخاً: الحساب ينتقل إلى البرج الجديد ويُحذف من السابق.';
                 }
                 if (confirmText) confirmText.textContent = isCopy ? 'نسخ إلى البرج' : 'نقل إلى البرج';
                 if (confirmIcon) confirmIcon.className = isCopy ? 'fas fa-copy' : 'fas fa-exchange-alt';
@@ -2360,8 +2389,8 @@
 
                     const scopeLabel = scope === 'all' ? 'جميع المشتركين' : ('المحددين (' + clients.length + ')');
                     const confirmText = isCopy
-                        ? 'سيتم نسخ حسابات ' + scopeLabel + ' إلى «' + serverLabel + '».\nيبقى المشترك في البرج القديم ولا يُحذف.\nهل تريد المتابعة؟'
-                        : 'سيتم نقل حسابات ' + scopeLabel + ' إلى «' + serverLabel + '».\nيُحدَّث السيرفر في قاعدة البيانات ويُحذف الحساب من البرج القديم.\nهل تريد المتابعة؟';
+                        ? 'سيتم تجهيز نسخ احتياطي لـ ' + scopeLabel + ' على «' + serverLabel + '».\nمشترك واحد في النظام (محفظة/بوابة)، وحساب PPPoE على البرج الاحتياطي.\nهل تريد المتابعة؟'
+                        : 'سيتم نقل حسابات ' + scopeLabel + ' إلى «' + serverLabel + '».\nيُحدَّث السيرفر في قاعدة البيانات ويُحذف الحساب من البرج السابق.\nهل تريد المتابعة؟';
                     if (!confirm(confirmText)) {
                         return;
                     }

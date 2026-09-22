@@ -85,12 +85,14 @@ public sealed class ClientPortalSelfRenewOrchestrator(
 
             bool wasStopped = !client.IsActive;
 
-            if (client.MikroTikServerId.HasValue && !string.IsNullOrEmpty(client.UserName))
+            if (!string.IsNullOrEmpty(client.UserName))
             {
-                await mikroTikPppoe.RenewPPPoESubscription(
-                    client.UserName,
-                    client.MikroTikServerId.Value,
-                    client.AccountExpirationDate.Value);
+                await ClientServerPresenceHelper.RenewExpirationOnAllServersAsync(
+                    Db,
+                    mikroTikPppoe,
+                    client,
+                    client.AccountExpirationDate.Value,
+                    ct);
             }
 
             if (wasStopped)

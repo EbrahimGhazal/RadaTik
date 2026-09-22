@@ -1,10 +1,15 @@
 @model RadaTik.Models.Client
+@using RadaTik.Models
 @using RadaTik.Services.Clients
 @{
     ViewData["Title"] = ViewBag.IsClientOnly == true ? "بيانات حسابي" : "تفاصيل العميل";
     var isClientOnly = ViewBag.IsClientOnly == true;
     var canEditClient = ViewBag.CanEditClient == true;
     var isPendingApproval = (bool?)ViewBag.IsPendingClientApproval == true;
+    bool hasFailoverPresence = Model.ServerPresences.Any(p => p.Role == ClientServerPresenceRole.Standby)
+        || (Model.ActiveServingServerId.HasValue
+            && Model.MikroTikServerId.HasValue
+            && Model.ActiveServingServerId != Model.MikroTikServerId);
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -200,11 +205,36 @@
                     <dt class="col-sm-4">@Html.DisplayNameFor(model => model.UserName)</dt>
                     <dd class="col-sm-8">
                         <code>@Html.DisplayFor(model => model.UserName)</code>
-                        @if (Model.IsCrossServerDuplicate)
+                        @if (Model.HasMultiServerPresence || Model.IsCrossServerDuplicate)
                         {
-                            <span class="badge bg-warning text-dark ms-2" title="نفس الحساب موجود على سيرفر MikroTik آخر ضمن الشبكة">
-                                <i class="fas fa-clone"></i> مكرر عبر السيرفرات
+                            <span class="badge bg-info text-dark ms-2" title="حساب PPPoE على أكثر من سيرفر — محفظة وبوابة واحدة">
+                                <i class="fas fa-network-wired"></i> متعدد السيرفرات
                             </span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-4">السيرفر الفعّال</dt>
+                    <dd class="col-sm-8">
+                        @{
+                            var activeName = Model.ActiveServingServer?.Name
+                                ?? (Model.ActiveServingServerId == Model.MikroTikServerId ? Model.MikroTikServer?.Name : null)
+                                ?? Model.MikroTikServer?.Name
+                                ?? "—";
+                            var homeName = Model.MikroTikServer?.Name ?? "—";
+                            bool failover = Model.ActiveServingServerId.HasValue
+                                && Model.MikroTikServerId.HasValue
+                                && Model.ActiveServingServerId != Model.MikroTikServerId;
+                        }
+                        <span class="badge @(failover ? "bg-success" : "bg-primary")">
+                            <i class="fas fa-broadcast-tower"></i> @activeName
+                        </span>
+                        @if (failover)
+                        {
+                            <span class="badge bg-secondary ms-1">أساسي: @homeName</span>
+                        }
+                        @foreach (var p in Model.ServerPresences.Where(x => x.Role == ClientServerPresenceRole.Standby && x.MikroTikServer != null))
+                        {
+                            <span class="badge bg-info text-dark ms-1">احتياطي: @p.MikroTikServer!.Name</span>
                         }
                     </dd>
 
@@ -512,6 +542,18 @@
                             <i class="fas fa-cloud-upload-alt"></i> مزامنة مع مايكروتك (إضافة إلى مايكروتك)
                         </button>
                     </form>
+                    @if (hasFailoverPresence && (User.IsInRole("NetworkAdministrator") || User.IsInRole("SystemAdministrator")))
+                    {
+                        <form asp-action="EndFailover" method="post" class="d-inline ms-1">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="removeStandbyAccounts" value="true" />
+                            <button type="submit" class="btn btn-outline-primary"
+                                    onclick="return confirm('إعادة السيرفر الفعّال إلى البرج الأساسي وحذف الحسابات الاحتياطية من MikroTik؟');">
+                                <i class="fas fa-undo"></i> إنهاء النسخ الاحتياطي
+                            </button>
+                        </form>
+                    }
 
                     @if (Model.IsActive)
                     {

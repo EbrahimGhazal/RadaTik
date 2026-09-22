@@ -149,16 +149,30 @@ public sealed class MikroTikUserImportService(
                             c.NetworkId == networkId &&
                             c.MikroTikServerId != null &&
                             c.MikroTikServerId != serverId)
+                        .OrderByDescending(c => c.Balance)
+                        .ThenBy(c => c.CreatedDate)
+                        .ThenBy(c => c.Id)
                         .ToListAsync();
-                    bool isCrossServerDuplicate = crossServerSiblings.Count > 0;
-                    if (isCrossServerDuplicate)
-                    {
-                        foreach (Client sibling in crossServerSiblings)
-                        {
-                            sibling.IsCrossServerDuplicate = true;
-                        }
 
+                    // نفس اليوزر على سيرفر آخر: اربط حضوراً احتياطياً بدل إنشاء مشترك مكرر
+                    if (crossServerSiblings.Count > 0)
+                    {
+                        Client keeper = crossServerSiblings[0];
+                        await RadaTik.Services.Clients.ClientServerPresenceHelper.EnsureHomePresenceAsync(
+                            _context, keeper);
+                        await RadaTik.Services.Clients.ClientServerPresenceHelper.UpsertPresenceAsync(
+                            _context,
+                            keeper.Id,
+                            serverId,
+                            RadaTik.Models.ClientServerPresenceRole.Standby);
+                        keeper.ActiveServingServerId = serverId;
+                        keeper.IsCrossServerDuplicate = false;
+                        keeper.LastUpdated = DateTime.Now;
+                        await _context.SaveChangesAsync();
+                        existingOnServer[userName] = keeper;
                         result.DuplicateCount++;
+                        result.UpdatedCount++;
+                        continue;
                     }
 
                     string sid = ResolveSid(null);
@@ -184,7 +198,8 @@ public sealed class MikroTikUserImportService(
                             ? "مفعل"
                             : mtUser.ConnectionStatus,
                         MikroTikServerId = serverId,
-                        IsCrossServerDuplicate = isCrossServerDuplicate,
+                        ActiveServingServerId = serverId,
+                        IsCrossServerDuplicate = false,
                         CreatedDate = DateTime.Now,
                         LastUpdated = DateTime.Now,
                         AccountExpirationDate = mtUser.AccountExpirationDate ?? DateTime.Now.AddMonths(1),
@@ -192,6 +207,9 @@ public sealed class MikroTikUserImportService(
                     };
 
                     _context.Clients.Add(client);
+                    await _context.SaveChangesAsync();
+                    await RadaTik.Services.Clients.ClientServerPresenceHelper.EnsureHomePresenceAsync(
+                        _context, client);
                     await _context.SaveChangesAsync();
 
                     existingOnServer[userName] = client;
@@ -232,7 +250,7 @@ public sealed class MikroTikUserImportService(
             result.Message =
                 $"تم استيراد {result.AddedCount} مستخدم جديد" +
                 (result.UpdatedCount > 0 ? $"، تم تحديث {result.UpdatedCount} مشترك من بيانات السيرفر" : "") +
-                (result.DuplicateCount > 0 ? $" (منها {result.DuplicateCount} مكرر عبر السيرفرات)" : "") +
+                (result.DuplicateCount > 0 ? $" (منها {result.DuplicateCount} رُبط حضوراً على سيرفر إضافي بدون تكرار صف)" : "") +
                 (result.RemovedStaleDuplicateCount > 0 ? $"، أُلغي {result.RemovedStaleDuplicateCount} تكرار بعد حذفه من البرج" : "") +
                 (result.RelinkedCount > 0 ? $"، تم ربط {result.RelinkedCount} مشترك كان بلا سيرفر" : "") +
                 (result.ProfilesCreatedCount > 0 ? $"، أُنشئ {result.ProfilesCreatedCount} بروفايل تلقائياً" : "") +

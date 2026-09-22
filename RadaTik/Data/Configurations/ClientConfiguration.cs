@@ -65,6 +65,14 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
 
+        entity.HasOne(c => c.ActiveServingServer)
+            .WithMany()
+            .HasForeignKey(c => c.ActiveServingServerId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        entity.HasIndex(e => e.ActiveServingServerId);
+
         entity.HasOne(c => c.Profile)
             .WithMany(p => p.Clients)
             .HasForeignKey(c => c.ProfileId)

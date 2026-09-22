@@ -2155,7 +2155,10 @@ namespace RadaTik.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
-                    b.Property<bool>("IsCrossServerDuplicate")
+                                        b.Property<int?>("ActiveServingServerId")
+                        .HasColumnType("int");
+
+b.Property<bool>("IsCrossServerDuplicate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
@@ -2305,6 +2308,8 @@ namespace RadaTik.Migrations
                     b.HasIndex("MikroTikServerId", "UserName")
                         .IsUnique()
                         .HasFilter("[MikroTikServerId] IS NOT NULL");
+
+                    b.HasIndex("ActiveServingServerId");
 
                     b.HasIndex("NetworkId", "UserName", "IsCrossServerDuplicate");
 

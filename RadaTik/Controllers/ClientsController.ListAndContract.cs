@@ -152,6 +152,9 @@ namespace RadaTik.Controllers
             Client? client = await _context.Clients
                 .Include(c => c.Receiver)
                 .Include(c => c.MikroTikServer)
+                .Include(c => c.ActiveServingServer)
+                .Include(c => c.ServerPresences)
+                    .ThenInclude(p => p.MikroTikServer)
                 .Include(c => c.Profile)
                 .FirstOrDefaultAsync(m => m.Id == clientId);
 

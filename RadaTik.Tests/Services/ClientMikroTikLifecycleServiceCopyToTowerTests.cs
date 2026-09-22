@@ -174,8 +174,12 @@ public sealed class ClientMikroTikLifecycleServiceCopyToTowerTests
         Assert.Equal(2, result.ClonedCount);
         Assert.Equal(2, (await db.Clients.SingleAsync(c => c.Id == 1)).MikroTikServerId);
         Assert.Equal(2, (await db.Clients.SingleAsync(c => c.Id == 2)).MikroTikServerId);
-        Assert.True((await db.Clients.SingleAsync(c => c.Id == 1)).IsCrossServerDuplicate);
-        Assert.Equal(2, await db.Clients.CountAsync(c => c.MikroTikServerId == 5 && (c.UserName == "user-a" || c.UserName == "user-b")));
+        Assert.Equal(5, (await db.Clients.SingleAsync(c => c.Id == 1)).ActiveServingServerId);
+        Assert.False((await db.Clients.SingleAsync(c => c.Id == 1)).IsCrossServerDuplicate);
+        Assert.Equal(2, await db.Clients.CountAsync());
+        Assert.Equal(4, await db.ClientServerPresences.CountAsync());
+        Assert.Equal(2, await db.ClientServerPresences.CountAsync(p =>
+            p.MikroTikServerId == 5 && p.Role == ClientServerPresenceRole.Standby));
         mikroTik.Verify(m => m.DeletePPPoEUsersFromServerAsync(
             It.IsAny<int>(),
             It.IsAny<IReadOnlyList<string>>(),

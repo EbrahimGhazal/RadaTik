@@ -110,11 +110,22 @@ namespace RadaTik.Models
         public int? MikroTikServerId { get; set; }
 
         /// <summary>
+        /// السيرفر الذي تُخدم منه الخدمة حالياً (أثناء failover قد يختلف عن البرج الأساسي).
+        /// إن كان فارغاً يُعتبر نفسه <see cref="MikroTikServerId"/>.
+        /// </summary>
+        [Display(Name = "السيرفر الفعّال حالياً")]
+        public int? ActiveServingServerId { get; set; }
+
+        /// <summary>
         /// الحساب موجود بنفس اسم المستخدم على سيرفر MikroTik آخر ضمن نفس الشبكة.
-        /// يُستورد كسجل مستقل ويُعلَّم كمكرر لتمييزه في الواجهة.
+        /// مسار قديم: صفوف مكررة. المسار الجديد يستخدم <see cref="ServerPresences"/>.
         /// </summary>
         [Display(Name = "مكرر عبر السيرفرات")]
         public bool IsCrossServerDuplicate { get; set; }
+
+        /// <summary>حضور PPPoE على أكثر من سيرفر لنفس المشترك (بدون صفوف مكررة).</summary>
+        [ValidateNever]
+        public ICollection<ClientServerPresence> ServerPresences { get; set; } = new List<ClientServerPresence>();
 
         [Display(Name = "مشترك مميز (VIP)")]
         public bool IsVip { get; set; }
@@ -196,11 +207,29 @@ namespace RadaTik.Models
         [ValidateNever]
         public virtual MikroTikServer? MikroTikServer { get; set; }
 
+        [ForeignKey(nameof(ActiveServingServerId))]
+        [ValidateNever]
+        [Display(Name = "السيرفر الفعّال")]
+        public virtual MikroTikServer? ActiveServingServer { get; set; }
+
         // العلاقة الجديدة مع البروفايل
         [ForeignKey("ProfileId")]
         [ValidateNever]
         [Display(Name = "البروفايل")]
         public virtual Profile? Profile { get; set; }
+
+        /// <summary>السيرفر المعروض كفعّال للمدير (failover أو الأساسي).</summary>
+        [NotMapped]
+        public int? EffectiveServingServerId => ActiveServingServerId ?? MikroTikServerId;
+
+        /// <summary>true إذا وُجد حضور احتياطي أو تفعيل على سيرفر غير الأساسي.</summary>
+        [NotMapped]
+        public bool HasMultiServerPresence =>
+            ServerPresences.Count > 1
+            || (ActiveServingServerId.HasValue
+                && MikroTikServerId.HasValue
+                && ActiveServingServerId.Value != MikroTikServerId.Value)
+            || IsCrossServerDuplicate;
 
         // علاقة مع Network
         [Display(Name = "معرف الشبكة")]
