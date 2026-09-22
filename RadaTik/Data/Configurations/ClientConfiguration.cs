@@ -68,7 +68,7 @@ public sealed class ClientConfiguration : IEntityTypeConfiguration<Client>
         entity.HasOne(c => c.ActiveServingServer)
             .WithMany()
             .HasForeignKey(c => c.ActiveServingServerId)
-            .OnDelete(DeleteBehavior.SetNull)
+            .OnDelete(DeleteBehavior.NoAction)
             .IsRequired(false);
 
         entity.HasIndex(e => e.ActiveServingServerId);

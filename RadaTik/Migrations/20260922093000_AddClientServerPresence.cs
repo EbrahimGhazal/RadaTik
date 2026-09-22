@@ -31,8 +31,7 @@ namespace RadaTik.Migrations
                     ALTER TABLE [dbo].[Clients] WITH CHECK
                     ADD CONSTRAINT [FK_Clients_MikroTikServers_ActiveServingServerId]
                         FOREIGN KEY ([ActiveServingServerId])
-                        REFERENCES [dbo].[MikroTikServers] ([Id])
-                        ON DELETE SET NULL;
+                        REFERENCES [dbo].[MikroTikServers] ([Id]);
                 END
 
                 IF NOT EXISTS (
