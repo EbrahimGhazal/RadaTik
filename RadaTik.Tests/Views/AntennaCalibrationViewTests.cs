@@ -12,6 +12,12 @@ public sealed class AntennaCalibrationViewTests
         string edit = Read("Views", "AntennaCalibration", "EditScenario.cshtml");
         Assert.Contains("سيناريو المعايرة", index);
         Assert.Contains("calStartMap", index);
+        Assert.Contains("data-map-type=\"streets\"", index);
+        Assert.Contains("data-map-type=\"satellite\"", index);
+        Assert.Contains("data-map-type=\"terrain\"", index);
+        Assert.Contains(">شوارع<", index);
+        Assert.Contains(">قمر<", index);
+        Assert.Contains(">تضاريس<", index);
         Assert.Contains("JoinMonitor", index);
         Assert.Contains("سيناريوهات المعايرة", scenarios);
         Assert.Contains("SaveScenario", edit);

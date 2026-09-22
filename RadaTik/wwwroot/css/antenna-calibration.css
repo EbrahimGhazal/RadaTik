@@ -1,11 +1,55 @@
 /* Antenna calibration — manager + field */
 
+.antenna-cal-page .antenna-cal-map-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: .35rem;
+}
+
+.antenna-cal-page .antenna-cal-map-toolbar .map-type-controls {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 8px;
+    background: var(--bg-hover, #eef2f6);
+}
+
+.antenna-cal-page .antenna-cal-map-toolbar .map-type-btn {
+    min-height: 34px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary, #64748b);
+    font-size: .85rem;
+    cursor: pointer;
+}
+
+.antenna-cal-page .antenna-cal-map-toolbar .map-type-btn:hover {
+    background: var(--bg-card, #fff);
+}
+
+.antenna-cal-page .antenna-cal-map-toolbar .map-type-btn.active {
+    background: var(--primary, #0f766e);
+    color: #fff;
+}
+
 .antenna-cal-page .antenna-cal-pick-map {
     height: 280px;
     border-radius: 12px;
     border: 1px solid var(--border-color, #dbe3ea);
     margin-top: .35rem;
     z-index: 1;
+}
+
+@media (max-width: 575.98px) {
+    .antenna-cal-page .antenna-cal-map-toolbar .map-type-controls {
+        width: 100%;
+    }
+
+    .antenna-cal-page .antenna-cal-map-toolbar .map-type-btn {
+        flex: 1;
+    }
 }
 
 .antenna-cal-session-bar {

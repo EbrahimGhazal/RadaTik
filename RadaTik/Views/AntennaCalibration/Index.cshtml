@@ -104,6 +104,13 @@
             <input type="hidden" name="receiverLat" id="receiverLat" />
             <input type="hidden" name="receiverLng" id="receiverLng" />
             <p class="small text-muted mt-2 mb-1" id="calPickHint">اختر القطاع ثم انقر على الخريطة أو اختر مستقبلاً محفوظاً.</p>
+            <div class="antenna-cal-map-toolbar">
+                <div class="map-type-controls" role="group" aria-label="نوع عرض الخريطة">
+                    <button type="button" class="map-type-btn active" data-map-type="streets">شوارع</button>
+                    <button type="button" class="map-type-btn" data-map-type="satellite">قمر</button>
+                    <button type="button" class="map-type-btn" data-map-type="terrain">تضاريس</button>
+                </div>
+            </div>
             <div id="calStartMap" class="antenna-cal-pick-map" dir="ltr"></div>
         </div>
     </form>
@@ -243,7 +250,7 @@
             var ipInput = document.getElementById('receiverIp');
             var aglInput = document.getElementById('receiverAgl');
             var listUrl = form ? form.getAttribute('data-receivers-url') : '';
-            var map, rxMarker, txMarker, rxLine;
+            var map, streetLayer, satelliteLayer, terrainLayer, rxMarker, txMarker, rxLine;
             var prefillReceiverId = @(Model.PrefillReceiverId?.ToString() ?? "null");
 
             function parseOptPoint(opt) {
@@ -275,11 +282,36 @@
             function sectorLatLng() {
                 return sector ? parseOptPoint(sector.options[sector.selectedIndex]) : null;
             }
+            function setMapType(type) {
+                if (!map || !streetLayer) return;
+                map.removeLayer(streetLayer);
+                map.removeLayer(satelliteLayer);
+                map.removeLayer(terrainLayer);
+                if (type === 'satellite') satelliteLayer.addTo(map);
+                else if (type === 'terrain') terrainLayer.addTo(map);
+                else streetLayer.addTo(map);
+            }
             function ensureMap() {
                 var el = document.getElementById('calStartMap');
                 if (!el || !window.L || map) return;
                 map = L.map(el, { zoomControl: true }).setView([33.5, 36.3], 11);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OSM' }).addTo(map);
+                streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19, attribution: '© OpenStreetMap'
+                }).addTo(map);
+                satelliteLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                    maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+                });
+                terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17 });
+                document.querySelectorAll('.antenna-cal-map-toolbar .map-type-btn').forEach(function (button) {
+                    button.addEventListener('click', function () {
+                        document.querySelectorAll('.antenna-cal-map-toolbar .map-type-btn').forEach(function (btn) {
+                            btn.classList.remove('active');
+                        });
+                        this.classList.add('active');
+                        setMapType(this.getAttribute('data-map-type'));
+                        setTimeout(function () { if (map) map.invalidateSize(); }, 50);
+                    });
+                });
                 map.on('click', function (e) {
                     if (receiver) receiver.value = '';
                     setPoint(e.latlng.lat, e.latlng.lng, false);
