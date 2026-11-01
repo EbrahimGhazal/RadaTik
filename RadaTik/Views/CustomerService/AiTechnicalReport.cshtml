@@ -1,0 +1,196 @@
+@model RadaTik.Models.CustomerServiceAiTechnicalReport
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@using System.Text.Json
+@using RadaTik.Models
+@{
+    ViewData["Title"] = Model.Title;
+    ViewData["BodyClass"] = "cs-tech-report-page";
+
+    string EnumLabel(Enum value)
+    {
+        var mem = value.GetType().GetMember(value.ToString()).FirstOrDefault();
+        var display = mem?.GetCustomAttribute<DisplayAttribute>();
+        return display?.GetName() ?? value.ToString();
+    }
+
+    string chartJson = string.IsNullOrWhiteSpace(Model.ChartJson) ? "{}" : Model.ChartJson;
+    string statsJson = string.IsNullOrWhiteSpace(Model.StatsJson) ? "[]" : Model.StatsJson;
+    List<JsonElement> stats = new();
+    try
+    {
+        using var doc = JsonDocument.Parse(statsJson);
+        if (doc.RootElement.ValueKind == JsonValueKind.Array)
+        {
+            // Clone so elements remain valid after JsonDocument is disposed.
+            stats = doc.RootElement.EnumerateArray().Select(e => e.Clone()).ToList();
+        }
+    }
+    catch
+    {
+        stats = new List<JsonElement>();
+    }
+}
+
+<link rel="stylesheet" href="~/css/customer-service-assistant.css" asp-append-version="true" />
+
+@if (TempData["Success"] != null)
+{
+    <div class="cs-flash cs-flash--ok" role="status">@TempData["Success"]</div>
+}
+
+<section class="cs-social" data-cs-tech-report>
+    <header class="cs-social__hero">
+        <div class="cs-social__hero-copy">
+            <a asp-action="AiTechnicalReports" class="cs-assist__back"><i class="fas fa-arrow-right" aria-hidden="true"></i> التقارير التقنية</a>
+            <h1 class="cs-assist__title"><i class="fas fa-chart-area" aria-hidden="true"></i> @Model.Title</h1>
+            <p class="cs-assist__subtitle">
+                @EnumLabel(Model.Period) · من @Model.PeriodFromUtc.ToLocalTime().ToString("yyyy/MM/dd HH:mm")
+                إلى @Model.PeriodToUtc.ToLocalTime().ToString("yyyy/MM/dd HH:mm")
+                · @Model.SampleCount.ToString("N0") عيّنة
+            </p>
+        </div>
+        <div class="cs-social__hero-actions">
+            <a class="cs-btn cs-btn--ghost" asp-action="AiTechnicalReports">القائمة</a>
+            <a class="cs-btn cs-btn--soft" asp-action="AiDesk">مكتب المدير</a>
+        </div>
+    </header>
+
+    <article class="cs-panel">
+        <header class="cs-panel__head">
+            <div>
+                <h2><i class="fas fa-align-right" aria-hidden="true"></i> الملخص</h2>
+            </div>
+        </header>
+        <div class="cs-panel__body">
+            <pre style="white-space:pre-wrap;font-family:inherit;margin:0;">@Model.SummaryArabic</pre>
+        </div>
+    </article>
+
+    <article class="cs-panel">
+        <header class="cs-panel__head">
+            <div>
+                <h2><i class="fas fa-chart-line" aria-hidden="true"></i> مخطط الترافك (Mbps)</h2>
+                <p>متوسط السحب/الرفع لكل برج ضمن الفترة.</p>
+            </div>
+        </header>
+        <div class="cs-panel__body">
+            <div style="position:relative;min-height:320px;">
+                <canvas id="techReportChart" aria-label="مخطط الترافك"></canvas>
+            </div>
+            <p id="techReportChartEmpty" class="cs-assist__subtitle" style="display:none;margin-top:1rem;">لا توجد نقاط مخطط لهذه الفترة.</p>
+        </div>
+    </article>
+
+    <article class="cs-panel">
+        <header class="cs-panel__head">
+            <div>
+                <h2><i class="fas fa-server" aria-hidden="true"></i> إحصاءات الأبراج والعتبات المقترحة</h2>
+                <p>العتبة للمراجعة البشرية فقط — لا تُطبَّق تلقائياً.</p>
+            </div>
+        </header>
+        <div class="cs-panel__body">
+            @if (stats.Count == 0)
+            {
+                <p class="cs-assist__subtitle">لا توجد إحصاءات سيرفر في هذا التقرير.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>البرج / السيرفر</th>
+                                <th>عيّنات</th>
+                                <th>RX min</th>
+                                <th>RX avg</th>
+                                <th>RX max</th>
+                                <th>TX avg</th>
+                                <th>عتبة مقترحة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var s in stats)
+                        {
+                            string name = s.TryGetProperty("serverName", out var n) ? n.GetString() ?? "—" : "—";
+                            int samples = s.TryGetProperty("samples", out var sm) && sm.ValueKind == JsonValueKind.Number ? sm.GetInt32() : 0;
+                            string Fmt(string prop)
+                            {
+                                if (!s.TryGetProperty(prop, out var el) || el.ValueKind != JsonValueKind.Number)
+                                {
+                                    return "—";
+                                }
+                                double bps = el.GetDouble();
+                                if (bps <= 0) return "0";
+                                if (bps >= 1_000_000) return $"{bps / 1_000_000d:0.##} Mbps";
+                                if (bps >= 1_000) return $"{bps / 1_000d:0.##} Kbps";
+                                return $"{bps:0} bps";
+                            }
+                            string threshold = s.TryGetProperty("suggestedThresholdLabel", out var th)
+                                ? (th.GetString() ?? Fmt("suggestedThresholdBps"))
+                                : Fmt("suggestedThresholdBps");
+                            <tr>
+                                <td>@name</td>
+                                <td>@samples.ToString("N0")</td>
+                                <td>@Fmt("rxMinBps")</td>
+                                <td>@Fmt("rxAvgBps")</td>
+                                <td>@Fmt("rxMaxBps")</td>
+                                <td>@Fmt("txAvgBps")</td>
+                                <td>@threshold</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </article>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+<script>
+(function () {
+    var payload = @Html.Raw(chartJson);
+    var canvas = document.getElementById('techReportChart');
+    var empty = document.getElementById('techReportChartEmpty');
+    var labels = (payload && payload.labels) || [];
+    var datasets = (payload && payload.datasets) || [];
+    if (!canvas || !labels.length || !datasets.length) {
+        if (empty) empty.style.display = 'block';
+        if (canvas) canvas.style.display = 'none';
+        return;
+    }
+    var palette = ['#0f6a6a', '#c45c26', '#1d4f91', '#6b4f9a', '#2f7d32', '#b08900', '#8b3a3a', '#455a64'];
+    datasets.forEach(function (ds, i) {
+        var c = palette[i % palette.length];
+        ds.borderColor = ds.borderColor || c;
+        ds.backgroundColor = ds.backgroundColor || c;
+    });
+    new Chart(canvas.getContext('2d'), {
+        type: (payload && payload.type) || 'line',
+        data: { labels: labels, datasets: datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12 } },
+                tooltip: {
+                    callbacks: {
+                        label: function (ctx) {
+                            var v = ctx.parsed.y;
+                            return (ctx.dataset.label || '') + ': ' + (v == null ? '—' : v + ' Mbps');
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Mbps' }
+                }
+            }
+        }
+    });
+})();
+</script>
