@@ -71,10 +71,19 @@
         <header class="cs-panel__head">
             <div>
                 <h2><i class="fas fa-chart-line" aria-hidden="true"></i> مخطط الترافك (Mbps)</h2>
-                <p>متوسط السحب/الرفع لكل برج ضمن الفترة.</p>
+                <p>متوسط السحب/الرفع لكل برج ضمن الفترة. أخفِ أو أظهر السلاسل حسب حاجتك.</p>
             </div>
         </header>
         <div class="cs-panel__body">
+            <div id="techReportChartControls" class="cs-tech-chart-controls" hidden>
+                <div class="cs-tech-chart-controls__row" role="group" aria-label="تصفية سريعة">
+                    <button type="button" class="cs-tech-chart-btn" data-chart-preset="all">الكل</button>
+                    <button type="button" class="cs-tech-chart-btn" data-chart-preset="rx">سحب فقط (RX)</button>
+                    <button type="button" class="cs-tech-chart-btn" data-chart-preset="tx">رفع فقط (TX)</button>
+                    <button type="button" class="cs-tech-chart-btn" data-chart-preset="none">إخفاء الكل</button>
+                </div>
+                <div id="techReportSeriesToggles" class="cs-tech-chart-controls__series" role="group" aria-label="سلاسل المخطط"></div>
+            </div>
             <div style="position:relative;min-height:320px;">
                 <canvas id="techReportChart" aria-label="مخطط الترافك"></canvas>
             </div>
@@ -153,6 +162,8 @@
     var payload = @Html.Raw(chartJson);
     var canvas = document.getElementById('techReportChart');
     var empty = document.getElementById('techReportChartEmpty');
+    var controls = document.getElementById('techReportChartControls');
+    var seriesHost = document.getElementById('techReportSeriesToggles');
     var labels = (payload && payload.labels) || [];
     var datasets = (payload && payload.datasets) || [];
     if (!canvas || !labels.length || !datasets.length) {
@@ -165,8 +176,17 @@
         var c = palette[i % palette.length];
         ds.borderColor = ds.borderColor || c;
         ds.backgroundColor = ds.backgroundColor || c;
+        ds.hidden = !!ds.hidden;
     });
-    new Chart(canvas.getContext('2d'), {
+
+    function seriesKind(label) {
+        var text = String(label || '');
+        if (/\bTX\b|رفع/i.test(text)) return 'tx';
+        if (/\bRX\b|سحب/i.test(text)) return 'rx';
+        return 'other';
+    }
+
+    var chart = new Chart(canvas.getContext('2d'), {
         type: (payload && payload.type) || 'line',
         data: { labels: labels, datasets: datasets },
         options: {
@@ -174,7 +194,14 @@
             maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: { position: 'bottom', labels: { boxWidth: 12 } },
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 12 },
+                    onClick: function (e, legendItem, legend) {
+                        Chart.defaults.plugins.legend.onClick.call(this, e, legendItem, legend);
+                        syncToggleButtons();
+                    }
+                },
                 tooltip: {
                     callbacks: {
                         label: function (ctx) {
@@ -192,5 +219,66 @@
             }
         }
     });
+
+    function setVisible(index, visible) {
+        chart.setDatasetVisibility(index, visible);
+    }
+
+    function syncToggleButtons() {
+        if (!seriesHost) return;
+        seriesHost.querySelectorAll('[data-series-index]').forEach(function (btn) {
+            var idx = Number(btn.getAttribute('data-series-index'));
+            var visible = chart.isDatasetVisible(idx);
+            btn.classList.toggle('is-on', visible);
+            btn.classList.toggle('is-off', !visible);
+            btn.setAttribute('aria-pressed', visible ? 'true' : 'false');
+        });
+    }
+
+    function applyPreset(preset) {
+        datasets.forEach(function (ds, i) {
+            var kind = seriesKind(ds.label);
+            var visible = true;
+            if (preset === 'none') visible = false;
+            else if (preset === 'rx') visible = kind === 'rx' || kind === 'other';
+            else if (preset === 'tx') visible = kind === 'tx' || kind === 'other';
+            setVisible(i, visible);
+        });
+        chart.update();
+        syncToggleButtons();
+    }
+
+    if (controls && seriesHost) {
+        controls.hidden = false;
+        datasets.forEach(function (ds, i) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'cs-tech-chart-chip is-on';
+            btn.setAttribute('data-series-index', String(i));
+            btn.setAttribute('aria-pressed', 'true');
+            btn.title = 'إظهار / إخفاء: ' + (ds.label || ('سلسلة ' + (i + 1)));
+            var swatch = document.createElement('span');
+            swatch.className = 'cs-tech-chart-chip__swatch';
+            swatch.style.background = ds.borderColor || palette[i % palette.length];
+            var text = document.createElement('span');
+            text.textContent = ds.label || ('سلسلة ' + (i + 1));
+            btn.appendChild(swatch);
+            btn.appendChild(text);
+            btn.addEventListener('click', function () {
+                var next = !chart.isDatasetVisible(i);
+                setVisible(i, next);
+                chart.update();
+                syncToggleButtons();
+            });
+            seriesHost.appendChild(btn);
+        });
+
+        controls.querySelectorAll('[data-chart-preset]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                applyPreset(btn.getAttribute('data-chart-preset') || 'all');
+            });
+        });
+        syncToggleButtons();
+    }
 })();
 </script>

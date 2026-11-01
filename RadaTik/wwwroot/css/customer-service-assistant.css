@@ -1645,3 +1645,78 @@
 [data-theme="dark"] .cs-social-card__caption {
   color: #e2e8f0;
 }
+
+/* AI technical report — chart series show/hide */
+.cs-tech-chart-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 0.9rem;
+}
+
+.cs-tech-chart-controls__row,
+.cs-tech-chart-controls__series {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.cs-tech-chart-btn,
+.cs-tech-chart-chip {
+  appearance: none;
+  border: 1px solid rgba(15, 106, 106, 0.28);
+  background: #f4fbfb;
+  color: #0f3f3f;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.cs-tech-chart-btn:hover,
+.cs-tech-chart-chip:hover,
+.cs-tech-chart-btn:focus-visible,
+.cs-tech-chart-chip:focus-visible {
+  border-color: #0f6a6a;
+  outline: none;
+}
+
+.cs-tech-chart-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cs-tech-chart-chip__swatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.cs-tech-chart-chip.is-on {
+  background: #0f6a6a;
+  border-color: #0f6a6a;
+  color: #fff;
+}
+
+.cs-tech-chart-chip.is-off {
+  opacity: 0.55;
+  text-decoration: line-through;
+  background: #fff;
+}
+
+[data-theme="dark"] .cs-tech-chart-btn,
+[data-theme="dark"] .cs-tech-chart-chip {
+  background: #0f172a;
+  border-color: rgba(148, 163, 184, 0.28);
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .cs-tech-chart-chip.is-on {
+  background: #0f6a6a;
+  border-color: #0f6a6a;
+  color: #fff;
+}
