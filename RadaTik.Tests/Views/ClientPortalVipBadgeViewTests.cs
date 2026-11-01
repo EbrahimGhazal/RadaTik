@@ -52,8 +52,9 @@ public sealed class ClientPortalVipBadgeViewTests
     {
         string text = File.ReadAllText(FindFile("RadaTik", "Areas", "ClientPortal", "Views", "ClientPortal", "Index.cshtml"));
         Assert.Contains("Model.IsVip", text);
-        Assert.Contains("VIP — مشترك مميز", text);
-        Assert.Contains("clients-vip-badge", text);
+        Assert.Contains("مشترك مميز", text);
+        Assert.Contains("PageHeroChipViewModel", text);
+        Assert.Contains("fas fa-crown", text);
     }
 
     private static string FindFile(params string[] relativeParts)

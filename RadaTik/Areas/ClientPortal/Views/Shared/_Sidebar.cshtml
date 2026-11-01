@@ -6,8 +6,6 @@
     var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
 
-    var subscriptionOpen = action == "RenewSubscription" || action == "RequestTopUp" || action == "AvailablePlans" || action == "MaintenanceInvoices";
-    var supportOpen = action == "MaintenanceRequests" || action == "SpeedChangeRequests";
     var presence = new CompanyClientPresenceSnapshot();
     if (isAuthenticated)
     {
@@ -29,7 +27,7 @@
                 ViewData["RtBrandVariant"] = "sidebar";
             }
             <partial name="_RadaTikBrandLogo" />
-            <small class="sidebar-brand-sub" dir="rtl">بوابة العميل</small>
+            <small class="sidebar-brand-sub" dir="rtl">حسابي</small>
         </div>
         @if (isAuthenticated)
         {
@@ -58,135 +56,90 @@
         }
         else
         {
-            @* ——— 1. وصول سريع ——— *@
-            <div class="nav-section nav-section-quick" data-section-key="quick-access">
+            <div class="nav-section nav-section-quick" data-section-key="do">
                 <div class="nav-section-title nav-section-static">
-                    <i class="fas fa-bolt"></i>
-                    <span>وصول سريع</span>
+                    <i class="fas fa-hand-pointer"></i>
+                    <span>ماذا تريد؟</span>
                 </div>
                 <ul class="nav-list">
                     <li class="nav-item">
                         <a class="nav-link @(controller == "ClientPortal" && action == "Index" ? "active" : "")"
                            asp-route="clientPortal-actions" asp-route-action="Index">
-                            <span class="nav-icon"><i class="fas fa-gauge-high"></i></span>
-                            <span>لوحة التحكم</span>
+                            <span class="nav-icon"><i class="fas fa-home"></i></span>
+                            <span>الرئيسية</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link @(controller == "ClientPortal" && action == "Notifications" ? "active" : "")"
+                        <a class="nav-link @(action == "RenewSubscription" ? "active" : "")"
+                           asp-route="clientPortal-actions" asp-route-action="RenewSubscription">
+                            <span class="nav-icon"><i class="fas fa-sync-alt"></i></span>
+                            <span>جدّد اشتراكي</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(action == "RequestTopUp" ? "active" : "")"
+                           asp-route="clientPortal-actions" asp-route-action="RequestTopUp">
+                            <span class="nav-icon"><i class="fas fa-wallet"></i></span>
+                            <span>أضف رصيداً</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(action == "CreateMaintenanceRequest" || action == "MaintenanceRequests" || action == "MaintenanceRequestDetails" ? "active" : "")"
+                           asp-route="clientPortal-actions" asp-route-action="CreateMaintenanceRequest">
+                            <span class="nav-icon"><i class="fas fa-wifi"></i></span>
+                            <span>الإنترنت لا يعمل</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(action == "SupportChat" || action == "SupportChatNew" ? "active" : "")"
+                           asp-route="clientPortal-actions" asp-route-action="SupportChat">
+                            <span class="nav-icon"><i class="fas fa-comments"></i></span>
+                            <span>الدعم المباشر</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(action == "AvailablePlans" || action == "SpeedChangeRequests" ? "active" : "")"
+                           asp-route="clientPortal-actions" asp-route-action="AvailablePlans">
+                            <span class="nav-icon"><i class="fas fa-tachometer-alt"></i></span>
+                            <span>غيّر الباقة</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="nav-section nav-section-account" data-section-key="account">
+                <div class="nav-section-title nav-section-static">
+                    <i class="fas fa-user-circle"></i>
+                    <span>حسابي</span>
+                </div>
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a class="nav-link @(action == "Notifications" ? "active" : "")"
                            asp-route="clientPortal-actions" asp-route-action="Notifications">
                             <span class="nav-icon"><i class="fas fa-bell"></i></span>
-                            <span>الإشعارات</span>
+                            <span>التنبيهات</span>
                             <span id="clientPortalUnreadNotificationsBadge" class="nav-badge" style="display:none;">0</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link @(controller == "ClientPortal" && action == "MyTraffic" ? "active" : "")"
+                        <a class="nav-link @(action == "MyTraffic" ? "active" : "")"
                            asp-route="clientPortal-actions" asp-route-action="MyTraffic">
                             <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
-                            <span>معدلي المباشر</span>
+                            <span>سرعتي</span>
                         </a>
                     </li>
-                </ul>
-            </div>
-
-            @* ——— 2. الاشتراك والفوترة ——— *@
-            <div class="nav-section" data-section-key="subscription">
-                <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="true">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                    <span>الاشتراك والفوترة</span>
-                    <i class="fas fa-chevron-down nav-section-chevron"></i>
-                </div>
-                <ul class="nav-list">
-                    <li class="nav-item has-dropdown @(subscriptionOpen ? "open" : "")">
-                        <div class="nav-link-toggle" role="button" tabindex="0">
-                            <span class="nav-icon"><i class="fas fa-sync-alt"></i></span>
-                            <span>إدارة الاشتراك</span>
-                            <i class="fas fa-chevron-down nav-chevron"></i>
-                        </div>
-                        <ul class="nav-sublist">
-                            <li class="nav-group-label">تجديد · رصيد · باقات</li>
-                            <li class="nav-item">
-                                <a class="nav-link nav-link-sub @(action == "RenewSubscription" ? "active" : "")"
-                                   asp-route="clientPortal-actions" asp-route-action="RenewSubscription">
-                                    <i class="fas fa-sync-alt"></i>
-                                    <span>تجديد الاشتراك</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link nav-link-sub @(action == "RequestTopUp" ? "active" : "")"
-                                   asp-route="clientPortal-actions" asp-route-action="RequestTopUp">
-                                    <i class="fas fa-wallet"></i>
-                                    <span>طلب تغذية رصيد</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link nav-link-sub @(action == "AvailablePlans" ? "active" : "")"
-                                   asp-route="clientPortal-actions" asp-route-action="AvailablePlans">
-                                    <i class="fas fa-list-alt"></i>
-                                    <span>الباقات المتاحة</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link nav-link-sub @(action == "MaintenanceInvoices" ? "active" : "")"
-                                   asp-route="clientPortal-actions" asp-route-action="MaintenanceInvoices">
-                                    <i class="fas fa-file-invoice"></i>
-                                    <span>فواتير الصيانة</span>
-                                </a>
-                            </li>
-                        </ul>
+                    <li class="nav-item">
+                        <a class="nav-link @(action == "MaintenanceInvoices" ? "active" : "")"
+                           asp-route="clientPortal-actions" asp-route-action="MaintenanceInvoices">
+                            <span class="nav-icon"><i class="fas fa-file-invoice"></i></span>
+                            <span>فواتير الصيانة</span>
+                        </a>
                     </li>
-                </ul>
-            </div>
-
-            @* ——— 3. الدعم والطلبات ——— *@
-            <div class="nav-section" data-section-key="support">
-                <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="true">
-                    <i class="fas fa-headset"></i>
-                    <span>الدعم والطلبات</span>
-                    <i class="fas fa-chevron-down nav-section-chevron"></i>
-                </div>
-                <ul class="nav-list">
-                    <li class="nav-item has-dropdown @(supportOpen ? "open" : "")">
-                        <div class="nav-link-toggle" role="button" tabindex="0">
-                            <span class="nav-icon"><i class="fas fa-wrench"></i></span>
-                            <span>طلبات الخدمة</span>
-                            <i class="fas fa-chevron-down nav-chevron"></i>
-                        </div>
-                        <ul class="nav-sublist">
-                            <li class="nav-group-label">صيانة · سرعة</li>
-                            <li class="nav-item">
-                                <a class="nav-link nav-link-sub @(action == "MaintenanceRequests" ? "active" : "")"
-                                   asp-route="clientPortal-actions" asp-route-action="MaintenanceRequests">
-                                    <i class="fas fa-tools"></i>
-                                    <span>طلبات الصيانة</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link nav-link-sub @(action == "SpeedChangeRequests" ? "active" : "")"
-                                   asp-route="clientPortal-actions" asp-route-action="SpeedChangeRequests">
-                                    <i class="fas fa-tachometer-alt"></i>
-                                    <span>طلبات تغيير السرعة</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-
-            @* ——— 4. حسابي ——— *@
-            <div class="nav-section nav-section-account" data-section-key="account">
-                <div class="nav-section-title nav-section-toggle" role="button" tabindex="0" aria-expanded="true">
-                    <i class="fas fa-user-circle"></i>
-                    <span>حسابي</span>
-                    <i class="fas fa-chevron-down nav-section-chevron"></i>
-                </div>
-                <ul class="nav-list">
                     <li class="nav-item">
                         <a class="nav-link @(action == "MyProfile" ? "active" : "")"
                            asp-route="clientPortal-actions" asp-route-action="MyProfile">
                             <span class="nav-icon"><i class="fas fa-user-edit"></i></span>
-                            <span>الملف الشخصي</span>
+                            <span>بياناتي</span>
                         </a>
                     </li>
                 </ul>
@@ -211,7 +164,7 @@
     @if (isAuthenticated && presence.HasSocialLinks)
     {
         <div class="client-portal-social" data-section-key="social">
-            <span class="client-portal-social__title">كن من المعجبين بصفحاتنا على سوشال ميديا</span>
+            <span class="client-portal-social__title">صفحاتنا</span>
             <div class="client-portal-social__icons">
                 @foreach (var link in presence.VisibleSocialLinks)
                 {

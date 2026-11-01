@@ -1,6 +1,6 @@
 @model RadaTik.ViewModels.ClientPortal.RenewSubscriptionViewModel
 @{
-    ViewData["Title"] = "تجديد الاشتراك";
+    ViewData["Title"] = "جدّد اشتراكي";
     var firstDueSubscription = Model.DueSubscriptions.FirstOrDefault();
     var isExpired = firstDueSubscription?.IsExpired ?? false;
     var isExpiringSoon = firstDueSubscription?.IsExpiringSoon ?? false;
@@ -13,8 +13,8 @@
 
 <div class="client-portal client-portal-renew-page">
     <div class="page-header mb-3">
-        <h2><i class="fas fa-sync-alt text-primary"></i> تجديد الاشتراك</h2>
-        <p class="text-muted mb-0">عرض الاشتراكات المستحقة وحالة كل اشتراك مع إمكانية التجديد المباشر من المحفظة</p>
+        <h2><i class="fas fa-sync-alt text-primary"></i> جدّد اشتراكي</h2>
+        <p class="text-muted mb-0">إذا كان رصيدك كافياً اضغط جدّد. إذا لم يكفِ، أضف رصيداً أولاً.</p>
     </div>
 
     @if (TempData["Success"] != null)
@@ -47,7 +47,7 @@
     @if (isExpired)
     {
         <div class="alert alert-danger">
-            <strong>انتهى اشتراكك!</strong> يرجى تغذية رصيدك ثم التجديد من هذه الصفحة أو التواصل مع الإدارة.
+            <strong>انتهى اشتراكك.</strong> أضف رصيداً ثم اضغط جدّد من هذه الصفحة.
         </div>
     }
     else if (isExpiringSoon)

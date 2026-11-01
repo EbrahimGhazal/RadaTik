@@ -1,0 +1,30 @@
+@{
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var isHome = action == "Index";
+    var isRenew = action == "RenewSubscription";
+    var isTopUp = action == "RequestTopUp";
+    var isSupport = action == "SupportChat" || action == "SupportChatNew";
+}
+
+<nav class="client-portal-dock" aria-label="وصول سريع">
+    <a class="client-portal-dock__item @(isHome ? "is-active" : "")"
+       asp-route="clientPortal-actions" asp-route-action="Index">
+        <i class="fas fa-home" aria-hidden="true"></i>
+        <span>الرئيسية</span>
+    </a>
+    <a class="client-portal-dock__item @(isRenew ? "is-active" : "")"
+       asp-route="clientPortal-actions" asp-route-action="RenewSubscription">
+        <i class="fas fa-sync-alt" aria-hidden="true"></i>
+        <span>جدّد</span>
+    </a>
+    <a class="client-portal-dock__item @(isTopUp ? "is-active" : "")"
+       asp-route="clientPortal-actions" asp-route-action="RequestTopUp">
+        <i class="fas fa-wallet" aria-hidden="true"></i>
+        <span>رصيد</span>
+    </a>
+    <a class="client-portal-dock__item @(isSupport ? "is-active" : "")"
+       asp-route="clientPortal-actions" asp-route-action="SupportChat">
+        <i class="fas fa-comments" aria-hidden="true"></i>
+        <span>دعم</span>
+    </a>
+</nav>

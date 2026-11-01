@@ -2,10 +2,10 @@
 @using RadaTik.Models
 @using Microsoft.AspNetCore.Mvc.Rendering
 @{
-    ViewData["Title"] = "طلب صيانة جديد";
+    ViewData["Title"] = "الإنترنت لا يعمل";
     ViewBag.PageHeroIcon = "fas fa-tools";
     ViewBag.PageHeroBackUrl = Url.Action("MaintenanceRequests");
-    ViewBag.PageHeroBackText = "العودة";
+    ViewBag.PageHeroBackText = "طلباتي";
     var assignableEmployees = ViewBag.AssignableEmployees as IEnumerable<SelectListItem>
         ?? Enumerable.Empty<SelectListItem>();
 }
@@ -19,7 +19,7 @@
             <div class="card-header">
                 <h3 class="card-title">
                     <i class="fas fa-edit"></i>
-                    تفاصيل طلب الصيانة
+                    ما المشكلة؟
                 </h3>
             </div>
             <div class="card-body">

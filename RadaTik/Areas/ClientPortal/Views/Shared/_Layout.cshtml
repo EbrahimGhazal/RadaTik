@@ -10,6 +10,14 @@
 
 @RenderBody()
 
+@{
+    var layoutAuthenticated = (bool?)(ViewData["Layout_IsAuthenticated"]) == true;
+}
+@if (layoutAuthenticated)
+{
+    <partial name="_MobileDock" />
+}
+
 @section VendorStyles {
     <!-- Bootstrap 5.3.8 (CDN primary, local fallback per Area) -->
     <link rel="stylesheet"

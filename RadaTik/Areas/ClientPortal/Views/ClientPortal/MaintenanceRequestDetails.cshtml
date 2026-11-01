@@ -2,10 +2,10 @@
 @using RadaTik.Models
 @using RadaTik.Helpers
 @{
-    ViewData["Title"] = $"تفاصيل طلب الصيانة #{Model.Id}";
+    ViewData["Title"] = $"طلب #{Model.Id}";
     ViewBag.PageHeroIcon = "fas fa-tools";
     ViewBag.PageHeroBackUrl = Url.Action("MaintenanceRequests");
-    ViewBag.PageHeroBackText = "العودة للطلبات";
+    ViewBag.PageHeroBackText = "طلباتي";
     var assignedName = Model.AssignedTo == null
         ? null
         : (string.IsNullOrWhiteSpace(Model.AssignedTo.FullName) ? Model.AssignedTo.UserName : Model.AssignedTo.FullName);

@@ -1,0 +1,222 @@
+@model RadaTik.Services.CustomerService.CustomerServiceConversationDetail
+@using RadaTik.Models
+@using RadaTik.Services.CustomerService
+@{
+    ViewData["Title"] = "الدعم المباشر";
+    ViewBag.PageHeroIcon = "fas fa-comments";
+    ViewBag.PageHeroBackUrl = Url.Action("Index");
+    ViewBag.PageHeroBackText = "العودة";
+    var waitingHuman = Model.Status == CustomerServiceConversationStatus.WaitingHuman;
+    var closed = Model.Status == CustomerServiceConversationStatus.Closed;
+    CustomerServiceTransparencyBrief? t = Model.Transparency;
+}
+
+<link rel="stylesheet" href="~/css/customer-service-assistant.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/client-portal-support-chat.css" asp-append-version="true" />
+
+<div class="radtk-page--clientportal-support-chat">
+    <partial name="_CrudPageHero" />
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-warning">@TempData["Error"]</div>
+    }
+
+    <section class="cp-chat">
+        <header class="cp-chat__head">
+            <div>
+                <p class="cp-chat__eyebrow">شفافية · تشخيص · طلبات</p>
+                <h2 class="cp-chat__title">دعم مباشر #@Model.Id</h2>
+                <p class="cp-chat__sub">
+                    @if (!string.IsNullOrWhiteSpace(Model.ActiveAiAgentName))
+                    {
+                        <span>يرّد: @Model.ActiveAiAgentName</span>
+                    }
+                    else
+                    {
+                        <span>مساعد خدمة العملاء</span>
+                    }
+                    @if (waitingHuman)
+                    {
+                        <span class="cp-chat__pill cp-chat__pill--wait">بانتظار موظف</span>
+                    }
+                </p>
+            </div>
+            <form asp-action="SupportChatNew" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm btn-outline-secondary"
+                        onclick="return confirm('بدء محادثة جديدة؟ ستُغلق الحالية.');">
+                    محادثة جديدة
+                </button>
+            </form>
+        </header>
+
+        @if (t != null)
+        {
+            <aside class="cp-chat__glass" aria-label="بطاقة الشفافية">
+                <div class="cp-chat__glass-grid">
+                    <div>
+                        <span class="cp-chat__glass-k">الحساب</span>
+                        <strong>@t.AccountStatusLabel</strong>
+                    </div>
+                    <div>
+                        <span class="cp-chat__glass-k">الاتصال</span>
+                        <strong class="@(t.IsConnected == true ? "is-ok" : t.IsConnected == false ? "is-warn" : null)">@t.ConnectionLabel</strong>
+                    </div>
+                    <div>
+                        <span class="cp-chat__glass-k">الباقة</span>
+                        <strong>@(t.ProfileName ?? "—")</strong>
+                    </div>
+                    <div>
+                        <span class="cp-chat__glass-k">تجديد</span>
+                        <strong>@(t.RenewalPriceWithVat.HasValue ? $"{t.RenewalPriceWithVat.Value:N0} ل.س" : "—")</strong>
+                    </div>
+                    <div>
+                        <span class="cp-chat__glass-k">رصيدك</span>
+                        <strong>@t.WalletBalance.ToString("N0") ل.س</strong>
+                    </div>
+                    <div>
+                        <span class="cp-chat__glass-k">تقدير زيارة</span>
+                        <strong>
+                            @if (t.SuggestedEstimateSyp.HasValue)
+                            {
+                                @($"{t.SuggestedEstimateSyp.Value:N0} ل.س")
+                                if (!string.IsNullOrWhiteSpace(t.SuggestedMaintenanceLabel))
+                                {
+                                    <small class="d-block text-muted">@t.SuggestedMaintenanceLabel</small>
+                                }
+                            }
+                            else
+                            {
+                                <text>—</text>
+                            }
+                        </strong>
+                    </div>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(t.DiagnosisCauseLabel) || !string.IsNullOrWhiteSpace(t.GuidanceArabic))
+                {
+                    <p class="cp-chat__glass-note">
+                        @if (!string.IsNullOrWhiteSpace(t.DiagnosisCauseLabel))
+                        {
+                            <span>تشخيص أولي: <strong>@t.DiagnosisCauseLabel</strong>
+                                @if (!string.IsNullOrWhiteSpace(t.DiagnosisConfidenceLabel))
+                                {
+                                    <text> (@t.DiagnosisConfidenceLabel)</text>
+                                }
+                            </span>
+                            <br />
+                        }
+                        @t.GuidanceArabic
+                    </p>
+                }
+                @if (t.OpenMaintenanceId.HasValue)
+                {
+                    <a class="cp-chat__glass-link" asp-action="MaintenanceRequestDetails" asp-route-id="@t.OpenMaintenanceId">
+                        طلب صيانة مفتوح #@t.OpenMaintenanceId — @(t.OpenMaintenanceStatus ?? "متابعة")
+                    </a>
+                }
+            </aside>
+        }
+
+        @if (!closed && !waitingHuman)
+        {
+            <div class="cp-chat__actions" role="group" aria-label="إجراءات سريعة">
+                <form asp-action="SupportChatAssist" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="conversationId" value="@Model.Id" />
+                    <input type="hidden" name="assistAction" value="diagnose" />
+                    <button type="submit" class="cp-chat__action"><i class="fas fa-stethoscope"></i> تشخيص العطل</button>
+                </form>
+                <form asp-action="SupportChatAssist" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="conversationId" value="@Model.Id" />
+                    <input type="hidden" name="assistAction" value="estimate" />
+                    <button type="submit" class="cp-chat__action"><i class="fas fa-coins"></i> تقدير التكلفة</button>
+                </form>
+                <form asp-action="SupportChatAssist" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="conversationId" value="@Model.Id" />
+                    <input type="hidden" name="assistAction" value="create_ticket" />
+                    <button type="submit" class="cp-chat__action cp-chat__action--accent"
+                            @(Model.LinkedMaintenanceRequestId.HasValue ? "disabled" : null)>
+                        <i class="fas fa-wrench"></i> طلب صيانة
+                    </button>
+                </form>
+                <form asp-action="SupportChatAssist" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="conversationId" value="@Model.Id" />
+                    <input type="hidden" name="assistAction" value="handoff" />
+                    <button type="submit" class="cp-chat__action"><i class="fas fa-user"></i> موظف بشري</button>
+                </form>
+            </div>
+        }
+
+        <div class="cp-chat__thread" id="cpChatThread">
+            @foreach (var msg in Model.Messages)
+            {
+                var roleClass = msg.Author switch
+                {
+                    CustomerServiceMessageAuthor.Customer => "is-me",
+                    CustomerServiceMessageAuthor.Employee => "is-staff",
+                    CustomerServiceMessageAuthor.Assistant => "is-ai",
+                    _ => "is-system"
+                };
+                var label = msg.Author switch
+                {
+                    CustomerServiceMessageAuthor.Customer => "أنت",
+                    CustomerServiceMessageAuthor.Employee => "الموظف",
+                    CustomerServiceMessageAuthor.Assistant => msg.AiAgentName ?? "المساعد",
+                    _ => "تنويه"
+                };
+                <div class="cp-chat__bubble @roleClass">
+                    <div class="cp-chat__meta">
+                        <strong>@label</strong>
+                        <time>@msg.CreatedAtUtc.ToLocalTime().ToString("t")</time>
+                    </div>
+                    <div class="cp-chat__body">@msg.Body</div>
+                </div>
+            }
+        </div>
+
+        @if (!closed)
+        {
+            <form asp-action="SupportChat" method="post" class="cp-chat__composer">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="conversationId" value="@Model.Id" />
+                <label class="visually-hidden" for="body">رسالتك</label>
+                <textarea id="body" name="body" class="form-control" rows="2" required maxlength="4000"
+                          placeholder="@(waitingHuman ? "اكتب رسالتك للموظف…" : "صف المشكلة باختصار… أو استخدم الأزرار أعلاه")"></textarea>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i> إرسال
+                </button>
+            </form>
+            <p class="cp-chat__hint">
+                @(waitingHuman
+                    ? "تم التحويل لموظف بشري — الرد يظهر هنا."
+                    : "نوضح السبب المحتمل والتكلفة التقديرية قبل فتح أي طلب، لزيادة الشفافية معك.")
+            </p>
+        }
+        else
+        {
+            <form asp-action="SupportChatNew" method="post" class="mt-3">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-primary">بدء محادثة جديدة</button>
+            </form>
+        }
+    </section>
+</div>
+
+<script>
+(function () {
+    var el = document.getElementById('cpChatThread');
+    if (el) { el.scrollTop = el.scrollHeight; }
+    @if (waitingHuman)
+    {
+        <text>setTimeout(function () { location.reload(); }, 25000);</text>
+    }
+})();
+</script>

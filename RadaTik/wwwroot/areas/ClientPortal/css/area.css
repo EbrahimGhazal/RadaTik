@@ -3,9 +3,9 @@
 /* Preserve previous sidebar theme (ClientPortal) */
 .sidebar.sidebar-pro {
     background: linear-gradient(180deg, #7C2D12 0%, #EA580C 55%, #7C2D12 100%) !important;
-    --sidebar-sub-rail: rgba(251, 146, 60, 0.35);
-    --sidebar-sub-bg: rgba(67, 20, 7, 0.35);
-    --sidebar-sub-border: rgba(251, 146, 60, 0.18);
+    --sidebar-sub-rail: rgba(251, 146, 60, 0.4);
+    --sidebar-sub-bg: transparent;
+    --sidebar-sub-border: transparent;
 }
 
 /* رأس الشريط: شعار RadaTik + شعار الشبكة */
@@ -111,4 +111,256 @@
         padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 }
+
+.subscriber-home {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.subscriber-status {
+    padding: 1.25rem 1.15rem;
+    border-radius: 1rem;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    box-shadow: 0 8px 24px rgba(124, 45, 18, 0.06);
+}
+
+.subscriber-status.is-ok { border-color: #86efac; }
+.subscriber-status.is-soon { border-color: #fcd34d; }
+.subscriber-status.is-stopped { border-color: #fca5a5; }
+
+.subscriber-status__kicker {
+    margin: 0 0 0.25rem;
+    color: #9a3412;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.subscriber-status h2 {
+    margin: 0 0 0.35rem;
+    font-size: 1.65rem;
+    line-height: 1.3;
+}
+
+.subscriber-status__detail {
+    margin: 0 0 0.9rem;
+    color: #44403c;
+    font-size: 1.05rem;
+}
+
+.subscriber-status__facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin: 0 0 1rem;
+    padding: 0;
+    list-style: none;
+}
+
+.subscriber-status__facts li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.75rem;
+    background: #fff7ed;
+}
+
+.subscriber-status__facts span {
+    color: #78716c;
+    font-size: 0.82rem;
+}
+
+.subscriber-status__facts strong {
+    font-size: 1.05rem;
+}
+
+.subscriber-go {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 3.4rem;
+    padding: 0.75rem 1rem;
+    border: 0;
+    border-radius: 0.9rem;
+    text-decoration: none;
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.subscriber-go small {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.subscriber-go--primary {
+    background: #c2410c;
+    color: #fff;
+}
+
+.subscriber-go--primary:hover,
+.subscriber-go--primary:focus-visible {
+    background: #9a3412;
+    color: #fff;
+}
+
+.subscriber-note {
+    display: block;
+    padding: 0.85rem 1rem;
+    border-radius: 0.85rem;
+    background: #fff7ed;
+    color: #9a3412;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.subscriber-tasks__title {
+    margin: 0.4rem 0 0;
+    font-size: 1.15rem;
+}
+
+.subscriber-tasks {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+}
+
+@media (min-width: 768px) {
+    .subscriber-tasks {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.subscriber-task {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-height: 4.6rem;
+    padding: 0.9rem 1rem;
+    border-radius: 0.95rem;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    color: inherit;
+    text-decoration: none;
+}
+
+.subscriber-task i {
+    width: 2.4rem;
+    text-align: center;
+    font-size: 1.25rem;
+    color: #c2410c;
+}
+
+.subscriber-task strong,
+.subscriber-task small {
+    display: block;
+}
+
+.subscriber-task strong {
+    font-size: 1.05rem;
+}
+
+.subscriber-task small {
+    color: #57534e;
+}
+
+.subscriber-task:hover,
+.subscriber-task:focus-visible {
+    border-color: #fdba74;
+    background: #fff7ed;
+    color: inherit;
+}
+
+.subscriber-more {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    padding-top: 0.25rem;
+}
+
+.subscriber-more a {
+    color: #9a3412;
+    font-weight: 700;
+}
+
+/* قائمة اسم المشترك في الترويسة يجب ألا تُقص أبداً */
+.admin-dashboard-page.role-client-portal .main-content,
+.admin-dashboard-page.role-client-portal .main-content > .header,
+.admin-dashboard-page.role-client-portal .header-shell,
+.admin-dashboard-page.role-client-portal .header-shell__inner,
+.admin-dashboard-page.role-client-portal .header-left,
+.admin-dashboard-page.role-client-portal .header-user-wrapper {
+    overflow: visible !important;
+}
+
+.admin-dashboard-page.role-client-portal .main-content > .header.header-shell {
+    z-index: 1040 !important;
+}
+
+.admin-dashboard-page.role-client-portal .dropdown-menu.header-user-dropdown {
+    z-index: 3000;
+}
+
+.subscriber-presence-wrap {
+    margin-top: 0.35rem;
+}
+
+/* شريط سفلي للجوال — وصول سريع */
+.client-portal-dock {
+    display: none;
+}
+
+@media (max-width: 991.98px) {
+    .admin-dashboard-page.role-client-portal .page-content {
+        padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .client-portal-dock {
+        position: fixed;
+        inset-inline: 0;
+        bottom: 0;
+        z-index: 1050;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.15rem;
+        padding: 0.45rem 0.4rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
+        background: #fff7ed;
+        border-top: 1px solid #fdba74;
+        box-shadow: 0 -6px 20px rgba(124, 45, 18, 0.12);
+    }
+
+    .client-portal-dock__item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        min-height: 3.1rem;
+        padding: 0.35rem 0.2rem;
+        border-radius: 0.75rem;
+        color: #9a3412;
+        text-decoration: none;
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+
+    .client-portal-dock__item i {
+        font-size: 1.05rem;
+    }
+
+    .client-portal-dock__item.is-active,
+    .client-portal-dock__item:hover,
+    .client-portal-dock__item:focus-visible {
+        background: #c2410c;
+        color: #fff;
+    }
+}
+
 

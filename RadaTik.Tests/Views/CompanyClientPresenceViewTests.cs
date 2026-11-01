@@ -8,17 +8,19 @@ public sealed class CompanyClientPresenceViewTests
     public void ClientSidebar_ShowsSocialFooterAndComplaintsWhenPresent()
     {
         string sidebar = Read("RadaTik", "Areas", "ClientPortal", "Views", "Shared", "_Sidebar.cshtml");
-        Assert.Contains("كن من المعجبين بصفحاتنا على سوشال ميديا", sidebar);
+        Assert.Contains("صفحاتنا", sidebar);
         Assert.Contains("HasSocialLinks", sidebar);
         Assert.Contains("HasComplaintContacts", sidebar);
         Assert.Contains("asp-route-action=\"Complaints\"", sidebar);
         Assert.Contains("nav-section-complaints", sidebar);
+        Assert.Contains("ماذا تريد؟", sidebar);
+        Assert.DoesNotContain("طلبات الخدمة", sidebar);
+        Assert.DoesNotContain("nav-sublist", sidebar);
 
-        int serviceRequests = sidebar.IndexOf("طلبات الخدمة", StringComparison.Ordinal);
         int complaints = sidebar.IndexOf("asp-route-action=\"Complaints\"", StringComparison.Ordinal);
-        int social = sidebar.IndexOf("كن من المعجبين بصفحاتنا على سوشال ميديا", StringComparison.Ordinal);
-        Assert.True(complaints > serviceRequests);
-        Assert.True(complaints < social);
+        int social = sidebar.IndexOf("صفحاتنا", StringComparison.Ordinal);
+        Assert.True(complaints > 0);
+        Assert.True(social > complaints);
     }
 
     [Fact]
@@ -54,9 +56,10 @@ public sealed class CompanyClientPresenceViewTests
     [Fact]
     public void CompanyAdminSidebar_LinksToClientPresence()
     {
-        string nav = Read("RadaTik", "Areas", "CompanyAdmin", "Views", "Shared", "_SidebarNavSections.cshtml");
+        string nav = Read("RadaTik", "Navigation", "CompanySidebarCatalog.cs");
         Assert.Contains("networkManager-client-presence", nav);
         Assert.Contains("صفحات التواصل", nav);
+        Assert.Contains("ClientPresence", nav);
     }
 
     private static string Read(params string[] relativeParts)

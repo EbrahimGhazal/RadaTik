@@ -1,7 +1,7 @@
 @model RadaTik.ViewModels.ClientPortal.ClientProfileViewModel
 @using RadaTik.Security
 @{
-    ViewData["Title"] = "بروفايل العميل";
+    ViewData["Title"] = "بياناتي";
     var hasLocation = Model.Latitude.HasValue && Model.Longitude.HasValue;
     var defaultLat = Model.Latitude ?? 34.8;
     var defaultLng = Model.Longitude ?? 38.0;
@@ -24,7 +24,7 @@
     <partial name="_ProfileHero"
              view-data='new ViewDataDictionary(ViewData)
              {
-                 ["HeroTitle"] = "بروفايل العميل",
+                 ["HeroTitle"] = "بياناتي",
                  ["HeroSubtitle"] = "يمكنك تعديل الاسم الكامل والبريد ورقم الجوال وكلمة مرور النظام في أي وقت. اسم المستخدم وكلمة المرور على MikroTik ثابتان.",
                  ["HeroIconClass"] = "fas fa-user-circle",
                  ["HeroChips"] = heroChips

@@ -1,18 +1,17 @@
 @{
-    ViewData["Title"] = "معدلي المباشر";
+    ViewData["Title"] = "سرعتي";
     var clientName = ViewBag.ClientName as string ?? "—";
     var userName = ViewBag.ClientUserName as string ?? "—";
-    var serverName = ViewBag.ServerName as string ?? "—";
 }
 
 <div class="container-fluid py-3">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <div>
             <h4 class="mb-1">@ViewData["Title"]</h4>
-            <p class="text-muted mb-0">هذه الصفحة تعرض معدل اتصالك أنت فقط بشكل مباشر.</p>
+            <p class="text-muted mb-0">اعرف إن كان اتصالك سريعاً أو بطيئاً. كل اختبار يخصم 50 ل.س ويستمر 10 ثوانٍ.</p>
         </div>
-        <a asp-route="clientPortal-actions" asp-route-action="Index" class="btn btn-outline-secondary btn-sm rounded-3">
-            <i class="fas fa-arrow-right me-1"></i> لوحة التحكم
+            <a asp-route="clientPortal-actions" asp-route-action="Index" class="btn btn-outline-secondary btn-sm rounded-3">
+            <i class="fas fa-arrow-right me-1"></i> الرئيسية
         </a>
     </div>
 
@@ -25,8 +24,7 @@
         <div class="card-body py-3">
             <div class="d-flex flex-wrap gap-2">
                 <span class="badge text-bg-light border">العميل: <strong>@clientName</strong></span>
-                <span class="badge text-bg-light border">اسم الاشتراك: <strong>@userName</strong></span>
-                <span class="badge text-bg-light border">الخادم: <strong>@serverName</strong></span>
+                <span class="badge text-bg-light border">اسم الدخول: <strong>@userName</strong></span>
                 <span id="client-traffic-updated" class="badge text-bg-light border">—</span>
             </div>
             <div class="d-flex flex-wrap align-items-center gap-2 mt-3">

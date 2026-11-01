@@ -2,14 +2,14 @@
 @using RadaTik.Models
 @using RadaTik.Helpers
 @{
-    ViewData["Title"] = "طلبات الصيانة";
+    ViewData["Title"] = "طلباتي";
     ViewBag.PageHeroIcon = "fas fa-tools";
     ViewBag.PageHeroExtraActions = new[]
     {
-        new RadaTik.ViewModels.UI.PageHeroActionViewModel { Text = "طلب صيانة جديد", Url = Url.Action("CreateMaintenanceRequest")!, CssClass = "btn btn-primary btn-sm", IconClass = "fas fa-plus" }
+        new RadaTik.ViewModels.UI.PageHeroActionViewModel { Text = "الإنترنت لا يعمل", Url = Url.Action("CreateMaintenanceRequest")!, CssClass = "btn btn-primary btn-sm", IconClass = "fas fa-plus" }
     };
     ViewBag.PageHeroBackUrl = Url.Action("Index");
-    ViewBag.PageHeroBackText = "العودة";
+    ViewBag.PageHeroBackText = "الرئيسية";
 }
 <div class="radtk-page--clientportal-views-clientportal-maintenancerequests">
 
@@ -35,7 +35,7 @@
     <div class="card-header">
         <h3 class="card-title">
             <i class="fas fa-list"></i>
-            قائمة طلبات الصيانة
+            طلبات الصيانة الخاصة بك
         </h3>
     </div>
     <div class="card-body">
