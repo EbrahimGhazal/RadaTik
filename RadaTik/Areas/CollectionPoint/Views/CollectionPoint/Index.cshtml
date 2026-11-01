@@ -1,77 +1,180 @@
 @model RadaTik.ViewModels.CollectionPoint.CollectionPointDashboardViewModel
-@using RadaTik.ViewModels.UI
 @{
     ViewData["Title"] = "لوحة التحصيل";
-    var hero = new PageHeroViewModel
-    {
-        Title = ViewData["Title"] as string ?? "لوحة التحصيل",
-        Subtitle = "اختر شبكة → ابحث عن مشترك → سدّد الفاتورة",
-        IconClass = "fas fa-cash-register",
-        Theme = "finance",
-        Chips =
-        [
-            new PageHeroChipViewModel { IconClass = "fas fa-wallet", Text = $"رصيد النقطة: {Model.AccountBalance:N0} ل.س" }
-        ],
-        Actions =
-        [
-            new PageHeroActionViewModel
-            {
-                Text = "سجل التحصيل",
-                Url = Url.Action("History") ?? "#",
-                CssClass = "btn btn-outline-light btn-sm",
-                IconClass = "fas fa-list"
-            }
-        ]
-    };
+    ViewData["BodyClass"] = ((ViewData["BodyClass"] as string) ?? "") + " cp-desk-page";
+    var networks = Model.Networks ?? [];
+    var transactions = Model.RecentTransactions ?? [];
+    var historyUrl = Url.RouteUrl("collectionPoint-actions", new { action = "History" })
+        ?? Url.Action("History", "CollectionPoint", new { area = "CollectionPoint" })
+        ?? "#";
+    var topUpUrl = Url.RouteUrl("collectionPoint-wallet-topup") ?? "#";
 }
 
-<partial name="~/Views/Shared/_PageHero.cshtml" model="hero" />
-
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success">@TempData["Success"]</div>
-}
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger">@TempData["Error"]</div>
-}
-
-<div class="radtk-collect-flow mb-4">
-    <p class="text-muted mb-2"><i class="fas fa-hand-pointer"></i> انقر على شركة/شبكة للبحث المباشر عن المشتركين</p>
-    <div class="radtk-collect-network-grid">
-        @if (Model.Networks != null && Model.Networks.Any())
-        {
-            @foreach (var net in Model.Networks)
-            {
-                <div class="radtk-collect-network-card network-card" data-network-id="@net.Id" data-network-name="@net.Name">
-                    @if (!string.IsNullOrEmpty(net.LogoPath))
-                    {
-                        <img src="@net.LogoPath" alt="@net.Name" class="mb-2 radtk-collect-network-logo" />
-                    }
-                    else
-                    {
-                        <div class="radtk-collect-network-icon mb-2">
-                            <i class="fas fa-building fa-2x"></i>
-                        </div>
-                    }
-                    <h5 class="mb-1">@net.Name</h5>
-                    @if (!string.IsNullOrEmpty(net.Phone))
-                    {
-                        <p class="text-muted small mb-0"><i class="fas fa-phone"></i> @net.Phone</p>
-                    }
-                    <span class="badge bg-primary mt-2">بحث وتسديد</span>
+<div class="cp-desk">
+    <section class="cp-desk-hero" aria-label="ملخص نقطة التحصيل">
+        <div class="cp-desk-hero__main">
+            <span class="cp-desk-kicker">
+                <i class="fas fa-cash-register"></i>
+                مكتب التحصيل
+            </span>
+            <h1 class="cp-desk-title">لوحة التحصيل</h1>
+            <p class="cp-desk-lead">
+                اختر شركة، ابحث عن المشترك، وسدّد فاتورته بخطوتين — سريع وواضح من شاشة واحدة.
+            </p>
+            <div class="cp-desk-actions">
+                <a class="btn btn-amber" href="#cpCompanies">
+                    <i class="fas fa-building me-1"></i> ابدأ بالتحصيل
+                </a>
+                <a class="btn btn-ghost" href="@historyUrl">
+                    <i class="fas fa-list me-1"></i> سجل التحصيل
+                </a>
+                <a class="btn btn-ghost" href="@topUpUrl">
+                    <i class="fas fa-wallet me-1"></i> تغذية الرصيد
+                </a>
+            </div>
+        </div>
+        <aside class="cp-desk-hero__balance" aria-label="رصيد نقطة التحصيل">
+            <div>
+                <div class="cp-desk-balance-label">
+                    <i class="fas fa-coins"></i>
+                    رصيد النقطة المتاح
                 </div>
+                <p class="cp-desk-balance-amount">@Model.AccountBalance.ToString("N0")</p>
+                <span class="cp-desk-balance-unit">ليرة سورية</span>
+            </div>
+            <p class="cp-desk-balance-hint">يُخصم الرصيد تلقائياً عند كل عملية تسديد ناجحة.</p>
+        </aside>
+    </section>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success border-0 shadow-sm">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger border-0 shadow-sm">@TempData["Error"]</div>
+    }
+    @if (TempData["Info"] != null)
+    {
+        <div class="alert alert-info border-0 shadow-sm">@TempData["Info"]</div>
+    }
+
+    <section class="cp-desk-section" id="cpCompanies" aria-labelledby="cpCompaniesTitle">
+        <div class="cp-desk-section-head">
+            <div>
+                <span class="cp-desk-step">1 · الخطوة الأولى</span>
+                <h2 class="cp-desk-section-title" id="cpCompaniesTitle">اختر الشركة</h2>
+                <p class="cp-desk-section-sub">انقر على البطاقة لفتح البحث وتسديد فاتورة المشترك فوراً.</p>
+            </div>
+            <span class="cp-desk-step"><i class="fas fa-building"></i> @networks.Count شركة</span>
+        </div>
+
+        <div class="cp-desk-network-grid radtk-collect-network-grid">
+            @if (networks.Count > 0)
+            {
+                var index = 0;
+                foreach (var net in networks)
+                {
+                    var delayMs = Math.Min(index * 40, 360);
+                    <div class="cp-desk-network-card network-card radtk-collect-network-card"
+                         role="button"
+                         tabindex="0"
+                         style="--rise-delay: @(delayMs)ms"
+                         data-network-id="@net.Id"
+                         data-network-name="@net.Name"
+                         aria-label="البحث في @net.Name">
+                        @if (!string.IsNullOrEmpty(net.LogoPath))
+                        {
+                            <img src="@net.LogoPath" alt="" class="cp-desk-network-logo radtk-collect-network-logo" />
+                        }
+                        else
+                        {
+                            <div class="cp-desk-network-icon radtk-collect-network-icon" aria-hidden="true">
+                                <i class="fas fa-building"></i>
+                            </div>
+                        }
+                        <h3 class="cp-desk-network-name">@net.Name</h3>
+                        @if (!string.IsNullOrEmpty(net.Phone))
+                        {
+                            <p class="cp-desk-network-phone"><i class="fas fa-phone"></i> @net.Phone</p>
+                        }
+                        <span class="cp-desk-network-cta">
+                            <i class="fas fa-search-dollar"></i> بحث وتسديد
+                        </span>
+                    </div>
+                    index++;
+                }
             }
+            else
+            {
+                <div class="cp-desk-empty">لا توجد شركات متاحة حالياً. تواصل مع مدير النظام.</div>
+            }
+        </div>
+    </section>
+
+    <section class="cp-desk-activity" aria-labelledby="cpActivityTitle">
+        <div class="cp-desk-activity__head">
+            <h2 class="cp-desk-activity__title" id="cpActivityTitle">
+                <i class="fas fa-bolt text-warning me-1"></i> آخر عمليات التحصيل
+            </h2>
+            <a class="cp-desk-activity__link" href="@historyUrl">عرض السجل الكامل</a>
+        </div>
+
+        @if (transactions.Count > 0)
+        {
+            <ul class="cp-desk-tx-list">
+                @foreach (var t in transactions.Take(12))
+                {
+                    var iconClass = t.OperationType switch
+                    {
+                        "Renewal" => "is-renewal",
+                        "ClientTopUp" => "is-topup",
+                        _ => ""
+                    };
+                    var icon = t.OperationType switch
+                    {
+                        "Renewal" => "fa-sync-alt",
+                        "ClientTopUp" => "fa-wallet",
+                        _ => "fa-receipt"
+                    };
+                    var typeLabel = t.OperationType switch
+                    {
+                        "Renewal" => "تجديد",
+                        "ClientTopUp" => "تغذية رصيد",
+                        _ => "تحصيل"
+                    };
+                    var clientName = t.Client?.Name ?? t.Client?.UserName ?? t.ClientId.ToString();
+                    <li class="cp-desk-tx">
+                        <span class="cp-desk-tx__icon @iconClass" aria-hidden="true">
+                            <i class="fas @icon"></i>
+                        </span>
+                        <div class="cp-desk-tx__main">
+                            <p class="cp-desk-tx__client">@clientName</p>
+                            <p class="cp-desk-tx__meta">
+                                @typeLabel · @t.PaymentDate.ToString("yyyy/MM/dd HH:mm")
+                                @if (!string.IsNullOrWhiteSpace(t.ReferenceNumber))
+                                {
+                                    <span> · @t.ReferenceNumber</span>
+                                }
+                            </p>
+                        </div>
+                        <div class="cp-desk-tx__amount">@t.Amount.ToString("N0") ل.س</div>
+                    </li>
+                }
+            </ul>
         }
         else
         {
-            <div class="alert alert-info w-100">لا توجد شركات/شبكات متاحة. يرجى التواصل مع مدير النظام.</div>
+            <div class="cp-desk-tx-empty">
+                <i class="fas fa-inbox mb-2 d-block"></i>
+                لا توجد عمليات بعد — ابدأ باختيار شركة أعلاه.
+            </div>
         }
-    </div>
+    </section>
 </div>
 
 <!-- Modal البحث عن المشتركين -->
-<div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
+<div class="modal fade cp-desk-modal" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
@@ -101,7 +204,7 @@
 </div>
 
 <!-- Modal تأكيد تسديد الفاتورة -->
-<div class="modal fade" id="confirmPayModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade cp-desk-modal cp-desk-confirm" id="confirmPayModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
@@ -124,65 +227,9 @@
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header">
-        <h5 class="card-title mb-0"><i class="fas fa-history"></i> آخر عمليات التحصيل</h5>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive radtk-data-table-wrap">
-            <table class="table table-hover align-middle radtk-data-table radtk-data-table--cards">
-                <thead>
-                    <tr>
-                        <th>التاريخ</th>
-                        <th>نوع العملية</th>
-                        <th>العميل</th>
-                        <th>المبلغ</th>
-                        <th>رصيد العميل بعد</th>
-                        <th>رقم المرجع</th>
-                        <th>ملاحظات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model.RecentTransactions != null && Model.RecentTransactions.Any())
-                    {
-                        foreach (var t in Model.RecentTransactions)
-                        {
-                            <tr>
-                                <td>@t.PaymentDate.ToString("yyyy/MM/dd HH:mm")</td>
-                                <td>
-                                    @if (t.OperationType == "Renewal")
-                                    {
-                                        <span class="badge bg-success">تجديد</span>
-                                    }
-                                    else if (t.OperationType == "ClientTopUp")
-                                    {
-                                        <span class="badge bg-info">تغذية رصيد</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-primary">تحصيل</span>
-                                    }
-                                </td>
-                                <td>@(t.Client?.Name ?? t.Client?.UserName ?? t.ClientId.ToString())</td>
-                                <td>@t.Amount.ToString("N0") ل.س</td>
-                                <td>@t.NewClientBalance.ToString("N0")</td>
-                                <td class="small text-muted">@(string.IsNullOrWhiteSpace(t.ReferenceNumber) ? "—" : t.ReferenceNumber)</td>
-                                <td class="text-muted">@t.Notes</td>
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr><td colspan="7" class="text-center text-muted">لا توجد عمليات بعد</td></tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
 @section Styles {
     <link rel="stylesheet" href="~/css/collection-point-search-cards.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/areas/CollectionPoint/css/dashboard.css" asp-append-version="true" />
 }
 
 @section Scripts {
@@ -221,6 +268,15 @@
         function firstLetter(text) {
             var value = String(text || '').trim();
             return value ? value.charAt(0) : 'م';
+        }
+
+        function openNetworkSearch(card) {
+            currentNetworkId = parseInt(card.dataset.networkId, 10);
+            document.getElementById('modalNetworkName').textContent = card.dataset.networkName || '';
+            document.getElementById('searchQuery').value = '';
+            renderStatus('', 'fas fa-search', 'أدخل كلمة البحث ثم اضغط بحث لعرض بطاقة المشترك');
+            searchModal.show();
+            setTimeout(function() { document.getElementById('searchQuery').focus(); }, 300);
         }
 
         function renderClientCard(c) {
@@ -293,12 +349,13 @@
 
         document.querySelectorAll('.network-card').forEach(function(card) {
             card.addEventListener('click', function() {
-                currentNetworkId = parseInt(this.dataset.networkId, 10);
-                document.getElementById('modalNetworkName').textContent = this.dataset.networkName || '';
-                document.getElementById('searchQuery').value = '';
-                renderStatus('', 'fas fa-search', 'أدخل كلمة البحث ثم اضغط بحث لعرض بطاقة المشترك');
-                searchModal.show();
-                setTimeout(function() { document.getElementById('searchQuery').focus(); }, 300);
+                openNetworkSearch(this);
+            });
+            card.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openNetworkSearch(this);
+                }
             });
         });
 
@@ -328,8 +385,13 @@
                     }
                     return r.json();
                 })
-                .then(function(items) {
-                    if (!Array.isArray(items) || items.length === 0) {
+                .then(function(payload) {
+                    if (payload && payload.error === 'company_frozen') {
+                        renderStatus('error', 'fas fa-snowflake', payload.message || 'الشركة مجمّدة ولا يمكن العمل عليها');
+                        return;
+                    }
+                    var items = Array.isArray(payload) ? payload : [];
+                    if (items.length === 0) {
                         renderStatus('', 'fas fa-inbox', 'لا توجد نتائج مطابقة');
                         return;
                     }

@@ -38,10 +38,18 @@ public class DashboardController : Controller
         List<NetworkCardItem> networks = await LoadAvailableNetworkCardsAsync();
 
         int? networkId = NetworkHelper.GetCurrentNetworkId(HttpContext, _context, user);
+        if (networkId.HasValue && await NetworkHelper.IsNetworkOrCompanyFrozenAsync(_context, networkId.Value))
+        {
+            NetworkHelper.ClearCurrentNetworkId(HttpContext);
+            networkId = null;
+            TempData["Error"] = "الشركة المحددة مجمّدة ولا يمكن العمل عليها من نقطة التحصيل.";
+        }
+
         if (!networkId.HasValue)
         {
             CollectionPointAccount? acc = await _context.CollectionPointAccounts.FirstOrDefaultAsync(a => a.UserId == userId);
-            if (acc?.NetworkId != null)
+            if (acc?.NetworkId != null &&
+                !await NetworkHelper.IsNetworkOrCompanyFrozenAsync(_context, acc.NetworkId.Value))
             {
                 NetworkHelper.SetCurrentNetworkId(HttpContext, acc.NetworkId.Value);
                 networkId = acc.NetworkId;
@@ -152,6 +160,16 @@ public class DashboardController : Controller
         };
 
         return View("~/Areas/CollectionPoint/Views/CollectionPoint/Index.cshtml", model);
+    }
+
+    /// <summary>
+    /// روابط قديمة/خاطئة مثل /collectionPoint/Dashboard/History كانت تصل هنا لأن
+    /// لوحة Dashboard تعرض نفس View الخاصة بـ CollectionPoint فتُبنى الرابط على Controller الحالي.
+    /// </summary>
+    [HttpGet]
+    public IActionResult History()
+    {
+        return RedirectToRoute("collectionPoint-actions", new { action = "History" });
     }
 
     /// <summary>
