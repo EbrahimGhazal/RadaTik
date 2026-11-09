@@ -86,28 +86,7 @@ namespace RadaTik.ViewModels.CollectionPoints
         public List<PaymentTransaction> Transactions { get; set; } = new();
         public List<CollectionPointDetailsPrintRow> PrintRows { get; set; } = new();
 
-        public string PeriodLabel
-        {
-            get
-            {
-                if (From.HasValue && To.HasValue)
-                {
-                    return $"من {From:yyyy/MM/dd} إلى {To:yyyy/MM/dd}";
-                }
-
-                if (From.HasValue)
-                {
-                    return $"من {From:yyyy/MM/dd}";
-                }
-
-                if (To.HasValue)
-                {
-                    return $"حتى {To:yyyy/MM/dd}";
-                }
-
-                return "كل العمليات";
-            }
-        }
+        public string PeriodLabel => CollectionPointPeriodLabel.Format(From, To);
     }
 
     public class CollectionPointDetailsPrintRow
@@ -119,6 +98,66 @@ namespace RadaTik.ViewModels.CollectionPoints
         public string OperationTypeLabel { get; set; } = "";
         public decimal AmountPaid { get; set; }
         public DateTime PaymentDate { get; set; }
+    }
+
+    /// <summary>تقرير تسديدات مشتركي الشركة عبر نقاط التحصيل.</summary>
+    public class CollectionPointPaymentsReportViewModel
+    {
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
+        public string? CollectionPointUserId { get; set; }
+        public DateTime PrintedAt { get; set; } = DateTime.Now;
+        public decimal TotalWithoutTax { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal TotalWithTax { get; set; }
+        public int ResultCount { get; set; }
+        public List<CollectionPointPaymentReportRow> Rows { get; set; } = new();
+        public List<CollectionPointFilterOption> CollectionPointOptions { get; set; } = new();
+
+        public string PeriodLabel => CollectionPointPeriodLabel.Format(From, To);
+    }
+
+    public class CollectionPointPaymentReportRow
+    {
+        public int Sequence { get; set; }
+        public DateTime PaymentDate { get; set; }
+        public string SubscriberName { get; set; } = "";
+        public string PhoneNumber { get; set; } = "";
+        public string ProfileSpeed { get; set; } = "";
+        public string CollectionPointName { get; set; } = "";
+        public int? CollectionPointAccountId { get; set; }
+        public string OperationTypeLabel { get; set; } = "";
+        public string OperationType { get; set; } = "";
+        public decimal AmountPaid { get; set; }
+    }
+
+    public class CollectionPointFilterOption
+    {
+        public string UserId { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+    }
+
+    internal static class CollectionPointPeriodLabel
+    {
+        public static string Format(DateTime? from, DateTime? to)
+        {
+            if (from.HasValue && to.HasValue)
+            {
+                return $"من {from:yyyy/MM/dd} إلى {to:yyyy/MM/dd}";
+            }
+
+            if (from.HasValue)
+            {
+                return $"من {from:yyyy/MM/dd}";
+            }
+
+            if (to.HasValue)
+            {
+                return $"حتى {to:yyyy/MM/dd}";
+            }
+
+            return "كل العمليات";
+        }
     }
 }
 
