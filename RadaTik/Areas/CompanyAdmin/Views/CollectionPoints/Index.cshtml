@@ -1,7 +1,8 @@
 @model List<RadaTik.Models.CollectionPointAccount>
 
 @{
-    ViewData["Title"] = "نقاط المبيع (تحصيل مالي)";
+    ViewData["Title"] = "نقاط التحصيل";
+    var canManage = ViewBag.CanManage as bool? ?? false;
 }
 
 <div class="financial-page financial-hub-page">
@@ -13,8 +14,10 @@
     @{
         ViewBag.FinancialHeroIcon = "fas fa-store";
         ViewBag.FinancialHeroTheme = "default";
-        ViewBag.FinancialHeroSubtitle = "عرض أرصدة نقاط التحصيل وتصفير الرصيد — طلبات الإنشاء من التسجيل العام";
-        ViewBag.FinancialHeroActions = @"<a class=""btn btn-primary micro-btn"" href=""" + Url.Action("Create") + @"""><i class=""fas fa-plus""></i> طلب نقطة جديدة</a>";
+        ViewBag.FinancialHeroSubtitle = "عرض نقاط التحصيل وسجل تحصيلات مشتركي الشركة — انقر اسم النقطة لعرض العمليات";
+        ViewBag.FinancialHeroActions = canManage
+            ? @"<a class=""btn btn-primary micro-btn"" href=""" + Url.Action("Create") + @"""><i class=""fas fa-plus""></i> طلب نقطة جديدة</a>"
+            : "";
     }
     <partial name="_FinancialSysHero" />
 
@@ -24,7 +27,7 @@
             <table class="table table-striped align-middle radtk-data-table radtk-data-table--cards">
                 <thead>
                     <tr>
-                        <th>المستخدم</th>
+                        <th>نقطة التحصيل</th>
                         <th>الرصيد</th>
                         <th>آخر تحديث</th>
                         <th style="width: 220px;">إجراءات</th>
@@ -35,25 +38,38 @@
                     {
                         foreach (var a in Model)
                         {
+                            var pointName = a.User?.FullName ?? a.User?.UserName ?? a.UserId;
                             <tr>
-                                <td>@(a.User?.UserName ?? a.UserId)</td>
+                                <td>
+                                    <a asp-action="Details" asp-route-id="@a.Id" class="fw-semibold text-decoration-none">
+                                        @pointName
+                                    </a>
+                                    @if (!string.IsNullOrWhiteSpace(a.User?.UserName) &&
+                                         !string.Equals(pointName, a.User.UserName, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <div class="small text-muted">@a.User.UserName</div>
+                                    }
+                                </td>
                                 <td style="font-weight: 700;">@a.Balance.ToString("0.##")</td>
                                 <td class="text-muted">@a.UpdatedAt.ToString("yyyy/MM/dd HH:mm")</td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
-                                        <form asp-action="ResetBalance" method="post" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@a.Id" />
-                                            <button type="submit" class="btn btn-outline-danger"
-                                                    onclick="return confirm('هل أنت متأكد من تصفير الرصيد؟')"
-                                                    title="تصفير الرصيد">
-                                                <i class="fas fa-eraser"></i>
-                                            </button>
-                                        </form>
-                                        <a asp-action="Edit" asp-route-id="@a.Id" class="btn btn-outline-primary" title="تعديل الرصيد">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a asp-action="Details" asp-route-id="@a.Id" class="btn btn-outline-info" title="تفاصيل التحصيل">
+                                        @if (canManage)
+                                        {
+                                            <form asp-action="ResetBalance" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@a.Id" />
+                                                <button type="submit" class="btn btn-outline-danger"
+                                                        onclick="return confirm('هل أنت متأكد من تصفير الرصيد؟')"
+                                                        title="تصفير الرصيد">
+                                                    <i class="fas fa-eraser"></i>
+                                                </button>
+                                            </form>
+                                            <a asp-action="Edit" asp-route-id="@a.Id" class="btn btn-outline-primary" title="تعديل الرصيد">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        }
+                                        <a asp-action="Details" asp-route-id="@a.Id" class="btn btn-outline-info" title="سجل التحصيلات">
                                             <i class="fas fa-list-alt"></i>
                                         </a>
                                     </div>
@@ -73,4 +89,3 @@
     </div>
 </div>
 </div>
-

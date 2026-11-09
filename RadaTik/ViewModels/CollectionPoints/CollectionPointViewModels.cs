@@ -76,7 +76,49 @@ namespace RadaTik.ViewModels.CollectionPoints
         public string UserId { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
         public decimal CurrentBalance { get; set; }
+        public DateTime? From { get; set; }
+        public DateTime? To { get; set; }
+        public DateTime PrintedAt { get; set; } = DateTime.Now;
+        public decimal TotalWithoutTax { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal TotalWithTax { get; set; }
+        public int ResultCount { get; set; }
         public List<PaymentTransaction> Transactions { get; set; } = new();
+        public List<CollectionPointDetailsPrintRow> PrintRows { get; set; } = new();
+
+        public string PeriodLabel
+        {
+            get
+            {
+                if (From.HasValue && To.HasValue)
+                {
+                    return $"من {From:yyyy/MM/dd} إلى {To:yyyy/MM/dd}";
+                }
+
+                if (From.HasValue)
+                {
+                    return $"من {From:yyyy/MM/dd}";
+                }
+
+                if (To.HasValue)
+                {
+                    return $"حتى {To:yyyy/MM/dd}";
+                }
+
+                return "كل العمليات";
+            }
+        }
+    }
+
+    public class CollectionPointDetailsPrintRow
+    {
+        public int Sequence { get; set; }
+        public string FullName { get; set; } = "";
+        public string PhoneNumber { get; set; } = "";
+        public string ProfileSpeed { get; set; } = "";
+        public string OperationTypeLabel { get; set; } = "";
+        public decimal AmountPaid { get; set; }
+        public DateTime PaymentDate { get; set; }
     }
 }
 

@@ -14,6 +14,7 @@ using RadaTik.Helpers;
 using RadaTik.Services.Traffic;
 using RadaTik.Services.PublicStats;
 using RadaTik.Services.Calibration;
+using RadaTik.Services.Warehouse;
 
 namespace RadaTik;
 
@@ -60,12 +61,21 @@ internal static class ServiceRegistrationExtensions
         services.AddScoped<IMaintenanceBillingService, MaintenanceBillingService>();
         services.AddScoped<ISubscriberInstallationInvoiceService, SubscriberInstallationInvoiceService>();
         services.AddScoped<ICompanyBusinessSummaryService, CompanyBusinessSummaryService>();
+        services.AddScoped<Services.Dashboard.IDashboardLiveConnectionInsightsService, Services.Dashboard.DashboardLiveConnectionInsightsService>();
         services.AddScoped<IErpSummaryService, ErpSummaryService>();
         services.AddScoped<IErpReportService, ErpReportService>();
         services.AddScoped<IErpNotificationService, ErpNotificationService>();
+        services.AddScoped<IErpDossierService, ErpDossierService>();
+        services.AddScoped<ISubscriberActivityService, SubscriberActivityService>();
         services.AddScoped<IMaintenanceEmployeeTaskService, MaintenanceEmployeeTaskService>();
         services.AddScoped<EmployeeRewardPenaltyService>();
+        services.AddScoped<AccountingPeriodCloseService>();
         services.AddScoped<CompanyAccountingService>();
+        services.AddScoped<ZakatPeriodPostingService>();
+        services.AddScoped<Services.CompanySettings.CompanySettingsService>();
+        services.AddScoped<FinancialPostingService>();
+        services.AddScoped<FinancialStatementService>();
+        services.AddScoped<IErpCustomerLinkService, ErpCustomerLinkService>();
         services.AddScoped<IWarehouseMaterialInvoiceService, WarehouseMaterialInvoiceService>();
         services.AddScoped<MaterialInvoiceWalletService>();
         services.AddScoped<MaterialInvoiceAccountingService>();
@@ -75,6 +85,8 @@ internal static class ServiceRegistrationExtensions
         services.AddScoped<ICollectionPaymentService, CollectionPaymentService>();
         services.AddScoped<IOnboardingChecklistService, OnboardingChecklistService>();
         services.AddScoped<IWarehouseStockService, WarehouseStockService>();
+        services.AddScoped<IWarehouseItemImageService, WarehouseItemImageService>();
+        services.AddScoped<WarehouseItemCardLoader>();
         services.AddScoped<ICollectionPointReceivePaymentService, CollectionPointReceivePaymentService>();
         services.AddScoped<ICollectionPointRenewalOrchestrator, CollectionPointRenewalOrchestrator>();
         services.AddScoped<ICollectionPointTopUpOrchestrator, CollectionPointTopUpOrchestrator>();
@@ -102,6 +114,9 @@ internal static class ServiceRegistrationExtensions
         services.AddScoped<ICompanyMoneyDiaryService, CompanyMoneyDiaryService>();
         services.AddScoped<ICompanyFinancialHelper, CompanyFinancialService>();
         services.AddScoped<Services.Clients.IClientMikroTikLifecycleService, Services.Clients.ClientMikroTikLifecycleService>();
+        services.AddScoped<Services.Clients.ISpeedChangeRequestExecutionService, Services.Clients.SpeedChangeRequestExecutionService>();
+        services.AddScoped<Services.Clients.ITemporarySpeedScheduleService, Services.Clients.TemporarySpeedScheduleService>();
+        services.AddScoped<Services.Clients.IRecurringSpeedScheduleService, Services.Clients.RecurringSpeedScheduleService>();
         services.AddScoped<Services.Clients.IClientProvisioningService, Services.Clients.ClientProvisioningService>();
         services.AddSingleton<Services.Clients.IClientLiveConnectionStore, Services.Clients.ClientLiveConnectionStore>();
         services.AddScoped<Services.Clients.ClientLiveConnectionRefreshService>();
@@ -119,6 +134,28 @@ internal static class ServiceRegistrationExtensions
         services.AddScoped<Services.Clients.IClientInfoFileImportService, Services.Clients.ClientInfoFileImportService>();
         services.AddScoped<Services.Clients.IClientVipPolicyService, Services.Clients.ClientVipPolicyService>();
         services.AddScoped<Services.Clients.ISubscriberFaultDiagnosisService, Services.Clients.SubscriberFaultDiagnosisService>();
+        services.AddScoped<Services.CustomerService.ICustomerServiceAssistantService, Services.CustomerService.CustomerServiceAssistantService>();
+        services.AddScoped<Services.CustomerService.ICustomerServiceAiEmployeeService, Services.CustomerService.CustomerServiceAiEmployeeService>();
+        services.AddScoped<Services.CustomerService.ICustomerServiceAiTeamService, Services.CustomerService.CustomerServiceAiTeamService>();
+        services.AddScoped<Services.CustomerService.ICustomerServiceTransparencyService, Services.CustomerService.CustomerServiceTransparencyService>();
+        services.AddScoped<Services.CustomerService.ICustomerServiceOpsService, Services.CustomerService.CustomerServiceOpsService>();
+        services.AddScoped<Services.CustomerService.ISocialPostComposerService, Services.CustomerService.SocialPostComposerService>();
+        services.AddScoped<Services.CustomerService.ISocialPostCopyWriter, Services.CustomerService.SocialPostCopyWriter>();
+        services.AddScoped<Services.CustomerService.ICustomerServiceSocialPostService, Services.CustomerService.CustomerServiceSocialPostService>();
+        services.AddScoped<Services.CustomerService.ICustomerServiceAiTechnicalReportService, Services.CustomerService.CustomerServiceAiTechnicalReportService>();
+        services.AddScoped<Services.CustomerService.ICustomerServiceAiStudyReportService, Services.CustomerService.CustomerServiceAiStudyReportService>();
+        services.AddScoped<Services.CustomerService.ICustomerServiceMikroTikScriptService, Services.CustomerService.CustomerServiceMikroTikScriptService>();
+        services.AddScoped<Services.CustomerService.ICustomerServiceAiWorkforceService, Services.CustomerService.CustomerServiceAiWorkforceService>();
+        services.AddScoped<Services.CustomerService.ICustomerServiceAiReportService, Services.CustomerService.CustomerServiceAiReportService>();
+        services.AddScoped<Services.CustomerService.ICustomerServiceAiDeskService, Services.CustomerService.CustomerServiceAiDeskService>();
+        services.AddScoped<RenewalReminderOutboundService>();
+        services.AddOptions<Services.CustomerService.CustomerServiceAiOptions>()
+            .BindConfiguration(Services.CustomerService.CustomerServiceAiOptions.SectionName);
+        services.AddHttpClient("CustomerServiceAi", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(90);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("RadaTik-CustomerServiceAi/1.0");
+        });
         services.AddScoped<Services.Clients.IClientNationalIdImageService, Services.Clients.ClientNationalIdImageService>();
         services.AddScoped<Services.Sectors.ISectorExcelImportService, Services.Sectors.SectorExcelImportService>();
         services.AddScoped<Services.Receivers.IReceiverExcelImportService, Services.Receivers.ReceiverExcelImportService>();
@@ -136,10 +173,19 @@ internal static class ServiceRegistrationExtensions
 
     public static IServiceCollection RegisterApplicationServices(this IServiceCollection services)
     {
-        services.AddHttpClient("OpenElevation", client =>
+        // Elevation: Open-Meteo (primary) + OpenTopoData (fallback). Do not use api.open-elevation.com
+        // — its public TLS certificate has repeatedly expired/failed and is outside our control.
+        services.AddHttpClient("OpenMeteoElevation", client =>
         {
-            client.BaseAddress = new Uri("https://api.open-elevation.com/");
-            client.Timeout = TimeSpan.FromSeconds(90);
+            client.BaseAddress = new Uri("https://api.open-meteo.com/");
+            client.Timeout = TimeSpan.FromSeconds(30);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("RadatikElevation/1.0");
+        });
+        services.AddHttpClient("OpenTopoData", client =>
+        {
+            client.BaseAddress = new Uri("https://api.opentopodata.org/");
+            client.Timeout = TimeSpan.FromSeconds(45);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("RadatikElevation/1.0");
         });
         services.AddHttpClient("Overpass", client =>
         {
@@ -152,6 +198,8 @@ internal static class ServiceRegistrationExtensions
         services.AddMikroTikServices();
         services.AddScoped<IRequestNotificationService, RequestNotificationService>();
         services.AddScoped<Services.Auth.ILoginIdentityResolver, Services.Auth.LoginIdentityResolver>();
+        services.AddSingleton<Services.Auth.IPasswordResetGuard, Services.Auth.PasswordResetGuard>();
+        services.AddScoped<Services.Auth.IClientPortalCredentialAligner, Services.Auth.ClientPortalCredentialAligner>();
         services.AddScoped<ClientWalletTopUpApprovalService>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddSingleton<ICurrencyHelper, CurrencyHelperAdapter>();
@@ -160,7 +208,9 @@ internal static class ServiceRegistrationExtensions
         services.AddScoped<ICurrentNetworkScope, CurrentNetworkScope>();
         services.AddScoped<INetworkScopeResolver, NetworkScopeResolver>();
         services.AddScoped<IPublicStatsService, PublicStatsService>();
+        services.AddScoped<IPublicLandingStatsService, PublicLandingStatsService>();
         services.AddScoped<IFeatureAccessService, FeatureAccessService>();
+        services.AddScoped<RadaTik.Navigation.ICompanySidebarNavBuilder, RadaTik.Navigation.CompanySidebarNavBuilder>();
         services.AddSingleton<IAuthorizationPolicyProvider, FeaturePolicyProvider>();
         services.AddScoped<IAuthorizationHandler, FeatureAuthorizationHandler>();
         return services;
@@ -182,6 +232,8 @@ internal static class ServiceRegistrationExtensions
         }
 
         services.AddHostedService<ExpiredAccountsBackgroundService>();
+        services.AddHostedService<Services.Clients.TemporarySpeedRevertWorker>();
+        services.AddHostedService<Services.Clients.RecurringSpeedWorker>();
         services.AddHostedService<MikroTikSyncBackgroundService>();
         services.AddHostedService<NetworkSubscriptionsBackgroundService>();
         services.AddHostedService<NetworkSubscriptionBillingBackgroundService>();
@@ -190,6 +242,8 @@ internal static class ServiceRegistrationExtensions
         services.AddHostedService<SectorRadioMetricsWorkerService>();
         services.AddHostedService<SectorRadioMetricsSchedulerService>();
         services.AddHostedService<Services.Clients.ClientLiveConnectionBackgroundService>();
+        services.AddHostedService<ClientRenewalRemindersBackgroundService>();
+        services.AddHostedService<Services.CustomerService.CustomerServiceProactiveBackgroundService>();
         return services;
     }
 
@@ -207,10 +261,27 @@ internal static class ServiceRegistrationExtensions
             }
         });
         services.AddSingleton<TrafficRateTracker>();
+        services.AddSingleton<ITrafficInterfaceCatalogCache, TrafficInterfaceCatalogCache>();
         services.AddSingleton<ITrafficMonitoringCoordinator, TrafficMonitoringCoordinator>();
+        services.AddSingleton<ITrafficServerCircuitBreaker, TrafficServerCircuitBreaker>();
+        services.AddOptions<TrafficMonitoringOptions>()
+            .BindConfiguration(TrafficMonitoringOptions.SectionName);
+        services.AddOptions<TrafficAlertOptions>()
+            .BindConfiguration(TrafficAlertOptions.SectionName)
+            .Validate(
+                o => o.AlertCheckIntervalMinutes is >= 1 and <= 30
+                     && o.AlertSustainMinutes is >= 2 and <= 60,
+                "Traffic alert timing options are out of range.")
+            .ValidateOnStart();
+        services.AddSingleton<TrafficAlertThresholdPolicy>();
+        services.AddScoped<ITrafficAlertSettingsService, TrafficAlertSettingsService>();
+        services.AddScoped<ITrafficInterfaceCatalogStore, TrafficInterfaceCatalogStore>();
         services.AddScoped<MikroTikTrafficSnapshotReader>();
+        services.AddScoped<TrafficHistoryAggregateService>();
         services.AddHostedService<TrafficBroadcastWorker>();
         services.AddHostedService<TrafficStatisticsSamplerWorker>();
+        services.AddHostedService<TrafficRetentionPurgeWorker>();
+        services.AddHostedService<TrafficThresholdAlertWorker>();
         services.AddHostedService<CalibrationRadioWorker>();
         return services;
     }

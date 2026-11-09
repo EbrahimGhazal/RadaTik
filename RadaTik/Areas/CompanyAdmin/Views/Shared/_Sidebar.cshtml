@@ -1,6 +1,10 @@
+@using RadaTik.Navigation
+@using RadaTik.Security
 @{
-    // CompanyAdmin sidebar (NetworkAdministrator).
     var isAuthenticated = (bool?)(ViewData["Layout_IsAuthenticated"]) == true;
+    bool employeePortal = User.IsInRole(RoleNames.CompanyEmployee) || User.IsInRole(RoleNames.EmployeeLegacy);
+    bool companyManager = User.IsInRole(RoleNames.NetworkAdministrator) || User.IsInRole(RoleNames.SystemAdministrator);
+    bool showEmployeeNav = employeePortal && !companyManager;
 }
 
 <aside class="sidebar sidebar-pro" id="sidebar">
@@ -10,7 +14,7 @@
                 ViewData["RtBrandVariant"] = "sidebar";
             }
             <partial name="_RadaTikBrandLogo" />
-            <small class="sidebar-brand-sub" dir="rtl">مدير الشركة</small>
+            <small class="sidebar-brand-sub" dir="rtl">@(showEmployeeNav ? "بوابة الموظف" : "مدير الشركة")</small>
         </div>
     </div>
 
@@ -35,11 +39,16 @@
         }
         else
         {
-            <partial name="_SidebarWalletBalance" />
-            <partial name="_SidebarNavSections" />
+            @if (showEmployeeNav)
+            {
+                @await Component.InvokeAsync("CompanySidebarNav", new { role = CompanySidebarRole.Employee })
+            }
+            else
+            {
+                <partial name="_SidebarWalletBalance" />
+                @await Component.InvokeAsync("CompanySidebarNav", new { role = CompanySidebarRole.Admin })
+            }
         }
     </nav>
 
 </aside>
-
-
