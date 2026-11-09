@@ -1,24 +1,25 @@
 @model RadaTik.ViewModels.CollectionPoints.CollectionPointDetailsViewModel
+@using RadaTik.Helpers
 
 @{
-    ViewData["Title"] = "تفاصيل نقطة التحصيل";
+    ViewData["Title"] = "سجل تحصيلات نقطة التحصيل";
+    var txs = Model.Transactions ?? [];
+    var printRows = Model.PrintRows ?? [];
 }
 
-<div class="financial-page financial-hub-page">
+<div class="financial-page financial-hub-page collection-point-company-history">
     @{
         ViewBag.FinancialNavShowWarehouse = false;
         ViewBag.FinancialNavCurrent = "collection";
+        ViewBag.FinancialHeroIcon = "fas fa-receipt";
+        ViewBag.FinancialHeroTheme = "default";
+        ViewBag.FinancialHeroSubtitle = Model.UserName + " — " + Model.PeriodLabel + " (" + Model.ResultCount + " عملية)";
     }
     <partial name="_FinancialQuickNav" />
-    @{
-        ViewBag.FinancialHeroIcon = "fas fa-info-circle";
-        ViewBag.FinancialHeroTheme = "default";
-        ViewBag.FinancialHeroSubtitle = Model.UserName + " — عمليات التحصيل";
-    }
     <partial name="_FinancialSysHero" />
 
-<div class="card mb-3">
-    <div class="card-body d-flex justify-content-between align-items-center">
+<div class="card mb-3 d-print-none">
+    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
             <h5 class="mb-1">نقطة التحصيل: @Model.UserName</h5>
             <p class="mb-0 text-muted">معرّف المستخدم: @Model.UserId</p>
@@ -30,7 +31,53 @@
     </div>
 </div>
 
-<div class="card">
+<div class="mb-3 d-print-none d-flex flex-wrap gap-2">
+    <button type="button" class="btn btn-outline-primary" onclick="window.print();">
+        <i class="fas fa-print"></i> طباعة الجدول
+    </button>
+    <a asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-arrow-right"></i> رجوع لتقرير تسديدات المشتركين
+    </a>
+    <a asp-action="Accounts" class="btn btn-outline-secondary">
+        <i class="fas fa-wallet"></i> أرصدة النقاط
+    </a>
+</div>
+
+<div class="card mb-3 d-print-none">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end" asp-action="Details" asp-route-id="@Model.AccountId">
+            <div class="col-sm-4 col-md-3">
+                <label class="form-label" for="historyFrom">من</label>
+                <input id="historyFrom" type="date" name="from" class="form-control" value="@(Model.From?.ToString("yyyy-MM-dd") ?? "")" />
+            </div>
+            <div class="col-sm-4 col-md-3">
+                <label class="form-label" for="historyTo">إلى</label>
+                <input id="historyTo" type="date" name="to" class="form-control" value="@(Model.To?.ToString("yyyy-MM-dd") ?? "")" />
+            </div>
+            <div class="col-sm-4 col-md-4 d-flex gap-2 flex-wrap">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="fas fa-filter"></i>
+                    تطبيق
+                </button>
+                <a class="btn btn-outline-secondary flex-grow-1"
+                   asp-action="Details"
+                   asp-route-id="@Model.AccountId">
+                    تفريغ
+                </a>
+            </div>
+        </form>
+        <div class="text-muted small mt-2">
+            الفترة: <strong>@Model.PeriodLabel</strong>
+            — النتائج: <strong>@Model.ResultCount</strong>
+            — الإجمالي: <strong>@SyrianCurrencyHelper.FormatNew(Model.TotalWithTax)</strong> ل.س.ج
+            <br />
+            تُعرض فقط تحصيلات مشتركي هذه الشركة عبر نقطة التحصيل المحددة.
+        </div>
+    </div>
+</div>
+
+@* —— شاشة العرض —— *@
+<div class="card d-print-none">
     <div class="card-header">
         <h5 class="card-title mb-0">
             <i class="fas fa-receipt"></i>
@@ -43,21 +90,39 @@
                 <thead class="table-light">
                     <tr>
                         <th>التاريخ</th>
+                        <th>نوع العملية</th>
                         <th>اسم المشترك</th>
+                        <th>الجوال</th>
                         <th>المبلغ المدفوع</th>
                         <th>رصيد العميل قبل</th>
                         <th>رصيد العميل بعد</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model.Transactions != null && Model.Transactions.Any())
+                    @if (txs.Any())
                     {
-                        @foreach (var t in Model.Transactions)
+                        foreach (var t in txs)
                         {
+                            var paid = t.PaymentAmount > 0 ? t.PaymentAmount : t.Amount;
                             <tr>
                                 <td>@t.PaymentDate.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td>
+                                    @if (t.OperationType == "Renewal")
+                                    {
+                                        <span class="badge bg-success">تجديد</span>
+                                    }
+                                    else if (t.OperationType == "ClientTopUp")
+                                    {
+                                        <span class="badge bg-info">تغذية رصيد</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary">تحصيل</span>
+                                    }
+                                </td>
                                 <td>@(t.Client?.Name ?? $"عميل رقم {t.ClientId}")</td>
-                                <td>@t.Amount.ToString("0.##")</td>
+                                <td>@(string.IsNullOrWhiteSpace(t.Client?.PhoneNumber) ? "—" : t.Client!.PhoneNumber)</td>
+                                <td>@SyrianCurrencyHelper.FormatNew(paid)</td>
                                 <td>@t.PreviousClientBalance.ToString("0.##")</td>
                                 <td>@t.NewClientBalance.ToString("0.##")</td>
                             </tr>
@@ -66,8 +131,8 @@
                     else
                     {
                         <tr>
-                            <td colspan="5" class="text-center text-muted">
-                                لا توجد عمليات تحصيل مسجلة لهذه النقطة.
+                            <td colspan="7" class="text-center text-muted">
+                                لا توجد عمليات تحصيل ضمن الفترة المحددة لمشتركي هذه الشركة.
                             </td>
                         </tr>
                     }
@@ -77,10 +142,237 @@
     </div>
 </div>
 
-<div class="mt-3">
-    <a asp-action="Index" class="btn btn-secondary micro-btn">
-        <i class="fas fa-arrow-right"></i> رجوع لقائمة نقاط التحصيل
-    </a>
+@* —— صفحة الطباعة —— *@
+<div class="d-none d-print-block collection-point-history-print">
+    <header class="cp-history-print-header">
+        <div class="cp-history-print-header__title">سجل تحصيلات نقطة التحصيل</div>
+        <div class="cp-history-print-meta">
+            <span><strong>اسم نقطة التحصيل:</strong> @Model.UserName</span>
+            <span><strong>الفترة:</strong> @Model.PeriodLabel</span>
+            <span><strong>تاريخ ووقت الطباعة:</strong> @Model.PrintedAt.ToString("yyyy/MM/dd HH:mm")</span>
+        </div>
+        <div class="cp-history-print-totals">
+            <span><strong>عدد العمليات:</strong> @Model.ResultCount</span>
+            <span><strong>إجمالي بدون الضريبة:</strong> @SyrianCurrencyHelper.FormatNew(Model.TotalWithoutTax) ل.س.ج</span>
+            <span><strong>قيمة الضريبة:</strong> @SyrianCurrencyHelper.FormatNew(Model.TaxAmount) ل.س.ج</span>
+            <span><strong>إجمالي بعد الضريبة:</strong> @SyrianCurrencyHelper.FormatNew(Model.TotalWithTax) ل.س.ج</span>
+        </div>
+    </header>
+
+    <table class="cp-history-print-table no-responsive-stack table table-bordered" data-radtk-mobile="off">
+        <thead>
+            <tr>
+                <th scope="col">تسلسل</th>
+                <th scope="col">الاسم الثلاثي</th>
+                <th scope="col">رقم الجوال</th>
+                <th scope="col">البروفايل (السرعة)</th>
+                <th scope="col">نوع العملية</th>
+                <th scope="col">المبلغ المدفوع</th>
+                <th scope="col">تاريخ التسديد</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (printRows.Any())
+            {
+                foreach (var row in printRows)
+                {
+                    <tr>
+                        <td>@row.Sequence</td>
+                        <td>@row.FullName</td>
+                        <td>@row.PhoneNumber</td>
+                        <td>@row.ProfileSpeed</td>
+                        <td>@row.OperationTypeLabel</td>
+                        <td>@SyrianCurrencyHelper.FormatNew(row.AmountPaid)</td>
+                        <td>@row.PaymentDate.ToString("yyyy/MM/dd HH:mm")</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="7" class="text-center">لا توجد بيانات</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <footer class="cp-history-print-footer">
+        <span>نقطة التحصيل: @Model.UserName</span>
+        <span class="cp-history-print-pagenum"></span>
+        <span>طُبع في @Model.PrintedAt.ToString("yyyy/MM/dd HH:mm")</span>
+    </footer>
 </div>
 </div>
 
+@section Styles {
+<style>
+.collection-point-history-print .cp-history-print-table,
+.collection-point-history-print .cp-history-print-table.table-responsive-stack,
+.collection-point-history-print .cp-history-print-table.radtk-data-table--cards {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+}
+
+.collection-point-history-print .cp-history-print-table thead {
+    display: table-header-group !important;
+}
+
+.collection-point-history-print .cp-history-print-table tbody {
+    display: table-row-group !important;
+}
+
+.collection-point-history-print .cp-history-print-table tr {
+    display: table-row !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    flex-direction: unset !important;
+}
+
+.collection-point-history-print .cp-history-print-table th,
+.collection-point-history-print .cp-history-print-table td {
+    display: table-cell !important;
+    width: auto !important;
+    border: 1px solid #64748b !important;
+    padding: 0.35rem 0.4rem !important;
+    font-size: 0.78rem !important;
+    text-align: right !important;
+    vertical-align: middle !important;
+    white-space: normal !important;
+    float: none !important;
+}
+
+.collection-point-history-print .cp-history-print-table thead th {
+    background: #e2e8f0 !important;
+    font-weight: 800 !important;
+}
+
+.collection-point-history-print .cp-history-print-table td::before {
+    content: none !important;
+    display: none !important;
+}
+
+@@media print {
+    .page-hero,
+    .sys-hero,
+    .financial-sys-hero,
+    .financial-quick-nav,
+    .sidebar,
+    .header,
+    .d-print-none {
+        display: none !important;
+    }
+
+    .collection-point-company-history {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        width: 100% !important;
+    }
+
+    .collection-point-history-print {
+        display: block !important;
+    }
+
+    .cp-history-print-header {
+        margin-bottom: 0.65rem;
+        padding-bottom: 0.45rem;
+        border-bottom: 2px solid #0f172a;
+    }
+
+    .cp-history-print-header__title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        margin-bottom: 0.35rem;
+    }
+
+    .cp-history-print-meta,
+    .cp-history-print-totals {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 1.1rem;
+        font-size: 0.78rem;
+        margin-top: 0.25rem;
+    }
+
+    html body .collection-point-history-print .cp-history-print-table,
+    html body .collection-point-history-print table.cp-history-print-table.table-responsive-stack,
+    html body .collection-point-history-print table.cp-history-print-table.table,
+    html body .collection-point-history-print table.cp-history-print-table.radtk-data-table--cards {
+        display: table !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        border-collapse: collapse !important;
+        table-layout: auto !important;
+        box-shadow: none !important;
+    }
+
+    html body .collection-point-history-print .cp-history-print-table thead {
+        display: table-header-group !important;
+    }
+
+    html body .collection-point-history-print .cp-history-print-table tbody {
+        display: table-row-group !important;
+    }
+
+    html body .collection-point-history-print .cp-history-print-table tr {
+        display: table-row !important;
+        page-break-inside: avoid;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
+    html body .collection-point-history-print .cp-history-print-table th,
+    html body .collection-point-history-print .cp-history-print-table td {
+        display: table-cell !important;
+        border: 1px solid #64748b !important;
+        padding: 0.28rem 0.35rem !important;
+        font-size: 0.7rem !important;
+        text-align: right !important;
+        vertical-align: middle !important;
+        word-wrap: break-word;
+        background: transparent !important;
+    }
+
+    html body .collection-point-history-print .cp-history-print-table thead th {
+        background: #e2e8f0 !important;
+        font-weight: 800 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    html body .collection-point-history-print .cp-history-print-table td::before,
+    html body .collection-point-history-print .cp-history-print-table th::before {
+        content: none !important;
+        display: none !important;
+    }
+
+    .cp-history-print-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+        padding-top: 0.35rem;
+        border-top: 1px solid #94a3b8;
+        font-size: 0.7rem;
+    }
+
+    .cp-history-print-pagenum::after {
+        content: "صفحة " counter(page);
+    }
+
+    @@page {
+        margin: 14mm 10mm 16mm 10mm;
+        size: A4 landscape;
+    }
+}
+</style>
+}
