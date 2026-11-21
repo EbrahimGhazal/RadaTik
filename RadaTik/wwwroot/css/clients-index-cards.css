@@ -123,10 +123,11 @@
     }
 
     html body .radtk-page-clients-index .clients-bulk-actions {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.5rem;
-        width: 100%;
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem;
+        width: auto;
     }
 
     html body .radtk-page-clients-index .clients-bulk-actions .btn {
@@ -134,15 +135,15 @@
         align-items: center;
         justify-content: center;
         gap: 0.4rem;
-        width: 100%;
-        min-height: 2.7rem;
+        width: auto;
+        min-height: 2.25rem;
         margin: 0;
         padding: 0.45rem 0.5rem;
         border-radius: 0.8rem;
         font-size: 0.78rem;
         font-weight: 700;
         line-height: 1.25;
-        white-space: normal;
+        white-space: nowrap;
         text-align: center;
     }
 
@@ -264,4 +265,330 @@ html body .radtk-page-emp-clients-index #clientsTable tbody tr.client-row[data-d
 html body .radtk-page-clients-index #clientsTable tbody tr.client-row[data-details-url]:hover,
 html body .radtk-page-emp-clients-index #clientsTable tbody tr.client-row[data-details-url]:hover {
     background-color: rgba(37, 99, 235, 0.06);
+}
+
+/* قائمة العملاء — أشرطة أيقونات + رأس جدول ثابت العرض */
+html body .radtk-surface .radtk-page-clients-index .clients-iconbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+    max-width: 100%;
+    padding: 0.35rem;
+    background: var(--bg-hover, #f4f7fb);
+    border: 1px solid var(--border-color, #e6ebf2);
+    border-radius: 12px;
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-page-toolbar.clients-iconbar {
+    width: max-content;
+    max-width: 100%;
+    margin-inline-start: 0;
+    margin-bottom: 0.85rem;
+    justify-content: flex-start;
+    background: var(--bg-card, #fff);
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-card-header {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.55rem;
+    overflow: visible;
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-card-header .card-title {
+    margin: 0;
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 10px;
+    background: var(--bg-card, #fff);
+    color: var(--text-secondary, #475569);
+    font-size: 0.92rem;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+    flex: 0 0 2.25rem;
+    box-shadow: none;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn > i {
+    pointer-events: none;
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn .column-toggle {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn:hover {
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn:focus-visible,
+html body .radtk-surface .radtk-page-clients-index .filter-btn:focus-visible {
+    outline: 2px solid var(--primary, #2563eb);
+    outline-offset: 2px;
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn--primary { color: var(--primary, #2563eb); }
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn--success { color: var(--success, #16a34a); }
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn--danger { color: var(--danger, #dc2626); }
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn--warning { color: #b45309; }
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn--info { color: var(--info, #0891b2); }
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn--ghost { color: var(--text-muted, #64748b); background: transparent; }
+
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn--primary:hover { background: color-mix(in srgb, var(--primary, #2563eb) 14%, var(--bg-card, #fff)); }
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn--success:hover { background: color-mix(in srgb, var(--success, #16a34a) 14%, var(--bg-card, #fff)); }
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn--danger:hover { background: color-mix(in srgb, var(--danger, #dc2626) 14%, var(--bg-card, #fff)); }
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn--warning:hover { background: rgba(217, 119, 6, 0.14); }
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn--info:hover { background: color-mix(in srgb, var(--info, #0891b2) 14%, var(--bg-card, #fff)); }
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn--ghost:hover { background: var(--bg-hover, #f1f5f9); color: var(--text-primary, #0f172a); }
+
+html body .radtk-surface .radtk-page-clients-index .clients-column-bar .clients-iconbtn:has(.column-toggle:not(:checked)) {
+    color: var(--text-muted, #94a3b8);
+    background: transparent;
+    border-style: dashed;
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-column-bar .clients-iconbtn:has(.column-toggle:checked) {
+    color: #fff;
+    background: var(--primary, #2563eb);
+    border-color: transparent;
+    border-style: solid;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--primary, #2563eb) 35%, transparent);
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-column-bar .clients-iconbtn:has(.column-toggle:checked):hover {
+    color: #fff;
+    background: color-mix(in srgb, var(--primary, #2563eb) 88%, #000);
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-iconbar__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    color: var(--primary, #0066CC);
+    flex: 0 0 auto;
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-iconbar__sep {
+    width: 1px;
+    align-self: stretch;
+    min-height: 1.35rem;
+    margin-inline: 0.15rem;
+    background: var(--border-color, #e2e8f0);
+    flex: 0 0 1px;
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-column-bar .clients-iconbtn[data-tip]::after {
+    top: auto;
+    bottom: calc(100% + 8px);
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn[data-tip]::after,
+html body .radtk-surface .radtk-page-clients-index .filter-btn[data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    padding: 0.28rem 0.55rem;
+    border-radius: 8px;
+    background: #0f172a;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.35;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn[data-tip]:hover::after,
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn[data-tip]:focus-visible::after,
+html body .radtk-surface .radtk-page-clients-index .clients-iconbtn[data-tip]:focus-within::after,
+html body .radtk-surface .radtk-page-clients-index .filter-btn[data-tip]:hover::after,
+html body .radtk-surface .radtk-page-clients-index .filter-btn[data-tip]:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-action-bar {
+    position: relative;
+    z-index: 5;
+    width: max-content;
+    max-width: 100%;
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-column-bar {
+    position: relative;
+    z-index: 6;
+    width: max-content;
+    max-width: 100%;
+}
+
+html body .radtk-surface .radtk-page-clients-index .clients-bulk-actions {
+    display: inline-flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    width: auto !important;
+    grid-template-columns: none !important;
+}
+
+html body .radtk-surface .radtk-page-clients-index .filter-buttons {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    grid-template-columns: none !important;
+    width: auto !important;
+    max-width: 100%;
+    flex: 0 1 auto;
+    gap: 0.35rem !important;
+    min-width: 0;
+}
+
+html body .radtk-surface .radtk-page-clients-index .filter-btn {
+    position: relative;
+    flex-direction: row !important;
+    width: auto !important;
+    min-width: 0;
+    min-height: 2.25rem;
+    padding: 0.15rem 0.5rem !important;
+    border-radius: 999px !important;
+    gap: 0.35rem !important;
+}
+
+html body .radtk-surface .radtk-page-clients-index .filter-btn > i {
+    font-size: 0.82rem;
+    line-height: 1;
+}
+
+html body .radtk-surface .radtk-page-clients-index .filter-btn__label {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+@media (min-width: 1200px) {
+    html body .radtk-surface .radtk-page-clients-index .clients-table-wrap .table-container,
+    html body .radtk-surface .radtk-page-clients-index .clients-table-wrap .table-responsive {
+        overflow: visible !important;
+        max-width: 100%;
+    }
+
+    html body .radtk-surface .radtk-page-clients-index .clients-table-wrap .dataTables_wrapper {
+        max-width: 100%;
+        max-height: calc(100dvh - 14.5rem);
+        overflow: auto !important;
+    }
+
+    html body .radtk-surface .radtk-page-clients-index #clientsTable {
+        table-layout: auto !important;
+        width: max-content !important;
+        min-width: 100% !important;
+        max-width: none !important;
+    }
+
+    html body .radtk-surface .radtk-page-clients-index #clientsTable th,
+    html body .radtk-surface .radtk-page-clients-index #clientsTable td {
+        max-width: none;
+    }
+
+    html body .radtk-surface .radtk-page-clients-index #clientsTable thead th {
+        position: sticky;
+        top: 0;
+        z-index: 4;
+        white-space: nowrap !important;
+        background: var(--bg-card, #fff);
+        box-shadow: inset 0 -1px 0 var(--border-color, #e5e7eb);
+    }
+
+    html body .radtk-surface .radtk-page-clients-index #clientsTable tbody td {
+        white-space: nowrap;
+        max-width: 14rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    html body .radtk-surface .radtk-page-clients-index #clientsTable th.clients-select-col,
+    html body .radtk-surface .radtk-page-clients-index #clientsTable td.clients-select-cell {
+        position: sticky;
+        inset-inline-start: 0;
+        width: 42px !important;
+        min-width: 42px !important;
+        max-width: 42px !important;
+        padding: 0.25rem 0 !important;
+        text-align: center;
+        white-space: nowrap !important;
+        overflow: visible;
+        background: var(--bg-card, #fff);
+        z-index: 5;
+        box-shadow: -8px 0 10px -8px rgba(15, 23, 42, 0.2);
+    }
+
+    html body .radtk-surface .radtk-page-clients-index #clientsTable thead th.clients-select-col {
+        z-index: 7;
+        background-image: none !important;
+        cursor: default;
+    }
+
+    html body .radtk-surface .radtk-page-clients-index #clientsTable .clients-select-col .form-check-input,
+    html body .radtk-surface .radtk-page-clients-index #clientsTable .clients-select-cell .form-check-input {
+        width: 1.05rem;
+        height: 1.05rem;
+        margin: 0;
+        float: none;
+        vertical-align: middle;
+    }
+
+    html body .radtk-surface .radtk-page-clients-index #clientsTable th.clients-actions-col,
+    html body .radtk-surface .radtk-page-clients-index #clientsTable td.clients-actions-cell {
+        width: 168px !important;
+        min-width: 168px !important;
+        max-width: none !important;
+        white-space: nowrap !important;
+        overflow: visible;
+    }
+
+    html body .radtk-surface .radtk-page-clients-index .clients-actions-cell .action-buttons {
+        flex-wrap: nowrap;
+    }
+
+    [data-theme="dark"] html body .radtk-surface .radtk-page-clients-index #clientsTable thead th,
+    [data-theme="dark"] html body .radtk-surface .radtk-page-clients-index #clientsTable th.clients-select-col,
+    [data-theme="dark"] html body .radtk-surface .radtk-page-clients-index #clientsTable td.clients-select-cell {
+        background: var(--bg-card, #1e293b);
+    }
 }
