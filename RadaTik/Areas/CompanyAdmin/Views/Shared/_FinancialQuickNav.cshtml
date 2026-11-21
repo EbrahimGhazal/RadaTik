@@ -2,6 +2,7 @@
     if (ViewBag.FinancialNavCurrent == null)
     {
         var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+        var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
         ViewBag.FinancialNavCurrent = ctrl switch
         {
             "CashBox" => "cashbox",
@@ -15,42 +16,140 @@
             "Payroll" => "payroll",
             "MaintenanceInvoices" => "maintenance",
             "CollectionPoints" => "collection",
-            "SubscriberInstallationPricing" or "SubscriberInstallationInvoices" => "installation",
+            "SubscriberInstallationPricing" or "SubscriberInstallationInvoices" or "PrivateSubscriberSetup" => "installation",
             "Reports" => "reports",
             "Warehouse" => "warehouse",
             "MaterialPurchaseInvoices" => "purchase",
             "MaterialSalesInvoices" => "sales",
-            "WarehouseStocktake" when ViewContext.RouteData.Values["action"]?.ToString() == "Report" => "report",
+            "WarehouseStocktake" when action == "Report" => "report",
             "WarehouseStocktake" => "stocktake",
+            "CompanyAccounting" when action == "Periods" => "periods",
+            "CompanyAccounting" when action == "Statements" => "statements",
+            "CompanyAccounting" => "accounting",
+            "ErpHub" => "erp-hub",
+            "ErpReports" => "erp-reports",
             _ => ""
         };
     }
     var current = ViewBag.FinancialNavCurrent as string ?? "";
     var showWarehouse = ViewBag.FinancialNavShowWarehouse as bool? ?? true;
+
+    string GroupFor(string key) => key switch
+    {
+        "cashbox" or "diary" or "receipts" or "wallet" or "client-topups"
+            or "employee-topups" or "collection" or "reconciliation" => "liquidity",
+        "warehouse" or "purchase" or "sales" or "stocktake" or "report" => "inventory",
+        "business" or "payroll" or "installation" or "maintenance" or "reports" => "ops",
+        "erp-hub" or "accounting" or "statements" or "periods" or "erp-reports" => "accounting",
+        _ => "liquidity"
+    };
+
+    var activeGroup = ViewBag.FinancialNavGroup as string;
+    if (string.IsNullOrWhiteSpace(activeGroup))
+    {
+        activeGroup = GroupFor(current);
+    }
+
+    ViewBag.FinancialNavGroup = activeGroup;
+    ViewBag.FinancialNavGroupLabel = activeGroup switch
+    {
+        "liquidity" => "السيولة والتحصيل",
+        "inventory" => "المخزون والمواد",
+        "ops" => "التشغيل والرواتب",
+        "accounting" => "المحاسبة وERP",
+        _ => "المالية"
+    };
+
+    bool IsCurrent(string key) => string.Equals(current, key, StringComparison.OrdinalIgnoreCase);
+    string ItemClass(string key) => "financial-quick-nav__item" + (IsCurrent(key) ? " is-current" : "");
 }
+<link rel="stylesheet" href="~/css/brand-colors.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/financial-quick-nav.css" asp-append-version="true" />
-<nav class="financial-quick-nav mb-3" aria-label="وحدات المالية">
-    <a class="financial-quick-nav__item @(current == "cashbox" ? "is-current" : "")" asp-route="networkManager-cashbox" asp-route-action="Index" asp-route-id=""><i class="fas fa-cash-register"></i> الصندوق</a>
-    <a class="financial-quick-nav__item @(current == "diary" ? "is-current" : "")" asp-route="networkManager-money-diary" asp-route-action="Index" asp-route-id=""><i class="fas fa-book"></i> الدفتر</a>
-    <a class="financial-quick-nav__item @(current == "wallet" || current == "client-topups" || current == "employee-topups" ? "is-current" : "")" asp-route="networkManager-wallet-index"><i class="fas fa-wallet"></i> المحفظة</a>
-    <a class="financial-quick-nav__item @(current == "client-topups" ? "is-current" : "")" asp-route="networkManager-client-wallet-topups" asp-route-action="Index" asp-route-id=""><i class="fas fa-user-check"></i> تغذية مشترك</a>
-    <a class="financial-quick-nav__item @(current == "employee-topups" ? "is-current" : "")" asp-route="networkManager-employee-wallet-topups" asp-route-action="Index" asp-route-id=""><i class="fas fa-users-cog"></i> تغذية موظف</a>
-    <a class="financial-quick-nav__item @(current == "receipts" ? "is-current" : "")" asp-route="networkManager-receipts" asp-route-action="Index" asp-route-id=""><i class="fas fa-receipt"></i> القبض</a>
+<nav class="financial-quick-nav financial-quick-nav--grouped mb-3" aria-label="وحدات المالية" data-active-group="@activeGroup">
+    <div class="financial-quick-nav__groups" role="tablist" aria-label="مجموعات المالية">
+        <button type="button" class="financial-quick-nav__group @(activeGroup == "liquidity" ? "is-active" : "")" data-fin-group="liquidity" aria-pressed="@(activeGroup == "liquidity" ? "true" : "false")">
+            <i class="fas fa-hand-holding-usd"></i> السيولة والتحصيل
+        </button>
+        @if (showWarehouse)
+        {
+            <button type="button" class="financial-quick-nav__group @(activeGroup == "inventory" ? "is-active" : "")" data-fin-group="inventory" aria-pressed="@(activeGroup == "inventory" ? "true" : "false")">
+                <i class="fas fa-boxes"></i> المخزون والمواد
+            </button>
+        }
+        <button type="button" class="financial-quick-nav__group @(activeGroup == "ops" ? "is-active" : "")" data-fin-group="ops" aria-pressed="@(activeGroup == "ops" ? "true" : "false")">
+            <i class="fas fa-briefcase"></i> التشغيل والرواتب
+        </button>
+        <button type="button" class="financial-quick-nav__group @(activeGroup == "accounting" ? "is-active" : "")" data-fin-group="accounting" aria-pressed="@(activeGroup == "accounting" ? "true" : "false")">
+            <i class="fas fa-balance-scale"></i> المحاسبة وERP
+        </button>
+    </div>
+
+    <div class="financial-quick-nav__panel @(activeGroup == "liquidity" ? "is-open" : "")" data-fin-panel="liquidity" @(activeGroup == "liquidity" ? "" : "hidden")>
+        <a class="@ItemClass("cashbox")" asp-route="networkManager-cashbox" asp-route-action="Index" asp-route-id=""><i class="fas fa-cash-register"></i> الصندوق</a>
+        <a class="@ItemClass("diary")" asp-route="networkManager-money-diary" asp-route-action="Index" asp-route-id=""><i class="fas fa-book"></i> الدفتر</a>
+        <a class="@ItemClass("receipts")" asp-route="networkManager-receipts" asp-route-action="Index" asp-route-id=""><i class="fas fa-receipt"></i> القبض</a>
+        <a class="@ItemClass("wallet")" asp-route="networkManager-wallet-index"><i class="fas fa-wallet"></i> المحفظة</a>
+        <a class="@ItemClass("client-topups")" asp-route="networkManager-client-wallet-topups" asp-route-action="Index" asp-route-id=""><i class="fas fa-user-check"></i> تغذية مشترك</a>
+        <a class="@ItemClass("employee-topups")" asp-route="networkManager-employee-wallet-topups" asp-route-action="Index" asp-route-id=""><i class="fas fa-users-cog"></i> تغذية موظف</a>
+        <a class="@ItemClass("collection")" asp-route="networkManager-collectionpoints"><i class="fas fa-receipt"></i> تسديدات التحصيل</a>
+        <a class="@ItemClass("reconciliation")" asp-route="networkManager-financial-reconciliation" asp-route-action="Index" asp-route-id=""><i class="fas fa-balance-scale"></i> جرد مالي</a>
+    </div>
+
     @if (showWarehouse)
     {
-        <span class="financial-quick-nav__sep" aria-hidden="true"></span>
-        <a class="financial-quick-nav__item @(current == "warehouse" ? "is-current" : "")" asp-route="networkManager-warehouse" asp-route-action="Index" asp-route-id=""><i class="fas fa-warehouse"></i> المستودع</a>
-        <a class="financial-quick-nav__item @(current == "purchase" ? "is-current" : "")" asp-route="networkManager-material-purchase" asp-route-action="Index" asp-route-id=""><i class="fas fa-cart-plus"></i> شراء</a>
-        <a class="financial-quick-nav__item @(current == "sales" ? "is-current" : "")" asp-route="networkManager-material-sales" asp-route-action="Index" asp-route-id=""><i class="fas fa-cash-register"></i> بيع</a>
-        <a class="financial-quick-nav__item @(current == "stocktake" ? "is-current" : "")" asp-route="networkManager-warehouse-stocktake" asp-route-action="Index" asp-route-id=""><i class="fas fa-clipboard-check"></i> جرد</a>
-        <a class="financial-quick-nav__item @(current == "report" ? "is-current" : "")" asp-route="networkManager-warehouse-stocktake" asp-route-action="Report" asp-route-id=""><i class="fas fa-chart-line"></i> تقرير</a>
+        <div class="financial-quick-nav__panel @(activeGroup == "inventory" ? "is-open" : "")" data-fin-panel="inventory" @(activeGroup == "inventory" ? "" : "hidden")>
+            <a class="@ItemClass("warehouse")" asp-route="networkManager-warehouse" asp-route-action="Index" asp-route-id=""><i class="fas fa-warehouse"></i> المستودع</a>
+            <a class="@ItemClass("purchase")" asp-route="networkManager-material-purchase" asp-route-action="Index" asp-route-id=""><i class="fas fa-cart-plus"></i> شراء</a>
+            <a class="@ItemClass("sales")" asp-route="networkManager-material-sales" asp-route-action="Index" asp-route-id=""><i class="fas fa-cash-register"></i> بيع</a>
+            <a class="@ItemClass("stocktake")" asp-route="networkManager-warehouse-stocktake" asp-route-action="Index" asp-route-id=""><i class="fas fa-clipboard-check"></i> جرد</a>
+            <a class="@ItemClass("report")" asp-route="networkManager-warehouse-stocktake" asp-route-action="Report" asp-route-id=""><i class="fas fa-chart-line"></i> تقرير جرد</a>
+        </div>
     }
-    <span class="financial-quick-nav__sep" aria-hidden="true"></span>
-    <a class="financial-quick-nav__item @(current == "business" ? "is-current" : "")" asp-route="networkManager-company-business" asp-route-action="Index" asp-route-id=""><i class="fas fa-building"></i> أعمال الشركة</a>
-    <a class="financial-quick-nav__item @(current == "payroll" ? "is-current" : "")" asp-route="networkManager-payroll" asp-route-action="Index" asp-route-id=""><i class="fas fa-users"></i> الرواتب</a>
-    <a class="financial-quick-nav__item @(current == "collection" ? "is-current" : "")" asp-route="networkManager-users-collectionPoints"><i class="fas fa-store"></i> نقاط التحصيل</a>
-    <a class="financial-quick-nav__item @(current == "installation" ? "is-current" : "")" asp-route="networkManager-subscriber-installation-pricing" asp-route-action="Index" asp-route-id=""><i class="fas fa-plug"></i> تجهيز مشترك</a>
-    <a class="financial-quick-nav__item @(current == "maintenance" ? "is-current" : "")" asp-route="networkManager-maintenance-invoices" asp-route-action="Index" asp-route-id=""><i class="fas fa-tools"></i> صيانة</a>
-    <a class="financial-quick-nav__item @(current == "reports" ? "is-current" : "")" asp-route="networkManager-reports" asp-route-action="Index" asp-route-id=""><i class="fas fa-file-alt"></i> تقارير</a>
-    <a class="financial-quick-nav__item @(current == "reconciliation" ? "is-current" : "")" asp-route="networkManager-financial-reconciliation" asp-route-action="Index" asp-route-id=""><i class="fas fa-balance-scale"></i> جرد مالي</a>
+
+    <div class="financial-quick-nav__panel @(activeGroup == "ops" ? "is-open" : "")" data-fin-panel="ops" @(activeGroup == "ops" ? "" : "hidden")>
+        <a class="@ItemClass("business")" asp-route="networkManager-company-business" asp-route-action="Index" asp-route-id=""><i class="fas fa-building"></i> أعمال الشركة</a>
+        <a class="@ItemClass("payroll")" asp-route="networkManager-payroll" asp-route-action="Index" asp-route-id=""><i class="fas fa-users"></i> الرواتب</a>
+        <a class="@ItemClass("installation")" asp-route="networkManager-subscriber-installation-pricing" asp-route-action="Index" asp-route-id=""><i class="fas fa-plug"></i> تجهيز مشترك</a>
+        <a class="@ItemClass("maintenance")" asp-route="networkManager-maintenance-invoices" asp-route-action="Index" asp-route-id=""><i class="fas fa-tools"></i> صيانة</a>
+        <a class="@ItemClass("reports")" asp-route="networkManager-reports" asp-route-action="Index" asp-route-id=""><i class="fas fa-file-alt"></i> تقارير</a>
+    </div>
+
+    <div class="financial-quick-nav__panel @(activeGroup == "accounting" ? "is-open" : "")" data-fin-panel="accounting" @(activeGroup == "accounting" ? "" : "hidden")>
+        <a class="@ItemClass("erp-hub")" asp-route="networkManager-erp"><i class="fas fa-chart-pie"></i> ERP</a>
+        <a class="@ItemClass("accounting")" asp-route="networkManager-erp-accounting"><i class="fas fa-book-open"></i> القيود</a>
+        <a class="@ItemClass("statements")" asp-route="networkManager-erp-accounting" asp-route-action="Statements"><i class="fas fa-file-invoice-dollar"></i> قوائم</a>
+        <a class="@ItemClass("periods")" asp-route="networkManager-erp-accounting" asp-route-action="Periods"><i class="fas fa-lock"></i> إقفال</a>
+        <a class="@ItemClass("erp-reports")" asp-route="networkManager-erp-reports"><i class="fas fa-chart-bar"></i> تقارير ERP</a>
+    </div>
 </nav>
+<script>
+(function () {
+    var root = document.currentScript && document.currentScript.previousElementSibling;
+    if (!root || !root.classList.contains('financial-quick-nav')) {
+        root = document.querySelector('.financial-quick-nav--grouped');
+    }
+    if (!root || root.dataset.finNavBound === '1') return;
+    root.dataset.finNavBound = '1';
+    var groups = root.querySelectorAll('[data-fin-group]');
+    var panels = root.querySelectorAll('[data-fin-panel]');
+    function show(name) {
+        groups.forEach(function (btn) {
+            var on = btn.getAttribute('data-fin-group') === name;
+            btn.classList.toggle('is-active', on);
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        panels.forEach(function (panel) {
+            var on = panel.getAttribute('data-fin-panel') === name;
+            panel.classList.toggle('is-open', on);
+            if (on) panel.removeAttribute('hidden');
+            else panel.setAttribute('hidden', '');
+        });
+        root.setAttribute('data-active-group', name);
+    }
+    groups.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            show(btn.getAttribute('data-fin-group'));
+        });
+    });
+})();
+</script>

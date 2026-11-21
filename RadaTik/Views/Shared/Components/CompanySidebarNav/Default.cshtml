@@ -1,0 +1,173 @@
+@model RadaTik.Navigation.SidebarNavViewModel
+@using RadaTik.Navigation
+
+@if (Model.Role == CompanySidebarRole.Admin && Model.CompanySettingsSetupIncomplete)
+{
+    <div class="nav-section nav-section-setup-alert" data-section-key="company-settings-setup-alert">
+        <a class="nav-setup-alert-card" href="@Model.CompanySettingsSetupUrl">
+            <span class="nav-setup-alert-icon"><i class="fas fa-exclamation-triangle"></i></span>
+            <span class="nav-setup-alert-body">
+                <strong>تهيئة إعدادات الشركة غير مكتملة</strong>
+                <small>
+                    @if (Model.PendingCompanySettingsApprovalsCount > 0)
+                    {
+                        <text>لديك @Model.PendingCompanySettingsApprovalsCount موافقة معلّقة — أنهِ الإعداد.</text>
+                    }
+                    else
+                    {
+                        <text>اضغط لإكمال الملكية/الشركاء/الزكاة.</text>
+                    }
+                </small>
+            </span>
+            <span class="nav-badge">!</span>
+        </a>
+    </div>
+}
+
+@foreach (SidebarSectionVm sec in Model.Sections)
+{
+    if (sec.IsHeadingOnly)
+    {
+        <div class="nav-section @(sec.CssClass)" aria-hidden="true" data-section-key="@sec.Key">
+            <div class="nav-section-title nav-section-static">
+                @if (!string.IsNullOrWhiteSpace(sec.IconClass))
+                {
+                    <i class="@sec.IconClass"></i>
+                }
+                <span>@sec.Title</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        string sectionClasses = "nav-section";
+        if (!string.IsNullOrWhiteSpace(sec.CssClass))
+        {
+            sectionClasses += " " + sec.CssClass;
+        }
+        if (sec.IsExpanded)
+        {
+            sectionClasses += " is-expanded";
+        }
+        if (sec.HasActive)
+        {
+            sectionClasses += " section-has-active";
+        }
+
+        <div class="@sectionClasses" data-section-key="@sec.Key">
+            @if (!sec.Flat)
+            {
+                if (sec.StaticTitle)
+                {
+                    <div class="nav-section-title nav-section-static">
+                        @if (!string.IsNullOrWhiteSpace(sec.IconClass))
+                        {
+                            <i class="@sec.IconClass"></i>
+                        }
+                        <span>@sec.Title</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="nav-section-title nav-section-toggle" role="button" tabindex="0"
+                         aria-expanded="@(sec.IsExpanded ? "true" : "false")">
+                        @if (!string.IsNullOrWhiteSpace(sec.IconClass))
+                        {
+                            <i class="@sec.IconClass"></i>
+                        }
+                        <span>@sec.Title</span>
+                        <i class="fas fa-chevron-down nav-section-chevron"></i>
+                    </div>
+                }
+            }
+
+            <ul class="nav-list@(sec.Flat ? " nav-list--flat" : "")">
+                @foreach (SidebarEntryVm entry in sec.Entries)
+                {
+                    if (entry.IsDropdown)
+                    {
+                        <li class="nav-item has-dropdown @(entry.DropdownOpen ? "open" : "")">
+                            <div class="nav-link-toggle" role="button" tabindex="0">
+                                <span class="nav-icon"><i class="@entry.DropdownIcon"></i></span>
+                                <span>@entry.DropdownTitle</span>
+                                <i class="fas fa-chevron-down nav-chevron"></i>
+                            </div>
+                            <ul class="nav-sublist">
+                                @foreach (SidebarLinkVm child in entry.Children)
+                                {
+                                    if (child.ExtraCssClass == "nav-group-label-item")
+                                    {
+                                        <li class="nav-group-label">@child.Title</li>
+                                    }
+                                    else
+                                    {
+                                        <li class="nav-item">
+                                            <a class="nav-link nav-link-sub @(child.IsActive ? "active" : "")"
+                                               href="@child.Href">
+                                                <i class="@child.IconClass"></i>
+                                                <span>@child.Title</span>
+                                                @if (child.BadgeCount is int bc && bc > 0)
+                                                {
+                                                    <span class="nav-badge">@bc</span>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(child.BadgeDomId))
+                                                {
+                                                    <span class="nav-badge" id="@child.BadgeDomId" style="display: none;">0</span>
+                                                }
+                                            </a>
+                                        </li>
+                                    }
+                                }
+                            </ul>
+                        </li>
+                    }
+                    else if (entry.Link is SidebarLinkVm link)
+                    {
+                        string linkClass = "nav-link";
+                        if (link.Featured)
+                        {
+                            linkClass += " nav-link-featured";
+                        }
+                        if (link.IsActive)
+                        {
+                            linkClass += " active";
+                        }
+                        if (!string.IsNullOrWhiteSpace(link.ExtraCssClass))
+                        {
+                            linkClass += " " + link.ExtraCssClass;
+                        }
+
+                        <li class="nav-item">
+                            <a class="@linkClass" href="@link.Href">
+                                <span class="nav-icon"><i class="@link.IconClass"></i></span>
+                                <span>@link.Title</span>
+                                @if (!string.IsNullOrWhiteSpace(link.Hint))
+                                {
+                                    <small class="nav-link-hint">@link.Hint</small>
+                                }
+                                @if (link.BadgeCount is int count && count > 0)
+                                {
+                                    <span class="nav-badge">@count</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(link.BadgeDomId))
+                                {
+                                    <span class="nav-badge" id="@link.BadgeDomId" style="display: none;">0</span>
+                                }
+                            </a>
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+    }
+}
+
+@if (Model.ShowEmptyWorkHint)
+{
+    <div class="nav-section nav-section-empty-work">
+        <p class="nav-empty-hint">
+            <i class="fas fa-info-circle"></i>
+            لا توجد مهام عمل مُفعّلة بعد. راجع مدير الشبكة لتعيين الصلاحيات.
+        </p>
+    </div>
+}

@@ -1,70 +1,149 @@
-@model List<RadaTik.Models.CollectionPointAccount>
+@model RadaTik.ViewModels.CollectionPoints.CollectionPointPaymentsReportViewModel
+@using RadaTik.Helpers
 
 @{
-    ViewData["Title"] = "نقاط المبيع (تحصيل مالي)";
+    ViewData["Title"] = "تسديدات المشتركين عبر نقاط التحصيل";
+    var canManage = ViewBag.CanManage as bool? ?? false;
+    var rows = Model.Rows ?? [];
 }
 
-<div class="financial-page financial-hub-page">
+<div class="financial-page financial-hub-page collection-point-company-payments">
     @{
         ViewBag.FinancialNavShowWarehouse = false;
         ViewBag.FinancialNavCurrent = "collection";
+        ViewBag.FinancialHeroIcon = "fas fa-receipt";
+        ViewBag.FinancialHeroTheme = "default";
+        ViewBag.FinancialHeroSubtitle = Model.PeriodLabel + " — " + Model.ResultCount + " تسديد لمشتركي الشركة عبر نقاط التحصيل";
+        ViewBag.FinancialHeroActions = canManage
+            ? @"<a class=""btn btn-outline-primary micro-btn"" href=""" + Url.Action("Accounts") + @"""><i class=""fas fa-wallet""></i> أرصدة النقاط</a>"
+            : @"<a class=""btn btn-outline-secondary micro-btn"" href=""" + Url.Action("Accounts") + @"""><i class=""fas fa-wallet""></i> أرصدة النقاط</a>";
     }
     <partial name="_FinancialQuickNav" />
-    @{
-        ViewBag.FinancialHeroIcon = "fas fa-store";
-        ViewBag.FinancialHeroTheme = "default";
-        ViewBag.FinancialHeroSubtitle = "عرض أرصدة نقاط التحصيل وتصفير الرصيد — طلبات الإنشاء من التسجيل العام";
-        ViewBag.FinancialHeroActions = @"<a class=""btn btn-primary micro-btn"" href=""" + Url.Action("Create") + @"""><i class=""fas fa-plus""></i> طلب نقطة جديدة</a>";
-    }
     <partial name="_FinancialSysHero" />
 
-<div class="card">
+<div class="mb-3 d-print-none d-flex flex-wrap gap-2">
+    <button type="button" class="btn btn-outline-primary" onclick="window.print();">
+        <i class="fas fa-print"></i> طباعة الجدول
+    </button>
+</div>
+
+<div class="card mb-3 d-print-none">
     <div class="card-body">
+        <form method="get" class="row g-2 align-items-end" asp-action="Index">
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label" for="paymentsFrom">من</label>
+                <input id="paymentsFrom" type="date" name="from" class="form-control" value="@(Model.From?.ToString("yyyy-MM-dd") ?? "")" />
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label" for="paymentsTo">إلى</label>
+                <input id="paymentsTo" type="date" name="to" class="form-control" value="@(Model.To?.ToString("yyyy-MM-dd") ?? "")" />
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <label class="form-label" for="collectionPointUserId">نقطة التحصيل</label>
+                <select id="collectionPointUserId" name="collectionPointUserId" class="form-select">
+                    <option value="">كل النقاط</option>
+                    @foreach (var opt in Model.CollectionPointOptions)
+                    {
+                        if (string.Equals(Model.CollectionPointUserId, opt.UserId, StringComparison.Ordinal))
+                        {
+                            <option value="@opt.UserId" selected>@opt.DisplayName</option>
+                        }
+                        else
+                        {
+                            <option value="@opt.UserId">@opt.DisplayName</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-sm-6 col-md-3 d-flex gap-2 flex-wrap">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="fas fa-filter"></i>
+                    تطبيق
+                </button>
+                <a class="btn btn-outline-secondary flex-grow-1" asp-action="Index">تفريغ</a>
+            </div>
+        </form>
+        <div class="text-muted small mt-2">
+            الفترة: <strong>@Model.PeriodLabel</strong>
+            — النتائج: <strong>@Model.ResultCount</strong>
+            — الإجمالي: <strong>@SyrianCurrencyHelper.FormatNew(Model.TotalWithTax)</strong> ل.س.ج
+            <br />
+            يظهر هنا مشتركي هذه الشركة الذين سدّدوا عبر نقاط التحصيل فقط.
+        </div>
+    </div>
+</div>
+
+<div class="card d-print-none">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-users"></i>
+            المشتركين الذين سدّدوا عبر نقاط التحصيل
+        </h5>
+    </div>
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-striped align-middle radtk-data-table radtk-data-table--cards">
-                <thead>
+            <table class="table table-striped table-hover mb-0 radtk-data-table radtk-data-table--cards">
+                <thead class="table-light">
                     <tr>
-                        <th>المستخدم</th>
-                        <th>الرصيد</th>
-                        <th>آخر تحديث</th>
-                        <th style="width: 220px;">إجراءات</th>
+                        <th>#</th>
+                        <th>التاريخ</th>
+                        <th>اسم المشترك</th>
+                        <th>الجوال</th>
+                        <th>نقطة التحصيل</th>
+                        <th>نوع العملية</th>
+                        <th>المبلغ</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model != null && Model.Any())
+                    @if (rows.Any())
                     {
-                        foreach (var a in Model)
+                        foreach (var row in rows)
                         {
                             <tr>
-                                <td>@(a.User?.UserName ?? a.UserId)</td>
-                                <td style="font-weight: 700;">@a.Balance.ToString("0.##")</td>
-                                <td class="text-muted">@a.UpdatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td>@row.Sequence</td>
+                                <td>@row.PaymentDate.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td>@row.SubscriberName</td>
+                                <td>@row.PhoneNumber</td>
                                 <td>
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <form asp-action="ResetBalance" method="post" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@a.Id" />
-                                            <button type="submit" class="btn btn-outline-danger"
-                                                    onclick="return confirm('هل أنت متأكد من تصفير الرصيد؟')"
-                                                    title="تصفير الرصيد">
-                                                <i class="fas fa-eraser"></i>
-                                            </button>
-                                        </form>
-                                        <a asp-action="Edit" asp-route-id="@a.Id" class="btn btn-outline-primary" title="تعديل الرصيد">
-                                            <i class="fas fa-edit"></i>
+                                    @if (row.CollectionPointAccountId.HasValue)
+                                    {
+                                        <a asp-action="Details"
+                                           asp-route-id="@row.CollectionPointAccountId.Value"
+                                           asp-route-from="@(Model.From?.ToString("yyyy-MM-dd"))"
+                                           asp-route-to="@(Model.To?.ToString("yyyy-MM-dd"))"
+                                           class="fw-semibold text-decoration-none">
+                                            @row.CollectionPointName
                                         </a>
-                                        <a asp-action="Details" asp-route-id="@a.Id" class="btn btn-outline-info" title="تفاصيل التحصيل">
-                                            <i class="fas fa-list-alt"></i>
-                                        </a>
-                                    </div>
+                                    }
+                                    else
+                                    {
+                                        @row.CollectionPointName
+                                    }
                                 </td>
+                                <td>
+                                    @if (row.OperationType == "Renewal")
+                                    {
+                                        <span class="badge bg-success">@row.OperationTypeLabel</span>
+                                    }
+                                    else if (row.OperationType == "ClientTopUp")
+                                    {
+                                        <span class="badge bg-info">@row.OperationTypeLabel</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary">@row.OperationTypeLabel</span>
+                                    }
+                                </td>
+                                <td>@SyrianCurrencyHelper.FormatNew(row.AmountPaid)</td>
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="4" class="text-center text-muted">لا توجد نقاط تحصيل ضمن الشبكة المحددة</td>
+                            <td colspan="7" class="text-center text-muted">
+                                لا توجد تسديدات لمشتركي هذه الشركة عبر نقاط التحصيل ضمن الفترة المحددة.
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -72,5 +151,132 @@
         </div>
     </div>
 </div>
+
+@* —— صفحة الطباعة —— *@
+<div class="d-none d-print-block collection-point-history-print">
+    <header class="cp-history-print-header">
+        <div class="cp-history-print-header__title">تسديدات المشتركين عبر نقاط التحصيل</div>
+        <div class="cp-history-print-meta">
+            <span><strong>الفترة:</strong> @Model.PeriodLabel</span>
+            <span><strong>تاريخ ووقت الطباعة:</strong> @Model.PrintedAt.ToString("yyyy/MM/dd HH:mm")</span>
+        </div>
+        <div class="cp-history-print-totals">
+            <span><strong>عدد العمليات:</strong> @Model.ResultCount</span>
+            <span><strong>إجمالي بدون الضريبة:</strong> @SyrianCurrencyHelper.FormatNew(Model.TotalWithoutTax) ل.س.ج</span>
+            <span><strong>قيمة الضريبة:</strong> @SyrianCurrencyHelper.FormatNew(Model.TaxAmount) ل.س.ج</span>
+            <span><strong>إجمالي بعد الضريبة:</strong> @SyrianCurrencyHelper.FormatNew(Model.TotalWithTax) ل.س.ج</span>
+        </div>
+    </header>
+
+    <table class="cp-history-print-table no-responsive-stack table table-bordered" data-radtk-mobile="off">
+        <thead>
+            <tr>
+                <th scope="col">تسلسل</th>
+                <th scope="col">الاسم الثلاثي</th>
+                <th scope="col">رقم الجوال</th>
+                <th scope="col">البروفايل (السرعة)</th>
+                <th scope="col">نقطة التحصيل</th>
+                <th scope="col">نوع العملية</th>
+                <th scope="col">المبلغ المدفوع</th>
+                <th scope="col">تاريخ التسديد</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (rows.Any())
+            {
+                foreach (var row in rows)
+                {
+                    <tr>
+                        <td>@row.Sequence</td>
+                        <td>@row.SubscriberName</td>
+                        <td>@row.PhoneNumber</td>
+                        <td>@row.ProfileSpeed</td>
+                        <td>@row.CollectionPointName</td>
+                        <td>@row.OperationTypeLabel</td>
+                        <td>@SyrianCurrencyHelper.FormatNew(row.AmountPaid)</td>
+                        <td>@row.PaymentDate.ToString("yyyy/MM/dd HH:mm")</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="8" class="text-center">لا توجد بيانات</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <footer class="cp-history-print-footer">
+        <span>تسديدات مشتركي الشركة عبر نقاط التحصيل</span>
+        <span class="cp-history-print-pagenum"></span>
+        <span>طُبع في @Model.PrintedAt.ToString("yyyy/MM/dd HH:mm")</span>
+    </footer>
+</div>
 </div>
 
+@section Styles {
+<style>
+.collection-point-history-print .cp-history-print-table,
+.collection-point-history-print .cp-history-print-table.table-responsive-stack,
+.collection-point-history-print .cp-history-print-table.radtk-data-table--cards {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+}
+
+.collection-point-history-print .cp-history-print-table thead { display: table-header-group !important; }
+.collection-point-history-print .cp-history-print-table tbody { display: table-row-group !important; }
+.collection-point-history-print .cp-history-print-table tr { display: table-row !important; }
+.collection-point-history-print .cp-history-print-table th,
+.collection-point-history-print .cp-history-print-table td {
+    display: table-cell !important;
+    border: 1px solid #64748b !important;
+    padding: 0.35rem 0.4rem !important;
+    font-size: 0.78rem !important;
+    text-align: right !important;
+}
+.collection-point-history-print .cp-history-print-table thead th {
+    background: #e2e8f0 !important;
+    font-weight: 800 !important;
+}
+.collection-point-history-print .cp-history-print-table td::before { content: none !important; display: none !important; }
+
+@@media print {
+    .page-hero, .sys-hero, .financial-sys-hero, .financial-quick-nav, .sidebar, .header, .d-print-none {
+        display: none !important;
+    }
+    .collection-point-company-payments {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        width: 100% !important;
+    }
+    .collection-point-history-print { display: block !important; }
+    .cp-history-print-header {
+        margin-bottom: 0.65rem;
+        padding-bottom: 0.45rem;
+        border-bottom: 2px solid #0f172a;
+    }
+    .cp-history-print-header__title { font-size: 1.15rem; font-weight: 800; margin-bottom: 0.35rem; }
+    .cp-history-print-meta, .cp-history-print-totals {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 1.1rem;
+        font-size: 0.78rem;
+        margin-top: 0.25rem;
+    }
+    .cp-history-print-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+        padding-top: 0.35rem;
+        border-top: 1px solid #94a3b8;
+        font-size: 0.7rem;
+    }
+    .cp-history-print-pagenum::after { content: "صفحة " counter(page); }
+    @@page { margin: 14mm 10mm 16mm 10mm; size: A4 landscape; }
+}
+</style>
+}
